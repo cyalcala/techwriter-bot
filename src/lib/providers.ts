@@ -15,10 +15,10 @@ export const ZEN_REGISTRY: Provider[] = [
     strengths: ['speed', 'drafting']
   },
   {
-    id: 'nvidia-nemotron',
+    id: 'nvidia-minimax',
     name: 'nvidia',
     endpoint: 'https://integrate.api.nvidia.com/v1',
-    model: 'nvidia/nemotron-4-340b-instruct', // Or whichever free model is preferred
+    model: 'minimaxai/minimax-m2.7',
     strengths: ['reasoning', 'editing']
   },
   {
@@ -35,17 +35,17 @@ export const VARIANTS = {
   'draft': {
     temperature: 0.7,
     max_tokens: 4096,
-    providerPreference: ['groq-llama', 'nvidia-nemotron', 'gemini-flash']
+    providerPreference: ['groq-llama', 'nvidia-minimax', 'gemini-flash']
   },
   'edit': {
     temperature: 0.2,
     max_tokens: 4096,
-    providerPreference: ['nvidia-nemotron', 'groq-llama', 'gemini-flash']
+    providerPreference: ['nvidia-minimax', 'groq-llama', 'gemini-flash']
   },
   'outline': {
     temperature: 0.4,
     max_tokens: 2048,
-    providerPreference: ['nvidia-nemotron', 'gemini-flash']
+    providerPreference: ['nvidia-minimax', 'gemini-flash']
   },
   'research': {
     temperature: 0.1,
