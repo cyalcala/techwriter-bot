@@ -45,17 +45,17 @@ export const VARIANTS = {
   'outline': {
     temperature: 0.4,
     max_tokens: 2048,
-    providerPreference: ['nvidia-minimax', 'gemini-flash']
+    providerPreference: ['nvidia-minimax', 'gemini-flash', 'groq-llama']
   },
   'research': {
     temperature: 0.1,
     max_tokens: 2048,
-    providerPreference: ['gemini-flash', 'groq-llama']
+    providerPreference: ['gemini-flash', 'groq-llama', 'nvidia-minimax']
   },
   'chat-fast': {
     temperature: 0.7,
     max_tokens: 1024,
-    providerPreference: ['groq-llama', 'gemini-flash']
+    providerPreference: ['groq-llama', 'nvidia-minimax', 'gemini-flash']
   }
 } as const;
 

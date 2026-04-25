@@ -2,6 +2,7 @@ import { ZEN_REGISTRY, VARIANTS, type IntentVariant, type Provider } from './pro
 
 export async function routeChat(intent: IntentVariant, messages: any[], env: any) {
   const variant = VARIANTS[intent] || VARIANTS['chat-fast'];
+  const errors: string[] = [];
   
   for (const providerId of variant.providerPreference) {
     const provider = ZEN_REGISTRY.find(p => p.id === providerId);
@@ -17,14 +18,17 @@ export async function routeChat(intent: IntentVariant, messages: any[], env: any
       }
       
       console.warn(`[ZenRouter] Provider ${provider.id} returned status ${response.status}`);
+      const errText = await response.text();
+      errors.push(`${provider.id} failed with ${response.status}: ${errText}`);
       // If 429 or 5xx, we continue to the next fallback provider
-    } catch (e) {
+    } catch (e: any) {
       console.error(`[ZenRouter] Provider ${provider.id} threw an error:`, e);
+      errors.push(`${provider.id} error: ${e.message || String(e)}`);
       continue;
     }
   }
   
-  return new Response(JSON.stringify({ error: 'All free API providers exhausted or unavailable.' }), { status: 503 });
+  return new Response(JSON.stringify({ error: 'All free API providers exhausted or unavailable.', details: errors }), { status: 503 });
 }
 
 async function callProvider(provider: Provider, variant: typeof VARIANTS[IntentVariant], messages: any[], env: any) {
