@@ -9,7 +9,8 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "deploy:pages": "npm run build && node ./deploy-pages.js"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^13.2.1",
