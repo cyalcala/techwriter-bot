@@ -1,17 +1,20 @@
 ---
-
+import '../styles/global.css';
+import ChatIsland from '../components/ChatIsland.svelte';
 ---
 
 <html lang="en">
 	<head>
 		<meta charset="utf-8" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
 		<meta name="viewport" content="width=device-width" />
 		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
+		<title>Technical Writer Bot</title>
+		
+		<!-- Cloudflare Turnstile -->
+		<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 	</head>
-	<body>
-		<h1>Astro</h1>
+	<body class="bg-gray-900 text-white m-0 p-0 overflow-hidden">
+		<ChatIsland client:load />
 	</body>
 </html>
