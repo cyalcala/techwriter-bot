@@ -12,6 +12,13 @@ import ChatIsland from '../components/ChatIsland.svelte';
 		<title>Technical Writer Bot</title>
 		
 		<!-- Cloudflare Turnstile -->
+		<script is:inline>
+			window.turnstileTokenValue = '';
+			window.onTurnstileSuccess = function(token) {
+				window.turnstileTokenValue = token;
+				window.dispatchEvent(new CustomEvent('turnstile-success', { detail: token }));
+			};
+		</script>
 		<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 	</head>
 	<body class="bg-gray-900 text-white m-0 p-0 overflow-hidden">

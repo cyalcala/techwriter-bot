@@ -6,12 +6,17 @@
   let isLoading = false;
   let turnstileToken = '';
 
-  // Setup turnstile callback globally
   onMount(() => {
     // @ts-ignore
-    window.onTurnstileSuccess = (token) => {
-      turnstileToken = token;
+    if (window.turnstileTokenValue) {
+      // @ts-ignore
+      turnstileToken = window.turnstileTokenValue;
+    }
+    const handleTurnstile = (e) => {
+      turnstileToken = e.detail;
     };
+    window.addEventListener('turnstile-success', handleTurnstile);
+    return () => window.removeEventListener('turnstile-success', handleTurnstile);
   });
 
   async function sendMessage() {
