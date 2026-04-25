@@ -7,19 +7,32 @@ import ChatIsland from '../components/ChatIsland.svelte';
 	<head>
 		<meta charset="utf-8" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="viewport" content="width=device-width" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 		<meta name="generator" content={Astro.generator} />
 		<title>Technical Writer Bot</title>
+		
+		<!-- Premium Typography -->
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500&display=swap" rel="stylesheet">
 		
 		<!-- Cloudflare Turnstile -->
 		<script is:inline>
 			window.turnstileTokenValue = '';
+			// Global callback for Turnstile
 			window.onTurnstileSuccess = function(token) {
+				console.log("[Turnstile] Verification successful");
 				window.turnstileTokenValue = token;
 				window.dispatchEvent(new CustomEvent('turnstile-success', { detail: token }));
 			};
+			
+			// Notify when script is actually loaded
+			window.onTurnstileLoad = function() {
+				console.log("[Turnstile] Script loaded and ready");
+				window.dispatchEvent(new CustomEvent('turnstile-ready'));
+			};
 		</script>
-		<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+		<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad" async defer></script>
 	</head>
 	<body class="bg-gray-900 text-white m-0 p-0 overflow-hidden">
 		<ChatIsland client:load />

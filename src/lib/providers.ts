@@ -8,11 +8,25 @@ export interface Provider {
 
 export const ZEN_REGISTRY: Provider[] = [
   {
+    id: 'cerebras-llama',
+    name: 'cerebras',
+    endpoint: 'https://api.cerebras.ai/v1',
+    model: 'llama3.1-70b',
+    strengths: ['insane-speed', 'intelligence']
+  },
+  {
     id: 'groq-llama',
     name: 'groq',
     endpoint: 'https://api.groq.com/openai/v1',
     model: 'llama-3.3-70b-versatile',
     strengths: ['speed', 'drafting']
+  },
+  {
+    id: 'nvidia-llama-fast',
+    name: 'nvidia',
+    endpoint: 'https://integrate.api.nvidia.com/v1',
+    model: 'meta/llama-3.1-8b-instruct',
+    strengths: ['speed', 'latency']
   },
   {
     id: 'nvidia-minimax',
@@ -35,27 +49,27 @@ export const VARIANTS = {
   'draft': {
     temperature: 0.7,
     max_tokens: 4096,
-    providerPreference: ['groq-llama', 'nvidia-minimax', 'gemini-flash']
+    providerPreference: ['cerebras-llama', 'groq-llama', 'nvidia-minimax', 'gemini-flash']
   },
   'edit': {
     temperature: 0.2,
     max_tokens: 4096,
-    providerPreference: ['nvidia-minimax', 'groq-llama', 'gemini-flash']
+    providerPreference: ['cerebras-llama', 'gemini-flash', 'groq-llama', 'nvidia-minimax']
   },
   'outline': {
     temperature: 0.4,
     max_tokens: 2048,
-    providerPreference: ['nvidia-minimax', 'gemini-flash', 'groq-llama']
+    providerPreference: ['cerebras-llama', 'nvidia-minimax', 'gemini-flash', 'groq-llama']
   },
   'research': {
     temperature: 0.1,
     max_tokens: 2048,
-    providerPreference: ['gemini-flash', 'groq-llama', 'nvidia-minimax']
+    providerPreference: ['cerebras-llama', 'gemini-flash', 'groq-llama', 'nvidia-minimax']
   },
   'chat-fast': {
     temperature: 0.7,
     max_tokens: 1024,
-    providerPreference: ['groq-llama', 'nvidia-minimax', 'gemini-flash']
+    providerPreference: ['cerebras-llama', 'groq-llama', 'nvidia-llama-fast', 'nvidia-minimax', 'gemini-flash']
   }
 } as const;
 

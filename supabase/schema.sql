@@ -8,6 +8,7 @@ CREATE TABLE entities (
   name TEXT NOT NULL,
   type TEXT NOT NULL, -- e.g., 'preferred_term', 'avoid_term'
   description TEXT,
+  session_id UUID, -- For sandbox isolation
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -20,6 +21,7 @@ CREATE TABLE notes (
   -- 384 dimensions is standard for all-MiniLM-L6-v2 via transformers.js
   embedding vector(384),
   metadata JSONB DEFAULT '{}'::jsonb,
+  session_id UUID, -- For sandbox isolation
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -37,7 +39,7 @@ CREATE OR REPLACE FUNCTION match_notes(
   query_embedding vector(384),
   match_threshold float,
   match_count int,
-  p_user_id UUID
+  p_session_id UUID
 )
 RETURNS TABLE (
   id UUID,
@@ -54,7 +56,7 @@ AS $$
     1 - (notes.embedding <=> query_embedding) AS similarity
   FROM notes
   WHERE 1 - (notes.embedding <=> query_embedding) > match_threshold
-    AND notes.user_id = p_user_id
+    AND (notes.session_id = p_session_id OR notes.session_id IS NULL)
   ORDER BY notes.embedding <=> query_embedding
   LIMIT match_count;
 $$;

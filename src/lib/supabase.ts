@@ -12,14 +12,15 @@ export function getSupabase(env: any) {
   return createClient(supabaseUrl, supabaseKey);
 }
 
-// Function to store an embedded note chunk
-export async function storeNoteChunk(env: any, userId: string, title: string, content: string, embedding: number[], metadata: any = {}) {
+// Function to store an embedded note chunk (supports session isolation)
+export async function storeNoteChunk(env: any, sessionId: string, title: string, content: string, embedding: number[], metadata: any = {}) {
   const supabase = getSupabase(env);
   
   const { data, error } = await supabase
     .from('notes')
     .insert({
-      user_id: userId,
+      user_id: '00000000-0000-0000-0000-000000000000', // System user or dummy for public sandbox
+      session_id: sessionId,
       title,
       content,
       embedding,
@@ -32,15 +33,15 @@ export async function storeNoteChunk(env: any, userId: string, title: string, co
   return data;
 }
 
-// Function to retrieve context (RAG)
-export async function retrieveRelevantContext(env: any, userId: string, queryEmbedding: number[], limit: number = 5) {
+// Function to retrieve context (RAG) filtered by session
+export async function retrieveRelevantContext(env: any, sessionId: string, queryEmbedding: number[], limit: number = 5) {
   const supabase = getSupabase(env);
 
   const { data, error } = await supabase.rpc('match_notes', {
     query_embedding: queryEmbedding,
-    match_threshold: 0.7, // Only return reasonably close matches
+    match_threshold: 0.4, // Lowered from 0.7 for better recall
     match_count: limit,
-    p_user_id: userId
+    p_session_id: sessionId
   });
 
   if (error) throw error;
