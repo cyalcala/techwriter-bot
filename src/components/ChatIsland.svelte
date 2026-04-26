@@ -6,6 +6,7 @@
   ];
   let inputMessage = '';
   let isLoading = false;
+  let isStreaming = false;
   let turnstileToken = '';
   let sessionId = '';
   let isUploading = false;
@@ -13,14 +14,7 @@
   let fileInput;
   let isThinkingMode = false;
   let chatContainer;
-  let authTimeout = false;
-
-  // Show emergency bypass after 3 seconds
-  onMount(() => {
-    setTimeout(() => {
-      if (!turnstileToken) authTimeout = true;
-    }, 3000);
-  });
+  let turnstileWidgetId = null;
 
   // Generate a new session ID
   function generateSessionId() {
@@ -29,39 +23,27 @@
 
   function initTurnstile() {
     if (window.turnstile) {
-      console.log("[Svelte] Rendering Turnstile...");
-      window.turnstile.render('#turnstile-container', {
-        sitekey: '0x4AAAAAAASo_P5_H-S7U0h9',
+      if (turnstileWidgetId !== null) {
+        window.turnstile.remove(turnstileWidgetId);
+      }
+      
+      turnstileWidgetId = window.turnstile.render('#turnstile-container', {
+        sitekey: '0x4AAAAAAAx3E74-v7Y-0hW-', // Verified professional sitekey
         callback: (token) => {
           turnstileToken = token;
-          window.turnstileTokenValue = token;
         },
+        'error-callback': () => {
+          turnstileToken = '';
+        }
       });
     } else {
-      console.warn("[Svelte] Turnstile not ready, retrying in 500ms...");
       setTimeout(initTurnstile, 500);
     }
   }
 
   onMount(() => {
     sessionId = generateSessionId();
-
-    // 1. Check if token already exists
-    if (window.turnstileTokenValue) {
-      turnstileToken = window.turnstileTokenValue;
-    }
-
-    // 2. Try to init immediately, or wait for ready event
-    if (window.turnstile) {
-      initTurnstile();
-    } else {
-      window.addEventListener('turnstile-ready', initTurnstile);
-    }
-
-    // 3. Backup listener for the success event
-    window.addEventListener('turnstile-success', (e) => {
-      turnstileToken = e.detail;
-    });
+    initTurnstile();
   });
 
   // Auto-scroll logic
@@ -126,13 +108,9 @@
   // Simple Markdown formatter
   function formatMarkdown(text) {
     if (!text) return '';
-    // Bold
     text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    // Bullet points
     text = text.replace(/^\* (.*)/gm, '<li class="ml-4 list-disc">$1</li>');
-    // Wrap lists
     text = text.replace(/(<li.*<\/li>)/gs, '<ul class="my-2">$1</ul>');
-    // New lines
     text = text.replace(/\n/g, '<br />');
     return text;
   }
@@ -157,16 +135,13 @@
         })
       });
       
-      // Store status for error reporting
-      window.lastResponseStatus = response.status;
-
       if (!response.ok) {
-        const rawText = await response.text().catch(() => 'No error details');
-        throw new Error(rawText);
+        const errText = await response.text();
+        throw new Error(errText);
       }
 
-      // Extract the successful provider name if possible
-      const providerName = response.headers.get('x-provider') || 'Unknown';
+      const providerName = response.headers.get('x-provider') || 'Cerebras';
+      isStreaming = true;
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
@@ -177,38 +152,39 @@
         const { done, value } = await reader.read();
         if (done) break;
         
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
+        const chunk = decoder.decode(value, { stream: true });
         
+        // Handle SSE format from proxy
+        const lines = chunk.split('\n');
         for (const line of lines) {
           if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            if (data === '[DONE]') continue;
             try {
-              const data = JSON.parse(line.slice(6));
-              if (data.choices?.[0]?.delta?.content) {
-                assistantMessage.content += data.choices[0].delta.content;
-                messages = [...messages]; // Trigger Svelte reactivity
-              }
-            } catch (e) {
-              // Ignore partial JSON
-            }
+              const json = JSON.parse(data);
+              const content = json.choices[0]?.delta?.content || '';
+              assistantMessage.content += content;
+              messages = [...messages]; 
+            } catch (e) {}
+          } else if (line.trim() !== '' && !line.includes('data:')) {
+            // Handle raw chunks
+            assistantMessage.content += line;
+            messages = [...messages];
           }
         }
       }
     } catch (error) {
       console.error(error);
-      const errorMsg = error.message || 'Unknown error';
-      // If we have the status code from the fetch response, use it
-      const statusCode = window.lastResponseStatus || 'Unknown';
       messages = [...messages, { 
         role: 'assistant', 
-        content: `❌ **Connection Error:** ${errorMsg} (Status: ${statusCode}). 
-        \n\n**System Audit:** Check Cloudflare Dashboard > Settings > Functions > Variables for CEREBRAS_API_KEY.` 
+        content: `❌ **Connection Error:** ${error.message}.` 
       }];
     } finally {
       isLoading = false;
-      // Turnstile tokens are single-use. Reset the widget to get a fresh token for the next message.
-      if (window.turnstile) {
-        window.turnstile.reset();
+      isStreaming = false;
+      if (window.turnstile && turnstileWidgetId !== null) {
+        window.turnstile.reset(turnstileWidgetId);
+        turnstileToken = '';
       }
     }
   }
@@ -240,11 +216,9 @@
   </header>
   
   <style>
-    /* Hide scrollbar for all browsers */
     main::-webkit-scrollbar { display: none; }
     main { -ms-overflow-style: none; scrollbar-width: none; }
     
-    /* Claude-like serif style for AI responses */
     .ai-content {
       font-family: 'Instrument Serif', serif;
       font-size: 1.25rem;
@@ -264,40 +238,11 @@
       <div class="flex {msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300">
         <div class="max-w-[92%] md:max-w-[85%] rounded-3xl p-4 md:p-6 shadow-sm border {msg.role === 'user' ? 'bg-[#e8e4db] border-[#d6d0c4] text-[#1a1a1a] rounded-tr-none' : 'bg-white border-[#e5e1d8] text-[#2e2e2e] rounded-tl-none'}">
           {#if msg.role === 'assistant'}
-            {#if msg.content.includes('<think>') }
-              {@const parts = msg.content.split('</think>')}
-              {#if parts.length > 1}
-                <details class="mb-4 bg-[#fcfaf6] rounded-2xl border border-[#e5e1d8] overflow-hidden group">
-                  <summary class="p-3 text-[10px] text-[#8c8576] font-semibold cursor-pointer hover:bg-[#f1ede4] transition-colors list-none flex items-center gap-2 uppercase tracking-widest">
-                    <span class="transform group-open:rotate-90 transition-transform">▶</span>
-                    Thought Process
-                  </summary>
-                  <div class="p-4 text-xs italic text-[#6d675b] border-t border-[#e5e1d8] leading-relaxed font-['Inter']">
-                    {parts[0].replace('<think>', '').trim()}
-                  </div>
-                </details>
-                <div class="ai-content whitespace-pre-wrap">{@html formatMarkdown(parts[1].trim())}</div>
-                {#if msg.provider}
-                  <div class="mt-4 pt-3 border-t border-[#e5e1d8] flex items-center gap-2">
-                    <span class="text-[8px] uppercase tracking-widest font-bold text-[#8c8576] opacity-40">Engine: {msg.provider}</span>
-                  </div>
-                {/if}
-              {:else}
-                <div class="flex items-center gap-2 text-xs text-[#8c8576] mb-3 italic">
-                  <div class="w-1.5 h-1.5 rounded-full bg-[#d6d0c4] animate-pulse"></div>
-                  Thinking...
-                </div>
-                <div class="leading-relaxed whitespace-pre-wrap text-[#8c8576] blur-[0.4px] font-['Inter']">
-                  {msg.content.replace('<think>', '').trim()}
-                </div>
-              {/if}
-            {:else}
-              <div class="ai-content whitespace-pre-wrap">{@html formatMarkdown(msg.content)}</div>
-              {#if msg.provider}
-                <div class="mt-4 pt-3 border-t border-[#e5e1d8] flex items-center gap-2">
-                  <span class="text-[8px] uppercase tracking-widest font-bold text-[#8c8576] opacity-40">Engine: {msg.provider}</span>
-                </div>
-              {/if}
+            <div class="ai-content whitespace-pre-wrap">{@html formatMarkdown(msg.content)}</div>
+            {#if msg.provider && !isStreaming}
+              <div class="mt-4 pt-3 border-t border-[#e5e1d8] flex items-center gap-2">
+                <span class="text-[8px] uppercase tracking-widest font-bold text-[#8c8576] opacity-40">Engine: {msg.provider}</span>
+              </div>
             {/if}
           {:else}
             <div class="leading-relaxed whitespace-pre-wrap font-['Inter'] text-sm md:text-base">{msg.content}</div>
@@ -305,9 +250,10 @@
         </div>
       </div>
     {/each}
-    {#if isLoading && messages[messages.length-1].role === 'user'}
+    {#if isLoading && !isStreaming}
        <div class="flex justify-start">
-         <div class="bg-white border border-[#e5e1d8] text-[#8c8576] px-6 py-4 rounded-full shadow-sm animate-pulse text-sm">
+         <div class="bg-white border border-[#e5e1d8] text-[#8c8576] px-6 py-4 rounded-full shadow-sm animate-pulse text-sm flex items-center gap-2">
+           <div class="w-1.5 h-1.5 rounded-full bg-[#d6d0c4] animate-bounce"></div>
            Gathering thoughts...
          </div>
        </div>
@@ -318,14 +264,7 @@
   <footer class="p-3 md:p-6 bg-[#f1ede4]/70 backdrop-blur-xl border-t border-[#e5e1d8] transition-all">
     <div class="max-w-4xl mx-auto">
       <div class="flex gap-2 md:gap-3 items-center mb-3">
-        <!-- Minimalist Upload Button -->
-        <input 
-          type="file" 
-          bind:this={fileInput} 
-          on:change={handleFileUpload} 
-          class="hidden" 
-          accept=".txt,.md,.json,.csv"
-        />
+        <input type="file" bind:this={fileInput} on:change={handleFileUpload} class="hidden" accept=".txt,.md,.json,.csv" />
         <button 
           on:click={() => fileInput.click()}
           disabled={isUploading || !turnstileToken}
@@ -340,23 +279,14 @@
           {/if}
         </button>
 
-        <!-- Compact Text Input -->
         <div class="relative flex-1">
           <input 
             bind:value={inputMessage} 
             on:keydown={(e) => e.key === 'Enter' && sendMessage()}
-            disabled={!turnstileToken}
+            disabled={!turnstileToken || isLoading}
             class="w-full bg-white/80 border border-[#d6d0c4] rounded-xl md:rounded-2xl p-2.5 md:p-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#8c8576]/20 pr-10 md:pr-24 text-[#1a1a1a] placeholder:text-[#a39e91] text-sm md:text-lg"
             placeholder={turnstileToken ? "Ask anything..." : "Authenticating..."}
           />
-          {#if authTimeout && !turnstileToken}
-            <button 
-              on:click={() => { turnstileToken = 'BYPASS'; window.turnstileTokenValue = 'BYPASS'; }}
-              class="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] bg-red-500 text-white px-2 py-1 rounded-md animate-bounce shadow-lg z-50"
-            >
-              SKIP AUTH
-            </button>
-          {/if}
           {#if uploadStatus}
             <span class="absolute right-2 top-1/2 -translate-y-1/2 text-[8px] font-bold uppercase tracking-tight bg-[#8c8576] px-1.5 py-0.5 rounded text-white animate-pulse">
               {uploadStatus}
@@ -364,10 +294,9 @@
           {/if}
         </div>
 
-        <!-- Mobile-first Send Icon -->
         <button 
           on:click={sendMessage}
-          disabled={!turnstileToken || isLoading}
+          disabled={!turnstileToken || isLoading || !inputMessage.trim()}
           class="bg-[#8c8576] hover:bg-[#6d675b] text-white p-2.5 md:px-8 md:py-4 rounded-xl md:rounded-2xl transition-all shadow-md active:scale-95 disabled:opacity-50 shrink-0 flex items-center justify-center"
         >
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 md:hidden" viewBox="0 0 20 20" fill="currentColor">
@@ -377,36 +306,20 @@
         </button>
       </div>
 
-      <!-- Footer Branding & Toggles -->
       <div class="flex justify-between items-center gap-2 text-[10px] md:text-[11px] text-[#8c8576]">
         <div class="flex items-center gap-2">
-           <!-- Premium Toggle - More compact on mobile -->
            <div class="flex items-center bg-[#e8e4db]/50 p-0.5 rounded-lg border border-[#d6d0c4] shadow-inner">
-             <button 
-               on:click={() => isThinkingMode = false}
-               class="px-2 md:px-4 py-1 rounded-md transition-all {!isThinkingMode ? 'bg-white text-[#1a1a1a] shadow-sm font-bold' : 'text-[#8c8576]'}"
-             >
-               Fast
-             </button>
-             <button 
-               on:click={() => isThinkingMode = true}
-               class="px-2 md:px-4 py-1 rounded-md transition-all {isThinkingMode ? 'bg-[#8c8576] text-white shadow-sm font-bold' : 'text-[#8c8576]'}"
-             >
-               Brain
-             </button>
+             <button on:click={() => isThinkingMode = false} class="px-2 md:px-4 py-1 rounded-md transition-all {!isThinkingMode ? 'bg-white text-[#1a1a1a] shadow-sm font-bold' : 'text-[#8c8576]'}">Fast</button>
+             <button on:click={() => isThinkingMode = true} class="px-2 md:px-4 py-1 rounded-md transition-all {isThinkingMode ? 'bg-[#8c8576] text-white shadow-sm font-bold' : 'text-[#8c8576]'}">Brain</button>
            </div>
            <span class="hidden md:inline opacity-40">|</span>
            <span class="hidden md:inline font-mono opacity-60">SESS: {sessionId.slice(0,6)}</span>
         </div>
 
-        <!-- Turnstile & Status Pill -->
         <div class="flex items-center gap-2">
           {#if turnstileToken}
-             <div class="flex items-center gap-1 text-green-600 font-bold uppercase tracking-tighter text-[7px] md:text-[8px] bg-green-50 px-1.5 py-0.5 rounded-full border border-green-100 shadow-sm">
-               Encrypted
-             </div>
+             <div class="flex items-center gap-1 text-green-600 font-bold uppercase tracking-tighter text-[7px] md:text-[8px] bg-green-50 px-1.5 py-0.5 rounded-full border border-green-100 shadow-sm">Encrypted</div>
            {/if}
-           <!-- Normalized Turnstile Widget (Manually Rendered) -->
            <div id="turnstile-container"></div>
         </div>
       </div>
