@@ -1,6 +1,14 @@
 import type { APIRoute } from 'astro';
 import { routeChat } from '../../lib/zen-router';
 
+let cfWorkerEnv: any = null;
+try {
+  const mod = await import('cloudflare:workers');
+  cfWorkerEnv = mod.env || {};
+} catch (e) {
+  // not in CF Workers runtime (local dev without wrangler)
+}
+
 interface RateLimitEntry {
   count: number;
   resetTime: number;
@@ -48,37 +56,24 @@ function sanitizeInput(input: any): any {
 export const POST: APIRoute = async (context) => {
   const { request, locals } = context;
 
-  let env: any = {};
+  // Primary: cloudflare:workers env (proven working on CF Pages)
+  let env: any = cfWorkerEnv ? { ...cfWorkerEnv } : {};
 
-  // Primary source: Cloudflare Pages secrets are in locals.runtime.env
+  // Fallback: Astro locals (for other adapters)
   if ((locals as any)?.runtime?.env) {
-    env = { ...env, ...((locals as any).runtime.env) };
-  }
-  if ((locals as any)?.cfContext?.env) {
-    env = { ...env, ...((locals as any).cfContext.env) };
-  }
-  if ((locals as any)?.env) {
-    env = { ...env, ...((locals as any).env) };
-  }
-
-  // cloudflare:workers import (Astro SSR runtime)
-  try {
-    const { env: cfEnv } = await import('cloudflare:workers');
-    if (cfEnv) {
-      for (const [k, v] of Object.entries(cfEnv)) {
-        if (v !== undefined && v !== null && !env[k]) env[k] = v;
-      }
+    for (const [k, v] of Object.entries((locals as any).runtime.env)) {
+      if (v !== undefined && v !== null && !env[k]) env[k] = v;
     }
-  } catch (e) {}
+  }
 
-  // Node.js env fallback (local dev)
+  // Fallback: Node.js process.env (local dev)
   if (typeof process !== 'undefined' && process.env) {
     for (const [k, v] of Object.entries(process.env)) {
       if (v && !env[k]) env[k] = v;
     }
   }
 
-  // .env file fallback (local dev last resort)
+  // Last resort: .env file (local dev)
   if (!env.CEREBRAS_API_KEY) {
     try {
       const fs = await import('node:fs');

@@ -14,12 +14,12 @@ export async function routeChat(intent: IntentVariant, messages: any[], locals: 
     const knownKeys = ['CEREBRAS_API_KEY', 'GEMINI_API_KEY', 'OPENROUTER_API_KEY', 'NVIDIA_API_KEY', 'SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'TURNSTILE_SECRET_KEY', 'AI', 'SESSION'];
 
     for (const k of knownKeys) {
-      if (env[k]) continue;
+      if (env[k] !== undefined && env[k] !== null) continue;
       try {
         env[k] =
-          (locals as any)?.runtime?.env?.[k] ||
-          (locals as any)?.cfContext?.env?.[k] ||
-          (locals as any)?.[k] ||
+          (locals as any)?.runtime?.env?.[k] ??
+          (locals as any)?.cfContext?.env?.[k] ??
+          (locals as any)?.[k] ??
           (globalThis as any)[k];
       } catch (e) {}
     }
