@@ -1,112 +1,92 @@
 import type { APIRoute } from 'astro';
+import { routeChat } from '../../lib/zen-router';
+
+interface RateLimitEntry {
+  count: number;
+  resetTime: number;
+}
+const rateLimits = new Map<string, RateLimitEntry>();
+const RATE_LIMIT_WINDOW = 60 * 1000;
+const MAX_REQUESTS_PER_WINDOW = 20;
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimits.get(ip);
+
+  if (!entry || now > entry.resetTime) {
+    rateLimits.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+    return true;
+  }
+
+  if (entry.count >= MAX_REQUESTS_PER_WINDOW) {
+    return false;
+  }
+
+  entry.count++;
+  return true;
+}
+
+function sanitizeInput(input: any): any {
+  if (typeof input === 'string') {
+    return input.slice(0, 8000).replace(/[\x00-\x1F\x7F]/g, '');
+  }
+  if (Array.isArray(input)) {
+    return input.map(sanitizeInput);
+  }
+  if (input && typeof input === 'object') {
+    const sanitized: any = {};
+    for (const key of Object.keys(input)) {
+      if (['role', 'content', 'name'].includes(key)) {
+        sanitized[key] = sanitizeInput(input[key]);
+      }
+    }
+    return sanitized;
+  }
+  return input;
+}
 
 export const POST: APIRoute = async (context) => {
   const { request, locals } = context;
-  let env: any = {};
+
+  let env: Record<string, string> = {};
   try {
-    env = (locals as any).runtime?.env || (locals as any).env || locals || {};
+    env = (locals as any)?.runtime?.env || (locals as any)?.env || {};
   } catch (e) {}
+
+  console.log("[Chat API] Initial env keys:", Object.keys(env));
+
+  // Try to get secrets from import.meta.env
+  const importEnv = (import.meta as any).env || {};
+  console.log("[Chat API] import.meta.env keys:", Object.keys(importEnv));
+
+  // Merge secrets from import.meta.env
+  const secretsToCheck = ['TURNSTILE_SECRET_KEY', 'CEREBRAS_API_KEY', 'GEMINI_API_KEY', 'OPENROUTER_API_KEY', 'NVIDIA_API_KEY'];
+  for (const key of secretsToCheck) {
+    if (!env[key] && importEnv[key]) {
+      env[key] = importEnv[key];
+    }
+  }
+
+  console.log("[Chat API] Final env keys:", Object.keys(env));
+
+  const clientIP = request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'unknown';
+
+  if (!checkRateLimit(clientIP)) {
+    return new Response(JSON.stringify({ error: 'RATE_LIMIT_EXCEEDED', details: 'Too many requests. Please try again later.' }), { status: 429 });
+  }
+
+  // Bot protection is handled by Cloudflare's infrastructure-level Bot Management.
+  // No application-level Turnstile needed; this removes user friction and token expiry issues.
 
   try {
     const body = await request.json();
-    const { messages, turnstileToken } = body;
+    const { messages, intent } = body;
 
-    // 1. STRICT SECURITY: Verify Turnstile Token
-    const verifyUrl = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
-    const verifyRes = await fetch(verifyUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `secret=${env.TURNSTILE_SECRET_KEY || '0x4AAAAAAAx3E4-y1B_9V1m_9v1m_9v1m'}&response=${turnstileToken}`
-    });
-    
-    const verifyData: any = await verifyRes.json();
-    // During testing/dev, we might allow a fallback if the key isn't in ENV yet
-    if (!verifyData.success && turnstileToken !== 'BYPASS_ADMIN_ONLY_DO_NOT_USE_IN_PROD') {
-       // Note: If you are seeing this error, ensure TURNSTILE_SECRET_KEY is set in Cloudflare Dashboard
-       // return new Response(JSON.stringify({ error: 'Security verification failed' }), { status: 403 });
-    }
-
-    const CEREBRAS_KEY = env.CEREBRAS_API_KEY || 'csk-mrhhj8p4xvd42xwnxx9h4wp5kekt8mtnrr3n9m4838p6m2d4';
-    const NVIDIA_KEY = env.NVIDIA_API_KEY || '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';
-
-    const sanitizedMessages = messages.map((m: any) => ({
-      role: m.role,
-      content: m.content
-    }));
-
-    const providers = [
-      {
-        name: 'cerebras',
-        url: 'https://api.cerebras.ai/v1/chat/completions',
-        key: CEREBRAS_KEY,
-        model: 'llama3.1-8b'
-      },
-      {
-        name: 'nvidia',
-        url: 'https://integrate.api.nvidia.com/v1/chat/completions',
-        key: NVIDIA_KEY,
-        model: 'meta/llama-3.1-8b-instruct'
-      }
-    ];
-
-    for (const provider of providers) {
-      try {
-        const aiRes = await fetch(provider.url, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${provider.key}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            model: provider.model,
-            messages: sanitizedMessages,
-            stream: true
-          })
-        });
-
-        if (aiRes.ok && aiRes.body) {
-          // 2. STREAM PROXY: Manage the stream manually for maximum stability
-          const { readable, writable } = new TransformStream();
-          const writer = writable.getWriter();
-          const reader = aiRes.body.getReader();
-          const decoder = new TextDecoder();
-          const encoder = new TextEncoder();
-
-          // Push the stream in the background
-          (async () => {
-            try {
-              while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                
-                const chunk = decoder.decode(value);
-                // Ensure chunk is sent immediately
-                await writer.write(encoder.encode(chunk));
-              }
-            } catch (err) {
-              console.error("Stream Error:", err);
-            } finally {
-              await writer.close();
-            }
-          })();
-
-          return new Response(readable, {
-            status: 200,
-            headers: {
-              'Content-Type': 'text/event-stream',
-              'x-provider': provider.name,
-              'Cache-Control': 'no-cache',
-              'Connection': 'keep-alive',
-              'Access-Control-Expose-Headers': 'x-provider'
-            }
-          });
-        }
-      } catch (e) {}
-    }
-
-    return new Response(JSON.stringify({ error: 'All AI engines are busy' }), { status: 503 });
-
+    const sanitizedMessages = sanitizeInput(messages);
+    console.log(`[Chat API] Routing intent: ${intent || 'chat-fast'}`);
+    return await routeChat(intent || 'chat-fast', sanitizedMessages, env);
   } catch (error: any) {
-    return new Response(JSON.stringify({ error: 'INTERNAL_ERROR', details: error.message }), { status: 500 });
+    console.error("[Chat API] Fatal Error:", error);
+    return new Response(JSON.stringify({ error: 'INTERNAL_ERROR', details: 'An unexpected error occurred.' }), { status: 500 });
   }
 };

@@ -1,0 +1,17 @@
+{
+  "name": "tw-bot",
+  "compatibility_date": "2024-10-01",
+  "pages_build_output_dir": "dist/client",
+  "ai": {
+    "binding": "AI"
+  },
+  "kv_namespaces": [
+    {
+      "binding": "SESSION",
+      "id": "ad577f3ebe2c4cd3bb1542f1e6caf081"
+    }
+  ],
+  "compatibility_flags": [
+    "nodejs_compat"
+  ]
+}

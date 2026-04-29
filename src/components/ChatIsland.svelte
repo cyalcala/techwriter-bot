@@ -1,58 +1,35 @@
-<script>
-  import { onMount, afterUpdate } from 'svelte';
+<script lang="ts">
+  import { onMount } from 'svelte';
 
-  let messages = [
+  let messages = $state([
     { role: 'assistant', content: 'Hi! I am your Technical Writer Bot. Upload a document (txt, md, json) to my sandbox memory, and I can help you draft, edit, or analyze it.' }
-  ];
-  let inputMessage = '';
-  let isLoading = false;
-  let isStreaming = false;
-  let turnstileToken = '';
-  let sessionId = '';
-  let isUploading = false;
-  let uploadStatus = '';
+  ]);
+  let inputMessage = $state('');
+  let isLoading = $state(false);
+  let isStreaming = $state(false);
+  let sessionId = $state('');
+  let isUploading = $state(false);
+  let uploadStatus = $state('');
   let fileInput;
-  let isThinkingMode = false;
+  let isThinkingMode = $state(false);
   let chatContainer;
-  let turnstileWidgetId = null;
 
-  // Generate a new session ID
   function generateSessionId() {
-    return crypto.randomUUID();
-  }
-
-  function initTurnstile() {
-    if (window.turnstile) {
-      if (turnstileWidgetId !== null) {
-        window.turnstile.remove(turnstileWidgetId);
-      }
-      
-      turnstileWidgetId = window.turnstile.render('#turnstile-container', {
-        sitekey: '0x4AAAAAAAx3E74-v7Y-0hW-', // Verified professional sitekey
-        callback: (token) => {
-          turnstileToken = token;
-        },
-        'error-callback': () => {
-          turnstileToken = '';
-        }
-      });
-    } else {
-      setTimeout(initTurnstile, 500);
+    try {
+      return crypto.randomUUID();
+    } catch (e) {
+      return Math.random().toString(36).substring(2) + Date.now().toString(36);
     }
   }
 
   onMount(() => {
     sessionId = generateSessionId();
-    initTurnstile();
   });
 
-  // Auto-scroll logic
-  afterUpdate(() => {
+  $effect(() => {
+    messages;
     if (chatContainer) {
-      chatContainer.scrollTo({
-        top: chatContainer.scrollHeight,
-        behavior: 'smooth'
-      });
+      chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
     }
   });
 
@@ -69,28 +46,24 @@
 
     isUploading = true;
     uploadStatus = 'Reading...';
-    
+
     const reader = new FileReader();
     reader.onload = async (e) => {
       const text = e.target.result;
       uploadStatus = 'Vectorizing...';
-      
+
       try {
         const res = await fetch('/api/ingest', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            text,
-            fileName: file.name,
-            sessionId
-          })
+          body: JSON.stringify({ text, fileName: file.name, sessionId })
         });
 
         if (!res.ok) {
           const errData = await res.json();
           throw new Error(errData.message || 'Ingestion failed');
         }
-        
+
         uploadStatus = 'Ready!';
         messages = [...messages, { role: 'assistant', content: `✅ I've successfully analyzed **${file.name}** and added it to our temporary sandbox memory!` }];
       } catch (err) {
@@ -105,104 +78,150 @@
     reader.readAsText(file);
   }
 
-  // Simple Markdown formatter
-  function formatMarkdown(text) {
+  function formatMarkdown(text: string | null | undefined): string {
     if (!text) return '';
-    text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    text = text.replace(/^\* (.*)/gm, '<li class="ml-4 list-disc">$1</li>');
-    text = text.replace(/(<li.*<\/li>)/gs, '<ul class="my-2">$1</ul>');
-    text = text.replace(/\n/g, '<br />');
-    return text;
+    let formatted = String(text);
+    formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    formatted = formatted.replace(/^\* (.*)/gm, '<li class="ml-4 list-disc">$1</li>');
+    formatted = formatted.replace(/(<li.*<\/li>)/gs, '<ul class="my-2">$1</ul>');
+    formatted = formatted.replace(/\n/g, '<br />');
+    return formatted;
   }
 
-  async function sendMessage() {
-    if (!inputMessage.trim() || isLoading || !turnstileToken) return;
+async function sendMessage() {
+  if (!inputMessage.trim() || isLoading) return;
 
-    const userMessage = inputMessage;
-    inputMessage = '';
-    messages = [...messages, { role: 'user', content: userMessage }];
-    isLoading = true;
+  const userMessage = inputMessage;
+  inputMessage = '';
+  messages = [...messages, { role: 'user', content: userMessage }];
+  isLoading = true;
 
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: messages,
-          intent: isThinkingMode ? 'research' : 'chat-fast',
-          turnstileToken,
-          sessionId 
-        })
-      });
+  try {
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: messages,
+        intent: isThinkingMode ? 'research' : 'chat-fast',
+        sessionId
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(errText);
+    }
+
+    const providerName = response.headers.get('x-provider') || 'Cerebras';
+    isStreaming = true;
+
+    const stream = response.body;
+    if (!stream) throw new Error('No response stream received');
+
+    const reader = stream.getReader();
+    const decoder = new TextDecoder();
+    
+    // Add the assistant message to the state array
+    messages = [...messages, { role: 'assistant', content: '', provider: providerName }];
+    const msgIdx = messages.length - 1;
+
+    let buffer = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
       
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(errText);
-      }
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
 
-      const providerName = response.headers.get('x-provider') || 'Cerebras';
-      isStreaming = true;
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let assistantMessage = { role: 'assistant', content: '', provider: providerName };
-      messages = [...messages, assistantMessage];
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || !trimmed.startsWith('data:')) continue;
         
-        const chunk = decoder.decode(value, { stream: true });
+        const rawData = trimmed.slice(trimmed.indexOf(':') + 1).trim();
+        if (rawData === '[DONE]') continue;
         
-        // Handle SSE format from proxy
-        const lines = chunk.split('\n');
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-            if (data === '[DONE]') continue;
-            try {
-              const json = JSON.parse(data);
-              const content = json.choices[0]?.delta?.content || '';
-              assistantMessage.content += content;
-              messages = [...messages]; 
-            } catch (e) {}
-          } else if (line.trim() !== '' && !line.includes('data:')) {
-            // Handle raw chunks
-            assistantMessage.content += line;
-            messages = [...messages];
+        try {
+          const json = JSON.parse(rawData);
+          
+          if (json.error) {
+            const errorMsg = `\n\n❌ **Error from ${providerName}:** ${json.error.message || JSON.stringify(json.error)}`;
+            messages[msgIdx] = { ...messages[msgIdx], content: messages[msgIdx].content + errorMsg };
+            continue;
+          }
+
+          const content = 
+            json.choices?.[0]?.delta?.content || 
+            json.choices?.[0]?.text || 
+            json.content || 
+            '';
+
+          if (content) {
+            // FOOLPROOF REACTIVITY: Create a new object and reassign the array element
+            messages[msgIdx] = { 
+              ...messages[msgIdx], 
+              content: messages[msgIdx].content + content 
+            };
+          }
+        } catch (e) {
+          // If JSON fails but we have data, it might be raw text
+          if (rawData && !rawData.includes('{')) {
+            messages[msgIdx] = { 
+              ...messages[msgIdx], 
+              content: messages[msgIdx].content + rawData 
+            };
           }
         }
       }
-    } catch (error) {
-      console.error(error);
-      messages = [...messages, { 
-        role: 'assistant', 
-        content: `❌ **Connection Error:** ${error.message}.` 
-      }];
-    } finally {
-      isLoading = false;
-      isStreaming = false;
-      if (window.turnstile && turnstileWidgetId !== null) {
-        window.turnstile.reset(turnstileWidgetId);
-        turnstileToken = '';
+    }
+
+    if (buffer.trim().startsWith('data:')) {
+      const rawData = buffer.slice(buffer.indexOf(':') + 1).trim();
+      if (rawData !== '[DONE]') {
+        try {
+          const json = JSON.parse(rawData);
+          const content = json.choices?.[0]?.delta?.content || json.choices?.[0]?.text || '';
+          if (content) {
+            messages[msgIdx] = { 
+              ...messages[msgIdx], 
+              content: messages[msgIdx].content + content 
+            };
+          }
+        } catch (e) {}
       }
     }
+  } catch (error: any) {
+    console.error('[Chat]', error);
+    messages = [...messages, {
+      role: 'assistant',
+      content: `❌ **Connection Error:** ${error.message}.`
+    }];
+  } finally {
+    isLoading = false;
+    isStreaming = false;
   }
+}
 </script>
 
 <div class="flex flex-col h-screen bg-[#fcfaf6] text-[#2e2e2e] font-['Outfit'] selection:bg-[#e8e4db]">
-  <!-- Header -->
-  <header class="p-2 md:p-4 bg-[#f1ede4]/90 backdrop-blur-xl border-b border-[#e5e1d8] flex justify-between items-center sticky top-0 shadow-sm z-20">
-    <div class="flex items-center gap-2">
-      <div class="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-green-600 shadow-[0_0_8px_rgba(22,163,74,0.5)]"></div>
-      <h1 class="text-xs md:text-lg font-bold tracking-tight text-[#1a1a1a]">
-        Technical Writer <span class="hidden md:inline text-gray-400 font-normal mx-2">/</span> 
-        <span class="md:hidden text-[#8c8576] font-normal">Bot</span>
-        <a href="https://www.linkedin.com/in/cyrusalcala/" target="_blank" class="hidden md:inline-block text-[9px] uppercase text-[#8c8576] font-mono tracking-widest border border-[#d6d0c4] px-2 py-0.5 rounded bg-white shadow-sm hover:text-[#1a1a1a] transition-colors">BY CY ALCALA</a>
-      </h1>
+  <header class="p-3 md:p-4 bg-[#f1ede4]/90 backdrop-blur-xl border-b border-[#e5e1d8] flex justify-between items-center sticky top-0 shadow-sm z-20">
+    <div class="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+      <div class="flex items-center gap-2">
+        <div class="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-green-600 shadow-[0_0_8px_rgba(22,163,74,0.5)]"></div>
+        <h1 class="text-sm md:text-lg font-bold tracking-tight text-[#1a1a1a]">
+          Technical Writer <span class="hidden md:inline text-gray-400 font-normal mx-2">/</span>
+          <span class="md:hidden text-[#8c8576] font-normal">Bot</span>
+        </h1>
+      </div>
+      <a href="https://www.linkedin.com/in/cyrusalcala/" target="_blank" class="text-[8px] md:text-[10px] text-[#8c8576] hover:text-[#1a1a1a] transition-colors flex items-center gap-1 font-medium group">
+        <span class="opacity-50">made with</span>
+        <span class="text-red-500 text-[10px] group-hover:scale-125 transition-transform duration-300">❤️</span>
+        <span class="opacity-50">by</span>
+        <span class="border-b border-transparent group-hover:border-[#8c8576] transition-all">Cy Alcala</span>
+      </a>
     </div>
     <div class="flex items-center gap-2">
-      <button 
+      <button
         on:click={newChat}
         class="text-[10px] md:text-xs bg-white/50 hover:bg-white text-[#6d675b] px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl transition-all flex items-center gap-1.5 border border-[#d6d0c4] shadow-sm active:scale-95"
       >
@@ -214,17 +233,17 @@
       </button>
     </div>
   </header>
-  
+
   <style>
     main::-webkit-scrollbar { display: none; }
     main { -ms-overflow-style: none; scrollbar-width: none; }
-    
+
     .ai-content {
       font-family: 'Instrument Serif', serif;
       font-size: 1.25rem;
       line-height: 1.6;
     }
-    
+
     @media (max-width: 768px) {
       .ai-content {
         font-size: 1.15rem;
@@ -232,7 +251,6 @@
     }
   </style>
 
-  <!-- Chat Area -->
   <main bind:this={chatContainer} class="flex-1 overflow-y-auto px-3 py-4 md:p-8 space-y-4 md:space-y-6 max-w-4xl mx-auto w-full scroll-smooth">
     {#each messages as msg}
       <div class="flex {msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -251,23 +269,22 @@
       </div>
     {/each}
     {#if isLoading && !isStreaming}
-       <div class="flex justify-start">
-         <div class="bg-white border border-[#e5e1d8] text-[#8c8576] px-6 py-4 rounded-full shadow-sm animate-pulse text-sm flex items-center gap-2">
-           <div class="w-1.5 h-1.5 rounded-full bg-[#d6d0c4] animate-bounce"></div>
-           Gathering thoughts...
-         </div>
-       </div>
+      <div class="flex justify-start">
+        <div class="bg-white border border-[#e5e1d8] text-[#8c8576] px-6 py-4 rounded-full shadow-sm animate-pulse text-sm flex items-center gap-2">
+          <div class="w-1.5 h-1.5 rounded-full bg-[#d6d0c4] animate-bounce"></div>
+          Gathering thoughts...
+        </div>
+      </div>
     {/if}
   </main>
 
-  <!-- Input Area -->
   <footer class="p-3 md:p-6 bg-[#f1ede4]/70 backdrop-blur-xl border-t border-[#e5e1d8] transition-all">
     <div class="max-w-4xl mx-auto">
       <div class="flex gap-2 md:gap-3 items-center mb-3">
         <input type="file" bind:this={fileInput} on:change={handleFileUpload} class="hidden" accept=".txt,.md,.json,.csv" />
-        <button 
+        <button
           on:click={() => fileInput.click()}
-          disabled={isUploading || !turnstileToken}
+          disabled={isUploading}
           class="p-2.5 md:p-4 bg-white hover:bg-[#fcfaf6] border border-[#d6d0c4] rounded-xl md:rounded-2xl text-[#8c8576] transition-all shadow-sm disabled:opacity-50 shrink-0"
         >
           {#if isUploading}
@@ -280,12 +297,12 @@
         </button>
 
         <div class="relative flex-1">
-          <input 
-            bind:value={inputMessage} 
+          <input
+            bind:value={inputMessage}
             on:keydown={(e) => e.key === 'Enter' && sendMessage()}
-            disabled={!turnstileToken || isLoading}
+            disabled={isLoading}
             class="w-full bg-white/80 border border-[#d6d0c4] rounded-xl md:rounded-2xl p-2.5 md:p-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#8c8576]/20 pr-10 md:pr-24 text-[#1a1a1a] placeholder:text-[#a39e91] text-sm md:text-lg"
-            placeholder={turnstileToken ? "Ask anything..." : "Authenticating..."}
+            placeholder="Ask anything..."
           />
           {#if uploadStatus}
             <span class="absolute right-2 top-1/2 -translate-y-1/2 text-[8px] font-bold uppercase tracking-tight bg-[#8c8576] px-1.5 py-0.5 rounded text-white animate-pulse">
@@ -294,9 +311,9 @@
           {/if}
         </div>
 
-        <button 
+        <button
           on:click={sendMessage}
-          disabled={!turnstileToken || isLoading || !inputMessage.trim()}
+          disabled={isLoading || !inputMessage.trim()}
           class="bg-[#8c8576] hover:bg-[#6d675b] text-white p-2.5 md:px-8 md:py-4 rounded-xl md:rounded-2xl transition-all shadow-md active:scale-95 disabled:opacity-50 shrink-0 flex items-center justify-center"
         >
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 md:hidden" viewBox="0 0 20 20" fill="currentColor">
@@ -308,19 +325,18 @@
 
       <div class="flex justify-between items-center gap-2 text-[10px] md:text-[11px] text-[#8c8576]">
         <div class="flex items-center gap-2">
-           <div class="flex items-center bg-[#e8e4db]/50 p-0.5 rounded-lg border border-[#d6d0c4] shadow-inner">
-             <button on:click={() => isThinkingMode = false} class="px-2 md:px-4 py-1 rounded-md transition-all {!isThinkingMode ? 'bg-white text-[#1a1a1a] shadow-sm font-bold' : 'text-[#8c8576]'}">Fast</button>
-             <button on:click={() => isThinkingMode = true} class="px-2 md:px-4 py-1 rounded-md transition-all {isThinkingMode ? 'bg-[#8c8576] text-white shadow-sm font-bold' : 'text-[#8c8576]'}">Brain</button>
-           </div>
-           <span class="hidden md:inline opacity-40">|</span>
-           <span class="hidden md:inline font-mono opacity-60">SESS: {sessionId.slice(0,6)}</span>
+          <div class="flex items-center bg-[#e8e4db]/50 p-0.5 rounded-lg border border-[#d6d0c4] shadow-inner">
+            <button on:click={() => isThinkingMode = false} class="px-2 md:px-4 py-1 rounded-md transition-all {!isThinkingMode ? 'bg-white text-[#1a1a1a] shadow-sm font-bold' : 'text-[#8c8576]'}">Fast</button>
+            <button on:click={() => isThinkingMode = true} class="px-2 md:px-4 py-1 rounded-md transition-all {isThinkingMode ? 'bg-[#8c8576] text-white shadow-sm font-bold' : 'text-[#8c8576]'}">Brain</button>
+          </div>
+          <span class="hidden md:inline opacity-40">|</span>
+          <span class="hidden md:inline font-mono opacity-60">SESS: {sessionId.slice(0,6)}</span>
         </div>
-
-        <div class="flex items-center gap-2">
-          {#if turnstileToken}
-             <div class="flex items-center gap-1 text-green-600 font-bold uppercase tracking-tighter text-[7px] md:text-[8px] bg-green-50 px-1.5 py-0.5 rounded-full border border-green-100 shadow-sm">Encrypted</div>
-           {/if}
-           <div id="turnstile-container"></div>
+        <div class="flex items-center gap-1 text-green-600 font-bold uppercase tracking-tighter text-[7px] md:text-[8px] bg-green-50 px-1.5 py-0.5 rounded-full border border-green-100 shadow-sm">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-2 w-2" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 4.946-2.397 9.331-6 11.51-3.603-2.18-6-6.564-6-11.51 0-.68.056-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+          </svg>
+          Cloudflare Secured
         </div>
       </div>
     </div>

@@ -4,22 +4,20 @@ import ChatIsland from '../components/ChatIsland.svelte';
 ---
 
 <html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Technical Writer Bot</title>
-		
-		<!-- Premium Typography -->
-		<link rel="preconnect" href="https://fonts.googleapis.com">
-		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-		<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500&display=swap" rel="stylesheet">
-		
-		<!-- Cloudflare Turnstile -->
-		<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-	</head>
-	<body class="bg-gray-900 text-white m-0 p-0 overflow-hidden">
-		<ChatIsland client:load />
-	</body>
+<head>
+  <meta charset="utf-8" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="generator" content={Astro.generator} />
+  <title>Technical Writer Bot</title>
+
+  <!-- Premium Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+
+</head>
+<body class="bg-[#fcfaf6] text-[#2e2e2e] m-0 p-0 overflow-hidden">
+  <ChatIsland client:load />
+</body>
 </html>

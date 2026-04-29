@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
+    "build:local": "set ASTRO_TELEMETRY_DISABLED=1&& set XDG_CONFIG_HOME=.tmp-config&& node --import=./scripts/node-realpath-workaround.mjs -e \"process.argv=['node','astro','build']; import('./node_modules/astro/bin/astro.mjs')\"",
     "preview": "astro preview",
     "astro": "astro",
     "deploy:pages": "npm run build && node ./deploy-pages.js"
