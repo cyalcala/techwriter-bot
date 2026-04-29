@@ -48,26 +48,55 @@ function sanitizeInput(input: any): any {
 export const POST: APIRoute = async (context) => {
   const { request, locals } = context;
 
-  let env: Record<string, string> = {};
+  let env: any = {};
+
+  // Primary source: Cloudflare Pages secrets are in locals.runtime.env
+  if ((locals as any)?.runtime?.env) {
+    env = { ...env, ...((locals as any).runtime.env) };
+  }
+  if ((locals as any)?.cfContext?.env) {
+    env = { ...env, ...((locals as any).cfContext.env) };
+  }
+  if ((locals as any)?.env) {
+    env = { ...env, ...((locals as any).env) };
+  }
+
+  // cloudflare:workers import (Astro SSR runtime)
   try {
-    env = (locals as any)?.runtime?.env || (locals as any)?.env || {};
+    const { env: cfEnv } = await import('cloudflare:workers');
+    if (cfEnv) {
+      for (const [k, v] of Object.entries(cfEnv)) {
+        if (v !== undefined && v !== null && !env[k]) env[k] = v;
+      }
+    }
   } catch (e) {}
 
-  console.log("[Chat API] Initial env keys:", Object.keys(env));
-
-  // Try to get secrets from import.meta.env
-  const importEnv = (import.meta as any).env || {};
-  console.log("[Chat API] import.meta.env keys:", Object.keys(importEnv));
-
-  // Merge secrets from import.meta.env
-  const secretsToCheck = ['TURNSTILE_SECRET_KEY', 'CEREBRAS_API_KEY', 'GEMINI_API_KEY', 'OPENROUTER_API_KEY', 'NVIDIA_API_KEY'];
-  for (const key of secretsToCheck) {
-    if (!env[key] && importEnv[key]) {
-      env[key] = importEnv[key];
+  // Node.js env fallback (local dev)
+  if (typeof process !== 'undefined' && process.env) {
+    for (const [k, v] of Object.entries(process.env)) {
+      if (v && !env[k]) env[k] = v;
     }
   }
 
-  console.log("[Chat API] Final env keys:", Object.keys(env));
+  // .env file fallback (local dev last resort)
+  if (!env.CEREBRAS_API_KEY) {
+    try {
+      const fs = await import('node:fs');
+      const path = await import('node:path');
+      const envPath = path.join(process.cwd(), '.env');
+      if (fs.existsSync(envPath)) {
+        const content = fs.readFileSync(envPath, 'utf-8');
+        content.split(/\r?\n/).forEach((line: string) => {
+          const eqIdx = line.indexOf('=');
+          if (eqIdx > 0) {
+            const key = line.substring(0, eqIdx).trim();
+            const val = line.substring(eqIdx + 1).trim();
+            if (val && !env[key]) env[key] = val;
+          }
+        });
+      }
+    } catch (e) {}
+  }
 
   const clientIP = request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'unknown';
 
@@ -75,18 +104,27 @@ export const POST: APIRoute = async (context) => {
     return new Response(JSON.stringify({ error: 'RATE_LIMIT_EXCEEDED', details: 'Too many requests. Please try again later.' }), { status: 429 });
   }
 
-  // Bot protection is handled by Cloudflare's infrastructure-level Bot Management.
-  // No application-level Turnstile needed; this removes user friction and token expiry issues.
-
   try {
-    const body = await request.json();
+    const body = await request.json().catch(e => {
+      throw new Error(`Failed to parse request JSON: ${e.message}`);
+    });
+
     const { messages, intent } = body;
 
+    if (!messages || !Array.isArray(messages)) {
+      return new Response(JSON.stringify({ error: 'INVALID_REQUEST', details: 'The "messages" field is missing or not an array.' }), { status: 400 });
+    }
+
     const sanitizedMessages = sanitizeInput(messages);
-    console.log(`[Chat API] Routing intent: ${intent || 'chat-fast'}`);
-    return await routeChat(intent || 'chat-fast', sanitizedMessages, env);
+    return await routeChat(intent || 'chat-fast', sanitizedMessages, locals, env);
   } catch (error: any) {
     console.error("[Chat API] Fatal Error:", error);
-    return new Response(JSON.stringify({ error: 'INTERNAL_ERROR', details: 'An unexpected error occurred.' }), { status: 500 });
+    return new Response(JSON.stringify({ 
+      error: 'INTERNAL_ERROR', 
+      details: error.message || 'An unexpected error occurred.'
+    }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 };

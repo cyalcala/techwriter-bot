@@ -1,0 +1,59 @@
+name: Deploy to Cloudflare Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Post-process build (copy worker/chunks/middleware)
+        run: |
+          WORKER_ENTRY=$(ls dist/server/worker-entry-*.mjs 2>/dev/null | head -1)
+          if [ -n "$WORKER_ENTRY" ]; then
+            cp "$WORKER_ENTRY" dist/client/_worker.js
+            echo "Copied $WORKER_ENTRY -> dist/client/_worker.js"
+          elif [ -f "dist/server/entry.mjs" ]; then
+            cp dist/server/entry.mjs dist/client/_worker.js
+            echo "Copied dist/server/entry.mjs -> dist/client/_worker.js"
+          fi
+
+          if [ -d "dist/server/chunks" ]; then
+            mkdir -p dist/client/chunks
+            cp -r dist/server/chunks/* dist/client/chunks/
+            echo "Copied server chunks"
+          fi
+
+          if [ -f "dist/server/virtual_astro_middleware.mjs" ]; then
+            cp dist/server/virtual_astro_middleware.mjs dist/client/
+            echo "Copied middleware"
+          fi
+
+          rm -f dist/client/.assetsignore
+          rm -f dist/wrangler.json dist/server/wrangler.json 2>/dev/null || true
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist/client --project-name tw-bot --branch main --commit-dirty=true

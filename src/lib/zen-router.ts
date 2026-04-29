@@ -1,14 +1,67 @@
 import { ZEN_REGISTRY, VARIANTS, type IntentVariant, type Provider } from './providers';
 
 const PROVIDER_COOLDOWN_MS = 45_000;
-const PROVIDER_TIMEOUT_MS = 30_000;
+const PROVIDER_TIMEOUT_MS = 8_000;
+const AUTH_COOLDOWN_MS = 600_000; // 10 mins for 403/401
 
 const providerCooldowns = new Map<string, number>();
 
 type FailureKind = 'temporary' | 'configuration' | 'request' | 'auth' | 'provider';
 
-export async function routeChat(intent: IntentVariant, messages: any[], env: any) {
-  const variant = VARIANTS[intent] || VARIANTS['chat-fast'];
+export async function routeChat(intent: IntentVariant, messages: any[], locals: any, providedEnv?: any) {
+  let env: any = { ...(providedEnv || {}) };
+  try {
+    const knownKeys = ['CEREBRAS_API_KEY', 'GEMINI_API_KEY', 'OPENROUTER_API_KEY', 'NVIDIA_API_KEY', 'SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'TURNSTILE_SECRET_KEY', 'AI', 'SESSION'];
+
+    for (const k of knownKeys) {
+      if (env[k]) continue;
+      try {
+        env[k] =
+          (locals as any)?.runtime?.env?.[k] ||
+          (locals as any)?.cfContext?.env?.[k] ||
+          (locals as any)?.[k] ||
+          (globalThis as any)[k];
+      } catch (e) {}
+    }
+
+    if (!env.CEREBRAS_API_KEY) {
+      try {
+        const { env: cfEnv } = await import('cloudflare:workers');
+        if (cfEnv) {
+          for (const k of knownKeys) {
+            if (!env[k] && cfEnv[k]) env[k] = cfEnv[k];
+          }
+        }
+      } catch (e) {}
+    }
+
+    if (!env.CEREBRAS_API_KEY) {
+      try {
+        const fs = await import('node:fs');
+        const path = await import('node:path');
+        const envPath = path.join(process.cwd(), '.env');
+        if (fs.existsSync(envPath)) {
+          const content = fs.readFileSync(envPath, 'utf-8');
+          content.split(/\r?\n/).forEach(line => {
+            const [k, ...v] = line.split('=');
+            if (k && v.length > 0) {
+              const key = k.trim();
+              const val = v.join('=').trim();
+              if (val && !env[key]) env[key] = val;
+            }
+          });
+        }
+      } catch (e) {}
+    }
+  } catch (e) {
+    console.error('[ZenRouter] Env extraction failed:', e);
+  }
+
+  const variantKey = (intent && VARIANTS.hasOwnProperty(intent)) ? intent : 'chat-fast';
+  const variant = VARIANTS[variantKey as keyof typeof VARIANTS] || VARIANTS['chat-fast'];
+  
+  console.log(`[ZenRouter] Using variant: ${variantKey}. Providers: [${variant.providerPreference.join(', ')}]`);
+  
   const errors: string[] = [];
 
   for (const providerId of variant.providerPreference) {
@@ -17,66 +70,61 @@ export async function routeChat(intent: IntentVariant, messages: any[], env: any
 
     try {
       if (isCoolingDown(provider.id)) {
-        errors.push(`${provider.id}: temporarily cooling down`);
+        errors.push(`${provider.id}: cooling down`);
         continue;
       }
 
-      console.log(`[ZenRouter] Attempting to route to ${provider.id}...`);
+      console.log(`[ZenRouter] Attempting ${provider.id}...`);
       const res = await callProvider(provider, variant, messages, env);
 
       if (res.ok) {
-        console.log(`[Zen Router] Success with ${provider.id}`);
-        const providerName = provider.id;
-
         const newHeaders = new Headers(res.headers);
-        newHeaders.set('x-provider', providerName);
+        newHeaders.set('x-provider', provider.id);
         newHeaders.set('Content-Type', 'text/event-stream');
-        newHeaders.set('Cache-Control', 'no-cache');
-        newHeaders.set('Connection', 'keep-alive');
-
-        return new Response(res.body, {
-          status: res.status,
-          headers: newHeaders
-        });
+        return new Response(res.body, { status: res.status, headers: newHeaders });
       }
 
       const failureKind = classifyStatus(res.status);
-      console.warn(`[ZenRouter] Provider ${provider.id} returned ${res.status} (${failureKind})`);
-      await drainResponse(res);
-      errors.push(`${provider.id}: ${failureKind} failure (${res.status})`);
+      const errorText = await res.text().catch(() => 'unknown error');
+      errors.push(`${provider.id}: ${failureKind} (${res.status}) - ${errorText.slice(0, 100)}`);
 
-      if (failureKind === 'temporary') {
-        coolDown(provider.id);
-        continue;
+      if (variant.providerPreference.indexOf(providerId) === variant.providerPreference.length - 1) {
+        return new Response(JSON.stringify({
+          error: 'AI_PROVIDER_REQUEST_FAILED',
+          provider: provider.id,
+          details: `${provider.id} failed (${res.status}) and no fallbacks remain.`,
+          errors: errors,
+          diagnostics: { envKeys: Object.keys(env) }
+        }), { status: 502, headers: { 'Content-Type': 'application/json' } });
       }
 
-      return new Response(JSON.stringify({
-        error: 'AI_PROVIDER_REQUEST_FAILED',
-        provider: provider.id,
-        status: res.status,
-        details: `${provider.id} returned a non-retryable ${failureKind} failure.`
-      }), {
-        status: res.status >= 400 && res.status < 500 ? 502 : res.status,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      coolDown(provider.id, failureKind === 'auth' ? AUTH_COOLDOWN_MS : PROVIDER_COOLDOWN_MS);
+      continue;
     } catch (e: any) {
-      const failureKind = classifyError(e);
-      console.error(`[ZenRouter] Provider ${provider.id} threw a ${failureKind} error:`, sanitizeError(e));
-      errors.push(`${provider.id}: ${failureKind} error`);
+      const isMissingKey = String(e?.message || '').toLowerCase().includes('missing api key');
+      errors.push(`${provider.id}: error`);
 
-      if (failureKind === 'temporary') {
-        coolDown(provider.id);
-        continue;
+      if (variant.providerPreference.indexOf(providerId) === variant.providerPreference.length - 1) {
+        const diag: any = { provider: provider.id };
+        try {
+          diag.envKeys = Object.keys(env || {});
+          diag.localsKeys = Object.keys(locals || {});
+          diag.runtimeKeys = Object.keys(locals?.runtime || {});
+        } catch (diagError) {}
+
+        return new Response(JSON.stringify({
+          error: isMissingKey ? 'AI_PROVIDER_CONFIGURATION_FAILED' : 'AI_PROVIDER_FATAL_ERROR',
+          provider: provider.id,
+          details: isMissingKey 
+            ? `${provider.id} is missing its API key.`
+            : `${provider.id} failed: ${e.message}`,
+          errors: errors,
+          diagnostics: diag
+        }), { status: 500, headers: { 'Content-Type': 'application/json' } });
       }
 
-      return new Response(JSON.stringify({
-        error: 'AI_PROVIDER_CONFIGURATION_FAILED',
-        provider: provider.id,
-        details: `${provider.id} failed before the request could be sent.`
-      }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      coolDown(provider.id, PROVIDER_COOLDOWN_MS);
+      continue;
     }
   }
 
@@ -86,12 +134,18 @@ export async function routeChat(intent: IntentVariant, messages: any[], env: any
   });
 }
 
-async function callProvider(provider: Provider, variant: typeof VARIANTS[IntentVariant], messages: any[], env: any) {
+async function callProvider(provider: Provider, variant: any, messages: any[], env: any) {
+  if (provider.name === 'cloudflare') {
+    return await callWorkersAI(provider, messages, env);
+  }
+
   const endpoint = provider.name === 'gemini'
     ? `${provider.endpoint}/openai/chat/completions`
     : `${provider.endpoint}/chat/completions`;
 
-  const apiKey = env[`${provider.name.toUpperCase()}_API_KEY`];
+  const apiKey = typeof env[`${provider.name.toUpperCase()}_API_KEY`] === 'string'
+    ? env[`${provider.name.toUpperCase()}_API_KEY`].trim()
+    : env[`${provider.name.toUpperCase()}_API_KEY`];
 
   if (!apiKey) {
     throw new Error(`Missing API Key for ${provider.name}. Ensure ${provider.name.toUpperCase()}_API_KEY is set in your Cloudflare secrets.`);
@@ -130,6 +184,24 @@ async function callProvider(provider: Provider, variant: typeof VARIANTS[IntentV
   }
 }
 
+async function callWorkersAI(provider: Provider, messages: any[], env: any) {
+  const ai = env.AI;
+  if (!ai) {
+    throw new Error("Cloudflare AI binding not found in environment.");
+  }
+
+  // Workers AI streaming response is a ReadableStream
+  const stream = await ai.run(provider.model as any, {
+    messages,
+    stream: true
+  });
+
+  return new Response(stream, {
+    status: 200,
+    headers: { 'Content-Type': 'text/event-stream' }
+  });
+}
+
 function classifyStatus(status: number): FailureKind {
   if ([408, 409, 425, 429, 500, 502, 503, 504].includes(status)) {
     return 'temporary';
@@ -154,8 +226,8 @@ function classifyError(error: any): FailureKind {
   return 'temporary';
 }
 
-function coolDown(providerId: string) {
-  providerCooldowns.set(providerId, Date.now() + PROVIDER_COOLDOWN_MS);
+function coolDown(providerId: string, durationMs: number = PROVIDER_COOLDOWN_MS) {
+  providerCooldowns.set(providerId, Date.now() + durationMs);
 }
 
 function isCoolingDown(providerId: string) {

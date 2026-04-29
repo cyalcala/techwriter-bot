@@ -5,27 +5,55 @@ import { execSync } from 'child_process';
 try {
   console.log('🧪 Starting Final Unified Deployment...');
 
-  // 1. Build the project
-  console.log('📦 Building Astro...');
-  execSync('npm run build', { stdio: 'inherit' });
+  // 1. Build the project (Skipped - run manually with npx --max-old-space-size=4096 astro build)
+  console.log('📦 Skipping Build (Manually Completed)...');
+  // execSync('npm run build', { stdio: 'inherit' });
 
   const distDir = path.join(process.cwd(), 'dist');
   const clientDir = path.join(distDir, 'client');
   const serverDir = path.join(distDir, 'server');
 
-  // 2. Move the Brain (entry.mjs -> _worker.js) to the client folder
-  fs.cpSync(path.join(serverDir, 'entry.mjs'), path.join(clientDir, '_worker.js'));
-  console.log('✅ Brain (Worker) moved to client.');
+  // 2. Move the Brain (worker-entry*.mjs -> _worker.js) to the client folder
+  const serverFiles = fs.readdirSync(serverDir);
+  const workerEntry = serverFiles.find(f => f.startsWith('worker-entry') && f.endsWith('.mjs'));
+  const workerTarget = path.join(clientDir, '_worker.js');
+  
+  if (workerEntry) {
+    const serverEntryPath = path.join(serverDir, workerEntry);
+    fs.copyFileSync(serverEntryPath, workerTarget);
+    console.log(`✅ Brain (${workerEntry} -> _worker.js) placed in deployment root.`);
+  } else {
+    // Fallback to legacy entry.mjs if found
+    const legacyEntry = path.join(serverDir, 'entry.mjs');
+    if (fs.existsSync(legacyEntry)) {
+      fs.copyFileSync(legacyEntry, workerTarget);
+      console.log('✅ Brain (entry.mjs -> _worker.js) placed in deployment root.');
+    } else {
+      throw new Error('CRITICAL: No worker-entry*.mjs or entry.mjs found in dist/server! Build failed.');
+    }
+  }
 
   // 3. Move the Muscles (Chunks) to the client folder
-  fs.cpSync(path.join(serverDir, 'chunks'), path.join(clientDir, 'chunks'), { recursive: true });
-  console.log('✅ Muscles (Chunks) moved to client.');
+  const serverChunks = path.join(serverDir, 'chunks');
+  const clientChunks = path.join(clientDir, 'chunks');
+  if (fs.existsSync(serverChunks)) {
+    if (!fs.existsSync(clientChunks)) fs.mkdirSync(clientChunks, { recursive: true });
+    fs.cpSync(serverChunks, clientChunks, { recursive: true });
+    console.log('✅ Muscles (Chunks) moved to client.');
+  }
 
   // 4. Move the Instructions (Middleware) to the client folder
   const midPath = path.join(serverDir, 'virtual_astro_middleware.mjs');
   if (fs.existsSync(midPath)) {
     fs.cpSync(midPath, path.join(clientDir, 'virtual_astro_middleware.mjs'));
     console.log('✅ Instructions (Middleware) moved to client.');
+  }
+
+  // 5. Remove any .assetsignore that might block upload
+  const ignorePath = path.join(clientDir, '.assetsignore');
+  if (fs.existsSync(ignorePath)) {
+    fs.unlinkSync(ignorePath);
+    console.log('🧹 Vaporized .assetsignore (Unblocking upload).');
   }
 
   // 5. PURGE only the INTERNAL configs and cache, KEEP the root wrangler.json
@@ -44,7 +72,7 @@ try {
   // Ensure root wrangler.json exists with Clean Slate overrides
   const cleanSlateConfig = {
     "name": "tw-bot",
-    "compatibility_date": "2024-10-01",
+    "compatibility_date": "2024-11-01",
     "pages_build_output_dir": "dist/client",
     "ai": {
       "binding": "AI"
