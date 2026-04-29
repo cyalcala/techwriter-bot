@@ -53,6 +53,7 @@ jobs:
 
           rm -f dist/client/.assetsignore
           rm -f dist/wrangler.json dist/server/wrangler.json 2>/dev/null || true
+          rm -f .wrangler/deploy/config.json 2>/dev/null || true
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
