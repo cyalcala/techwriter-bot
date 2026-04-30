@@ -34,7 +34,7 @@ export const ZEN_REGISTRY: Provider[] = [
     name: 'gemini',
     role: 'heavy',
     endpoint: 'https://generativelanguage.googleapis.com/v1beta',
-    model: 'gemini-2.0-flash',
+    model: 'gemini-2.5-flash',
     timeoutMs: 20000,
     freeTier: true,
   },
