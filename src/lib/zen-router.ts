@@ -21,10 +21,22 @@ interface SessionState {
   lockedProviderId: string | null;
   turnCount: number;
   maxTurns: number;
+  createdAt: number;
 }
 
 const circuits = new Map<string, CircuitState>();
 const sessions = new Map<string, SessionState>();
+const SESSION_TTL_MS = 30 * 60_000;
+
+if (typeof setInterval !== 'undefined') {
+  setInterval(() => {
+    const now = Date.now();
+    sessions.forEach((s, k) => { if (now - s.createdAt > SESSION_TTL_MS) sessions.delete(k); });
+    circuits.forEach((c, k) => {
+      if (c.failures.length === 0 && c.ejectedUntil < now && c.requestCount === 0) circuits.delete(k);
+    });
+  }, 300_000);
+}
 
 function getCircuit(id: string): CircuitState {
   if (!circuits.has(id)) {
@@ -86,7 +98,7 @@ function recordFailure(id: string, isRateLimit: boolean) {
 
 function getSession(sessionId: string, maxTurns: number = 3): SessionState {
   if (!sessions.has(sessionId)) {
-    sessions.set(sessionId, { lockedProviderId: null, turnCount: 0, maxTurns });
+    sessions.set(sessionId, { lockedProviderId: null, turnCount: 0, maxTurns, createdAt: Date.now() });
   }
   return sessions.get(sessionId)!;
 }

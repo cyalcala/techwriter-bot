@@ -77,11 +77,16 @@
     reader.readAsText(file);
   }
 
+  function escapeHtml(str: string): string {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
   function formatMarkdown(text: string | null | undefined): string {
     if (!text) return '';
-    let formatted = String(text);
+    let formatted = escapeHtml(String(text));
     formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    formatted = formatted.replace(/^\* (.*)/gm, '<li class="ml-4 list-disc">$1</li>');
+    formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    formatted = formatted.replace(/^\- (.*)/gm, '<li class="ml-4 list-disc">$1</li>');
     formatted = formatted.replace(/(<li.*<\/li>)/gs, '<ul class="my-2">$1</ul>');
     formatted = formatted.replace(/\n/g, '<br />');
     return formatted;

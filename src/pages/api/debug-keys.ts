@@ -1,22 +1,26 @@
 import type { APIRoute } from 'astro';
 
-export const GET: APIRoute = async ({ locals }) => {
+export const GET: APIRoute = async ({ request, locals }) => {
+  const url = new URL(request.url);
+  if (url.searchParams.get('key') !== 'debug2026') {
+    return new Response(JSON.stringify({ error: 'auth_required' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
+  }
 
   const mask = (key: any) => {
     try {
-      if (!key) return "MISSING";
-      if (typeof key !== 'string') return "INVALID_TYPE";
-      return key.slice(0, 4) + "..." + key.slice(-4);
-    } catch (e) { return "ERROR"; }
+      if (!key) return 'MISSING';
+      if (typeof key !== 'string') return 'INVALID_TYPE';
+      return key.slice(0, 2) + '...' + key.slice(-2);
+    } catch (e) { return 'ERROR'; }
   };
 
   const mergedEnv: any = {};
-  const knownKeys = ['CEREBRAS_API_KEY', 'GEMINI_API_KEY', 'OPENROUTER_API_KEY', 'NVIDIA_API_KEY', 'SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'TURNSTILE_SECRET_KEY', 'AI', 'SESSION'];
+  const knownKeys = ['CEREBRAS_API_KEY', 'GEMINI_API_KEY', 'OPENROUTER_API_KEY', 'NVIDIA_API_KEY', 'GROQ_API_KEY', 'SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'TURNSTILE_SECRET_KEY', 'AI', 'SESSION'];
 
   const sources = [
     (locals as any)?.runtime?.env,
     (locals as any)?.cfContext?.env,
-    (locals as any)?.env
+    (locals as any)?.env,
   ];
 
   for (const src of sources) {
@@ -33,14 +37,13 @@ export const GET: APIRoute = async ({ locals }) => {
   }
 
   return new Response(JSON.stringify({
-    DEPLOY_TIME: "2026-04-29 11:52 PM",
     CEREBRAS: mask(mergedEnv.CEREBRAS_API_KEY),
     GEMINI: mask(mergedEnv.GEMINI_API_KEY),
+    OPENROUTER: mask(mergedEnv.OPENROUTER_API_KEY),
+    NVIDIA: mask(mergedEnv.NVIDIA_API_KEY),
+    GROQ: mask(mergedEnv.GROQ_API_KEY),
     HAS_AI: !!mergedEnv.AI,
     HAS_SESSION: !!mergedEnv.SESSION,
-    LOCALS_KEYS: Object.keys(locals)
-  }, null, 2), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' }
-  });
+    LOCALS_KEYS: Object.keys(locals || {}),
+  }, null, 2), { headers: { 'Content-Type': 'application/json' } });
 };

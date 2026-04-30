@@ -20,6 +20,12 @@ pnpm-debug.log*
 # wrangler
 .wrangler/
 
+# junk
+AppData/
+debug_*.json
+projects.txt
+.tmp-config/
+
 # macOS-specific files
 .DS_Store
 
