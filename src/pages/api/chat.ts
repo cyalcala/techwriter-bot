@@ -67,6 +67,46 @@ async function verifyTurnstileToken(token: string, secret: string): Promise<bool
   } catch (e) { return true; }
 }
 
+const searchCache = new Map<string, { result: string; ts: number }>();
+const SEARCH_CACHE_MS = 300_000;
+const SEARCH_TIMEOUT_MS = 1500;
+
+function searchCacheKey(query: string): string {
+  return query.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim().slice(0, 80);
+}
+
+async function searchWeb(query: string): Promise<string | null> {
+  const key = searchCacheKey(query);
+  const cached = searchCache.get(key);
+  if (cached && Date.now() - cached.ts < SEARCH_CACHE_MS) return cached.result;
+
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), SEARCH_TIMEOUT_MS);
+    const res = await fetch(`https://lite.duckduckgo.com/lite?q=${encodeURIComponent(query)}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; TechWriterBot/1.0)' },
+      signal: ctrl.signal,
+    });
+    clearTimeout(t);
+    if (!res.ok) return null;
+
+    const html = await res.text();
+    const snippets: string[] = [];
+    const linkRegex = /<a[^>]*class="result-link"[^>]*>([^<]+)<\/a>.*?<td[^>]*class="result-snippet"[^>]*>([^<]+)<\/td>/gs;
+    let match;
+    while ((match = linkRegex.exec(html)) !== null && snippets.length < 3) {
+      snippets.push(`- ${match[1].trim()}: ${match[2].trim()}`);
+    }
+
+    if (snippets.length === 0) return null;
+    const result = `Web search results for "${query}":\n${snippets.join('\n')}`;
+    searchCache.set(key, { result, ts: Date.now() });
+    return result;
+  } catch (e) {
+    return null;
+  }
+}
+
 export const GET: APIRoute = async () => {
   return new Response(JSON.stringify({
     status: 'ok',
@@ -113,17 +153,23 @@ export const POST: APIRoute = async (context) => {
     const sessionId = String(body.sessionId || '');
     const hasRag = body.hasRag === true && sessionId;
 
-    if (hasRag) {
-      const lastUserMsg = [...messages].reverse().find((m: any) => m.role === 'user');
-      if (lastUserMsg) {
-        const ragContext = await retrieveRagContext(env, sessionId, lastUserMsg.content);
-        if (ragContext) {
-          messages = [
-            { role: 'system', content: `Use the following document excerpts as context. Answer based on the documents. If the documents don't contain relevant info, say so.\n\n${ragContext}` },
-            ...messages,
-          ];
-        }
-      }
+    const lastUserMsg = [...messages].reverse().find((m: any) => m.role === 'user');
+    const userQuery = lastUserMsg?.content || '';
+
+    const [ragContext, webContext] = await Promise.all([
+      hasRag ? retrieveRagContext(env, sessionId, userQuery) : null,
+      userQuery ? searchWeb(userQuery) : null,
+    ]);
+
+    const contextParts: string[] = [];
+    if (webContext) contextParts.push(webContext);
+    if (ragContext) contextParts.push(`Document excerpts:\n${ragContext}`);
+
+    if (contextParts.length > 0) {
+      messages = [
+        { role: 'system', content: `Use the following context to answer the user's question accurately. If the context doesn't contain relevant info, say so.\n\n${contextParts.join('\n\n')}` },
+        ...messages,
+      ];
     }
 
     return await routeChat(body.intent || 'chat-fast', messages, locals, env, sessionId);

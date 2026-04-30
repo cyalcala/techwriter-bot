@@ -247,7 +247,7 @@
     {/if}
   </main>
 
-  <footer class="p-3 md:p-6 bg-[#f1ede4]/70 backdrop-blur-xl border-t border-[#e5e1d8] transition-all">
+  <footer class="p-2 md:p-6 bg-[#f1ede4]/70 backdrop-blur-xl border-t border-[#e5e1d8] transition-all">
     <div class="max-w-4xl mx-auto">
 
       <!-- File Upload Chip -->
@@ -307,7 +307,7 @@
         <button
           on:click={sendMessage}
           disabled={isLoading || !inputMessage.trim()}
-          class="bg-[#8c8576] hover:bg-[#6d675b] text-white p-2.5 md:px-8 md:py-4 rounded-xl md:rounded-2xl transition-all shadow-md active:scale-95 disabled:opacity-50 shrink-0 flex items-center justify-center"
+          class="bg-black hover:bg-gray-800 text-white p-2.5 md:px-8 md:py-4 rounded-xl md:rounded-2xl transition-all shadow-md active:scale-95 disabled:opacity-50 shrink-0 flex items-center justify-center"
         >
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 md:hidden" viewBox="0 0 20 20" fill="currentColor">
             <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
@@ -316,20 +316,20 @@
         </button>
       </div>
 
-      <div class="flex justify-between items-center gap-2 text-[10px] md:text-[11px] text-[#8c8576] mt-3">
-        <div class="flex items-center gap-2">
-          <div class="flex items-center bg-[#e8e4db]/50 p-0.5 rounded-lg border border-[#d6d0c4] shadow-inner">
-            <button on:click={() => isThinkingMode = false} class="px-2 md:px-4 py-1 rounded-md transition-all {!isThinkingMode ? 'bg-white text-[#1a1a1a] shadow-sm font-bold' : 'text-[#8c8576]'}">Fast</button>
-            <button on:click={() => isThinkingMode = true} class="px-2 md:px-4 py-1 rounded-md transition-all {isThinkingMode ? 'bg-[#8c8576] text-white shadow-sm font-bold' : 'text-[#8c8576]'}">Brain</button>
+      <div class="flex justify-between items-center gap-1 text-[9px] md:text-[11px] text-[#8c8576] mt-2">
+        <div class="flex items-center gap-1 md:gap-2">
+          <div class="flex items-center bg-[#e8e4db]/50 p-0.5 rounded-md md:rounded-lg border border-[#d6d0c4] shadow-inner shrink-0">
+            <button on:click={() => isThinkingMode = false} class="px-1.5 md:px-4 py-1 rounded-sm md:rounded-md transition-all {!isThinkingMode ? 'bg-white text-[#1a1a1a] shadow-sm font-bold' : 'text-[#8c8576]'} text-[9px] md:text-xs">Fast</button>
+            <button on:click={() => isThinkingMode = true} class="px-1.5 md:px-4 py-1 rounded-sm md:rounded-md transition-all {isThinkingMode ? 'bg-black text-white shadow-sm font-bold' : 'text-[#8c8576]'} text-[9px] md:text-xs">Brain</button>
           </div>
-          <span class="hidden md:inline opacity-40">|</span>
-          <span class="hidden md:inline font-mono opacity-60">SESS: {sessionId.slice(0,6)}</span>
+          <span class="hidden sm:inline opacity-40">|</span>
+          <span class="hidden sm:inline font-mono opacity-60 text-[8px] md:text-[10px]">SESS:{sessionId.slice(0,6)}</span>
         </div>
-        <div class="flex items-center gap-1 text-green-600 font-bold uppercase tracking-tighter text-[7px] md:text-[8px] bg-green-50 px-1.5 py-0.5 rounded-full border border-green-100 shadow-sm">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-2 w-2" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 4.946-2.397 9.331-6 11.51-3.603-2.18-6-6.564-6-11.51 0-.68.056-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-          </svg>
-          Cloudflare Secured
+        <div class="text-[7px] md:text-[8px] opacity-50 text-center flex-1 mx-2">
+          This AI can make mistakes. Verify important info.
+        </div>
+        <div class="flex items-center gap-1 text-green-600 font-bold uppercase tracking-tighter text-[7px] md:text-[8px] shrink-0">
+          <span class="hidden md:inline bg-green-50 px-1.5 py-0.5 rounded-full border border-green-100">Cloudflare Secured</span>
         </div>
       </div>
     </div>
