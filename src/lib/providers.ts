@@ -1,94 +1,101 @@
+export type ProviderRole = 'fast' | 'balanced' | 'heavy' | 'fallback';
+
 export interface Provider {
   id: string;
   name: string;
+  role: ProviderRole;
   endpoint: string;
   model: string;
-  strengths: string[];
+  timeoutMs: number;
+  freeTier: boolean;
 }
 
 export const ZEN_REGISTRY: Provider[] = [
   {
+    id: 'groq-fast',
+    name: 'groq',
+    role: 'fast',
+    endpoint: 'https://api.groq.com/openai/v1',
+    model: 'llama-3.1-8b-instant',
+    timeoutMs: 8000,
+    freeTier: true,
+  },
+  {
     id: 'cerebras-llama',
     name: 'cerebras',
+    role: 'balanced',
     endpoint: 'https://api.cerebras.ai/v1',
     model: 'llama3.1-8b',
-    strengths: ['insane-speed', 'intelligence']
+    timeoutMs: 8000,
+    freeTier: true,
   },
   {
     id: 'gemini-flash',
     name: 'gemini',
+    role: 'heavy',
     endpoint: 'https://generativelanguage.googleapis.com/v1beta',
     model: 'gemini-2.5-flash-latest',
-    strengths: ['thinking', 'massive-context', 'research']
+    timeoutMs: 20000,
+    freeTier: true,
+  },
+  {
+    id: 'nvidia-fast',
+    name: 'nvidia',
+    role: 'fallback',
+    endpoint: 'https://integrate.api.nvidia.com/v1',
+    model: 'meta/llama-3.1-8b-instruct',
+    timeoutMs: 8000,
+    freeTier: true,
   },
   {
     id: 'openrouter-fast',
     name: 'openrouter',
+    role: 'fallback',
     endpoint: 'https://openrouter.ai/api/v1',
     model: 'google/gemini-flash-1.5',
-    strengths: ['reliability', 'fallback']
-  },
-  {
-    id: 'nvidia-llama-fast',
-    name: 'nvidia',
-    endpoint: 'https://integrate.api.nvidia.com/v1',
-    model: 'meta/llama-3.1-8b-instruct',
-    strengths: ['speed', 'latency']
-  },
-  {
-    id: 'nvidia-minimax',
-    name: 'nvidia',
-    endpoint: 'https://integrate.api.nvidia.com/v1',
-    model: 'meta/llama-3.1-8b-instruct',
-    strengths: ['reasoning', 'editing']
-  },
-  {
-    id: 'nvidia-deepseek',
-    name: 'nvidia',
-    endpoint: 'https://integrate.api.nvidia.com/v1',
-    model: 'meta/llama-3.3-70b-instruct',
-    strengths: ['reasoning', 'long-context']
+    timeoutMs: 8000,
+    freeTier: false,
   },
   {
     id: 'cloudflare-llama',
     name: 'cloudflare',
+    role: 'fallback',
     endpoint: 'workers-ai',
     model: '@cf/meta/llama-3.1-8b-instruct',
-    strengths: ['reliability', 'native', 'fail-safe']
-  }
+    timeoutMs: 20000,
+    freeTier: true,
+  },
 ];
 
-export const VARIANTS = {
-  'draft': {
-    temperature: 0.7,
-    max_tokens: 4096,
-    providerPreference: ['cerebras-llama', 'gemini-flash', 'openrouter-fast', 'nvidia-llama-fast', 'cloudflare-llama']
-  },
-  'edit': {
-    temperature: 0.2,
-    max_tokens: 4096,
-    providerPreference: ['cerebras-llama', 'gemini-flash', 'openrouter-fast', 'nvidia-llama-fast', 'cloudflare-llama']
-  },
-  'outline': {
-    temperature: 0.4,
-    max_tokens: 2048,
-    providerPreference: ['cerebras-llama', 'gemini-flash', 'openrouter-fast', 'nvidia-llama-fast', 'cloudflare-llama']
-  },
-  'research': {
-    temperature: 0.1,
-    max_tokens: 2048,
-    providerPreference: ['cerebras-llama', 'gemini-flash', 'openrouter-fast', 'nvidia-deepseek', 'cloudflare-llama']
-  },
-  'chat-fast': {
-    temperature: 0.7,
-    max_tokens: 1024,
-    providerPreference: ['cerebras-llama', 'gemini-flash', 'openrouter-fast', 'nvidia-llama-fast', 'cloudflare-llama']
-  },
-  'deep-reason': {
-    temperature: 0.6,
-    max_tokens: 16384,
-    providerPreference: ['cerebras-llama', 'gemini-flash', 'openrouter-fast', 'nvidia-deepseek', 'cloudflare-llama']
-  }
-} as const;
+export function classifyQuery(messages: any[], intent: string): ProviderRole {
+  const lastMsg = messages[messages.length - 1]?.content || '';
+  const msgLen = String(lastMsg).length;
 
-export type IntentVariant = keyof typeof VARIANTS;
+  if (intent === 'deep-reason' || intent === 'research' || msgLen > 1500) return 'heavy';
+  if (msgLen <= 200 && intent === 'chat-fast') return 'fast';
+  return 'balanced';
+}
+
+const ROLE_PRIORITY: Record<ProviderRole, ProviderRole[]> = {
+  fast:     ['fast', 'balanced', 'fallback', 'heavy'],
+  balanced: ['balanced', 'fast', 'fallback', 'heavy'],
+  heavy:    ['heavy', 'balanced', 'fallback', 'fast'],
+  fallback: ['fallback', 'balanced', 'heavy', 'fast'],
+};
+
+export function getProvidersForRole(role: ProviderRole): Provider[] {
+  const priority = ROLE_PRIORITY[role];
+  const selected: Provider[] = [];
+  for (const r of priority) {
+    for (const p of ZEN_REGISTRY) {
+      if (p.role === r && !selected.find(s => s.id === p.id)) {
+        selected.push(p);
+      }
+    }
+  }
+  return selected;
+}
+
+export function getProvider(id: string): Provider | undefined {
+  return ZEN_REGISTRY.find(p => p.id === id);
+}
