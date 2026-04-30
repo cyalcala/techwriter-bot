@@ -1,8 +1,9 @@
 import type { APIRoute } from 'astro';
 
 export const GET: APIRoute = async ({ request, locals }) => {
-  const url = new URL(request.url);
-  if (url.searchParams.get('key') !== 'debug2026') {
+  const rawUrl = request.url || '';
+  const hasKey = rawUrl.includes('key=debug2026');
+  if (!hasKey) {
     return new Response(JSON.stringify({ error: 'auth_required' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
   }
 
