@@ -16,7 +16,7 @@ export const ZEN_REGISTRY: Provider[] = [
     name: 'groq',
     role: 'fast',
     endpoint: 'https://api.groq.com/openai/v1',
-    model: 'llama-3.1-8b-instant',
+    model: 'llama-3.3-70b-versatile',
     timeoutMs: 8000,
     freeTier: true,
   },
