@@ -9,49 +9,49 @@
   let isStreaming = $state(false);
   let sessionId = $state('');
   let isUploading = $state(false);
-  let uploadStatus = $state('');
-  let fileInput;
+  let uploadStatus = $state<'idle' | 'uploading' | 'done' | 'error'>('idle');
+  let uploadedFileName = $state('');
+  let fileInput: HTMLInputElement;
   let isThinkingMode = $state(false);
-  let chatContainer;
+  let chatContainer: HTMLElement;
 
   function generateSessionId() {
-    try {
-      return crypto.randomUUID();
-    } catch (e) {
+    try { return crypto.randomUUID(); } catch (e) {
       return Math.random().toString(36).substring(2) + Date.now().toString(36);
     }
   }
 
-  onMount(() => {
-    sessionId = generateSessionId();
-  });
+  onMount(() => { sessionId = generateSessionId(); });
 
   $effect(() => {
     messages;
-    if (chatContainer) {
-      chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
-    }
+    if (chatContainer) chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
   });
 
   function newChat() {
     sessionId = generateSessionId();
-    messages = [
-      { role: 'assistant', content: 'Fresh session started. My memory is now clear. What would you like to work on?' }
-    ];
+    messages = [{ role: 'assistant', content: 'Fresh session started. My memory is now clear. What would you like to work on?' }];
+    uploadStatus = 'idle';
+    uploadedFileName = '';
   }
 
-  async function handleFileUpload(event) {
-    const file = event.target.files[0];
+  function removeFile() {
+    uploadStatus = 'idle';
+    uploadedFileName = '';
+    if (fileInput) fileInput.value = '';
+  }
+
+  async function handleFileUpload(event: Event) {
+    const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
 
     isUploading = true;
-    uploadStatus = 'Reading...';
+    uploadStatus = 'uploading';
+    uploadedFileName = file.name;
 
     const reader = new FileReader();
     reader.onload = async (e) => {
-      const text = e.target.result;
-      uploadStatus = 'Vectorizing...';
-
+      const text = e.target?.result as string;
       try {
         const res = await fetch('/api/ingest', {
           method: 'POST',
@@ -64,15 +64,14 @@
           throw new Error(errData.message || 'Ingestion failed');
         }
 
-        uploadStatus = 'Ready!';
-        messages = [...messages, { role: 'assistant', content: `✅ I've successfully analyzed **${file.name}** and added it to our temporary sandbox memory!` }];
-      } catch (err) {
+        uploadStatus = 'done';
+        messages = [...messages, { role: 'assistant', content: `✅ I've processed **${file.name}** and added it to sandbox memory.` }];
+      } catch (err: any) {
         console.error(err);
-        uploadStatus = 'Error';
-        messages = [...messages, { role: 'assistant', content: `❌ **Upload failed:** ${err.message}. Please check your Cloudflare AI bindings.` }];
+        uploadStatus = 'error';
+        messages = [...messages, { role: 'assistant', content: `❌ Upload failed: ${err.message}` }];
       } finally {
         isUploading = false;
-        setTimeout(() => { uploadStatus = ''; }, 3000);
       }
     };
     reader.readAsText(file);
@@ -88,119 +87,97 @@
     return formatted;
   }
 
-async function sendMessage() {
-  if (!inputMessage.trim() || isLoading) return;
+  async function sendMessage() {
+    if (!inputMessage.trim() || isLoading) return;
 
-  const userMessage = inputMessage;
-  inputMessage = '';
-  messages = [...messages, { role: 'user', content: userMessage }];
-  isLoading = true;
+    const userMessage = inputMessage;
+    inputMessage = '';
+    messages = [...messages, { role: 'user', content: userMessage }];
+    isLoading = true;
 
-  try {
-    const response = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messages: messages,
-        intent: isThinkingMode ? 'research' : 'chat-fast',
-        sessionId
-      })
-    });
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: messages,
+          intent: isThinkingMode ? 'research' : 'chat-fast',
+          sessionId,
+          hasRag: uploadStatus === 'done'
+        })
+      });
 
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(errText);
-    }
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(errText);
+      }
 
-    const providerName = response.headers.get('x-provider') || 'Cerebras';
-    isStreaming = true;
+      const providerName = response.headers.get('x-provider') || 'AI';
+      const role = response.headers.get('x-role') || '';
+      isStreaming = true;
 
-    const stream = response.body;
-    if (!stream) throw new Error('No response stream received');
+      const stream = response.body;
+      if (!stream) throw new Error('No response stream received');
 
-    const reader = stream.getReader();
-    const decoder = new TextDecoder();
-    
-    // Add the assistant message to the state array
-    messages = [...messages, { role: 'assistant', content: '', provider: providerName }];
-    const msgIdx = messages.length - 1;
+      const reader = stream.getReader();
+      const decoder = new TextDecoder();
 
-    let buffer = '';
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
+      messages = [...messages, { role: 'assistant', content: '', provider: providerName }];
+      const msgIdx = messages.length - 1;
 
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed || !trimmed.startsWith('data:')) continue;
-        
-        const rawData = trimmed.slice(trimmed.indexOf(':') + 1).trim();
-        if (rawData === '[DONE]') continue;
-        
-        try {
-          const json = JSON.parse(rawData);
-          
-          if (json.error) {
-            const errorMsg = `\n\n❌ **Error from ${providerName}:** ${json.error.message || JSON.stringify(json.error)}`;
-            messages[msgIdx] = { ...messages[msgIdx], content: messages[msgIdx].content + errorMsg };
-            continue;
-          }
+      let buffer = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-          const content = 
-            json.choices?.[0]?.delta?.content || 
-            json.choices?.[0]?.text || 
-            json.content || 
-            '';
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
 
-          if (content) {
-            // FOOLPROOF REACTIVITY: Create a new object and reassign the array element
-            messages[msgIdx] = { 
-              ...messages[msgIdx], 
-              content: messages[msgIdx].content + content 
-            };
-          }
-        } catch (e) {
-          // If JSON fails but we have data, it might be raw text
-          if (rawData && !rawData.includes('{')) {
-            messages[msgIdx] = { 
-              ...messages[msgIdx], 
-              content: messages[msgIdx].content + rawData 
-            };
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || !trimmed.startsWith('data:')) continue;
+
+          const rawData = trimmed.slice(trimmed.indexOf(':') + 1).trim();
+          if (rawData === '[DONE]') continue;
+
+          try {
+            const json = JSON.parse(rawData);
+            if (json.error) {
+              const errorMsg = `\n\n❌ Error: ${json.error.message || JSON.stringify(json.error)}`;
+              messages[msgIdx] = { ...messages[msgIdx], content: messages[msgIdx].content + errorMsg };
+              continue;
+            }
+            const content = json.choices?.[0]?.delta?.content || json.choices?.[0]?.text || json.content || '';
+            if (content) {
+              messages[msgIdx] = { ...messages[msgIdx], content: messages[msgIdx].content + content };
+            }
+          } catch (e) {
+            if (rawData && !rawData.includes('{')) {
+              messages[msgIdx] = { ...messages[msgIdx], content: messages[msgIdx].content + rawData };
+            }
           }
         }
       }
-    }
 
-    if (buffer.trim().startsWith('data:')) {
-      const rawData = buffer.slice(buffer.indexOf(':') + 1).trim();
-      if (rawData !== '[DONE]') {
-        try {
-          const json = JSON.parse(rawData);
-          const content = json.choices?.[0]?.delta?.content || json.choices?.[0]?.text || '';
-          if (content) {
-            messages[msgIdx] = { 
-              ...messages[msgIdx], 
-              content: messages[msgIdx].content + content 
-            };
-          }
-        } catch (e) {}
+      if (buffer.trim().startsWith('data:')) {
+        const rawData = buffer.slice(buffer.indexOf(':') + 1).trim();
+        if (rawData !== '[DONE]') {
+          try {
+            const json = JSON.parse(rawData);
+            const content = json.choices?.[0]?.delta?.content || json.choices?.[0]?.text || '';
+            if (content) messages[msgIdx] = { ...messages[msgIdx], content: messages[msgIdx].content + content };
+          } catch (e) {}
+        }
       }
+    } catch (error: any) {
+      console.error('[Chat]', error);
+      messages = [...messages, { role: 'assistant', content: `❌ Connection Error: ${error.message}.` }];
+    } finally {
+      isLoading = false;
+      isStreaming = false;
     }
-  } catch (error: any) {
-    console.error('[Chat]', error);
-    messages = [...messages, {
-      role: 'assistant',
-      content: `❌ **Connection Error:** ${error.message}.`
-    }];
-  } finally {
-    isLoading = false;
-    isStreaming = false;
   }
-}
 </script>
 
 <div class="flex flex-col h-screen bg-[#fcfaf6] text-[#2e2e2e] font-['Outfit'] selection:bg-[#e8e4db]">
@@ -215,16 +192,13 @@ async function sendMessage() {
       </div>
       <a href="https://www.linkedin.com/in/cyrusalcala/" target="_blank" class="text-[8px] md:text-[10px] text-[#8c8576] hover:text-[#1a1a1a] transition-colors flex items-center gap-1 font-medium group">
         <span class="opacity-50">made with</span>
-        <span class="text-red-500 text-[10px] group-hover:scale-125 transition-transform duration-300">❤️</span>
+        <span class="text-red-500 text-[10px] group-hover:scale-125 transition-transform duration-300">&#10084;&#65039;</span>
         <span class="opacity-50">by</span>
         <span class="border-b border-transparent group-hover:border-[#8c8576] transition-all">Cy Alcala</span>
       </a>
     </div>
     <div class="flex items-center gap-2">
-      <button
-        on:click={newChat}
-        class="text-[10px] md:text-xs bg-white/50 hover:bg-white text-[#6d675b] px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl transition-all flex items-center gap-1.5 border border-[#d6d0c4] shadow-sm active:scale-95"
-      >
+      <button on:click={newChat} class="text-[10px] md:text-xs bg-white/50 hover:bg-white text-[#6d675b] px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl transition-all flex items-center gap-1.5 border border-[#d6d0c4] shadow-sm active:scale-95">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
           <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
         </svg>
@@ -237,18 +211,8 @@ async function sendMessage() {
   <style>
     main::-webkit-scrollbar { display: none; }
     main { -ms-overflow-style: none; scrollbar-width: none; }
-
-    .ai-content {
-      font-family: 'Instrument Serif', serif;
-      font-size: 1.25rem;
-      line-height: 1.6;
-    }
-
-    @media (max-width: 768px) {
-      .ai-content {
-        font-size: 1.15rem;
-      }
-    }
+    .ai-content { font-family: 'Instrument Serif', serif; font-size: 1.25rem; line-height: 1.6; }
+    @media (max-width: 768px) { .ai-content { font-size: 1.15rem; } }
   </style>
 
   <main bind:this={chatContainer} class="flex-1 overflow-y-auto px-3 py-4 md:p-8 space-y-4 md:space-y-6 max-w-4xl mx-auto w-full scroll-smooth">
@@ -280,20 +244,49 @@ async function sendMessage() {
 
   <footer class="p-3 md:p-6 bg-[#f1ede4]/70 backdrop-blur-xl border-t border-[#e5e1d8] transition-all">
     <div class="max-w-4xl mx-auto">
-      <div class="flex gap-2 md:gap-3 items-center mb-3">
+
+      <!-- File Upload Chip -->
+      {#if uploadStatus !== 'idle'}
+        <div class="mb-2 transition-all duration-300">
+          <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border shadow-sm {uploadStatus === 'done' ? 'bg-green-50 border-green-200 text-green-700' : uploadStatus === 'error' ? 'bg-red-50 border-red-200 text-red-700' : 'bg-[#e8e4db]/60 border-[#d6d0c4] text-[#6d675b]'}">
+            {#if uploadStatus === 'uploading'}
+              <div class="w-3.5 h-3.5 border-2 border-[#8c8576] border-t-transparent rounded-full animate-spin shrink-0"></div>
+            {:else if uploadStatus === 'done'}
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            {:else if uploadStatus === 'error'}
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            {/if}
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 shrink-0 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            <span class="text-xs font-medium truncate max-w-[120px] md:max-w-[200px]">{uploadedFileName || 'Processing...'}</span>
+            <span class="text-[10px] font-bold shrink-0">
+              {#if uploadStatus === 'uploading'}uploading{/if}
+            </span>
+            <button on:click={removeFile} class="ml-1 p-0.5 rounded-full hover:bg-black/10 transition-all shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      {/if}
+
+      <div class="flex gap-2 md:gap-3 items-center">
         <input type="file" bind:this={fileInput} on:change={handleFileUpload} class="hidden" accept=".txt,.md,.json,.csv" />
         <button
           on:click={() => fileInput.click()}
           disabled={isUploading}
           class="p-2.5 md:p-4 bg-white hover:bg-[#fcfaf6] border border-[#d6d0c4] rounded-xl md:rounded-2xl text-[#8c8576] transition-all shadow-sm disabled:opacity-50 shrink-0"
+          title={uploadStatus === 'done' ? 'Replace file' : 'Upload document'}
         >
-          {#if isUploading}
-            <div class="w-5 h-5 border-2 border-[#8c8576] border-t-transparent rounded-full animate-spin"></div>
-          {:else}
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 md:h-6 md:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-            </svg>
-          {/if}
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 md:h-6 md:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+          </svg>
         </button>
 
         <div class="relative flex-1">
@@ -301,14 +294,9 @@ async function sendMessage() {
             bind:value={inputMessage}
             on:keydown={(e) => e.key === 'Enter' && sendMessage()}
             disabled={isLoading}
-            class="w-full bg-white/80 border border-[#d6d0c4] rounded-xl md:rounded-2xl p-2.5 md:p-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#8c8576]/20 pr-10 md:pr-24 text-[#1a1a1a] placeholder:text-[#a39e91] text-sm md:text-lg"
-            placeholder="Ask anything..."
+            class="w-full bg-white/80 border border-[#d6d0c4] rounded-xl md:rounded-2xl p-2.5 md:p-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#8c8576]/20 text-[#1a1a1a] placeholder:text-[#a39e91] text-sm md:text-lg"
+            placeholder={uploadStatus === 'done' ? 'Ask about your document...' : 'Ask anything...'}
           />
-          {#if uploadStatus}
-            <span class="absolute right-2 top-1/2 -translate-y-1/2 text-[8px] font-bold uppercase tracking-tight bg-[#8c8576] px-1.5 py-0.5 rounded text-white animate-pulse">
-              {uploadStatus}
-            </span>
-          {/if}
         </div>
 
         <button
@@ -319,11 +307,11 @@ async function sendMessage() {
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 md:hidden" viewBox="0 0 20 20" fill="currentColor">
             <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
           </svg>
-          <span class="hidden md:inline text-lg font-bold">Send</span>
+          <span class="hidden md:inline text-sm md:text-base font-bold tracking-wide">Send</span>
         </button>
       </div>
 
-      <div class="flex justify-between items-center gap-2 text-[10px] md:text-[11px] text-[#8c8576]">
+      <div class="flex justify-between items-center gap-2 text-[10px] md:text-[11px] text-[#8c8576] mt-3">
         <div class="flex items-center gap-2">
           <div class="flex items-center bg-[#e8e4db]/50 p-0.5 rounded-lg border border-[#d6d0c4] shadow-inner">
             <button on:click={() => isThinkingMode = false} class="px-2 md:px-4 py-1 rounded-md transition-all {!isThinkingMode ? 'bg-white text-[#1a1a1a] shadow-sm font-bold' : 'text-[#8c8576]'}">Fast</button>

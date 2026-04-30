@@ -6,7 +6,7 @@ export const POST: APIRoute = async (context) => {
   
   try {
     const { messages } = await request.json();
-    const apiKey = env.CEREBRAS_API_KEY || 'csk-mrhhj8p4xvd42xwnxx9h4wp5kekt8mtnrr3n9m4838p6m2d4';
+    const apiKey = String(env.CEREBRAS_API_KEY || '').trim();
 
     if (!apiKey) {
       return new Response("ERROR: CEREBRAS_API_KEY is missing from Cloudflare Secrets.", { status: 500 });
@@ -21,7 +21,7 @@ export const POST: APIRoute = async (context) => {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'llama3.1-70b',
+        model: 'llama3.1-8b',
         messages: messages,
         stream: true
       })
