@@ -83,23 +83,39 @@ async function searchWeb(query: string): Promise<string | null> {
   try {
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), SEARCH_TIMEOUT_MS);
-    const res = await fetch(`https://lite.duckduckgo.com/lite?q=${encodeURIComponent(query)}`, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; TechWriterBot/1.0)' },
+
+    const res = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`, {
       signal: ctrl.signal,
     });
     clearTimeout(t);
     if (!res.ok) return null;
 
-    const html = await res.text();
-    const snippets: string[] = [];
-    const linkRegex = /<a[^>]*class="result-link"[^>]*>([^<]+)<\/a>.*?<td[^>]*class="result-snippet"[^>]*>([^<]+)<\/td>/gs;
-    let match;
-    while ((match = linkRegex.exec(html)) !== null && snippets.length < 3) {
-      snippets.push(`- ${match[1].trim()}: ${match[2].trim()}`);
+    const data = await res.json() as any;
+    const parts: string[] = [];
+
+    if (data.Answer) parts.push(`Answer: ${data.Answer}`);
+    if (data.AbstractText) parts.push(data.AbstractText);
+    if (data.Abstract && data.Abstract.length > data.AbstractText?.length) parts.push(data.Abstract);
+
+    const topics = data.RelatedTopics?.slice(0, 3)?.filter((t: any) => t.Text)?.map((t: any) => `- ${t.Text}`) || [];
+    if (topics.length > 0) parts.push(`Related: ${topics.join('; ')}`);
+
+    if (parts.length === 0) {
+      const res2 = await fetch(`https://lite.duckduckgo.com/lite?q=${encodeURIComponent(query)}`, {
+        signal: AbortSignal.timeout(1000),
+      });
+      if (res2.ok) {
+        const html = await res2.text();
+        const m = html.match(/<td[^>]*class="result-snippet"[^>]*>([^<]+)/g);
+        if (m) {
+          const snippets = m.slice(0, 3).map(s => s.replace(/<[^>]+>/g, '').trim());
+          parts.push(`Web results for "${query}":\n${snippets.map(s => `- ${s}`).join('\n')}`);
+        }
+      }
     }
 
-    if (snippets.length === 0) return null;
-    const result = `Web search results for "${query}":\n${snippets.join('\n')}`;
+    if (parts.length === 0) return null;
+    const result = parts.join('\n\n');
     searchCache.set(key, { result, ts: Date.now() });
     return result;
   } catch (e) {
@@ -167,7 +183,7 @@ export const POST: APIRoute = async (context) => {
 
     if (contextParts.length > 0) {
       messages = [
-        { role: 'system', content: `Use the following context to answer the user's question accurately. If the context doesn't contain relevant info, say so.\n\n${contextParts.join('\n\n')}` },
+        { role: 'system', content: `You have access to real-time web search results and document excerpts below. Use this context to answer accurately. Do NOT say you cannot access real-time data or that your knowledge is limited — you have current information right here. If the context is insufficient, state what specific info is missing.\n\n${contextParts.join('\n\n')}` },
         ...messages,
       ];
     }
