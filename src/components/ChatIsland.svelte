@@ -114,7 +114,12 @@
 
       if (!response.ok) {
         const errText = await response.text();
-        throw new Error(errText);
+        let errMessage = errText;
+        try {
+          const errJson = JSON.parse(errText);
+          errMessage = errJson.message || errJson.error || errText;
+        } catch (e) {}
+        throw new Error(errMessage);
       }
 
       const providerName = response.headers.get('x-provider') || 'AI';

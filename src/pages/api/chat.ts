@@ -1,12 +1,14 @@
 import type { APIRoute } from 'astro';
 import { env as cfGlobalEnv } from 'cloudflare:workers';
-import { routeChat, getCircuitDiagnostics } from '../../lib/zen-router';
+import { routeChat, getCircuitDiagnostics, runHealthCheck } from '../../lib/zen-router';
 
 interface RateLimitEntry { count: number; resetTime: number; }
 const rateLimits = new Map<string, RateLimitEntry>();
 const RATE_LIMIT_WINDOW = 60 * 1000;
 const MAX_REQUESTS_PER_WINDOW = 20;
 const MAX_BODY_SIZE = 64 * 1024;
+
+let healthCheckDone = false;
 
 const dailyUsage = new Map<string, number>();
 const DAILY_CAP = 500;
@@ -93,28 +95,32 @@ async function searchWeb(query: string): Promise<string | null> {
     const data = await res.json() as any;
     const parts: string[] = [];
 
-    if (data.Answer) parts.push(`Answer: ${data.Answer}`);
+    if (data.Answer) parts.push(`Direct answer: ${data.Answer}`);
     if (data.AbstractText) parts.push(data.AbstractText);
-    if (data.Abstract && data.Abstract.length > data.AbstractText?.length) parts.push(data.Abstract);
+    if (data.Definition) parts.push(`Definition: ${data.Definition}`);
+    if (data.Heading) parts.push(`Topic: ${data.Heading}`);
 
-    const topics = data.RelatedTopics?.slice(0, 3)?.filter((t: any) => t.Text)?.map((t: any) => `- ${t.Text}`) || [];
-    if (topics.length > 0) parts.push(`Related: ${topics.join('; ')}`);
+    const topics = data.RelatedTopics?.slice(0, 5)?.filter((t: any) => t.Text)?.map((t: any) => `- ${t.Text}`) || [];
+    if (topics.length) parts.push(`Related:\n${topics.join('\n')}`);
+
+    const results = data.Results?.slice(0, 3)?.filter((r: any) => r.Text)?.map((r: any) => `- ${r.FirstURL}: ${r.Text}`) || [];
+    if (results.length) parts.push(`Web results:\n${results.join('\n')}`);
 
     if (parts.length === 0) {
-      const res2 = await fetch(`https://lite.duckduckgo.com/lite?q=${encodeURIComponent(query)}`, {
-        signal: AbortSignal.timeout(1000),
+      const q = query.toLowerCase();
+      const altQuery = q.includes('time') ? `${query.replace(/today|now|current/gi, '')} philippines time zone` : `${query} facts`;
+      const res2 = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(altQuery)}&format=json&no_html=1`, {
+        signal: AbortSignal.timeout(1500),
       });
       if (res2.ok) {
-        const html = await res2.text();
-        const m = html.match(/<td[^>]*class="result-snippet"[^>]*>([^<]+)/g);
-        if (m) {
-          const snippets = m.slice(0, 3).map(s => s.replace(/<[^>]+>/g, '').trim());
-          parts.push(`Web results for "${query}":\n${snippets.map(s => `- ${s}`).join('\n')}`);
-        }
+        const d2 = await res2.json() as any;
+        if (d2.AbstractText) parts.push(d2.AbstractText);
+        if (d2.Answer) parts.push(`Answer: ${d2.Answer}`);
       }
     }
 
     if (parts.length === 0) return null;
+
     const result = parts.join('\n\n');
     searchCache.set(key, { result, ts: Date.now() });
     return result;
@@ -138,6 +144,11 @@ export const POST: APIRoute = async (context) => {
   try { if (cfGlobalEnv) env = { ...(cfGlobalEnv as any) }; } catch (e) {}
   try { const rEnv = (locals as any)?.runtime?.env; if (rEnv) for (const [k, v] of Object.entries(rEnv)) { if (v != null && !env[k]) env[k] = v; } } catch (e) {}
   if (typeof process !== 'undefined' && process.env) { for (const [k, v] of Object.entries(process.env)) { if (v && !env[k]) env[k] = v; } }
+
+  if (!healthCheckDone && env) {
+    healthCheckDone = true;
+    try { runHealthCheck(env); } catch (e) {}
+  }
 
   const clientIP = request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'unknown';
 
@@ -190,6 +201,11 @@ export const POST: APIRoute = async (context) => {
 
     return await routeChat(body.intent || 'chat-fast', messages, locals, env, sessionId);
   } catch (error: any) {
-    return new Response(JSON.stringify({ error: 'processing_error' }), { status: 500 });
+    console.log(JSON.stringify({ event: 'processing_error', message: error.message?.slice(0, 200) }));
+    return new Response(JSON.stringify({
+      error: 'processing_error',
+      message: 'An unexpected error occurred. Please try again.',
+      retryAfter: 5,
+    }), { status: 500, headers: { 'Content-Type': 'application/json', 'Retry-After': '5' } });
   }
 };

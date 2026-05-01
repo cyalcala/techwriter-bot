@@ -1,11 +1,15 @@
 import { ZEN_REGISTRY, classifyQuery, getProvidersForRole, getProvider, type Provider, type ProviderRole } from './providers';
 
-const CIRCUIT_BREAKER_WINDOW_MS = 60_000;
-const CIRCUIT_BREAKER_FAILURES = 3;
-const CIRCUIT_BREAKER_EJECT_MS = 120_000;
-const CIRCUIT_BREAKER_PROBE_MS = 60_000;
-const MAX_ATTEMPTS = 3;
-const USER_FACING_TIMEOUT_MS = 15_000;
+const CIRCUIT_TRANSIENT_WINDOW_MS = 60_000;
+const CIRCUIT_TRANSIENT_FAILURES = 4;
+const CIRCUIT_TRANSIENT_EJECT_MS = 90_000;
+const CIRCUIT_TRANSIENT_PROBE_MS = 45_000;
+const CIRCUIT_PERMANENT_EJECT_MS = 600_000;
+const MAX_TRANSIENT_ATTEMPTS = 6;
+const USER_FACING_TIMEOUT_MS = 25_000;
+
+const RETRYABLE_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504]);
+const PERMANENT_STATUSES = new Set([400, 401, 402, 403, 404]);
 
 interface CircuitState {
   failures: number[];
@@ -15,6 +19,7 @@ interface CircuitState {
   rateLimitHits: number;
   totalLatency: number;
   requestCount: number;
+  permanent: boolean;
 }
 
 interface SessionState {
@@ -28,6 +33,8 @@ const circuits = new Map<string, CircuitState>();
 const sessions = new Map<string, SessionState>();
 const SESSION_TTL_MS = 30 * 60_000;
 
+let providerHealth: Map<string, boolean> | null = null;
+
 if (typeof setInterval !== 'undefined') {
   setInterval(() => {
     const now = Date.now();
@@ -40,7 +47,7 @@ if (typeof setInterval !== 'undefined') {
 
 function getCircuit(id: string): CircuitState {
   if (!circuits.has(id)) {
-    circuits.set(id, { failures: [], ejectedUntil: 0, halfOpen: false, totalErrors: 0, rateLimitHits: 0, totalLatency: 0, requestCount: 0 });
+    circuits.set(id, { failures: [], ejectedUntil: 0, halfOpen: false, totalErrors: 0, rateLimitHits: 0, totalLatency: 0, requestCount: 0, permanent: false });
   }
   return circuits.get(id)!;
 }
@@ -48,7 +55,7 @@ function getCircuit(id: string): CircuitState {
 function isCircuitOpen(id: string): boolean {
   const c = getCircuit(id);
   const now = Date.now();
-  const recentFailures = c.failures.filter(t => now - t < CIRCUIT_BREAKER_WINDOW_MS);
+  const recentFailures = c.failures.filter(t => now - t < CIRCUIT_TRANSIENT_WINDOW_MS);
   c.failures = recentFailures;
 
   if (c.ejectedUntil > 0) {
@@ -56,18 +63,20 @@ function isCircuitOpen(id: string): boolean {
       c.ejectedUntil = 0;
       c.halfOpen = true;
       c.failures = [];
+      c.permanent = false;
       return false;
     }
-    if (now >= c.ejectedUntil - CIRCUIT_BREAKER_PROBE_MS) {
+    if (!c.permanent && now >= c.ejectedUntil - CIRCUIT_TRANSIENT_PROBE_MS) {
       c.halfOpen = true;
       return false;
     }
     return true;
   }
 
-  if (recentFailures.length >= CIRCUIT_BREAKER_FAILURES) {
-    c.ejectedUntil = now + CIRCUIT_BREAKER_EJECT_MS;
+  if (recentFailures.length >= CIRCUIT_TRANSIENT_FAILURES) {
+    c.ejectedUntil = now + CIRCUIT_TRANSIENT_EJECT_MS;
     c.halfOpen = false;
+    c.permanent = false;
     return true;
   }
 
@@ -79,21 +88,30 @@ function recordSuccess(id: string, latencyMs: number) {
   c.failures = [];
   c.ejectedUntil = 0;
   c.halfOpen = false;
+  c.permanent = false;
   c.totalLatency += latencyMs;
   c.requestCount++;
 }
 
-function recordFailure(id: string, isRateLimit: boolean) {
+function recordTransientFailure(id: string, isRateLimit: boolean) {
   const c = getCircuit(id);
   const now = Date.now();
   c.failures.push(now);
-  c.failures = c.failures.filter(t => now - t < CIRCUIT_BREAKER_WINDOW_MS);
+  c.failures = c.failures.filter(t => now - t < CIRCUIT_TRANSIENT_WINDOW_MS);
   c.totalErrors++;
   if (isRateLimit) c.rateLimitHits++;
   if (c.halfOpen) {
-    c.ejectedUntil = now + CIRCUIT_BREAKER_EJECT_MS;
+    c.ejectedUntil = now + CIRCUIT_TRANSIENT_EJECT_MS;
     c.halfOpen = false;
   }
+}
+
+function recordPermanentFailure(id: string) {
+  const c = getCircuit(id);
+  c.totalErrors++;
+  c.ejectedUntil = Date.now() + CIRCUIT_PERMANENT_EJECT_MS;
+  c.halfOpen = false;
+  c.permanent = true;
 }
 
 function getSession(sessionId: string, maxTurns: number = 3): SessionState {
@@ -103,43 +121,123 @@ function getSession(sessionId: string, maxTurns: number = 3): SessionState {
   return sessions.get(sessionId)!;
 }
 
+function reorderWithCloudflareBump(providers: Provider[]): Provider[] {
+  const cfIdx = providers.findIndex(p => p.name === 'cloudflare');
+  if (cfIdx === -1) return providers;
+  const cf = providers[cfIdx];
+  const others = providers.filter((_, i) => i !== cfIdx);
+  if (others.length <= 2) return providers;
+  others.splice(2, 0, cf);
+  return others;
+}
+
+export async function runHealthCheck(env: any) {
+  providerHealth = new Map();
+  const probeMsg = [{ role: 'user', content: '. ' }];
+  for (const provider of ZEN_REGISTRY) {
+    if (provider.name === 'openrouter' && provider.freeTier === false) continue;
+    const apiKey = getApiKey(provider, env);
+    if (!apiKey && provider.name !== 'cloudflare') {
+      providerHealth.set(provider.id, false);
+      continue;
+    }
+    try {
+      const res = await callProvider(provider, probeMsg, env);
+      const ok = res.ok;
+      if (!ok) {
+        const status = res.status;
+        if (PERMANENT_STATUSES.has(status)) {
+          providerHealth.set(provider.id, false);
+          recordPermanentFailure(provider.id);
+        } else if (RETRYABLE_STATUSES.has(status)) {
+          providerHealth.set(provider.id, true);
+        } else {
+          providerHealth.set(provider.id, false);
+        }
+      } else {
+        providerHealth.set(provider.id, true);
+      }
+      if (!res.body?.locked) {
+        try { await res.body?.cancel(); } catch (e) {}
+      }
+    } catch (e) {
+      providerHealth.set(provider.id, false);
+    }
+  }
+}
+
+function isProviderKnownBad(id: string): boolean {
+  if (providerHealth?.has(id) && providerHealth.get(id) === false) {
+    const c = circuits.get(id);
+    if (c?.permanent) return true;
+  }
+  return false;
+}
+
+function getApiKey(provider: Provider, env: any): string | undefined {
+  const raw = env[`${provider.name.toUpperCase()}_API_KEY`];
+  if (typeof raw === 'string') return raw.trim();
+  return raw;
+}
+
 export async function routeChat(rawIntent: string, messages: any[], locals: any, providedEnv: any, sessionId: string = '') {
   const env = providedEnv || {};
   const intent = rawIntent || 'chat-fast';
 
   const role: ProviderRole = classifyQuery(messages, intent);
-  const candidates = getProvidersForRole(role);
+  let candidates = getProvidersForRole(role);
+  candidates = reorderWithCloudflareBump(candidates);
+
+  if (providerHealth) {
+    candidates.sort((a, b) => {
+      const aGood = isProviderKnownBad(a.id) ? 1 : 0;
+      const bGood = isProviderKnownBad(b.id) ? 1 : 0;
+      return aGood - bGood;
+    });
+  }
+
   const session = sessionId ? getSession(sessionId) : null;
 
   if (session?.lockedProviderId) {
     const lockedProvider = getProvider(session.lockedProviderId);
-    if (lockedProvider && !isCircuitOpen(lockedProvider.id)) {
+    if (lockedProvider && !isCircuitOpen(lockedProvider.id) && !isProviderKnownBad(lockedProvider.id)) {
       const priority = [lockedProvider, ...candidates.filter(p => p.id !== lockedProvider.id)];
-      return await attemptFallback(priority, messages, env, locals, intent, session);
+      return await attemptFallback(priority, messages, env, intent, session);
     }
     session.lockedProviderId = null;
     session.turnCount = 0;
   }
 
-  return await attemptFallback(candidates, messages, env, locals, intent, session);
+  return await attemptFallback(candidates, messages, env, intent, session);
 }
 
 async function attemptFallback(
   providers: Provider[],
   messages: any[],
   env: any,
-  locals: any,
   intent: string,
   session: SessionState | null,
 ): Promise<Response> {
   const errors: string[] = [];
-  let attempts = 0;
+  let transientAttempts = 0;
+  let permanentSkips = 0;
 
   for (const provider of providers) {
-    if (attempts >= MAX_ATTEMPTS) break;
+    if (transientAttempts >= MAX_TRANSIENT_ATTEMPTS) break;
 
     if (isCircuitOpen(provider.id)) {
-      errors.push(`${provider.id}: circuit-open`);
+      continue;
+    }
+
+    if (isProviderKnownBad(provider.id)) {
+      permanentSkips++;
+      continue;
+    }
+
+    const apiKey = getApiKey(provider, env);
+    if (!apiKey && provider.name !== 'cloudflare') {
+      recordPermanentFailure(provider.id);
+      permanentSkips++;
       continue;
     }
 
@@ -172,45 +270,54 @@ async function attemptFallback(
       }
 
       const status = res.status;
-      const errorText = await res.text().catch(() => 'unknown');
-      const isRateLimit = status === 429;
-      recordFailure(provider.id, isRateLimit);
-      errors.push(`${provider.id}: ${status} - ${errorText.slice(0, 80)}`);
-      attempts++;
+
+      if (PERMANENT_STATUSES.has(status)) {
+        recordPermanentFailure(provider.id);
+        permanentSkips++;
+        continue;
+      }
+
+      if (RETRYABLE_STATUSES.has(status)) {
+        const isRateLimit = status === 429;
+        recordTransientFailure(provider.id, isRateLimit);
+        transientAttempts++;
+        continue;
+      }
+
+      recordTransientFailure(provider.id, false);
+      transientAttempts++;
 
     } catch (e: any) {
-      const latency = Date.now() - start;
-      recordFailure(provider.id, false);
-      errors.push(`${provider.id}: ${e.message?.slice(0, 80)}`);
-      attempts++;
+      const isTimeout = e.name === 'TimeoutError' || e.message?.includes('timeout') || e.code === 'ETIMEDOUT';
+      recordTransientFailure(provider.id, false);
+      transientAttempts++;
+
+      if (isTimeout) {
+        const c = circuits.get(provider.id);
+        if (c && c.failures.length >= CIRCUIT_TRANSIENT_FAILURES) {
+          c.ejectedUntil = Date.now() + CIRCUIT_TRANSIENT_EJECT_MS;
+        }
+      }
     }
   }
 
-  if (errors.length > 0) {
-    return new Response(JSON.stringify({
-      error: 'AI_PROVIDER_FATAL_ERROR',
-      details: 'All capable providers are unavailable.',
-      errors,
-      diagnostics: {
-        envKeys: Object.keys(env).filter(k => env[k]),
-        attempts,
-        role: providers[0]?.role,
-        circuitStates: Object.fromEntries(
-          [...circuits.entries()].map(([k, v]) => [k, {
-            ejected: v.ejectedUntil > Date.now(),
-            failures: v.failures.length,
-            errors: v.totalErrors,
-            rlHits: v.rateLimitHits,
-          }])
-        ),
-      },
-    }), { status: 500, headers: { 'Content-Type': 'application/json' } });
-  }
+  console.log(JSON.stringify({
+    event: 'provider_exhaustion',
+    transientAttempts,
+    permanentSkips,
+    circuitStates: Object.fromEntries(
+      [...circuits.entries()].map(([k, v]) => [k, {
+        ejected: v.ejectedUntil > Date.now(),
+        permanent: v.permanent,
+      }])
+    ),
+  }));
 
   return new Response(JSON.stringify({
-    error: 'ALL_PROVIDERS_DOWN',
-    details: 'High demand. Please try again in 30 seconds.',
-  }), { status: 503, headers: { 'Content-Type': 'application/json', 'Retry-After': '30' } });
+    error: 'AI_PROVIDER_FATAL_ERROR',
+    message: 'All capable providers are currently unavailable. Please try again in a moment.',
+    retryAfter: 15,
+  }), { status: 500, headers: { 'Content-Type': 'application/json', 'Retry-After': '15' } });
 }
 
 async function callProvider(provider: Provider, messages: any[], env: any): Promise<Response> {
@@ -222,16 +329,14 @@ async function callProvider(provider: Provider, messages: any[], env: any): Prom
     ? `${provider.endpoint}/openai/chat/completions`
     : `${provider.endpoint}/chat/completions`;
 
-  const apiKey = typeof env[`${provider.name.toUpperCase()}_API_KEY`] === 'string'
-    ? env[`${provider.name.toUpperCase()}_API_KEY`].trim()
-    : env[`${provider.name.toUpperCase()}_API_KEY`];
+  const apiKey = getApiKey(provider, env);
 
   if (!apiKey) {
     throw new Error(`Missing API Key for ${provider.name}`);
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort('timeout'), provider.timeoutMs);
+  const timeout = setTimeout(() => controller.abort(), provider.timeoutMs);
 
   const payload: any = {
     model: provider.model,
@@ -279,6 +384,7 @@ export function getCircuitDiagnostics() {
   return Object.fromEntries(
     [...circuits.entries()].map(([k, v]) => [k, {
       ejected: v.ejectedUntil > Date.now(),
+      permanent: v.permanent,
       failures: v.failures.length,
       errors: v.totalErrors,
       rlHits: v.rateLimitHits,
