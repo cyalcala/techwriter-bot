@@ -83,27 +83,34 @@ export const POST: APIRoute = async ({ request, locals }) => {
       metadata: { fileName, part: i + 1, totalParts: chunks.length },
     }));
 
-    const insertRes = await Promise.race([
-      fetch(`${supabaseUrl}/rest/v1/notes`, {
-        method: 'POST',
-        headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
-          'Content-Type': 'application/json',
-          'Prefer': 'return=minimal',
-        },
-        body: JSON.stringify(rows),
-      }),
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 10000)),
-    ]);
+    const INSERT_BATCH = 5;
+    let inserted = 0;
+    for (let i = 0; i < rows.length; i += INSERT_BATCH) {
+      const batch = rows.slice(i, i + INSERT_BATCH);
 
-    if (!insertRes.ok) {
-      const errText = await insertRes.text().catch(() => 'unknown');
-      console.log(JSON.stringify({ event: 'ingest_insert_error', status: insertRes.status, body: errText.slice(0, 200) }));
-      return new Response(JSON.stringify({ error: 'Storage write failed', message: `Database error: ${insertRes.status}` }), { status: 500 });
+      const insertRes = await Promise.race([
+        fetch(`${supabaseUrl}/rest/v1/notes`, {
+          method: 'POST',
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=minimal',
+          },
+          body: JSON.stringify(batch),
+        }),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 10000)),
+      ]);
+
+      if (!insertRes.ok) {
+        const errText = await insertRes.text().catch(() => 'unknown');
+        console.log(JSON.stringify({ event: 'ingest_insert_error', status: insertRes.status, batch: i, body: errText.slice(0, 200) }));
+        return new Response(JSON.stringify({ error: 'Storage write failed', message: `DB error ${insertRes.status} at batch ${Math.floor(i / INSERT_BATCH) + 1}` }), { status: 500 });
+      }
+      inserted += batch.length;
     }
 
-    return new Response(JSON.stringify({ success: true, count: chunks.length, message: `Uploaded ${chunks.length} chunks` }), {
+    return new Response(JSON.stringify({ success: true, count: inserted, message: `Uploaded ${inserted} chunks` }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
