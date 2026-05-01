@@ -1,8 +1,8 @@
 import type { APIRoute } from 'astro';
 import { env as cfGlobalEnv } from 'cloudflare:workers';
 
-const MAX_TEXT_SIZE = 1_000_000;
-const MAX_CHUNKS = 100;
+const MAX_TEXT_SIZE = 500_000;
+const MAX_CHUNKS = 50;
 const ingestRateLimits = new Map<string, { count: number; reset: number }>();
 
 export const POST: APIRoute = async ({ request, locals }) => {
@@ -39,8 +39,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return new Response(JSON.stringify({ error: 'Empty content', message: 'The file appears to be empty.' }), { status: 400 });
     }
 
-    const chunkSize = 1000;
-    const overlap = 200;
+    const chunkSize = 500;
+    const overlap = 100;
     const chunks: string[] = [];
 
     for (let i = 0; i < safeText.length && chunks.length < MAX_CHUNKS; i += chunkSize - overlap) {
@@ -52,7 +52,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     const allEmbeddings: number[][] = [];
-    const batchSize = 20;
+    const batchSize = 5;
 
     for (let i = 0; i < chunks.length; i += batchSize) {
       const batch = chunks.slice(i, i + batchSize);
