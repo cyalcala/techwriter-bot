@@ -48,6 +48,8 @@ RETURNS TABLE (
   similarity float
 )
 LANGUAGE sql STABLE
+SECURITY DEFINER
+SET search_path = ''
 AS $$
   SELECT
     notes.id,
@@ -60,3 +62,15 @@ AS $$
   ORDER BY notes.embedding <=> query_embedding
   LIMIT match_count;
 $$;
+
+ALTER TABLE notes ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "anon_read_notes" ON notes
+  FOR SELECT
+  TO anon
+  USING (true);
+
+CREATE POLICY "anon_insert_notes" ON notes
+  FOR INSERT
+  TO anon
+  WITH CHECK (true);

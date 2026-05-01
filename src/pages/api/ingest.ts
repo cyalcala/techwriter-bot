@@ -63,14 +63,15 @@ export const POST: APIRoute = async ({ request }) => {
       allEmbeddings.push(...aiResponse.data);
     }
 
-    if (!cfEnv.SUPABASE_SERVICE_ROLE_KEY) {
+    if (!cfEnv.SUPABASE_URL || !cfEnv.SUPABASE_SERVICE_ROLE_KEY) {
       return new Response(JSON.stringify({ error: 'Storage unavailable' }), { status: 503 });
     }
 
     const { createClient } = await import('@supabase/supabase-js');
     const supabase = createClient(
-      cfEnv.SUPABASE_URL || 'https://vstxlstksrtiskyuxdjt.supabase.co',
+      cfEnv.SUPABASE_URL,
       cfEnv.SUPABASE_SERVICE_ROLE_KEY,
+      { db: { schema: 'public' } },
     );
 
     const rows = chunks.map((chunk, i) => ({
@@ -82,8 +83,14 @@ export const POST: APIRoute = async ({ request }) => {
       metadata: { fileName, part: i + 1, totalParts: chunks.length },
     }));
 
-    const { error: insertError } = await supabase.from('notes').insert(rows);
-    if (insertError) return new Response(JSON.stringify({ error: 'Storage write failed' }), { status: 500 });
+    const { error: insertError } = await Promise.race([
+      supabase.from('notes').insert(rows),
+      new Promise<{ error: any }>((_, reject) => setTimeout(() => reject(new Error('timeout')), 15000)),
+    ]) as any;
+    if (insertError) {
+      console.log(JSON.stringify({ event: 'ingest_insert_error', message: insertError.message?.slice(0, 200) }));
+      return new Response(JSON.stringify({ error: 'Storage write failed' }), { status: 500 });
+    }
 
     return new Response(JSON.stringify({ success: true, count: chunks.length }), {
       status: 200,

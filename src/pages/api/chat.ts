@@ -57,7 +57,9 @@ function shouldSearch(query: string): boolean {
 }
 
 async function retrieveRagContext(env: any, sessionId: string, query: string): Promise<string | null> {
-  if (!env.AI || !env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) return null;
+  if (!env.AI || !env.SUPABASE_URL) return null;
+  const supabaseKey = env.SUPABASE_ANON_KEY || env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseKey) return null;
   try {
     const embResult = await Promise.race([
       env.AI.run('@cf/baai/bge-small-en-v1.5', { text: [query] }),
@@ -69,7 +71,9 @@ async function retrieveRagContext(env: any, sessionId: string, query: string): P
       return null;
     }
     const { createClient } = await import('@supabase/supabase-js');
-    const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
+    const supabase = createClient(env.SUPABASE_URL, supabaseKey, {
+      db: { schema: 'public' },
+    });
     const { data, error } = await Promise.race([
       supabase.rpc('match_notes', {
         query_embedding: embedding, match_threshold: 0.4, match_count: 3, p_session_id: sessionId,
