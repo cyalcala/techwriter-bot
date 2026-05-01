@@ -8,6 +8,9 @@ const RATE_LIMIT_WINDOW = 60 * 1000;
 const MAX_REQUESTS_PER_WINDOW = 20;
 const MAX_BODY_SIZE = 64 * 1024;
 
+interface SearchSource { title: string; url: string; content: string; }
+interface SearchResult { contextParts: string[]; sources: { title: string; url: string }[]; }
+
 let healthCheckDone = false;
 
 const dailyUsage = new Map<string, number>();
@@ -42,17 +45,13 @@ function sanitizeInput(input: any): any {
   return input;
 }
 
-const GREETING_PATTERNS = /^(hi|hello|hey|yo|sup|howdy|heya|hola|good\s?(morning|afternoon|evening|night)|what'?s\s?up|how('s| is) it going|how are (you|u)|what is (up|good)|greetings|hai|helo|helo there|hi there|hello there|hey there|okay|ok|nice|wassup|wsup|nm|nmu|not much)\b/i;
-const SELF_REF_PATTERNS = /^(who are (you|u)|what are (you|u)|your name|what('?s| is) your name|tell me about yourself|introduce yourself|what do you do|what can you do)\b/i;
+const GREETING_PATTERNS = /^(hi|hello|hey|yo|sup|howdy|heya|hola|good\s?(morning|afternoon|evening|night)|what'?s\s?up|how('s| is) it going|how are (you|u)|greetings|hai|helo|okay|ok|nice|wassup|wsup|nm|nmu|not much)\b/i;
 
 function shouldSearch(query: string): boolean {
   if (!query || query.length < 2) return false;
   const trimmed = query.trim();
   if (trimmed.length <= 2) return false;
   if (GREETING_PATTERNS.test(trimmed)) return false;
-  if (SELF_REF_PATTERNS.test(trimmed)) return false;
-  const wordCount = trimmed.split(/\s+/).filter(w => w.length > 0).length;
-  if (wordCount <= 1 && trimmed.length <= 10) return false;
   return true;
 }
 
@@ -71,9 +70,7 @@ async function retrieveRagContext(env: any, sessionId: string, query: string): P
       return null;
     }
     const { createClient } = await import('@supabase/supabase-js');
-    const supabase = createClient(env.SUPABASE_URL, supabaseKey, {
-      db: { schema: 'public' },
-    });
+    const supabase = createClient(env.SUPABASE_URL, supabaseKey, { db: { schema: 'public' } });
     const { data, error } = await Promise.race([
       supabase.rpc('match_notes', {
         query_embedding: embedding, match_threshold: 0.4, match_count: 3, p_session_id: sessionId,
@@ -115,62 +112,89 @@ function searchCacheKey(query: string): string {
   return query.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim().slice(0, 80);
 }
 
-async function searchWeb(query: string): Promise<string | null> {
-  if (!shouldSearch(query)) return null;
-
+async function searchDuckDuckGo(query: string): Promise<SearchSource | null> {
   const key = searchCacheKey(query);
   const cached = searchCache.get(key);
-  if (cached && Date.now() - cached.ts < SEARCH_CACHE_MS) return cached.result;
+  if (cached && Date.now() - cached.ts < SEARCH_CACHE_MS) {
+    return { title: 'DuckDuckGo', url: `https://duckduckgo.com/?q=${encodeURIComponent(query)}`, content: cached.result };
+  }
 
   try {
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), SEARCH_TIMEOUT_MS);
-
-    const res = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`, {
-      signal: ctrl.signal,
-    });
+    const res = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`, { signal: ctrl.signal });
     clearTimeout(t);
-    if (!res.ok) {
-      console.log(JSON.stringify({ event: 'search_failed', status: res.status, query: query.slice(0, 80) }));
-      return null;
-    }
+    if (!res.ok) return null;
 
     const data = await res.json() as any;
     const parts: string[] = [];
-
-    if (data.Answer) parts.push(`Direct answer: ${data.Answer}`);
+    if (data.Answer) parts.push(data.Answer);
     if (data.AbstractText) parts.push(data.AbstractText);
-    if (data.Definition) parts.push(`Definition: ${data.Definition}`);
+    if (data.Definition) parts.push(data.Definition);
     if (data.Heading) parts.push(`Topic: ${data.Heading}`);
-
     const topics = data.RelatedTopics?.slice(0, 5)?.filter((t: any) => t.Text)?.map((t: any) => `- ${t.Text}`) || [];
-    if (topics.length) parts.push(`Related:\n${topics.join('\n')}`);
-
-    const results = data.Results?.slice(0, 3)?.filter((r: any) => r.Text)?.map((r: any) => `- ${r.FirstURL}: ${r.Text}`) || [];
-    if (results.length) parts.push(`Web results:\n${results.join('\n')}`);
-
-    if (parts.length === 0) {
-      const q = query.toLowerCase();
-      const altQuery = q.includes('time') ? `${query.replace(/today|now|current/gi, '')} philippines time zone` : `${query} facts`;
-      const res2 = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(altQuery)}&format=json&no_html=1`, {
-        signal: AbortSignal.timeout(1500),
-      });
-      if (res2.ok) {
-        const d2 = await res2.json() as any;
-        if (d2.AbstractText) parts.push(d2.AbstractText);
-        if (d2.Answer) parts.push(`Answer: ${d2.Answer}`);
-      }
-    }
+    if (topics.length) parts.push(topics.join('\n'));
+    const results = data.Results?.slice(0, 3)?.filter((r: any) => r.Text)?.map((r: any) => `${r.FirstURL}: ${r.Text}`) || [];
+    if (results.length) parts.push(results.join('\n'));
 
     if (parts.length === 0) return null;
 
-    const result = parts.join('\n\n');
-    searchCache.set(key, { result, ts: Date.now() });
-    return result;
+    const content = parts.join('\n\n');
+    searchCache.set(key, { result: content, ts: Date.now() });
+    return { title: 'DuckDuckGo', url: `https://duckduckgo.com/?q=${encodeURIComponent(query)}`, content };
   } catch (e: any) {
-    console.log(JSON.stringify({ event: 'search_error', message: e.message?.slice(0, 200), query: query.slice(0, 80) }));
+    console.log(JSON.stringify({ event: 'ddg_error', message: e.message?.slice(0, 200), query: query.slice(0, 80) }));
     return null;
   }
+}
+
+async function searchWikipedia(query: string): Promise<SearchSource | null> {
+  try {
+    const params = new URLSearchParams({ action: 'query', list: 'search', srsearch: query, format: 'json', srlimit: '3' });
+    const res = await fetch(`https://en.wikipedia.org/w/api.php?${params}`, { signal: AbortSignal.timeout(3000) });
+    if (!res.ok) return null;
+    const data = await res.json() as any;
+    const results = data?.query?.search;
+    if (!results?.length) return null;
+
+    const pages = results.slice(0, 2);
+    const parts: string[] = [];
+    let firstUrl = '';
+    for (const page of pages) {
+      const snippet = (page.snippet || '').replace(/<[^>]+>/g, '');
+      const url = `https://en.wikipedia.org/wiki/${encodeURIComponent((page.title || '').replace(/ /g, '_'))}`;
+      if (!firstUrl) firstUrl = url;
+      parts.push(`${page.title}: ${snippet}`);
+    }
+    return { title: 'Wikipedia', url: firstUrl, content: parts.join('\n\n') };
+  } catch (e: any) {
+    console.log(JSON.stringify({ event: 'wiki_error', message: e.message?.slice(0, 200), query: query.slice(0, 80) }));
+    return null;
+  }
+}
+
+async function searchRouter(query: string): Promise<SearchResult> {
+  const contextParts: string[] = [];
+  const sources: { title: string; url: string }[] = [];
+  let sourceIdx = 0;
+
+  if (!shouldSearch(query)) return { contextParts, sources };
+
+  const ddg = await searchDuckDuckGo(query);
+  if (ddg) {
+    sourceIdx++;
+    contextParts.push(`[${sourceIdx}] ${ddg.content}`);
+    sources.push({ title: ddg.title, url: ddg.url });
+  }
+
+  const wiki = await searchWikipedia(query);
+  if (wiki) {
+    sourceIdx++;
+    contextParts.push(`[${sourceIdx}] ${wiki.content}`);
+    sources.push({ title: wiki.title, url: wiki.url });
+  }
+
+  return { contextParts, sources };
 }
 
 export const GET: APIRoute = async () => {
@@ -227,23 +251,30 @@ export const POST: APIRoute = async (context) => {
     const lastUserMsg = [...messages].reverse().find((m: any) => m.role === 'user');
     const userQuery = lastUserMsg?.content || '';
 
-    const [ragContext, webContext] = await Promise.all([
+    const [ragContext, searchResult] = await Promise.all([
       hasRag ? retrieveRagContext(env, sessionId, userQuery) : null,
-      userQuery ? searchWeb(userQuery) : null,
+      searchRouter(userQuery),
     ]);
 
     const contextParts: string[] = [];
-    if (webContext) contextParts.push(`[Web search results for reference — use only if relevant to the query]\n${webContext}`);
-    if (ragContext) contextParts.push(`[Document excerpts]\n${ragContext}`);
+    const sources = searchResult.sources || [];
+
+    if (searchResult.contextParts.length > 0) {
+      contextParts.push(searchResult.contextParts.join('\n'));
+    }
+    if (ragContext) {
+      const ragIdx = searchResult.contextParts.length + 1;
+      contextParts.push(`[${ragIdx}] Document excerpts:\n${ragContext}`);
+    }
 
     if (contextParts.length > 0) {
       messages = [
-        { role: 'system', content: `You are a helpful technical writing assistant. You may reference the context below if it helps answer the user's query. If the context is irrelevant or the user is just greeting you, ignore it and respond naturally. Do not fabricate or force connections to the context.\n\n${contextParts.join('\n\n')}` },
+        { role: 'system', content: `You are a helpful technical writing assistant with access to live information. Below are numbered sources. When using information from a source, cite it inline like [1], [2]. If the sources don't help answer the query, rely on your own knowledge and respond naturally. Do not fabricate citations.\n\n${contextParts.join('\n\n')}` },
         ...messages,
       ];
     }
 
-    return await routeChat(body.intent || 'chat-fast', messages, locals, env, sessionId);
+    return await routeChat(body.intent || 'chat-fast', messages, locals, env, sessionId, sources);
   } catch (error: any) {
     console.log(JSON.stringify({ event: 'processing_error', message: error.message?.slice(0, 200) }));
     return new Response(JSON.stringify({

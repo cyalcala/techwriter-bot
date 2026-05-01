@@ -170,7 +170,7 @@ function getApiKey(provider: Provider, env: any): string | undefined {
   return raw;
 }
 
-export async function routeChat(rawIntent: string, messages: any[], locals: any, providedEnv: any, sessionId: string = '') {
+export async function routeChat(rawIntent: string, messages: any[], locals: any, providedEnv: any, sessionId: string = '', sources?: { title: string; url: string }[]) {
   const env = providedEnv || {};
   const intent = rawIntent || 'chat-fast';
 
@@ -192,12 +192,12 @@ export async function routeChat(rawIntent: string, messages: any[], locals: any,
       const lockedProvider = getProvider(session.lockedProviderId);
       if (lockedProvider && !isCircuitOpen(lockedProvider.id) && !isProviderKnownBad(lockedProvider.id)) {
         const priority = [lockedProvider, ...candidates.filter(p => p.id !== lockedProvider.id)];
-        return await attemptFallback(priority, messages, env, intent, session);
+        return await attemptFallback(priority, messages, env, intent, session, sources);
       }
       session.lockedProviderId = null;
       session.turnCount = 0;
     }
-    return await attemptFallback(candidates, messages, env, intent, session);
+    return await attemptFallback(candidates, messages, env, intent, session, sources);
   }
 
   return await Promise.race([
@@ -217,6 +217,7 @@ async function attemptFallback(
   env: any,
   intent: string,
   session: SessionState | null,
+  sources?: { title: string; url: string }[],
 ): Promise<Response> {
   const errors: string[] = [];
   let transientAttempts = 0;
@@ -266,6 +267,9 @@ async function attemptFallback(
         newHeaders.set('x-latency-ms', String(latency));
         newHeaders.set('x-role', provider.role);
         newHeaders.set('Content-Type', 'text/event-stream');
+        if (sources && sources.length > 0) {
+          newHeaders.set('x-sources', JSON.stringify(sources));
+        }
         return new Response(res.body, { status: res.status, headers: newHeaders });
       }
 

@@ -15,6 +15,8 @@
   let isThinkingMode = $state(false);
   let chatContainer: HTMLElement;
 
+  interface Source { title: string; url: string; }
+
   function generateSessionId() {
     try { return crypto.randomUUID(); } catch (e) {
       return Math.random().toString(36).substring(2) + Date.now().toString(36);
@@ -65,11 +67,11 @@
         }
 
         uploadStatus = 'done';
-        messages = [...messages, { role: 'assistant', content: `✅ I've processed **${file.name}** and added it to sandbox memory.` }];
+        messages = [...messages, { role: 'assistant', content: `I've processed **${file.name}** and added it to sandbox memory.` }];
       } catch (err: any) {
         console.error(err);
         uploadStatus = 'error';
-        messages = [...messages, { role: 'assistant', content: `❌ Upload failed: ${err.message}` }];
+        messages = [...messages, { role: 'assistant', content: `Upload failed: ${err.message}` }];
       } finally {
         isUploading = false;
       }
@@ -84,6 +86,7 @@
   function formatMarkdown(text: string | null | undefined): string {
     if (!text) return '';
     let formatted = escapeHtml(String(text));
+    formatted = formatted.replace(/\[(\d+)\]/g, '<sup class="citation">[$1]</sup>');
     formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
     formatted = formatted.replace(/^\- (.*)/gm, '<li class="ml-4 list-disc">$1</li>');
@@ -99,6 +102,8 @@
     inputMessage = '';
     messages = [...messages, { role: 'user', content: userMessage }];
     isLoading = true;
+
+    let sourcesFromHeaders: Source[] = [];
 
     try {
       const response = await fetch('/api/chat', {
@@ -123,7 +128,10 @@
       }
 
       const providerName = response.headers.get('x-provider') || 'AI';
-      const role = response.headers.get('x-role') || '';
+      const sourcesRaw = response.headers.get('x-sources');
+      if (sourcesRaw) {
+        try { sourcesFromHeaders = JSON.parse(sourcesRaw); } catch (e) {}
+      }
       isStreaming = true;
 
       const stream = response.body;
@@ -154,7 +162,7 @@
           try {
             const json = JSON.parse(rawData);
             if (json.error) {
-              const errorMsg = `\n\n❌ Error: ${json.error.message || JSON.stringify(json.error)}`;
+              const errorMsg = `\n\nError: ${json.error.message || JSON.stringify(json.error)}`;
               messages[msgIdx] = { ...messages[msgIdx], content: messages[msgIdx].content + errorMsg };
               continue;
             }
@@ -182,11 +190,13 @@
       }
 
       if (!messages[msgIdx].content) {
-        messages[msgIdx] = { ...messages[msgIdx], content: '', empty: true };
+        messages[msgIdx] = { ...messages[msgIdx], content: '', empty: true, sources: sourcesFromHeaders };
+      } else {
+        messages[msgIdx] = { ...messages[msgIdx], sources: sourcesFromHeaders };
       }
     } catch (error: any) {
       console.error('[Chat]', error);
-      messages = [...messages, { role: 'assistant', content: `❌ Connection Error: ${error.message}.` }];
+      messages = [...messages, { role: 'assistant', content: `Connection Error: ${error.message}.` }];
     } finally {
       isLoading = false;
       isStreaming = false;
@@ -194,8 +204,8 @@
   }
 </script>
 
-<div class="flex flex-col h-screen bg-[#fcfaf6] text-[#2e2e2e] font-['Outfit'] selection:bg-[#e8e4db]">
-  <header class="p-3 md:p-4 bg-[#f1ede4]/90 backdrop-blur-xl border-b border-[#e5e1d8] flex justify-between items-center sticky top-0 shadow-sm z-20">
+<div class="flex flex-col h-dvh bg-[#fcfaf6] text-[#2e2e2e] font-['Outfit'] selection:bg-[#e8e4db] overflow-hidden">
+  <header class="p-3 md:p-4 bg-[#f1ede4]/90 backdrop-blur-md border-b border-[#e5e1d8] flex justify-between items-center shadow-sm z-20 pt-safe">
     <div class="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
       <div class="flex items-center gap-2">
         <div class="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-green-600 shadow-[0_0_8px_rgba(22,163,74,0.5)]"></div>
@@ -227,6 +237,9 @@
     main { -ms-overflow-style: none; scrollbar-width: none; }
     .ai-content { font-family: 'Instrument Serif', serif; font-size: 1.25rem; line-height: 1.6; }
     @media (max-width: 768px) { .ai-content { font-size: 1.15rem; } }
+    .citation { font-size: 0.7em; color: #8c8576; font-weight: 600; cursor: default; }
+    .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+    .pt-safe { padding-top: env(safe-area-inset-top, 0px); }
   </style>
 
   <main bind:this={chatContainer} class="flex-1 overflow-y-auto px-3 py-4 md:p-8 space-y-4 md:space-y-6 max-w-4xl mx-auto w-full scroll-smooth">
@@ -239,6 +252,18 @@
               <button on:click={() => { inputMessage = 'Please try again.'; sendMessage(); }} class="mt-2 text-[10px] md:text-xs bg-[#f1ede4] hover:bg-[#e8e4db] text-[#6d675b] px-3 py-1 rounded-lg transition-all border border-[#d6d0c4] active:scale-95">Retry</button>
             {:else}
               <div class="ai-content whitespace-pre-wrap">{@html formatMarkdown(msg.content)}</div>
+            {/if}
+            {#if msg.sources && msg.sources.length > 0 && !isStreaming}
+              <div class="mt-3 pt-3 border-t border-[#e5e1d8]">
+                <span class="text-[8px] uppercase tracking-widest font-bold text-[#8c8576] opacity-50">Sources</span>
+                <div class="mt-1 space-y-0.5">
+                  {#each msg.sources as source, i}
+                    <a href={source.url} target="_blank" rel="noopener noreferrer" class="block text-[10px] md:text-[11px] text-[#6d675b] hover:text-[#1a1a1a] transition-colors truncate">
+                      <span class="font-bold">[{i + 1}]</span> {source.title}
+                    </a>
+                  {/each}
+                </div>
+              </div>
             {/if}
             {#if msg.provider && !isStreaming}
               <div class="mt-4 pt-3 border-t border-[#e5e1d8] flex items-center gap-2">
@@ -265,10 +290,9 @@
     {/if}
   </main>
 
-  <footer class="p-2 md:p-6 bg-[#f1ede4]/70 backdrop-blur-xl border-t border-[#e5e1d8] transition-all">
+  <footer class="p-2 md:p-6 bg-[#f1ede4]/70 backdrop-blur-sm border-t border-[#e5e1d8] transition-all pb-safe">
     <div class="max-w-4xl mx-auto">
 
-      <!-- File Upload Chip -->
       {#if uploadStatus !== 'idle'}
         <div class="mb-2 transition-all duration-300">
           <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border shadow-sm {uploadStatus === 'done' ? 'bg-green-50 border-green-200 text-green-700' : uploadStatus === 'error' ? 'bg-red-50 border-red-200 text-red-700' : 'bg-[#e8e4db]/60 border-[#d6d0c4] text-[#6d675b]'}">
