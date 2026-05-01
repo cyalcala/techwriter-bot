@@ -158,7 +158,7 @@
               messages[msgIdx] = { ...messages[msgIdx], content: messages[msgIdx].content + errorMsg };
               continue;
             }
-            const content = json.choices?.[0]?.delta?.content || json.choices?.[0]?.text || json.content || '';
+            const content = json.choices?.[0]?.delta?.content || json.choices?.[0]?.text || json.response || json.content || '';
             if (content) {
               messages[msgIdx] = { ...messages[msgIdx], content: messages[msgIdx].content + content };
             }
@@ -175,10 +175,14 @@
         if (rawData !== '[DONE]') {
           try {
             const json = JSON.parse(rawData);
-            const content = json.choices?.[0]?.delta?.content || json.choices?.[0]?.text || '';
+            const content = json.choices?.[0]?.delta?.content || json.choices?.[0]?.text || json.response || json.content || '';
             if (content) messages[msgIdx] = { ...messages[msgIdx], content: messages[msgIdx].content + content };
           } catch (e) {}
         }
+      }
+
+      if (!messages[msgIdx].content) {
+        messages[msgIdx] = { ...messages[msgIdx], content: 'The AI returned no response. Please try again or rephrase your message.' };
       }
     } catch (error: any) {
       console.error('[Chat]', error);

@@ -369,12 +369,128 @@ async function callWorkersAI(provider: Provider, messages: any[], env: any): Pro
     throw new Error('Cloudflare AI binding not found');
   }
 
-  const stream = await ai.run(provider.model as any, {
-    messages,
-    stream: true,
-  });
+  let rawStream: ReadableStream;
+  try {
+    rawStream = await Promise.race([
+      ai.run(provider.model as any, {
+        messages,
+        stream: true,
+        max_tokens: 4096,
+        temperature: 0.7,
+      }) as Promise<ReadableStream>,
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('timeout')), provider.timeoutMs)
+      ),
+    ]);
+  } catch (e: any) {
+    throw new Error(`Cloudflare AI invocation failed: ${e.message}`);
+  }
 
-  return new Response(stream, {
+  if (!rawStream || typeof (rawStream as any).getReader !== 'function') {
+    throw new Error('Cloudflare AI did not return a readable stream');
+  }
+
+  const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>();
+  const writer = writable.getWriter();
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+  let chunkIdx = 0;
+
+  (async () => {
+    try {
+      const reader = rawStream.getReader();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (value) {
+          buffer += decoder.decode(value, { stream: !done });
+        }
+
+        const lines = buffer.split('\n');
+        buffer = done ? '' : (lines.pop() || '');
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || !trimmed.startsWith('data:')) continue;
+
+          const rawData = trimmed.slice(5).trim();
+
+          if (rawData === '[DONE]') {
+            await writer.write(encoder.encode('data: [DONE]\n\n'));
+            continue;
+          }
+
+          try {
+            const parsed = JSON.parse(rawData);
+            if (parsed.error) {
+              const errChunk = JSON.stringify({
+                error: { message: String(parsed.error), type: 'workers_ai_error' }
+              });
+              await writer.write(encoder.encode(`data: ${errChunk}\n\n`));
+              continue;
+            }
+            const token = parsed.response;
+            if (token != null && token !== '') {
+              const openAIChunk = JSON.stringify({
+                id: `cf-${chunkIdx++}`,
+                object: 'chat.completion.chunk',
+                created: Math.floor(Date.now() / 1000),
+                model: provider.model,
+                choices: [{
+                  index: 0,
+                  delta: { content: token },
+                  finish_reason: null,
+                }],
+              });
+              await writer.write(encoder.encode(`data: ${openAIChunk}\n\n`));
+            }
+          } catch (e) {
+            // skip malformed JSON lines silently
+          }
+        }
+
+        if (done) break;
+      }
+
+      if (buffer.trim()) {
+        const trimmed = buffer.trim();
+        if (trimmed.startsWith('data:')) {
+          const rawData = trimmed.slice(5).trim();
+          if (rawData !== '[DONE]') {
+            try {
+              const parsed = JSON.parse(rawData);
+              const token = parsed.response;
+              if (token != null && token !== '') {
+                const openAIChunk = JSON.stringify({
+                  id: `cf-${chunkIdx}`,
+                  object: 'chat.completion.chunk',
+                  created: Math.floor(Date.now() / 1000),
+                  model: provider.model,
+                  choices: [{
+                    index: 0,
+                    delta: { content: token },
+                    finish_reason: 'stop',
+                  }],
+                });
+                await writer.write(encoder.encode(`data: ${openAIChunk}\n\n`));
+              }
+            } catch (e) {}
+          }
+        }
+        await writer.write(encoder.encode('data: [DONE]\n\n'));
+      }
+
+      reader.releaseLock();
+    } catch (e: any) {
+      console.log(JSON.stringify({ event: 'workers_ai_stream_error', message: e.message?.slice(0, 200) }));
+    } finally {
+      try { await writer.close(); } catch (e) {}
+    }
+  })();
+
+  return new Response(readable, {
     status: 200,
     headers: { 'Content-Type': 'text/event-stream' },
   });
