@@ -19,6 +19,7 @@ if (typeof setInterval !== 'undefined') {
     const now = Date.now();
     rateLimits.forEach((v, k) => { if (now > v.resetTime) rateLimits.delete(k); });
     if (now > dailyReset) { dailyUsage.clear(); dailyReset = now + 86400000; }
+    searchCache.forEach((v, k) => { if (now - v.ts > 600_000) searchCache.delete(k); });
   }, 60_000);
 }
 
@@ -58,7 +59,10 @@ function shouldSearch(query: string): boolean {
 async function retrieveRagContext(env: any, sessionId: string, query: string): Promise<string | null> {
   if (!env.AI || !env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) return null;
   try {
-    const embResult = await env.AI.run('@cf/baai/bge-small-en-v1.5', { text: [query] });
+    const embResult = await Promise.race([
+      env.AI.run('@cf/baai/bge-small-en-v1.5', { text: [query] }),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000)),
+    ]) as any;
     const embedding = embResult?.data?.[0];
     if (!embedding) {
       console.log(JSON.stringify({ event: 'rag_no_embedding', sessionId }));
@@ -66,9 +70,12 @@ async function retrieveRagContext(env: any, sessionId: string, query: string): P
     }
     const { createClient } = await import('@supabase/supabase-js');
     const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
-    const { data, error } = await supabase.rpc('match_notes', {
-      query_embedding: embedding, match_threshold: 0.4, match_count: 3, p_session_id: sessionId,
-    });
+    const { data, error } = await Promise.race([
+      supabase.rpc('match_notes', {
+        query_embedding: embedding, match_threshold: 0.4, match_count: 3, p_session_id: sessionId,
+      }),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000)),
+    ]) as any;
     if (error) {
       console.log(JSON.stringify({ event: 'rag_rpc_error', message: error.message?.slice(0, 200), sessionId }));
       return null;

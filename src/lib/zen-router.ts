@@ -6,7 +6,7 @@ const CIRCUIT_TRANSIENT_EJECT_MS = 90_000;
 const CIRCUIT_TRANSIENT_PROBE_MS = 45_000;
 const CIRCUIT_PERMANENT_EJECT_MS = 600_000;
 const MAX_TRANSIENT_ATTEMPTS = 6;
-const USER_FACING_TIMEOUT_MS = 25_000;
+const GLOBAL_TIMEOUT_MS = 15_000;
 
 const RETRYABLE_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504]);
 const PERMANENT_STATUSES = new Set([400, 401, 402, 403, 404]);
@@ -114,7 +114,7 @@ function recordPermanentFailure(id: string) {
   c.permanent = true;
 }
 
-function getSession(sessionId: string, maxTurns: number = 3): SessionState {
+function getSession(sessionId: string, maxTurns: number = 2): SessionState {
   if (!sessions.has(sessionId)) {
     sessions.set(sessionId, { lockedProviderId: null, turnCount: 0, maxTurns, createdAt: Date.now() });
   }
@@ -123,7 +123,7 @@ function getSession(sessionId: string, maxTurns: number = 3): SessionState {
 
 export async function runHealthCheck(env: any) {
   providerHealth = new Map();
-  const probeMsg = [{ role: 'user', content: '. ' }];
+  const probeMsg = [{ role: 'user', content: 'Hello, please respond with a brief greeting.' }];
   for (const provider of ZEN_REGISTRY) {
     if (provider.name === 'openrouter' && provider.freeTier === false) continue;
     const apiKey = getApiKey(provider, env);
@@ -187,17 +187,28 @@ export async function routeChat(rawIntent: string, messages: any[], locals: any,
 
   const session = sessionId ? getSession(sessionId) : null;
 
-  if (session?.lockedProviderId) {
-    const lockedProvider = getProvider(session.lockedProviderId);
-    if (lockedProvider && !isCircuitOpen(lockedProvider.id) && !isProviderKnownBad(lockedProvider.id)) {
-      const priority = [lockedProvider, ...candidates.filter(p => p.id !== lockedProvider.id)];
-      return await attemptFallback(priority, messages, env, intent, session);
+  async function doChain(): Promise<Response> {
+    if (session?.lockedProviderId) {
+      const lockedProvider = getProvider(session.lockedProviderId);
+      if (lockedProvider && !isCircuitOpen(lockedProvider.id) && !isProviderKnownBad(lockedProvider.id)) {
+        const priority = [lockedProvider, ...candidates.filter(p => p.id !== lockedProvider.id)];
+        return await attemptFallback(priority, messages, env, intent, session);
+      }
+      session.lockedProviderId = null;
+      session.turnCount = 0;
     }
-    session.lockedProviderId = null;
-    session.turnCount = 0;
+    return await attemptFallback(candidates, messages, env, intent, session);
   }
 
-  return await attemptFallback(candidates, messages, env, intent, session);
+  return await Promise.race([
+    doChain(),
+    new Promise<Response>(resolve =>
+      setTimeout(() => resolve(new Response(JSON.stringify({
+        message: "I'm taking longer than expected. Please try again in a moment.",
+        retryAfter: 5,
+      }), { status: 503, headers: { 'Content-Type': 'application/json', 'Retry-After': '5' } })), GLOBAL_TIMEOUT_MS)
+    ),
+  ]);
 }
 
 async function attemptFallback(

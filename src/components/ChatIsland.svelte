@@ -182,7 +182,7 @@
       }
 
       if (!messages[msgIdx].content) {
-        messages[msgIdx] = { ...messages[msgIdx], content: 'The AI returned no response. Please try again or rephrase your message.' };
+        messages[msgIdx] = { ...messages[msgIdx], content: '', empty: true };
       }
     } catch (error: any) {
       console.error('[Chat]', error);
@@ -234,10 +234,19 @@
       <div class="flex {msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300">
         <div class="max-w-[92%] md:max-w-[85%] rounded-3xl p-4 md:p-6 shadow-sm border {msg.role === 'user' ? 'bg-[#e8e4db] border-[#d6d0c4] text-[#1a1a1a] rounded-tr-none' : 'bg-white border-[#e5e1d8] text-[#2e2e2e] rounded-tl-none'}">
           {#if msg.role === 'assistant'}
-            <div class="ai-content whitespace-pre-wrap">{@html formatMarkdown(msg.content)}</div>
+            {#if msg.empty}
+              <div class="ai-content italic text-[#8c8576]">The AI returned no response.</div>
+              <button on:click={() => { inputMessage = 'Please try again.'; sendMessage(); }} class="mt-2 text-[10px] md:text-xs bg-[#f1ede4] hover:bg-[#e8e4db] text-[#6d675b] px-3 py-1 rounded-lg transition-all border border-[#d6d0c4] active:scale-95">Retry</button>
+            {:else}
+              <div class="ai-content whitespace-pre-wrap">{@html formatMarkdown(msg.content)}</div>
+            {/if}
             {#if msg.provider && !isStreaming}
               <div class="mt-4 pt-3 border-t border-[#e5e1d8] flex items-center gap-2">
-                <span class="text-[8px] uppercase tracking-widest font-bold text-[#8c8576] opacity-40">Engine: {msg.provider}</span>
+                {#if msg.provider === 'cloudflare-llama'}
+                  <span class="text-[8px] uppercase tracking-widest font-bold text-amber-600 opacity-50">&#9889; Fallback Engine</span>
+                {:else}
+                  <span class="text-[8px] uppercase tracking-widest font-bold text-[#8c8576] opacity-40">Engine: {msg.provider}</span>
+                {/if}
               </div>
             {/if}
           {:else}
