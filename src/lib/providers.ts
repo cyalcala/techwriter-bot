@@ -43,7 +43,7 @@ export const ZEN_REGISTRY: Provider[] = [
     name: 'nvidia',
     role: 'fallback',
     endpoint: 'https://integrate.api.nvidia.com/v1',
-    model: 'meta/llama-3.1-8b-instruct',
+    model: 'nvidia/llama-3.1-nemotron-8b-instruct',
     timeoutMs: 12000,
     freeTier: true,
   },
@@ -77,10 +77,10 @@ export function classifyQuery(messages: any[], intent: string): ProviderRole {
 }
 
 const ROLE_PRIORITY: Record<ProviderRole, ProviderRole[]> = {
-  fast:     ['fast', 'balanced', 'fallback', 'heavy'],
-  balanced: ['balanced', 'fast', 'fallback', 'heavy'],
-  heavy:    ['heavy', 'balanced', 'fallback', 'fast'],
-  fallback: ['fallback', 'balanced', 'heavy', 'fast'],
+  fast:     ['fast', 'balanced', 'heavy', 'fallback'],
+  balanced: ['balanced', 'fast', 'heavy', 'fallback'],
+  heavy:    ['heavy', 'balanced', 'fast', 'fallback'],
+  fallback: ['fallback', 'heavy', 'balanced', 'fast'],
 };
 
 export function getProvidersForRole(role: ProviderRole): Provider[] {

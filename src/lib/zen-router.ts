@@ -121,16 +121,6 @@ function getSession(sessionId: string, maxTurns: number = 3): SessionState {
   return sessions.get(sessionId)!;
 }
 
-function reorderWithCloudflareBump(providers: Provider[]): Provider[] {
-  const cfIdx = providers.findIndex(p => p.name === 'cloudflare');
-  if (cfIdx === -1) return providers;
-  const cf = providers[cfIdx];
-  const others = providers.filter((_, i) => i !== cfIdx);
-  if (others.length <= 2) return providers;
-  others.splice(2, 0, cf);
-  return others;
-}
-
 export async function runHealthCheck(env: any) {
   providerHealth = new Map();
   const probeMsg = [{ role: 'user', content: '. ' }];
@@ -186,7 +176,6 @@ export async function routeChat(rawIntent: string, messages: any[], locals: any,
 
   const role: ProviderRole = classifyQuery(messages, intent);
   let candidates = getProvidersForRole(role);
-  candidates = reorderWithCloudflareBump(candidates);
 
   if (providerHealth) {
     candidates.sort((a, b) => {

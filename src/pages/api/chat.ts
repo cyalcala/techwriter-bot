@@ -41,20 +41,44 @@ function sanitizeInput(input: any): any {
   return input;
 }
 
+const GREETING_PATTERNS = /^(hi|hello|hey|yo|sup|howdy|heya|hola|good\s?(morning|afternoon|evening|night)|what'?s\s?up|how('s| is) it going|how are (you|u)|what is (up|good)|greetings|hai|helo|helo there|hi there|hello there|hey there|okay|ok|nice|wassup|wsup|nm|nmu|not much)\b/i;
+const SELF_REF_PATTERNS = /^(who are (you|u)|what are (you|u)|your name|what('?s| is) your name|tell me about yourself|introduce yourself|what do you do|what can you do)\b/i;
+
+function shouldSearch(query: string): boolean {
+  if (!query || query.length < 2) return false;
+  const trimmed = query.trim();
+  if (trimmed.length <= 2) return false;
+  if (GREETING_PATTERNS.test(trimmed)) return false;
+  if (SELF_REF_PATTERNS.test(trimmed)) return false;
+  const wordCount = trimmed.split(/\s+/).filter(w => w.length > 0).length;
+  if (wordCount <= 1 && trimmed.length <= 10) return false;
+  return true;
+}
+
 async function retrieveRagContext(env: any, sessionId: string, query: string): Promise<string | null> {
   if (!env.AI || !env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) return null;
   try {
     const embResult = await env.AI.run('@cf/baai/bge-small-en-v1.5', { text: [query] });
     const embedding = embResult?.data?.[0];
-    if (!embedding) return null;
+    if (!embedding) {
+      console.log(JSON.stringify({ event: 'rag_no_embedding', sessionId }));
+      return null;
+    }
     const { createClient } = await import('@supabase/supabase-js');
     const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
     const { data, error } = await supabase.rpc('match_notes', {
       query_embedding: embedding, match_threshold: 0.4, match_count: 3, p_session_id: sessionId,
     });
-    if (error || !data?.length) return null;
+    if (error) {
+      console.log(JSON.stringify({ event: 'rag_rpc_error', message: error.message?.slice(0, 200), sessionId }));
+      return null;
+    }
+    if (!data?.length) return null;
     return data.map((r: any, i: number) => `[Doc Chunk ${i + 1}] ${r.content}`).join('\n\n');
-  } catch (e) { return null; }
+  } catch (e: any) {
+    console.log(JSON.stringify({ event: 'rag_failure', message: e.message?.slice(0, 200), sessionId }));
+    return null;
+  }
 }
 
 async function verifyTurnstileToken(token: string, secret: string): Promise<boolean> {
@@ -66,7 +90,10 @@ async function verifyTurnstileToken(token: string, secret: string): Promise<bool
     const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', { method: 'POST', body: form });
     const data = await res.json() as any;
     return !!data.success;
-  } catch (e) { return true; }
+  } catch (e: any) {
+    console.log(JSON.stringify({ event: 'turnstile_verify_error', message: e.message?.slice(0, 200) }));
+    return false;
+  }
 }
 
 const searchCache = new Map<string, { result: string; ts: number }>();
@@ -78,6 +105,8 @@ function searchCacheKey(query: string): string {
 }
 
 async function searchWeb(query: string): Promise<string | null> {
+  if (!shouldSearch(query)) return null;
+
   const key = searchCacheKey(query);
   const cached = searchCache.get(key);
   if (cached && Date.now() - cached.ts < SEARCH_CACHE_MS) return cached.result;
@@ -90,7 +119,10 @@ async function searchWeb(query: string): Promise<string | null> {
       signal: ctrl.signal,
     });
     clearTimeout(t);
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.log(JSON.stringify({ event: 'search_failed', status: res.status, query: query.slice(0, 80) }));
+      return null;
+    }
 
     const data = await res.json() as any;
     const parts: string[] = [];
@@ -124,7 +156,8 @@ async function searchWeb(query: string): Promise<string | null> {
     const result = parts.join('\n\n');
     searchCache.set(key, { result, ts: Date.now() });
     return result;
-  } catch (e) {
+  } catch (e: any) {
+    console.log(JSON.stringify({ event: 'search_error', message: e.message?.slice(0, 200), query: query.slice(0, 80) }));
     return null;
   }
 }
@@ -189,12 +222,12 @@ export const POST: APIRoute = async (context) => {
     ]);
 
     const contextParts: string[] = [];
-    if (webContext) contextParts.push(webContext);
-    if (ragContext) contextParts.push(`Document excerpts:\n${ragContext}`);
+    if (webContext) contextParts.push(`[Web search results for reference — use only if relevant to the query]\n${webContext}`);
+    if (ragContext) contextParts.push(`[Document excerpts]\n${ragContext}`);
 
     if (contextParts.length > 0) {
       messages = [
-        { role: 'system', content: `You have access to real-time web search results and document excerpts below. Use this context to answer accurately. Do NOT say you cannot access real-time data or that your knowledge is limited — you have current information right here. If the context is insufficient, state what specific info is missing.\n\n${contextParts.join('\n\n')}` },
+        { role: 'system', content: `You are a helpful technical writing assistant. You may reference the context below if it helps answer the user's query. If the context is irrelevant or the user is just greeting you, ignore it and respond naturally. Do not fabricate or force connections to the context.\n\n${contextParts.join('\n\n')}` },
         ...messages,
       ];
     }

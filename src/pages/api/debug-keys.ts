@@ -1,9 +1,17 @@
 import type { APIRoute } from 'astro';
 
 export const GET: APIRoute = async ({ request, locals }) => {
-  const rawUrl = request.url || '';
-  const hasKey = rawUrl.includes('key=debug2026');
-  if (!hasKey) {
+  const authKey = ((locals as any)?.runtime?.env?.DEBUG_AUTH_KEY)
+    || ((locals as any)?.env?.DEBUG_AUTH_KEY)
+    || (typeof process !== 'undefined' && process.env?.DEBUG_AUTH_KEY);
+
+  if (!authKey) {
+    return new Response(JSON.stringify({ error: 'debug_endpoint_disabled' }), { status: 404, headers: { 'Content-Type': 'application/json' } });
+  }
+
+  const url = new URL(request.url);
+  const suppliedKey = url.searchParams.get('key');
+  if (!suppliedKey || suppliedKey !== authKey) {
     return new Response(JSON.stringify({ error: 'auth_required' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
   }
 
@@ -45,6 +53,5 @@ export const GET: APIRoute = async ({ request, locals }) => {
     GROQ: mask(mergedEnv.GROQ_API_KEY),
     HAS_AI: !!mergedEnv.AI,
     HAS_SESSION: !!mergedEnv.SESSION,
-    LOCALS_KEYS: Object.keys(locals || {}),
   }, null, 2), { headers: { 'Content-Type': 'application/json' } });
 };
