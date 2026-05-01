@@ -1,18 +1,22 @@
 import type { APIRoute } from 'astro';
-import { env } from 'cloudflare:workers';
+import { env as cfGlobalEnv } from 'cloudflare:workers';
 
 const MAX_TEXT_SIZE = 1_000_000;
 const MAX_CHUNKS = 100;
 const ingestRateLimits = new Map<string, { count: number; reset: number }>();
 
-export const POST: APIRoute = async ({ request }) => {
-  const cfEnv = env as any;
+export const POST: APIRoute = async ({ request, locals }) => {
+  let cfEnv: any = {};
+  try { if (cfGlobalEnv) cfEnv = { ...(cfGlobalEnv as any) }; } catch (e) {}
+  try { const rEnv = (locals as any)?.runtime?.env; if (rEnv) for (const [k, v] of Object.entries(rEnv)) { if (v != null && !cfEnv[k]) cfEnv[k] = v; } } catch (e) {}
+  if (typeof process !== 'undefined' && process.env) { for (const [k, v] of Object.entries(process.env)) { if (v && !cfEnv[k]) cfEnv[k] = v; } }
+
   const ip = request.headers.get('cf-connecting-ip') || 'unknown';
 
   const now = Date.now();
   const rl = ingestRateLimits.get(ip);
   if (rl && now < rl.reset) {
-    if (rl.count >= 5) return new Response(JSON.stringify({ error: 'Rate limit' }), { status: 429 });
+    if (rl.count >= 5) return new Response(JSON.stringify({ error: 'Rate limit', message: 'Too many uploads. Wait a minute.' }), { status: 429 });
     rl.count++;
   } else {
     ingestRateLimits.set(ip, { count: 1, reset: now + 60_000 });
@@ -20,19 +24,19 @@ export const POST: APIRoute = async ({ request }) => {
 
   try {
     if (Number(request.headers.get('content-length') || '0') > MAX_TEXT_SIZE + 1024) {
-      return new Response(JSON.stringify({ error: 'File too large' }), { status: 413 });
+      return new Response(JSON.stringify({ error: 'File too large', message: 'File exceeds 1MB limit.' }), { status: 413 });
     }
 
     const body = await request.json();
     const { text, fileName, sessionId } = body;
 
     if (!text || !sessionId) {
-      return new Response(JSON.stringify({ error: 'Missing content or session' }), { status: 400 });
+      return new Response(JSON.stringify({ error: 'Missing content or session', message: 'No text or session ID provided.' }), { status: 400 });
     }
 
     const safeText = String(text).slice(0, MAX_TEXT_SIZE);
     if (!safeText.trim()) {
-      return new Response(JSON.stringify({ error: 'Empty content' }), { status: 400 });
+      return new Response(JSON.stringify({ error: 'Empty content', message: 'The file appears to be empty.' }), { status: 400 });
     }
 
     const chunkSize = 1000;
@@ -44,7 +48,7 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     if (!cfEnv.AI) {
-      return new Response(JSON.stringify({ error: 'Embedding service unavailable' }), { status: 503 });
+      return new Response(JSON.stringify({ error: 'Embedding service unavailable', message: 'AI embedding service not available.' }), { status: 503 });
     }
 
     const allEmbeddings: number[][] = [];
@@ -57,22 +61,21 @@ export const POST: APIRoute = async ({ request }) => {
       });
 
       if (!aiResponse?.data) {
-        return new Response(JSON.stringify({ error: 'Embedding generation failed' }), { status: 502 });
+        return new Response(JSON.stringify({ error: 'Embedding generation failed', message: 'Could not generate embeddings for this document.' }), { status: 502 });
       }
 
       allEmbeddings.push(...aiResponse.data);
     }
 
-    if (!cfEnv.SUPABASE_URL || !cfEnv.SUPABASE_SERVICE_ROLE_KEY) {
-      return new Response(JSON.stringify({ error: 'Storage unavailable' }), { status: 503 });
+    const supabaseUrl = cfEnv.SUPABASE_URL || 'https://vstxlstksrtiskyuxdjt.supabase.co';
+    const supabaseKey = cfEnv.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseKey) {
+      return new Response(JSON.stringify({ error: 'Storage unavailable', message: 'Database credentials not configured.' }), { status: 503 });
     }
 
     const { createClient } = await import('@supabase/supabase-js');
-    const supabase = createClient(
-      cfEnv.SUPABASE_URL,
-      cfEnv.SUPABASE_SERVICE_ROLE_KEY,
-      { db: { schema: 'public' } },
-    );
+    const supabase = createClient(supabaseUrl, supabaseKey, { db: { schema: 'public' } });
 
     const rows = chunks.map((chunk, i) => ({
       user_id: '00000000-0000-0000-0000-000000000000',
@@ -88,17 +91,17 @@ export const POST: APIRoute = async ({ request }) => {
       new Promise<{ error: any }>((_, reject) => setTimeout(() => reject(new Error('timeout')), 15000)),
     ]) as any;
     if (insertError) {
-      console.log(JSON.stringify({ event: 'ingest_insert_error', message: insertError.message?.slice(0, 200) }));
-      return new Response(JSON.stringify({ error: 'Storage write failed' }), { status: 500 });
+      console.log(JSON.stringify({ event: 'ingest_insert_error', message: insertError.message?.slice(0, 200), code: insertError.code }));
+      return new Response(JSON.stringify({ error: 'Storage write failed', message: insertError.message || 'Database write failed.' }), { status: 500 });
     }
 
-    return new Response(JSON.stringify({ success: true, count: chunks.length }), {
+    return new Response(JSON.stringify({ success: true, count: chunks.length, message: `Uploaded ${chunks.length} chunks` }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error: any) {
-    console.error('[Ingest]', error.message || String(error));
-    return new Response(JSON.stringify({ error: 'Processing failed' }), {
+    console.log(JSON.stringify({ event: 'ingest_failure', message: error.message?.slice(0, 200) }));
+    return new Response(JSON.stringify({ error: 'Processing failed', message: error.message || 'Upload failed.' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });

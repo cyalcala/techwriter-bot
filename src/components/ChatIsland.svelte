@@ -62,8 +62,8 @@
         });
 
         if (!res.ok) {
-          const errData = await res.json();
-          throw new Error(errData.message || 'Ingestion failed');
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.message || errData.error || 'Ingestion failed');
         }
 
         uploadStatus = 'done';

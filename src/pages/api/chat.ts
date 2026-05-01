@@ -140,8 +140,9 @@ async function searchDuckDuckGo(query: string): Promise<SearchSource | null> {
     if (parts.length === 0) return null;
 
     const content = parts.join('\n\n');
+    const firstResultUrl = (data.Results?.[0] as any)?.FirstURL || data.AbstractURL || `https://duckduckgo.com/?q=${encodeURIComponent(query)}`;
     searchCache.set(key, { result: content, ts: Date.now() });
-    return { title: 'DuckDuckGo', url: `https://duckduckgo.com/?q=${encodeURIComponent(query)}`, content };
+    return { title: 'DuckDuckGo', url: firstResultUrl, content };
   } catch (e: any) {
     console.log(JSON.stringify({ event: 'ddg_error', message: e.message?.slice(0, 200), query: query.slice(0, 80) }));
     return null;
@@ -183,15 +184,15 @@ async function searchRouter(query: string): Promise<SearchResult> {
   const ddg = await searchDuckDuckGo(query);
   if (ddg) {
     sourceIdx++;
-    contextParts.push(`[${sourceIdx}] ${ddg.content}`);
-    sources.push({ title: ddg.title, url: ddg.url });
+    contextParts.push(`[Source ${sourceIdx}: DuckDuckGo]\n${ddg.content}`);
+    sources.push({ title: `DDG: ${query.slice(0, 50)}`, url: ddg.url });
   }
 
   const wiki = await searchWikipedia(query);
   if (wiki) {
     sourceIdx++;
-    contextParts.push(`[${sourceIdx}] ${wiki.content}`);
-    sources.push({ title: wiki.title, url: wiki.url });
+    contextParts.push(`[Source ${sourceIdx}: Wikipedia]\n${wiki.content}`);
+    sources.push({ title: `Wikipedia: ${query.slice(0, 50)}`, url: wiki.url });
   }
 
   return { contextParts, sources };
@@ -269,7 +270,7 @@ export const POST: APIRoute = async (context) => {
 
     if (contextParts.length > 0) {
       messages = [
-        { role: 'system', content: `You are a helpful technical writing assistant with access to live information. Below are numbered sources. When using information from a source, cite it inline like [1], [2]. If the sources don't help answer the query, rely on your own knowledge and respond naturally. Do not fabricate citations.\n\n${contextParts.join('\n\n')}` },
+        { role: 'system', content: `You are a helpful technical writing assistant with access to live information sources numbered below. CRITICAL: You MUST cite sources using [1], [2] format whenever you use information from them. Example: if Source 1 says "Paris is the capital of France", write "Paris is the capital of France [1]." If sources are irrelevant, ignore them and respond naturally.\n\n${contextParts.join('\n\n')}` },
         ...messages,
       ];
     }
