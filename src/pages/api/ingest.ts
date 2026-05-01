@@ -74,9 +74,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return new Response(JSON.stringify({ error: 'Storage unavailable', message: 'Database credentials not configured.' }), { status: 503 });
     }
 
-    const { createClient } = await import('@supabase/supabase-js');
-    const supabase = createClient(supabaseUrl, supabaseKey, { db: { schema: 'public' } });
-
     const rows = chunks.map((chunk, i) => ({
       user_id: '00000000-0000-0000-0000-000000000000',
       session_id: sessionId,
@@ -86,13 +83,24 @@ export const POST: APIRoute = async ({ request, locals }) => {
       metadata: { fileName, part: i + 1, totalParts: chunks.length },
     }));
 
-    const { error: insertError } = await Promise.race([
-      supabase.from('notes').insert(rows),
-      new Promise<{ error: any }>((_, reject) => setTimeout(() => reject(new Error('timeout')), 15000)),
-    ]) as any;
-    if (insertError) {
-      console.log(JSON.stringify({ event: 'ingest_insert_error', message: insertError.message?.slice(0, 200), code: insertError.code }));
-      return new Response(JSON.stringify({ error: 'Storage write failed', message: insertError.message || 'Database write failed.' }), { status: 500 });
+    const insertRes = await Promise.race([
+      fetch(`${supabaseUrl}/rest/v1/notes`, {
+        method: 'POST',
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal',
+        },
+        body: JSON.stringify(rows),
+      }),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 10000)),
+    ]);
+
+    if (!insertRes.ok) {
+      const errText = await insertRes.text().catch(() => 'unknown');
+      console.log(JSON.stringify({ event: 'ingest_insert_error', status: insertRes.status, body: errText.slice(0, 200) }));
+      return new Response(JSON.stringify({ error: 'Storage write failed', message: `Database error: ${insertRes.status}` }), { status: 500 });
     }
 
     return new Response(JSON.stringify({ success: true, count: chunks.length, message: `Uploaded ${chunks.length} chunks` }), {
