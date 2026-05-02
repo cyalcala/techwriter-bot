@@ -213,6 +213,15 @@
     await doSend();
   }
 
+  function stopStreaming() {
+    if (abortController) {
+      abortController.abort();
+      abortController = null;
+      isLoading = false;
+      isStreaming = false;
+    }
+  }
+
   async function doSend() {
     isLoading = true;
     abortController = new AbortController();
@@ -359,8 +368,10 @@
       }
 
       const existingArtifacts = artifacts.filter(a => a.messageIdx === msgIdx);
+      console.debug('[Artifact]', { streamDetected: existingArtifacts.length, messageIdx: msgIdx, contentLen: messages[msgIdx]?.content?.length || 0 });
       if (existingArtifacts.length === 0 && messages[msgIdx].content) {
         const fallbackArtifacts = detectCodeFenceFallback(messages[msgIdx].content);
+        console.debug('[Artifact Fallback]', { found: fallbackArtifacts.length, types: fallbackArtifacts.map(a => a.type) });
         for (const fa of fallbackArtifacts) {
           artifacts = [...artifacts, { messageIdx: msgIdx, artifact: fa }];
         }
@@ -525,6 +536,9 @@
                   <button on:click={() => startEdit(i)} class="text-[10px] px-2 py-0.5 rounded-md bg-[#e8e4db]/50 hover:bg-[#e8e4db] text-[#8c8576] border border-[#d6d0c4]/50 transition-all active:scale-95" title="Edit message">
                     Edit
                   </button>
+                  <button on:click={() => copyMessage(i)} class="text-[10px] px-2 py-0.5 rounded-md bg-[#e8e4db]/50 hover:bg-[#e8e4db] text-[#8c8576] border border-[#d6d0c4]/50 transition-all active:scale-95" title="Copy message">
+                    {copiedMessageIdx === i ? 'Copied!' : 'Copy'}
+                  </button>
                 </div>
               {/if}
             {/if}
@@ -536,7 +550,7 @@
       <div class="flex justify-start">
         <div class="bg-white border border-[#e5e1d8] text-[#8c8576] px-6 py-4 rounded-full shadow-sm animate-pulse text-sm flex items-center gap-2">
           <div class="w-1.5 h-1.5 rounded-full bg-[#d6d0c4] animate-bounce"></div>
-          Gathering thoughts...
+          Searching web &amp; gathering thoughts...
         </div>
       </div>
     {/if}
@@ -598,6 +612,18 @@
           />
         </div>
 
+        {#if isStreaming}
+        <button
+          on:click={stopStreaming}
+          class="bg-red-600 hover:bg-red-700 text-white p-2.5 md:px-8 md:py-4 rounded-xl md:rounded-2xl transition-all shadow-md active:scale-95 shrink-0 flex items-center justify-center"
+          title="Stop generating"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+            <rect x="3" y="3" width="14" height="14" rx="2" />
+          </svg>
+          <span class="hidden md:inline text-sm md:text-base font-bold tracking-wide ml-1">Stop</span>
+        </button>
+      {:else}
         <button
           on:click={sendMessage}
           disabled={isLoading || !inputMessage.trim()}
@@ -608,6 +634,7 @@
           </svg>
           <span class="hidden md:inline text-sm md:text-base font-bold tracking-wide">Send</span>
         </button>
+      {/if}
       </div>
 
       <div class="flex justify-between items-center gap-1 text-[9px] md:text-[11px] text-[#8c8576] mt-2">

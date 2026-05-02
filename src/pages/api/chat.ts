@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { env as cfGlobalEnv } from 'cloudflare:workers';
-import { routeChat, getCircuitDiagnostics, runHealthCheck } from '../../lib/zen-router';
+import { routeChat, getCircuitDiagnostics } from '../../lib/zen-router';
 
 interface RateLimitEntry { count: number; resetTime: number; }
 const rateLimits = new Map<string, RateLimitEntry>();
@@ -11,8 +11,6 @@ const MAX_BODY_SIZE = 64 * 1024;
 interface SearchSource { title: string; url: string; content: string; }
 interface SearchResult { contextParts: string[]; sources: { title: string; url: string }[]; }
 
-let healthCheckDone = false;
-
 const dailyUsage = new Map<string, number>();
 const DAILY_CAP = 500;
 let dailyReset = Date.now() + 86400000;
@@ -22,7 +20,7 @@ if (typeof setInterval !== 'undefined') {
     const now = Date.now();
     rateLimits.forEach((v, k) => { if (now > v.resetTime) rateLimits.delete(k); });
     if (now > dailyReset) { dailyUsage.clear(); dailyReset = now + 86400000; }
-    searchCache.forEach((v, k) => { if (now - v.ts > 600_000) searchCache.delete(k); });
+    searchCache.forEach((v, k) => { if (now - v.ts > 900_000) searchCache.delete(k); });
   }, 60_000);
 }
 
@@ -45,8 +43,6 @@ function sanitizeInput(input: any): any {
   return input;
 }
 
-const GREETING_PATTERNS = /^(hi|hello|hey|yo|sup|howdy|heya|hola|good\s?(morning|afternoon|evening|night)|what'?s\s?up|how('s| is) it going|how are (you|u)|greetings|hai|helo|okay|ok|nice|wassup|wsup|nm|nmu|not much)\b/i;
-
 const ALLOWED_ORIGINS = [
   'https://tw-bot.pages.dev',
   'https://techwriter-bot.pages.dev',
@@ -57,30 +53,16 @@ const ALLOWED_ORIGINS = [
 function checkCSRF(request: Request): boolean {
   const origin = request.headers.get('origin');
   const referer = request.headers.get('referer');
-
   if (!origin && !referer) return true;
-
   const checkUrl = (url: string): boolean => {
     try {
       const parsed = new URL(url);
       const hostPart = `${parsed.protocol}//${parsed.host}`;
       return ALLOWED_ORIGINS.some(allowed => hostPart.startsWith(allowed) || allowed.startsWith(hostPart));
-    } catch {
-      return false;
-    }
+    } catch { return false; }
   };
-
   if (origin && !checkUrl(origin)) return false;
   if (referer && !checkUrl(referer)) return false;
-
-  return true;
-}
-
-function shouldSearch(query: string): boolean {
-  if (!query || query.length < 2) return false;
-  const trimmed = query.trim();
-  if (trimmed.length <= 2) return false;
-  if (GREETING_PATTERNS.test(trimmed)) return false;
   return true;
 }
 
@@ -100,8 +82,9 @@ async function verifyTurnstileToken(token: string, secret: string): Promise<bool
 }
 
 const searchCache = new Map<string, { result: string; ts: number }>();
-const SEARCH_CACHE_MS = 300_000;
-const SEARCH_TIMEOUT_MS = 1500;
+const SEARCH_CACHE_MS = 900_000;
+const DDG_TIMEOUT_MS = 4000;
+const WIKI_TIMEOUT_MS = 5000;
 
 function searchCacheKey(query: string): string {
   return query.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim().slice(0, 80);
@@ -116,7 +99,7 @@ async function searchDuckDuckGo(query: string): Promise<SearchSource | null> {
 
   try {
     const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), SEARCH_TIMEOUT_MS);
+    const t = setTimeout(() => ctrl.abort(), DDG_TIMEOUT_MS);
     const res = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`, { signal: ctrl.signal });
     clearTimeout(t);
     if (!res.ok) return null;
@@ -147,7 +130,7 @@ async function searchDuckDuckGo(query: string): Promise<SearchSource | null> {
 async function searchWikipedia(query: string): Promise<SearchSource | null> {
   try {
     const params = new URLSearchParams({ action: 'query', list: 'search', srsearch: query, format: 'json', srlimit: '3' });
-    const res = await fetch(`https://en.wikipedia.org/w/api.php?${params}`, { signal: AbortSignal.timeout(3000) });
+    const res = await fetch(`https://en.wikipedia.org/w/api.php?${params}`, { signal: AbortSignal.timeout(WIKI_TIMEOUT_MS) });
     if (!res.ok) return null;
     const data = await res.json() as any;
     const results = data?.query?.search;
@@ -174,16 +157,17 @@ async function searchRouter(query: string): Promise<SearchResult> {
   const sources: { title: string; url: string }[] = [];
   let sourceIdx = 0;
 
-  if (!shouldSearch(query)) return { contextParts, sources };
+  const [ddg, wiki] = await Promise.all([
+    searchDuckDuckGo(query),
+    searchWikipedia(query),
+  ]);
 
-  const ddg = await searchDuckDuckGo(query);
   if (ddg) {
     sourceIdx++;
     contextParts.push(`[Source ${sourceIdx}: DuckDuckGo]\n${ddg.content}`);
     sources.push({ title: `DDG: ${query.slice(0, 50)}`, url: ddg.url });
   }
 
-  const wiki = await searchWikipedia(query);
   if (wiki) {
     sourceIdx++;
     contextParts.push(`[Source ${sourceIdx}: Wikipedia]\n${wiki.content}`);
@@ -208,11 +192,6 @@ export const POST: APIRoute = async (context) => {
   try { if (cfGlobalEnv) env = { ...(cfGlobalEnv as any) }; } catch (e) {}
   try { const rEnv = (locals as any)?.runtime?.env; if (rEnv) for (const [k, v] of Object.entries(rEnv)) { if (v != null && !env[k]) env[k] = v; } } catch (e) {}
   if (typeof process !== 'undefined' && process.env) { for (const [k, v] of Object.entries(process.env)) { if (v && !env[k]) env[k] = v; } }
-
-  if (!healthCheckDone && env) {
-    healthCheckDone = true;
-    try { runHealthCheck(env); } catch (e) {}
-  }
 
   const clientIP = request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'unknown';
 
@@ -256,11 +235,18 @@ export const POST: APIRoute = async (context) => {
     const searchResult = await searchRouter(userQuery);
     const sources = searchResult.sources || [];
 
+    const contextBlocks: string[] = [];
+
     if (searchResult.contextParts.length > 0) {
-      messages = [
-        { role: 'system', content: `You are a helpful technical writing assistant with access to live information sources numbered below. CRITICAL: You MUST cite sources using [1], [2] format whenever you use information from them. Example: if Source 1 says "Paris is the capital of France", write "Paris is the capital of France [1]." If sources are irrelevant, ignore them and respond naturally.\n\n${searchResult.contextParts.join('\n\n')}` },
-        ...messages,
-      ];
+      contextBlocks.push(searchResult.contextParts.join('\n'));
+    }
+
+    if (contextBlocks.length > 0) {
+      contextBlocks.push(
+        `When generating code blocks, HTML, SVG, Mermaid diagrams, or React components in your response, wrap them in <artifact type="code|html|svg|mermaid|react" placement="inline" title="Descriptive Name">...</artifact> tags. Use type="code" with language attribute for code blocks.`
+      );
+      const systemContent = `You are a helpful technical writing assistant with access to live information sources numbered below. CRITICAL: You MUST cite sources using [1], [2] format whenever you use information from them. Example: if Source 1 says "Paris is the capital of France", write "Paris is the capital of France [1]." If sources are irrelevant, ignore them and respond naturally.\n\n${contextBlocks.join('\n\n')}`;
+      messages = [{ role: 'system', content: systemContent }, ...messages];
     }
 
     return await routeChat(body.intent || 'chat-fast', messages, locals, env, sessionId, sources);

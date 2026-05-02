@@ -1,15 +1,15 @@
 import { ZEN_REGISTRY, classifyQuery, getProvidersForRole, getProvider, type Provider, type ProviderRole } from './providers';
 
-const CIRCUIT_TRANSIENT_WINDOW_MS = 60_000;
-const CIRCUIT_TRANSIENT_FAILURES = 4;
+const CIRCUIT_TRANSIENT_WINDOW_MS = 120_000;
+const CIRCUIT_TRANSIENT_FAILURES = 6;
 const CIRCUIT_TRANSIENT_EJECT_MS = 90_000;
 const CIRCUIT_TRANSIENT_PROBE_MS = 45_000;
 const CIRCUIT_PERMANENT_EJECT_MS = 600_000;
 const MAX_TRANSIENT_ATTEMPTS = 6;
-const GLOBAL_TIMEOUT_MS = 15_000;
+const GLOBAL_TIMEOUT_MS = 20_000;
 
 const RETRYABLE_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504]);
-const PERMANENT_STATUSES = new Set([400, 401, 402, 403, 404]);
+const PERMANENT_STATUSES = new Set([401]);
 
 interface CircuitState {
   failures: number[];
@@ -32,8 +32,6 @@ interface SessionState {
 const circuits = new Map<string, CircuitState>();
 const sessions = new Map<string, SessionState>();
 const SESSION_TTL_MS = 30 * 60_000;
-
-let providerHealth: Map<string, boolean> | null = null;
 
 if (typeof setInterval !== 'undefined') {
   setInterval(() => {
@@ -121,47 +119,9 @@ function getSession(sessionId: string, maxTurns: number = 2): SessionState {
   return sessions.get(sessionId)!;
 }
 
-export async function runHealthCheck(env: any) {
-  providerHealth = new Map();
-  const probeMsg = [{ role: 'user', content: 'Hello, please respond with a brief greeting.' }];
-  for (const provider of ZEN_REGISTRY) {
-    if (provider.name === 'openrouter' && provider.freeTier === false) continue;
-    const apiKey = getApiKey(provider, env);
-    if (!apiKey && provider.name !== 'cloudflare') {
-      providerHealth.set(provider.id, false);
-      continue;
-    }
-    try {
-      const res = await callProvider(provider, probeMsg, env);
-      const ok = res.ok;
-      if (!ok) {
-        const status = res.status;
-        if (PERMANENT_STATUSES.has(status)) {
-          providerHealth.set(provider.id, false);
-          recordPermanentFailure(provider.id);
-        } else if (RETRYABLE_STATUSES.has(status)) {
-          providerHealth.set(provider.id, true);
-        } else {
-          providerHealth.set(provider.id, false);
-        }
-      } else {
-        providerHealth.set(provider.id, true);
-      }
-      if (!res.body?.locked) {
-        try { await res.body?.cancel(); } catch (e) {}
-      }
-    } catch (e) {
-      providerHealth.set(provider.id, false);
-    }
-  }
-}
-
-function isProviderKnownBad(id: string): boolean {
-  if (providerHealth?.has(id) && providerHealth.get(id) === false) {
-    const c = circuits.get(id);
-    if (c?.permanent) return true;
-  }
-  return false;
+export async function runHealthCheck(_env: any) {
+  // Health check disabled — circuit breaker learns from real traffic only.
+  // Probing on cold start burns free-tier rate limits and causes false positives.
 }
 
 function getApiKey(provider: Provider, env: any): string | undefined {
@@ -175,22 +135,14 @@ export async function routeChat(rawIntent: string, messages: any[], locals: any,
   const intent = rawIntent || 'chat-fast';
 
   const role: ProviderRole = classifyQuery(messages, intent);
-  let candidates = getProvidersForRole(role);
-
-  if (providerHealth) {
-    candidates.sort((a, b) => {
-      const aGood = isProviderKnownBad(a.id) ? 1 : 0;
-      const bGood = isProviderKnownBad(b.id) ? 1 : 0;
-      return aGood - bGood;
-    });
-  }
+  const candidates = getProvidersForRole(role);
 
   const session = sessionId ? getSession(sessionId) : null;
 
   async function doChain(): Promise<Response> {
     if (session?.lockedProviderId) {
       const lockedProvider = getProvider(session.lockedProviderId);
-      if (lockedProvider && !isCircuitOpen(lockedProvider.id) && !isProviderKnownBad(lockedProvider.id)) {
+      if (lockedProvider && !isCircuitOpen(lockedProvider.id)) {
         const priority = [lockedProvider, ...candidates.filter(p => p.id !== lockedProvider.id)];
         return await attemptFallback(priority, messages, env, intent, session, sources);
       }
@@ -219,21 +171,13 @@ async function attemptFallback(
   session: SessionState | null,
   sources?: { title: string; url: string }[],
 ): Promise<Response> {
-  const errors: string[] = [];
   let transientAttempts = 0;
   let permanentSkips = 0;
 
   for (const provider of providers) {
     if (transientAttempts >= MAX_TRANSIENT_ATTEMPTS) break;
 
-    if (isCircuitOpen(provider.id)) {
-      continue;
-    }
-
-    if (isProviderKnownBad(provider.id)) {
-      permanentSkips++;
-      continue;
-    }
+    if (isCircuitOpen(provider.id)) continue;
 
     const apiKey = getApiKey(provider, env);
     if (!apiKey && provider.name !== 'cloudflare') {
@@ -246,6 +190,13 @@ async function attemptFallback(
     try {
       const res = await callProvider(provider, messages, env);
       const latency = Date.now() - start;
+
+      console.log(JSON.stringify({
+        event: 'provider_attempt',
+        provider: provider.id,
+        status: res.status,
+        latencyMs: latency,
+      }));
 
       if (res.ok) {
         recordSuccess(provider.id, latency);
@@ -275,6 +226,13 @@ async function attemptFallback(
 
       const status = res.status;
 
+      console.log(JSON.stringify({
+        event: 'provider_failure',
+        provider: provider.id,
+        status,
+        permanent: PERMANENT_STATUSES.has(status),
+      }));
+
       if (PERMANENT_STATUSES.has(status)) {
         recordPermanentFailure(provider.id);
         permanentSkips++;
@@ -293,6 +251,12 @@ async function attemptFallback(
 
     } catch (e: any) {
       const isTimeout = e.name === 'TimeoutError' || e.message?.includes('timeout') || e.code === 'ETIMEDOUT';
+      console.log(JSON.stringify({
+        event: 'provider_exception',
+        provider: provider.id,
+        isTimeout,
+        message: e.message?.slice(0, 200),
+      }));
       recordTransientFailure(provider.id, false);
       transientAttempts++;
 

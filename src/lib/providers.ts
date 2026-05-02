@@ -17,7 +17,7 @@ export const ZEN_REGISTRY: Provider[] = [
     role: 'balanced',
     endpoint: 'https://api.cerebras.ai/v1',
     model: 'llama-3.1-8b',
-    timeoutMs: 8000,
+    timeoutMs: 12000,
     freeTier: true,
   },
   {
@@ -26,7 +26,7 @@ export const ZEN_REGISTRY: Provider[] = [
     role: 'fast',
     endpoint: 'https://api.groq.com/openai/v1',
     model: 'llama-3.3-70b-versatile',
-    timeoutMs: 6000,
+    timeoutMs: 10000,
     freeTier: true,
   },
   {
@@ -35,7 +35,7 @@ export const ZEN_REGISTRY: Provider[] = [
     role: 'heavy',
     endpoint: 'https://generativelanguage.googleapis.com/v1beta',
     model: 'gemini-2.0-flash',
-    timeoutMs: 12000,
+    timeoutMs: 15000,
     freeTier: true,
   },
   {
@@ -44,7 +44,7 @@ export const ZEN_REGISTRY: Provider[] = [
     role: 'fallback',
     endpoint: 'https://integrate.api.nvidia.com/v1',
     model: 'nvidia/llama-3.1-nemotron-8b-instruct',
-    timeoutMs: 8000,
+    timeoutMs: 12000,
     freeTier: true,
   },
   {
@@ -53,7 +53,7 @@ export const ZEN_REGISTRY: Provider[] = [
     role: 'fallback',
     endpoint: 'https://openrouter.ai/api/v1',
     model: 'google/gemini-2.0-flash-001',
-    timeoutMs: 8000,
+    timeoutMs: 10000,
     freeTier: false,
   },
   {
