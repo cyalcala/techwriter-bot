@@ -47,46 +47,41 @@ function sanitizeInput(input: any): any {
 
 const GREETING_PATTERNS = /^(hi|hello|hey|yo|sup|howdy|heya|hola|good\s?(morning|afternoon|evening|night)|what'?s\s?up|how('s| is) it going|how are (you|u)|greetings|hai|helo|okay|ok|nice|wassup|wsup|nm|nmu|not much)\b/i;
 
+const ALLOWED_ORIGINS = [
+  'https://tw-bot.pages.dev',
+  'https://techwriter-bot.pages.dev',
+  'http://localhost:4321',
+  'http://localhost:3000',
+];
+
+function checkCSRF(request: Request): boolean {
+  const origin = request.headers.get('origin');
+  const referer = request.headers.get('referer');
+
+  if (!origin && !referer) return true;
+
+  const checkUrl = (url: string): boolean => {
+    try {
+      const parsed = new URL(url);
+      const hostPart = `${parsed.protocol}//${parsed.host}`;
+      return ALLOWED_ORIGINS.some(allowed => hostPart.startsWith(allowed) || allowed.startsWith(hostPart));
+    } catch {
+      return false;
+    }
+  };
+
+  if (origin && !checkUrl(origin)) return false;
+  if (referer && !checkUrl(referer)) return false;
+
+  return true;
+}
+
 function shouldSearch(query: string): boolean {
   if (!query || query.length < 2) return false;
   const trimmed = query.trim();
   if (trimmed.length <= 2) return false;
   if (GREETING_PATTERNS.test(trimmed)) return false;
   return true;
-}
-
-async function retrieveRagContext(env: any, sessionId: string, query: string): Promise<string | null> {
-  if (!env.AI || !env.SUPABASE_URL) return null;
-  const supabaseKey = env.SUPABASE_ANON_KEY || env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!supabaseKey) return null;
-  try {
-    const embResult = await Promise.race([
-      env.AI.run('@cf/baai/bge-small-en-v1.5', { text: [query] }),
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000)),
-    ]) as any;
-    const embedding = embResult?.data?.[0];
-    if (!embedding) {
-      console.log(JSON.stringify({ event: 'rag_no_embedding', sessionId }));
-      return null;
-    }
-    const { createClient } = await import('@supabase/supabase-js');
-    const supabase = createClient(env.SUPABASE_URL, supabaseKey, { db: { schema: 'public' } });
-    const { data, error } = await Promise.race([
-      supabase.rpc('match_notes', {
-        query_embedding: embedding, match_threshold: 0.4, match_count: 3, p_session_id: sessionId,
-      }),
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000)),
-    ]) as any;
-    if (error) {
-      console.log(JSON.stringify({ event: 'rag_rpc_error', message: error.message?.slice(0, 200), sessionId }));
-      return null;
-    }
-    if (!data?.length) return null;
-    return data.map((r: any, i: number) => `[Doc Chunk ${i + 1}] ${r.content}`).join('\n\n');
-  } catch (e: any) {
-    console.log(JSON.stringify({ event: 'rag_failure', message: e.message?.slice(0, 200), sessionId }));
-    return null;
-  }
 }
 
 async function verifyTurnstileToken(token: string, secret: string): Promise<boolean> {
@@ -221,6 +216,10 @@ export const POST: APIRoute = async (context) => {
 
   const clientIP = request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'unknown';
 
+  if (!checkCSRF(request)) {
+    return new Response(JSON.stringify({ error: 'forbidden' }), { status: 403 });
+  }
+
   if (!checkRateLimit(clientIP)) {
     return new Response(JSON.stringify({ error: 'rate_limit' }), { status: 429 });
   }
@@ -242,35 +241,24 @@ export const POST: APIRoute = async (context) => {
     }
 
     if (env.TURNSTILE_SECRET_KEY) {
-      await verifyTurnstileToken(body.turnstileToken, env.TURNSTILE_SECRET_KEY);
+      const turnstileOk = await verifyTurnstileToken(body.turnstileToken, env.TURNSTILE_SECRET_KEY);
+      if (!turnstileOk) {
+        return new Response(JSON.stringify({ error: 'captcha_failed', message: 'Turnstile verification failed.' }), { status: 403 });
+      }
     }
 
     let messages = sanitizeInput(body.messages);
     const sessionId = String(body.sessionId || '');
-    const hasRag = body.hasRag === true && sessionId;
 
     const lastUserMsg = [...messages].reverse().find((m: any) => m.role === 'user');
     const userQuery = lastUserMsg?.content || '';
 
-    const [ragContext, searchResult] = await Promise.all([
-      hasRag ? retrieveRagContext(env, sessionId, userQuery) : null,
-      searchRouter(userQuery),
-    ]);
-
-    const contextParts: string[] = [];
+    const searchResult = await searchRouter(userQuery);
     const sources = searchResult.sources || [];
 
     if (searchResult.contextParts.length > 0) {
-      contextParts.push(searchResult.contextParts.join('\n'));
-    }
-    if (ragContext) {
-      const ragIdx = searchResult.contextParts.length + 1;
-      contextParts.push(`[${ragIdx}] Document excerpts:\n${ragContext}`);
-    }
-
-    if (contextParts.length > 0) {
       messages = [
-        { role: 'system', content: `You are a helpful technical writing assistant with access to live information sources numbered below. CRITICAL: You MUST cite sources using [1], [2] format whenever you use information from them. Example: if Source 1 says "Paris is the capital of France", write "Paris is the capital of France [1]." If sources are irrelevant, ignore them and respond naturally.\n\n${contextParts.join('\n\n')}` },
+        { role: 'system', content: `You are a helpful technical writing assistant with access to live information sources numbered below. CRITICAL: You MUST cite sources using [1], [2] format whenever you use information from them. Example: if Source 1 says "Paris is the capital of France", write "Paris is the capital of France [1]." If sources are irrelevant, ignore them and respond naturally.\n\n${searchResult.contextParts.join('\n\n')}` },
         ...messages,
       ];
     }
