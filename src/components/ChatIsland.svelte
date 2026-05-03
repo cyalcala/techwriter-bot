@@ -29,6 +29,8 @@
   let uploadedFileName = $state('');
   let fileInput: HTMLInputElement;
   let isThinkingMode = $state(false);
+  let isLiveMode = $state(false);
+  let enhancedCredits = $state({ remaining: 3, total: 3, unlimited: false, budgetExhausted: false });
   let chatContainer: HTMLElement;
   let abortController: AbortController | null = null;
   let isOnline = $state(true);
@@ -36,6 +38,7 @@
   let editText = $state('');
   let copiedMessageIdx = $state<number | null>(null);
   let artifacts = $state<{ messageIdx: number; artifact: Artifact }[]>([]);
+  let searchTier = $state<'basic' | 'enhanced' | 'none'>('basic');
 
   function generateSessionId() {
     const stored = getStoredSessionId();
@@ -45,11 +48,27 @@
     }
   }
 
+  async function pollCredits() {
+    try {
+      const res = await fetch('/api/search-credits');
+      if (res.ok) {
+        const data = await res.json();
+        enhancedCredits = {
+          remaining: data.remaining === -1 ? 3 : data.remaining,
+          total: 3,
+          unlimited: data.unlimited || false,
+          budgetExhausted: data.budgetExhausted || false,
+        };
+      }
+    } catch {}
+  }
+
   onMount(() => {
     sessionId = generateSessionId();
     persistSessionId(sessionId);
     runStaleCheck();
     setupCleanupCallbacks(sessionId);
+    pollCredits();
 
     isOnline = navigator.onLine;
     window.addEventListener('online', () => { isOnline = true; });
@@ -74,6 +93,7 @@
     uploadedFileName = '';
     uploadProgress = null;
     artifacts = [];
+    isLiveMode = false;
     if (fileInput) fileInput.value = '';
   }
 
@@ -264,6 +284,7 @@
           messages: messagesToSend,
           intent: isThinkingMode ? 'research' : 'chat-fast',
           sessionId,
+          liveSearch: isLiveMode,
         }),
         signal: abortController.signal,
       });
@@ -278,6 +299,18 @@
       const providerName = response.headers.get('x-provider') || 'AI';
       const sourcesRaw = response.headers.get('x-sources');
       if (sourcesRaw) { try { sourcesFromHeaders = JSON.parse(sourcesRaw); } catch (e) {} }
+
+      const responseSearchTier = response.headers.get('x-search-tier') as 'basic' | 'enhanced' | 'none' | null;
+      const responseSearchRemaining = response.headers.get('x-search-remaining');
+
+      if (responseSearchTier) searchTier = responseSearchTier;
+      if (responseSearchRemaining != null) {
+        const remaining = responseSearchRemaining === 'unlimited' ? -1 : parseInt(responseSearchRemaining, 10);
+        if (!isNaN(remaining)) {
+          enhancedCredits = { ...enhancedCredits, remaining: remaining === -1 ? 3 : remaining };
+        }
+      }
+
       isStreaming = true;
 
       const stream = response.body;
@@ -379,14 +412,10 @@
 
       if (!messages[msgIdx].content) {
         messages[msgIdx] = { ...messages[msgIdx], content: '', empty: true, sources: sourcesFromHeaders };
-      } else {
-        messages[msgIdx] = { ...messages[msgIdx], sources: sourcesFromHeaders };
       }
 
-      if (sourcesFromHeaders.length > 0) {
-        messages[msgIdx] = { ...messages[msgIdx], sources: sourcesFromHeaders };
-      }
-
+      pollCredits();
+      if (enhancedCredits.remaining <= 0) isLiveMode = false;
       await updateActivity(sessionId);
     } catch (error: any) {
       if (error.name === 'AbortError') return;
@@ -640,8 +669,21 @@
       <div class="flex justify-between items-center gap-1 text-[9px] md:text-[11px] text-[#8c8576] mt-2">
         <div class="flex items-center gap-1 md:gap-2">
           <div class="flex items-center bg-[#e8e4db]/50 p-0.5 rounded-md md:rounded-lg border border-[#d6d0c4] shadow-inner shrink-0">
-            <button on:click={() => isThinkingMode = false} class="px-1.5 md:px-4 py-1 rounded-sm md:rounded-md transition-all {!isThinkingMode ? 'bg-white text-[#1a1a1a] shadow-sm font-bold' : 'text-[#8c8576]'} text-[9px] md:text-xs">Fast</button>
-            <button on:click={() => isThinkingMode = true} class="px-1.5 md:px-4 py-1 rounded-sm md:rounded-md transition-all {isThinkingMode ? 'bg-black text-white shadow-sm font-bold' : 'text-[#8c8576]'} text-[9px] md:text-xs">Brain</button>
+            <button on:click={() => { isThinkingMode = false; isLiveMode = false; }} class="px-1.5 md:px-4 py-1 rounded-sm md:rounded-md transition-all {!isThinkingMode && !isLiveMode ? 'bg-white text-[#1a1a1a] shadow-sm font-bold' : 'text-[#8c8576]'} text-[9px] md:text-xs">Fast</button>
+            <button on:click={() => { isThinkingMode = true; isLiveMode = false; }} class="px-1.5 md:px-4 py-1 rounded-sm md:rounded-md transition-all {isThinkingMode && !isLiveMode ? 'bg-black text-white shadow-sm font-bold' : 'text-[#8c8576]'} text-[9px] md:text-xs">Brain</button>
+            <button
+              on:click={() => {
+                const canUse = enhancedCredits.remaining > 0 && !enhancedCredits.budgetExhausted;
+                if (canUse) { isThinkingMode = false; isLiveMode = !isLiveMode; }
+              }}
+              class="px-1.5 md:px-4 py-1 rounded-sm md:rounded-md transition-all text-[9px] md:text-xs {isLiveMode ? 'bg-green-600 text-white shadow-sm font-bold' : (enhancedCredits.remaining <= 0 || enhancedCredits.budgetExhausted ? 'text-[#c4bfb4] cursor-not-allowed' : 'text-[#8c8576] hover:text-green-600')}"
+              title={enhancedCredits.budgetExhausted ? 'Monthly pool exhausted. Resets 1st.' : enhancedCredits.remaining <= 0 ? 'Resets tomorrow. Basic search active.' : 'Click for enhanced web search'}
+            >
+              Live
+              <span class="ml-1 text-[7px] md:text-[8px] opacity-70">
+                {enhancedCredits.remaining <= 0 ? '0 left' : `${enhancedCredits.remaining} left`}
+              </span>
+            </button>
           </div>
           <span class="hidden sm:inline opacity-40">|</span>
           <span class="hidden sm:inline font-mono opacity-60 text-[8px] md:text-[10px]">SESS:{sessionId.slice(0, 6)}</span>

@@ -29,6 +29,18 @@ interface SessionState {
   createdAt: number;
 }
 
+export interface TierConfig {
+  allowedProviders: string[];
+  maxTokens?: number;
+}
+
+export interface ResponseMetadata {
+  provider: string | null;
+  searchTier: 'none' | 'basic' | 'enhanced';
+  searchRemaining: string;
+  tier: string;
+}
+
 const circuits = new Map<string, CircuitState>();
 const sessions = new Map<string, SessionState>();
 const SESSION_TTL_MS = 30 * 60_000;
@@ -120,8 +132,6 @@ function getSession(sessionId: string, maxTurns: number = 2): SessionState {
 }
 
 export async function runHealthCheck(_env: any) {
-  // Health check disabled — circuit breaker learns from real traffic only.
-  // Probing on cold start burns free-tier rate limits and causes false positives.
 }
 
 function getApiKey(provider: Provider, env: any): string | undefined {
@@ -130,26 +140,51 @@ function getApiKey(provider: Provider, env: any): string | undefined {
   return raw;
 }
 
-export async function routeChat(rawIntent: string, messages: any[], locals: any, providedEnv: any, sessionId: string = '', sources?: { title: string; url: string }[]) {
+function filterByTier(providers: Provider[], tierConfig?: TierConfig): Provider[] {
+  if (!tierConfig || tierConfig.allowedProviders.length === 0) return providers;
+  return providers.filter(p => tierConfig.allowedProviders.includes(p.id));
+}
+
+export async function routeChat(
+  rawIntent: string,
+  messages: any[],
+  locals: any,
+  providedEnv: any,
+  sessionId: string = '',
+  sources?: { title: string; url: string; provider?: string }[],
+  metadata?: ResponseMetadata,
+  tierConfig?: TierConfig,
+) {
   const env = providedEnv || {};
   const intent = rawIntent || 'chat-fast';
+  const maxTokens = tierConfig?.maxTokens || 4096;
 
   const role: ProviderRole = classifyQuery(messages, intent);
-  const candidates = getProvidersForRole(role);
+  let candidates = getProvidersForRole(role);
+
+  candidates = filterByTier(candidates, tierConfig);
+
+  if (candidates.length === 0) {
+    candidates = getProvidersForRole('fallback');
+    candidates = filterByTier(candidates, tierConfig);
+  }
 
   const session = sessionId ? getSession(sessionId) : null;
+
+  const allowedIds = tierConfig?.allowedProviders;
+  const isProviderAllowed = (id: string) => !allowedIds || allowedIds.length === 0 || allowedIds.includes(id);
 
   async function doChain(): Promise<Response> {
     if (session?.lockedProviderId) {
       const lockedProvider = getProvider(session.lockedProviderId);
-      if (lockedProvider && !isCircuitOpen(lockedProvider.id)) {
+      if (lockedProvider && !isCircuitOpen(lockedProvider.id) && isProviderAllowed(lockedProvider.id)) {
         const priority = [lockedProvider, ...candidates.filter(p => p.id !== lockedProvider.id)];
-        return await attemptFallback(priority, messages, env, intent, session, sources);
+        return await attemptFallback(priority, messages, env, intent, session, sources, metadata, maxTokens);
       }
       session.lockedProviderId = null;
       session.turnCount = 0;
     }
-    return await attemptFallback(candidates, messages, env, intent, session, sources);
+    return await attemptFallback(candidates, messages, env, intent, session, sources, metadata, maxTokens);
   }
 
   return await Promise.race([
@@ -158,7 +193,18 @@ export async function routeChat(rawIntent: string, messages: any[], locals: any,
       setTimeout(() => resolve(new Response(JSON.stringify({
         message: "I'm taking longer than expected. Please try again in a moment.",
         retryAfter: 5,
-      }), { status: 503, headers: { 'Content-Type': 'application/json', 'Retry-After': '5' } })), GLOBAL_TIMEOUT_MS)
+      }), {
+        status: 503,
+        headers: {
+          'Content-Type': 'application/json',
+          'Retry-After': '5',
+          ...(metadata ? {
+            'x-search-tier': metadata.searchTier,
+            'x-search-remaining': metadata.searchRemaining,
+            'x-tier': metadata.tier,
+          } : {}),
+        },
+      })), GLOBAL_TIMEOUT_MS)
     ),
   ]);
 }
@@ -169,7 +215,9 @@ async function attemptFallback(
   env: any,
   intent: string,
   session: SessionState | null,
-  sources?: { title: string; url: string }[],
+  sources?: { title: string; url: string; provider?: string }[],
+  metadata?: ResponseMetadata,
+  maxTokens: number = 4096,
 ): Promise<Response> {
   let transientAttempts = 0;
   let permanentSkips = 0;
@@ -188,7 +236,7 @@ async function attemptFallback(
 
     const start = Date.now();
     try {
-      const res = await callProvider(provider, messages, env);
+      const res = await callProvider(provider, messages, env, maxTokens);
       const latency = Date.now() - start;
 
       console.log(JSON.stringify({
@@ -196,6 +244,8 @@ async function attemptFallback(
         provider: provider.id,
         status: res.status,
         latencyMs: latency,
+        tier: metadata?.tier,
+        searchTier: metadata?.searchTier,
       }));
 
       if (res.ok) {
@@ -218,9 +268,17 @@ async function attemptFallback(
         newHeaders.set('x-latency-ms', String(latency));
         newHeaders.set('x-role', provider.role);
         newHeaders.set('Content-Type', 'text/event-stream');
+
         if (sources && sources.length > 0) {
           newHeaders.set('x-sources', JSON.stringify(sources));
         }
+
+        if (metadata) {
+          newHeaders.set('x-search-tier', metadata.searchTier);
+          newHeaders.set('x-search-remaining', metadata.searchRemaining);
+          newHeaders.set('x-tier', metadata.tier);
+        }
+
         return new Response(res.body, { status: res.status, headers: newHeaders });
       }
 
@@ -285,12 +343,23 @@ async function attemptFallback(
     error: 'AI_PROVIDER_FATAL_ERROR',
     message: 'All capable providers are currently unavailable. Please try again in a moment.',
     retryAfter: 15,
-  }), { status: 500, headers: { 'Content-Type': 'application/json', 'Retry-After': '15' } });
+  }), {
+    status: 500,
+    headers: {
+      'Content-Type': 'application/json',
+      'Retry-After': '15',
+      ...(metadata ? {
+        'x-search-tier': metadata.searchTier,
+        'x-search-remaining': metadata.searchRemaining,
+        'x-tier': metadata.tier,
+      } : {}),
+    },
+  });
 }
 
-async function callProvider(provider: Provider, messages: any[], env: any): Promise<Response> {
+async function callProvider(provider: Provider, messages: any[], env: any, maxTokens: number = 4096): Promise<Response> {
   if (provider.name === 'cloudflare') {
-    return await callWorkersAI(provider, messages, env);
+    return await callWorkersAI(provider, messages, env, maxTokens);
   }
 
   const endpoint = provider.name === 'gemini'
@@ -310,7 +379,7 @@ async function callProvider(provider: Provider, messages: any[], env: any): Prom
     model: provider.model,
     messages,
     temperature: 0.7,
-    max_tokens: 4096,
+    max_tokens: maxTokens,
     stream: true,
     stream_options: { include_usage: true },
   };
@@ -331,7 +400,7 @@ async function callProvider(provider: Provider, messages: any[], env: any): Prom
   }
 }
 
-async function callWorkersAI(provider: Provider, messages: any[], env: any): Promise<Response> {
+async function callWorkersAI(provider: Provider, messages: any[], env: any, maxTokens: number = 4096): Promise<Response> {
   const ai = env.AI;
   if (!ai) {
     throw new Error('Cloudflare AI binding not found');
@@ -343,7 +412,7 @@ async function callWorkersAI(provider: Provider, messages: any[], env: any): Pro
       ai.run(provider.model as any, {
         messages,
         stream: true,
-        max_tokens: 4096,
+        max_tokens: maxTokens,
         temperature: 0.7,
       }) as Promise<ReadableStream>,
       new Promise<never>((_, reject) =>
@@ -415,7 +484,6 @@ async function callWorkersAI(provider: Provider, messages: any[], env: any): Pro
               await writer.write(encoder.encode(`data: ${openAIChunk}\n\n`));
             }
           } catch (e) {
-            // skip malformed JSON lines silently
           }
         }
 
