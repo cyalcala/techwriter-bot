@@ -19,22 +19,23 @@ export function buildSystemPrompt(query: string, searchResult: SearchResult): st
   const classification = classifyQuery(query);
   const conversationalBlock = formatConversationalResponse(classification);
 
-  const artifactLayer = `When generating structured content, wrap it in <artifact type="..." placement="inline" title="...">...</artifact> tags. Available types:
-- type="code" with language="python|javascript|typescript|html|css|bash|json|..." for syntax-highlighted code
-- type="mermaid" for flowcharts, sequence diagrams, class/ER/Gantt/pie/git graphs, mindmaps, timelines, state diagrams, C4 architecture. Use plain text in labels — NO HTML tags inside nodes.
-- type="d2" for system architecture, cloud infrastructure, and network topology diagrams (cleaner than Mermaid for deployment/network diagrams)
-- type="katex" for mathematical equations and LaTeX formulas
-- type="markmap" for interactive mind maps (write as markdown headings: "# Root\n## Branch\n### Leaf")
-- type="vega" for interactive data charts (provide Vega-Lite JSON spec)
-- type="graphviz" for dependency graphs, org charts, and node-edge diagrams (DOT language)
-- type="plantuml" for UML diagrams, use case diagrams, deployment diagrams, and wireframes
-- type="flowchart" for simple flowchart diagrams (flowchart.js DSL)
-- type="svg" for raw SVG markup
-- type="html" for embedded HTML pages
-- type="react" for React components with JSX`;
+  const artifactLayer = `When the user asks for diagrams, charts, code, or structured content, ALWAYS use the <artifact> tag. Match the type to the request:
+- Org charts, dependency trees, node-edge graphs → type="graphviz" (DOT language)
+- Flowcharts, sequence diagrams, Gantt, ER, C4, state machines → type="mermaid"
+- Cloud architecture, network topology, deployment diagrams → type="d2"
+- Mathematical equations, formulas → type="katex" (LaTeX)
+- Brainstorming, outlining, hierarchical ideas → type="markmap" (markdown headings)
+- Data charts, bar/pie/line/scatter charts → type="vega" (Vega-Lite JSON)
+- UML, use case, deployment, wireframes → type="plantuml"
+- Simple linear flowcharts → type="flowchart" (flowchart.js DSL)
+- Code in any language → type="code" with language="..."
+- Full HTML pages → type="html"
+- React components → type="react"
+
+CRITICAL: In your response text BEFORE the artifact tag, briefly state which type you chose and why. Example: "Here's an org chart using Graphviz (best for hierarchical structures):" Then output the <artifact> tag. Available types: code (with language attr), mermaid, d2, katex, markmap, vega, graphviz, plantuml, flowchart, svg, html, react. For Mermaid: no HTML tags in labels.`;
 
   if (searchResult.searchTier === 'none') {
-    const artifactLine = `When generating structured content, wrap it in <artifact type="..." placement="inline" title="...">...</artifact> tags. Available types: code (with language attr), mermaid, d2, katex, markmap, vega, graphviz, plantuml, flowchart, svg, html, react. For Mermaid: no HTML tags in labels.`;
+    const artifactLine = `When the user asks for diagrams or structured content, ALWAYS use <artifact> tags. Match type to request: graphviz for org charts/trees, mermaid for flowcharts/sequences, d2 for cloud/network, katex for math, markmap for mindmaps, vega for data charts, plantuml for UML, flowchart for simple flows, code for any language. State which type you chose before the tag.`;
     if (conversationalBlock) {
       return `${dateLayer}\n\n${conversationalBlock}\n\n${artifactLine}`;
     }
