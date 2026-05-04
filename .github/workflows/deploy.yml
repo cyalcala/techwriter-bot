@@ -61,3 +61,44 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist/client --project-name tw-bot --branch main --commit-dirty=true
+
+      - name: Set environment variables via API
+        run: |
+          node -e "
+          const vars = {
+            GROQ_API_KEY: process.env.GROQ_API_KEY,
+            CEREBRAS_API_KEY: process.env.CEREBRAS_API_KEY,
+            GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+            NVIDIA_API_KEY: process.env.NVIDIA_API_KEY,
+            OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
+            TAVILY_API_KEY: process.env.TAVILY_API_KEY,
+            EXA_API_KEY: process.env.EXA_API_KEY,
+            TURNSTILE_SECRET_KEY: process.env.TURNSTILE_SECRET_KEY,
+            DEV_IPS: process.env.DEV_IPS,
+          };
+          const body = JSON.stringify({
+            deployment_configs: { production: { env_vars: Object.fromEntries(
+              Object.entries(vars).filter(([,v]) => v).map(([k,v]) => [k, {value: v}])
+            )}}
+          });
+          const https = require('https');
+          const req = https.request({
+            hostname: 'api.cloudflare.com',
+            path: '/client/v4/accounts/' + process.env.CLOUDFLARE_ACCOUNT_ID + '/pages/projects/tw-bot',
+            method: 'PATCH',
+            headers: { 'Authorization': 'Bearer ' + process.env.CLOUDFLARE_API_TOKEN, 'Content-Type': 'application/json' }
+          }, (res) => { let d=''; res.on('data',c=>d+=c); res.on('end',()=>console.log(d)); });
+          req.write(body); req.end();
+          "
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+          EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          DEV_IPS: ${{ secrets.DEV_IPS }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
