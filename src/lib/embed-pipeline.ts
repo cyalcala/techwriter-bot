@@ -1,6 +1,6 @@
 const BATCH_SIZE = 5;
 const MAX_RETRIES = 3;
-const RETRY_DELAYS = [1000, 2000, 4000];
+const RETRY_DELAYS = [500, 1500, 4000];
 
 interface EmbedResponse {
   vectors: number[][];
@@ -11,76 +11,149 @@ export interface EmbedProgress {
   done: number;
   total: number;
   skipped: number;
-  stage: 'idle' | 'embedding' | 'done' | 'error';
+  stage: 'idle' | 'embedding' | 'done' | 'error' | 'fallback';
+}
+
+let localPipeline: any = null;
+let localPipelineLoading = false;
+
+async function getLocalPipeline(): Promise<any> {
+  if (localPipeline) return localPipeline;
+
+  if (localPipelineLoading) {
+    await new Promise(r => setTimeout(r, 100));
+    return getLocalPipeline();
+  }
+
+  localPipelineLoading = true;
+  try {
+    const { pipeline } = await import('@xenova/transformers');
+    localPipeline = await pipeline('feature-extraction', 'Xenova/bge-small-en-v1.5', { quantized: true });
+    return localPipeline;
+  } catch (e) {
+    console.warn('[embed] local fallback failed to load:', e);
+    localPipelineLoading = false;
+    return null;
+  }
+}
+
+async function embedLocal(texts: string[]): Promise<number[][]> {
+  const pipe = await getLocalPipeline();
+  if (!pipe) throw new Error('Local pipeline unavailable');
+
+  const vectors: number[][] = [];
+  for (const text of texts) {
+    const output = await pipe(text, { pooling: 'mean', normalize: true });
+    vectors.push(Array.from(output.data) as number[]);
+  }
+  return vectors;
 }
 
 export async function embedChunks(
   chunks: string[],
   onProgress?: (p: EmbedProgress) => void,
   signal?: AbortSignal,
-): Promise<{ vectors: number[][]; skipped: number }> {
+): Promise<{ vectors: number[][]; skipped: number; degraded: boolean }> {
   const allVectors: number[][] = [];
   let skipped = 0;
+  let degraded = false;
   const total = chunks.length;
+  let serverFailed = false;
 
   for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
     if (signal?.aborted) throw new Error('Aborted');
 
     const batch = chunks.slice(i, i + BATCH_SIZE);
-    let batchResult: EmbedResponse | null = null;
-    let lastError: string | null = null;
 
-    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-      if (signal?.aborted) throw new Error('Aborted');
+    if (!serverFailed) {
+      let batchResult: EmbedResponse | null = null;
+      let lastError: string | null = null;
 
-      try {
-        const res = await fetch('/api/embed', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ texts: batch }),
-          signal,
+      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        if (signal?.aborted) throw new Error('Aborted');
+
+        try {
+          const res = await fetch('/api/embed', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ texts: batch }),
+            signal,
+          });
+
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            if (res.status === 429 || res.status === 503) {
+              serverFailed = true;
+              degraded = true;
+            }
+            throw new Error(errData.message || errData.error || `HTTP ${res.status}`);
+          }
+
+          batchResult = await res.json() as EmbedResponse;
+          break;
+        } catch (e: any) {
+          lastError = e.message || 'Unknown error';
+          if (attempt < MAX_RETRIES - 1) {
+            await new Promise(r => setTimeout(r, RETRY_DELAYS[attempt]));
+          }
+        }
+      }
+
+      if (batchResult) {
+        for (let j = 0; j < batch.length; j++) {
+          const err = batchResult.errors?.[j];
+          const vec = batchResult.vectors?.[j];
+          if (err || !vec || vec.length === 0) {
+            skipped++;
+            allVectors.push([]);
+          } else {
+            allVectors.push(vec);
+          }
+        }
+        onProgress?.({
+          done: Math.min(i + BATCH_SIZE, total),
+          total,
+          skipped,
+          stage: 'embedding',
         });
+        continue;
+      }
 
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.message || errData.error || `HTTP ${res.status}`);
-        }
-
-        batchResult = await res.json() as EmbedResponse;
-        break;
-      } catch (e: any) {
-        lastError = e.message || 'Unknown error';
-        if (attempt < MAX_RETRIES - 1) {
-          await new Promise(r => setTimeout(r, RETRY_DELAYS[attempt]));
-        }
+      if (serverFailed || lastError?.includes('fetch')) {
+        degraded = true;
       }
     }
 
-    if (!batchResult) {
-      skipped += batch.length;
-      batch.forEach(() => allVectors.push([]));
-    } else {
-      for (let j = 0; j < batch.length; j++) {
-        const err = batchResult.errors?.[j];
-        const vec = batchResult.vectors?.[j];
-        if (err || !vec || vec.length === 0) {
+    try {
+      const localVecs = await embedLocal(batch);
+      for (const v of localVecs) {
+        if (v && v.length > 0) {
+          allVectors.push(v);
+        } else {
           skipped++;
           allVectors.push([]);
-        } else {
-          allVectors.push(vec);
         }
       }
+      onProgress?.({
+        done: Math.min(i + BATCH_SIZE, total),
+        total,
+        skipped,
+        stage: degraded ? 'fallback' : 'embedding',
+      });
+    } catch {
+      skipped += batch.length;
+      for (let j = 0; j < batch.length; j++) allVectors.push([]);
+      degraded = true;
+      onProgress?.({
+        done: Math.min(i + BATCH_SIZE, total),
+        total,
+        skipped,
+        stage: 'fallback',
+      });
     }
-
-    onProgress?.({
-      done: Math.min(i + BATCH_SIZE, total),
-      total,
-      skipped,
-      stage: 'embedding',
-    });
   }
 
-  return { vectors: allVectors, skipped };
+  return { vectors: allVectors, skipped, degraded };
 }
 
 export function chunkText(text: string, chunkSize: number = 500, overlap: number = 100, maxChunks: number = 100): string[] {

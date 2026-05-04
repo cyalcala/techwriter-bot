@@ -96,26 +96,48 @@ export function needsContextEnrichment(query: string): boolean {
   return classification === 'inquiry' || classification === 'ambiguous';
 }
 
+const NOISE_PREFIXES = [
+  /^(write|draw|create|make|generate|design|build|craft|compose)\s+(a|an|the|me)\s+/i,
+  /^(write|draw|create|make|generate|design|build|craft|compose)\s+/i,
+  /^(can you|could you|would you|please|pls)\s+/i,
+  /^(i want|i need|show me|give me|tell me)\s+(a|an|the|me|to)\s+/i,
+  /^(i want|i need|show me|give me|tell me)\s+/i,
+  /^(what is|what are|what's|who is|how to|how do)\s+(a|an|the)\s+/i,
+  /^about\s+/i,
+  /^regarding\s+/i,
+];
+
+export function extractKeyTerms(query: string): string {
+  let cleaned = query.trim();
+  for (const pattern of NOISE_PREFIXES) {
+    cleaned = cleaned.replace(pattern, '');
+  }
+  const lower = cleaned.toLowerCase();
+  const noiseWords = new Set(['a', 'an', 'the', 'of', 'in', 'on', 'at', 'to', 'for', 'is', 'am', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'can', 'shall', 'about', 'with', 'from', 'by', 'as', 'or', 'and', 'not', 'no', 'but', 'if', 'than', 'then', 'also', 'just', 'only']);
+  return lower.split(/\s+/).filter(w => w.length > 1 && !noiseWords.has(w)).join(' ').trim() || cleaned;
+}
+
 export function getRelevanceScore(resultContent: string, query: string): number {
-  const queryTerms = query.toLowerCase().split(/\s+/).filter(t => t.length > 1);
+  const rawQueryTerms = query.toLowerCase().split(/\s+/).filter(t => t.length > 1);
   const contentLower = resultContent.toLowerCase();
 
   let score = 0;
   let matchedTerms = 0;
+  let totalWeight = 0;
 
-  for (const term of queryTerms) {
+  for (const term of rawQueryTerms) {
+    const weight = term.length >= 5 ? 2 : 1;
+    totalWeight += weight;
     if (contentLower.includes(term)) {
-      matchedTerms++;
+      matchedTerms += weight;
       const regex = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
       const occurrences = (contentLower.match(regex) || []).length;
-      score += Math.min(occurrences, 3);
+      score += Math.min(occurrences, 3) * weight;
     }
   }
 
-  const coverage = queryTerms.length > 0 ? matchedTerms / queryTerms.length : 0;
-  score *= 1 + coverage;
-
-  score *= (1 + Math.log(contentLower.length + 1) * 0.1);
+  const coverage = totalWeight > 0 ? matchedTerms / totalWeight : 0;
+  score *= (1 + coverage * 0.5);
 
   return score;
 }
@@ -123,8 +145,14 @@ export function getRelevanceScore(resultContent: string, query: string): number 
 export function filterRelevantResults<T extends { content: string }>(
   results: T[],
   query: string,
-  minScore: number = 0.5,
+  minScore: number = 1.0,
 ): T[] {
+  if (results.length <= 3) {
+    return results
+      .map(r => ({ result: r, score: getRelevanceScore(r.content, query) }))
+      .sort((a, b) => b.score - a.score)
+      .map(({ result }) => result);
+  }
   return results
     .map(r => ({ result: r, score: getRelevanceScore(r.content, query) }))
     .filter(({ score }) => score >= minScore)

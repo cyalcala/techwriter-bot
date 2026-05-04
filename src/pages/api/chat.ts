@@ -4,13 +4,35 @@ import { routeChat, getCircuitDiagnostics, type TierConfig, type ResponseMetadat
 import { searchReddit, type SearchSource } from '../../lib/search-reddit';
 import { searchTavily, searchExa, checkEnhancedBudget, incrementEnhancedBudget, getEnhancedCredits, useEnhancedCredit } from '../../lib/search-enhanced';
 import { updateReputation, getDefaultState, deserializeReputation, serializeReputation, getTierProviderPool, getDailyLimits, type ReputationState } from '../../lib/reputation';
-import { classifyQuery, filterRelevantResults, formatConversationalResponse } from '../../lib/relevance';
+import { classifyQuery, filterRelevantResults, formatConversationalResponse, extractKeyTerms } from '../../lib/relevance';
 
 interface RateLimitEntry { count: number; resetTime: number; }
 const rateLimits = new Map<string, RateLimitEntry>();
 const RATE_LIMIT_WINDOW = 60 * 1000;
 const MAX_REQUESTS_PER_WINDOW = 20;
 const MAX_BODY_SIZE = 64 * 1024;
+
+function bindSession(sessionId: string, ip: string, ua: string): string {
+  const data = `${sessionId}|${ip}|${ua.slice(0, 100)}`;
+  let hash = 0;
+  for (let i = 0; i < data.length; i++) {
+    const ch = data.charCodeAt(i);
+    hash = ((hash << 5) - hash) + ch;
+    hash |= 0;
+  }
+  return `s_${Math.abs(hash).toString(36)}`;
+}
+
+function validateMessages(messages: any[]): boolean {
+  if (!Array.isArray(messages)) return false;
+  for (const m of messages) {
+    if (typeof m !== 'object' || m === null) return false;
+    if (!['user', 'assistant', 'system'].includes(m.role)) return false;
+    if (typeof m.content !== 'string') return false;
+    if (m.role === 'assistant' && m.content.length > 8000) return false;
+  }
+  return true;
+}
 
 interface SearchResult {
   contextParts: string[];
@@ -107,8 +129,8 @@ function isDatacenterASN(asn: string): boolean {
 
 const searchCache = new Map<string, { result: string; ts: number }>();
 const SEARCH_CACHE_MS = 900_000;
-const DDG_TIMEOUT_MS = 4000;
-const WIKI_TIMEOUT_MS = 5000;
+const DDG_TIMEOUT_MS = 3000;
+const WIKI_TIMEOUT_MS = 4000;
 
 function searchCacheKey(query: string): string {
   return query.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim().slice(0, 80);
@@ -197,6 +219,8 @@ async function searchRouter(
   let enhancedResults: (SearchSource | null)[] = [];
   let basicFetchPromise: Promise<(SearchSource | null)[]> | null = null;
 
+  const searchQuery = extractKeyTerms(query) || query;
+
   if (liveSearch) {
     const devIPs = (env.DEV_IPS || '').split(',').map((s: string) => s.trim()).filter(Boolean);
     const isDev = devIPs.includes(clientIP);
@@ -223,8 +247,8 @@ async function searchRouter(
               searchTier = 'enhanced';
 
               enhancedResults = await Promise.all([
-                tavilyKey ? searchTavily(query, tavilyKey) : null,
-                exaKey ? searchExa(query, exaKey) : null,
+                tavilyKey ? searchTavily(searchQuery, tavilyKey) : null,
+                exaKey ? searchExa(searchQuery, exaKey) : null,
               ]);
 
               if (tavilyKey) await incrementEnhancedBudget(env.SESSION, 'tavily', monthKey);
@@ -241,22 +265,22 @@ async function searchRouter(
         searchTier = 'enhanced';
         enhancedRemaining = -1;
         enhancedResults = await Promise.all([
-          env.TAVILY_API_KEY ? searchTavily(query, env.TAVILY_API_KEY || '') : null,
-          env.EXA_API_KEY ? searchExa(query, env.EXA_API_KEY || '') : null,
+          env.TAVILY_API_KEY ? searchTavily(searchQuery, env.TAVILY_API_KEY || '') : null,
+          env.EXA_API_KEY ? searchExa(searchQuery, env.EXA_API_KEY || '') : null,
         ]);
       }
     }
 
     basicFetchPromise = Promise.all([
-      searchDuckDuckGo(query),
-      searchWikipedia(query),
-      searchReddit(query),
+      searchDuckDuckGo(searchQuery),
+      searchWikipedia(searchQuery),
+      searchReddit(searchQuery),
     ]);
   } else {
     basicFetchPromise = Promise.all([
-      searchDuckDuckGo(query),
-      searchWikipedia(query),
-      searchReddit(query),
+      searchDuckDuckGo(searchQuery),
+      searchWikipedia(searchQuery),
+      searchReddit(searchQuery),
     ]);
   }
 
@@ -276,9 +300,18 @@ async function searchRouter(
   addResults(enhancedResults);
   addResults(basicResults);
 
+  const scored = allResults.map(r => {
+    if (r.provider === 'ddg' || r.provider === 'wikipedia') {
+      return { result: r, score: 999 };
+    }
+    return { result: r, score: 0 };
+  });
+
+  const sorted = scored.sort((a, b) => b.score - a.score).map(s => s.result);
+
   const relevant = searchTier === 'enhanced'
-    ? allResults
-    : filterRelevantResults(allResults, query, 0.3);
+    ? filterRelevantResults(sorted, searchQuery, 1.0)
+    : sorted;
 
   for (const r of relevant) {
     sourceIdx++;
@@ -321,13 +354,14 @@ function buildSystemPrompt(
   const classification = classifyQuery(query);
   const conversationalBlock = formatConversationalResponse(classification);
 
-  const artifactLayer = `When generating code blocks, HTML, SVG, Mermaid diagrams, or React components, wrap them in <artifact type="code|html|svg|mermaid|react" placement="inline" title="Descriptive Name">...</artifact> tags. Use type="code" with language attribute for code blocks.`;
+  const artifactLayer = `When generating code blocks, HTML, SVG, Mermaid diagrams, or React components, wrap them in <artifact type="code|html|svg|mermaid|react" placement="inline" title="Descriptive Name">...</artifact> tags. Use type="code" with language attribute for code blocks. For Mermaid diagrams: use plain text labels only — NO HTML tags, NO <br/>, NO formatting markup inside node labels. Use newlines or separate nodes instead. Example: A[Planning] --> B[Research] (NOT A[Planning<br/>Define] --> B).`;
 
   if (searchResult.searchTier === 'none') {
+    const artifactLine = `When generating code blocks, HTML, SVG, Mermaid diagrams, or React components, wrap them in <artifact type="code|html|svg|mermaid|react" placement="inline" title="Descriptive Name">...</artifact> tags. Use type="code" with language attribute for code blocks. For Mermaid diagrams: use plain text labels only — NO HTML tags, NO <br/>, NO formatting markup inside node labels.`;
     if (conversationalBlock) {
-      return `${dateLayer}\n\n${conversationalBlock}\n\n${artifactLayer}`;
+      return `${dateLayer}\n\n${conversationalBlock}\n\n${artifactLine}`;
     }
-    return `${dateLayer}\n\nYou are a helpful technical writing assistant. Be conversational when appropriate. If the user's query is ambiguous, you may offer to help with writing, coding, or research.\n\n${artifactLayer}`;
+    return `${dateLayer}\n\nYou are a helpful technical writing assistant. Be conversational when appropriate. If the user's query is ambiguous, you may offer to help with writing, coding, or research.\n\n${artifactLine}`;
   }
 
   const isEnhanced = searchResult.searchTier === 'enhanced';
@@ -408,6 +442,10 @@ export const POST: APIRoute = async (context) => {
   if (!isDev) {
     repState = await getOrCreateReputation(env.SESSION, clientIP, request.headers);
 
+    if (repState.tier === 'blocked') {
+      return new Response(JSON.stringify({ error: 'access_denied', message: 'Access temporarily suspended due to suspicious activity. Try again later.' }), { status: 403 });
+    }
+
     const tier = repState.tier;
     const limits = getDailyLimits(tier);
 
@@ -434,6 +472,15 @@ export const POST: APIRoute = async (context) => {
       return new Response(JSON.stringify({ error: 'invalid_request' }), { status: 400 });
     }
 
+    if (!validateMessages(body.messages)) {
+      return new Response(JSON.stringify({ error: 'invalid_messages', message: 'Messages must have valid role and content fields.' }), { status: 400 });
+    }
+
+    const rawSessionId = String(body.sessionId || '');
+
+    const ua = request.headers.get('user-agent') || '';
+    const sessionId = rawSessionId ? bindSession(rawSessionId, clientIP, ua) : '';
+
     if (env.TURNSTILE_SECRET_KEY) {
       const turnstileOk = await verifyTurnstileToken(body.turnstileToken, env.TURNSTILE_SECRET_KEY);
       if (!turnstileOk) {
@@ -444,7 +491,6 @@ export const POST: APIRoute = async (context) => {
     }
 
     let messages = sanitizeInput(body.messages);
-    const sessionId = String(body.sessionId || '');
     const liveSearch = !!body.liveSearch;
 
     const lastUserMsg = [...messages].reverse().find((m: any) => m.role === 'user');

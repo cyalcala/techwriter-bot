@@ -4,8 +4,31 @@ import { env as cfGlobalEnv } from 'cloudflare:workers';
 const MAX_TEXTS_PER_REQUEST = 10;
 const MAX_TEXT_LENGTH = 2000;
 const RATE_LIMIT_WINDOW = 60_000;
-const MAX_REQUESTS_PER_WINDOW = 100;
-const EMBED_TIMEOUT_MS = 15_000;
+const MAX_REQUESTS_PER_WINDOW = 50;
+const MAX_DAILY_EMBED = 500;
+const EMBED_TIMEOUT_MS = 12_000;
+
+const dailyEmbedCounts = new Map<string, number>();
+let dailyEmbedReset = Date.now() + 86400000;
+
+if (typeof setInterval !== 'undefined') {
+  setInterval(() => {
+    const now = Date.now();
+    if (now > dailyEmbedReset) { dailyEmbedCounts.clear(); dailyEmbedReset = now + 86400000; }
+  }, 300_000);
+}
+
+async function verifyTurnstileToken(token: string, secret: string): Promise<boolean> {
+  if (!token || !secret) return true;
+  try {
+    const form = new FormData();
+    form.append('secret', secret);
+    form.append('response', token);
+    const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', { method: 'POST', body: form });
+    const data = await res.json() as any;
+    return !!data.success;
+  } catch { return false; }
+}
 
 const ALLOWED_ORIGINS = [
   'https://tw-bot.pages.dev',
@@ -50,6 +73,26 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   if (!checkCSRF(request)) {
     return new Response(JSON.stringify({ error: 'forbidden' }), { status: 403 });
+  }
+
+  const dailyCount = (dailyEmbedCounts.get(ip) || 0) + 1;
+  dailyEmbedCounts.set(ip, dailyCount);
+  if (dailyCount > MAX_DAILY_EMBED) {
+    return new Response(JSON.stringify({ error: 'daily_embed_limit' }), { status: 429 });
+  }
+
+  const devIPs = (env.DEV_IPS || '').split(',').map((s: string) => s.trim()).filter(Boolean);
+  const isDev = devIPs.includes(ip);
+  if (!isDev && env.TURNSTILE_SECRET_KEY) {
+    try {
+      const body = await request.clone().json().catch(() => null);
+      if (body?.turnstileToken) {
+        const ok = await verifyTurnstileToken(body.turnstileToken, env.TURNSTILE_SECRET_KEY);
+        if (!ok) {
+          return new Response(JSON.stringify({ error: 'captcha_failed' }), { status: 403 });
+        }
+      }
+    } catch {}
   }
 
   const now = Date.now();

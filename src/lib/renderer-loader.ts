@@ -75,20 +75,50 @@ export function renderSvgArtifact(code: string): string {
 }
 
 export function renderMermaidArtifact(code: string): string {
+  const sanitized = sanitizeMermaid(code);
   const id = `mermaid-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
   setTimeout(async () => {
     try {
       const el = document.getElementById(id);
       if (el && window.mermaid) {
-        const { svg } = await window.mermaid.render(`${id}-svg`, code);
+        window.mermaid.initialize({ startOnLoad: false, securityLevel: 'loose' });
+        const { svg } = await window.mermaid.render(`${id}-svg`, sanitized);
         el.innerHTML = svg;
       }
     } catch (e) {
       const el = document.getElementById(id);
-      if (el) el.innerHTML = `<pre class="text-red-500">Mermaid render error: ${escapeHtml(String(e))}</pre>`;
+      if (el) {
+        const errMsg = String(e).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        el.innerHTML = `<div class="text-red-500 text-xs p-3 bg-red-50 rounded-lg border border-red-200">
+          <strong>Mermaid render error:</strong><br/>
+          <code class="text-[11px] whitespace-pre-wrap break-all">${errMsg}</code>
+          <button class="mt-2 px-2 py-1 text-[10px] bg-red-100 hover:bg-red-200 rounded border border-red-300" onclick="this.nextElementSibling.classList.toggle('hidden')">Show raw code</button>
+          <pre class="hidden mt-2 p-2 bg-gray-100 rounded text-[11px] overflow-x-auto whitespace-pre-wrap">${escapeHtml(code)}</pre>
+        </div>`;
+      }
     }
-  }, 100);
-  return `<div id="${id}" class="mermaid-placeholder p-4 text-center text-[#8c8576]">Rendering diagram...</div>`;
+  }, 150);
+  return `<div id="${id}" class="mermaid-placeholder p-4 text-center text-[#8c8576] text-sm">Rendering diagram...</div>`;
+}
+
+function sanitizeMermaid(code: string): string {
+  return code
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<p>/gi, '')
+    .replace(/<\/p>/gi, '\n')
+    .replace(/<b>/gi, '')
+    .replace(/<\/b>/gi, '')
+    .replace(/<i>/gi, '')
+    .replace(/<\/i>/gi, '')
+    .replace(/<strong>/gi, '')
+    .replace(/<\/strong>/gi, '')
+    .replace(/<em>/gi, '')
+    .replace(/<\/em>/gi, '')
+    .replace(/<span[^>]*>/gi, '')
+    .replace(/<\/span>/gi, '')
+    .replace(/<div[^>]*>/gi, '')
+    .replace(/<\/div>/gi, '\n')
+    .replace(/&nbsp;/gi, ' ');
 }
 
 export function renderReactArtifact(code: string): string {

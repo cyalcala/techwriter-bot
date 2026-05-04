@@ -1,12 +1,13 @@
 import { ZEN_REGISTRY, classifyQuery, getProvidersForRole, getProvider, type Provider, type ProviderRole } from './providers';
 
 const CIRCUIT_TRANSIENT_WINDOW_MS = 120_000;
-const CIRCUIT_TRANSIENT_FAILURES = 6;
-const CIRCUIT_TRANSIENT_EJECT_MS = 90_000;
-const CIRCUIT_TRANSIENT_PROBE_MS = 45_000;
+const CIRCUIT_TRANSIENT_FAILURES = 8;
+const CIRCUIT_TRANSIENT_EJECT_MS = 60_000;
+const CIRCUIT_TRANSIENT_PROBE_MS = 30_000;
 const CIRCUIT_PERMANENT_EJECT_MS = 600_000;
-const MAX_TRANSIENT_ATTEMPTS = 6;
-const GLOBAL_TIMEOUT_MS = 20_000;
+const MAX_TRANSIENT_ATTEMPTS = 8;
+const GLOBAL_TIMEOUT_MS = 25_000;
+const HEDGE_DELAY_MS = 2500;
 
 const RETRYABLE_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504]);
 const PERMANENT_STATUSES = new Set([401]);
@@ -124,7 +125,7 @@ function recordPermanentFailure(id: string) {
   c.permanent = true;
 }
 
-function getSession(sessionId: string, maxTurns: number = 2): SessionState {
+function getSession(sessionId: string, maxTurns: number = 3): SessionState {
   if (!sessions.has(sessionId)) {
     sessions.set(sessionId, { lockedProviderId: null, turnCount: 0, maxTurns, createdAt: Date.now() });
   }
@@ -143,6 +144,25 @@ function getApiKey(provider: Provider, env: any): string | undefined {
 function filterByTier(providers: Provider[], tierConfig?: TierConfig): Provider[] {
   if (!tierConfig || tierConfig.allowedProviders.length === 0) return providers;
   return providers.filter(p => tierConfig.allowedProviders.includes(p.id));
+}
+
+function makeErrorResponse(message: string, status: number, retryAfter: number, metadata?: ResponseMetadata): Response {
+  return new Response(JSON.stringify({
+    error: status >= 500 ? 'AI_PROVIDER_FATAL_ERROR' : 'provider_unavailable',
+    message,
+    retryAfter,
+  }), {
+    status,
+    headers: {
+      'Content-Type': 'application/json',
+      'Retry-After': String(retryAfter),
+      ...(metadata ? {
+        'x-search-tier': metadata.searchTier,
+        'x-search-remaining': metadata.searchRemaining,
+        'x-tier': metadata.tier,
+      } : {}),
+    },
+  });
 }
 
 export async function routeChat(
@@ -174,64 +194,25 @@ export async function routeChat(
   const allowedIds = tierConfig?.allowedProviders;
   const isProviderAllowed = (id: string) => !allowedIds || allowedIds.length === 0 || allowedIds.includes(id);
 
-  async function doChain(): Promise<Response> {
-    if (session?.lockedProviderId) {
-      const lockedProvider = getProvider(session.lockedProviderId);
-      if (lockedProvider && !isCircuitOpen(lockedProvider.id) && isProviderAllowed(lockedProvider.id)) {
-        const priority = [lockedProvider, ...candidates.filter(p => p.id !== lockedProvider.id)];
-        return await attemptFallback(priority, messages, env, intent, session, sources, metadata, maxTokens);
-      }
-      session.lockedProviderId = null;
-      session.turnCount = 0;
-    }
-    return await attemptFallback(candidates, messages, env, intent, session, sources, metadata, maxTokens);
+  const openCandidates = candidates.filter(p => !isCircuitOpen(p.id));
+
+  if (openCandidates.length === 0) {
+    return makeErrorResponse(
+      'All AI providers are currently overloaded. Please wait a moment and try again.',
+      503, 15, metadata,
+    );
   }
 
-  return await Promise.race([
-    doChain(),
-    new Promise<Response>(resolve =>
-      setTimeout(() => resolve(new Response(JSON.stringify({
-        message: "I'm taking longer than expected. Please try again in a moment.",
-        retryAfter: 5,
-      }), {
-        status: 503,
-        headers: {
-          'Content-Type': 'application/json',
-          'Retry-After': '5',
-          ...(metadata ? {
-            'x-search-tier': metadata.searchTier,
-            'x-search-remaining': metadata.searchRemaining,
-            'x-tier': metadata.tier,
-          } : {}),
-        },
-      })), GLOBAL_TIMEOUT_MS)
-    ),
-  ]);
-}
+  const primary = openCandidates[0];
+  const hedges = openCandidates.slice(1, 3);
 
-async function attemptFallback(
-  providers: Provider[],
-  messages: any[],
-  env: any,
-  intent: string,
-  session: SessionState | null,
-  sources?: { title: string; url: string; provider?: string }[],
-  metadata?: ResponseMetadata,
-  maxTokens: number = 4096,
-): Promise<Response> {
-  let transientAttempts = 0;
-  let permanentSkips = 0;
-
-  for (const provider of providers) {
-    if (transientAttempts >= MAX_TRANSIENT_ATTEMPTS) break;
-
-    if (isCircuitOpen(provider.id)) continue;
+  async function trySingleProvider(provider: Provider): Promise<Response | null> {
+    if (isCircuitOpen(provider.id)) return null;
 
     const apiKey = getApiKey(provider, env);
     if (!apiKey && provider.name !== 'cloudflare') {
       recordPermanentFailure(provider.id);
-      permanentSkips++;
-      continue;
+      return null;
     }
 
     const start = Date.now();
@@ -293,20 +274,13 @@ async function attemptFallback(
 
       if (PERMANENT_STATUSES.has(status)) {
         recordPermanentFailure(provider.id);
-        permanentSkips++;
-        continue;
+      } else if (RETRYABLE_STATUSES.has(status)) {
+        recordTransientFailure(provider.id, status === 429);
+      } else {
+        recordTransientFailure(provider.id, false);
       }
 
-      if (RETRYABLE_STATUSES.has(status)) {
-        const isRateLimit = status === 429;
-        recordTransientFailure(provider.id, isRateLimit);
-        transientAttempts++;
-        continue;
-      }
-
-      recordTransientFailure(provider.id, false);
-      transientAttempts++;
-
+      return null;
     } catch (e: any) {
       const isTimeout = e.name === 'TimeoutError' || e.message?.includes('timeout') || e.code === 'ETIMEDOUT';
       console.log(JSON.stringify({
@@ -316,7 +290,6 @@ async function attemptFallback(
         message: e.message?.slice(0, 200),
       }));
       recordTransientFailure(provider.id, false);
-      transientAttempts++;
 
       if (isTimeout) {
         const c = circuits.get(provider.id);
@@ -324,37 +297,71 @@ async function attemptFallback(
           c.ejectedUntil = Date.now() + CIRCUIT_TRANSIENT_EJECT_MS;
         }
       }
+
+      return null;
     }
   }
 
-  console.log(JSON.stringify({
-    event: 'provider_exhaustion',
-    transientAttempts,
-    permanentSkips,
-    circuitStates: Object.fromEntries(
-      [...circuits.entries()].map(([k, v]) => [k, {
-        ejected: v.ejectedUntil > Date.now(),
-        permanent: v.permanent,
-      }])
-    ),
-  }));
+  async function doChain(): Promise<Response> {
+    if (session?.lockedProviderId && isProviderAllowed(session.lockedProviderId)) {
+      const lockedProvider = getProvider(session.lockedProviderId);
+      if (lockedProvider && !isCircuitOpen(lockedProvider.id)) {
+        const lockedResult = await trySingleProvider(lockedProvider);
+        if (lockedResult) return lockedResult;
+      }
+      session.lockedProviderId = null;
+      session.turnCount = 0;
+    }
 
-  return new Response(JSON.stringify({
-    error: 'AI_PROVIDER_FATAL_ERROR',
-    message: 'All capable providers are currently unavailable. Please try again in a moment.',
-    retryAfter: 15,
-  }), {
-    status: 500,
-    headers: {
-      'Content-Type': 'application/json',
-      'Retry-After': '15',
-      ...(metadata ? {
-        'x-search-tier': metadata.searchTier,
-        'x-search-remaining': metadata.searchRemaining,
-        'x-tier': metadata.tier,
-      } : {}),
-    },
-  });
+    if (hedges.length === 0) {
+      const result = await trySingleProvider(primary);
+      if (result) return result;
+
+      for (const p of openCandidates.slice(1)) {
+        const result = await trySingleProvider(p);
+        if (result) return result;
+      }
+    } else {
+      let hedgeResolved = false;
+
+      const primaryPromise = trySingleProvider(primary).then(result => {
+        if (result && !hedgeResolved) { hedgeResolved = true; return result; }
+        return null;
+      });
+
+      const hedgePromise = new Promise<Response | null>(resolve => {
+        setTimeout(async () => {
+          if (hedgeResolved) { resolve(null); return; }
+          const results = await Promise.all(hedges.map(p => trySingleProvider(p)));
+          const first = results.find(r => r !== null);
+          if (first && !hedgeResolved) { hedgeResolved = true; resolve(first); } else { resolve(null); }
+        }, HEDGE_DELAY_MS);
+      });
+
+      const winner = await Promise.race([primaryPromise, hedgePromise]);
+      if (winner) return winner;
+
+      for (const p of openCandidates) {
+        const r = await trySingleProvider(p);
+        if (r) return r;
+      }
+    }
+
+    return makeErrorResponse(
+      'All AI providers are currently unavailable. Please try again in a moment.',
+      503, 10, metadata,
+    );
+  }
+
+  return await Promise.race([
+    doChain(),
+    new Promise<Response>(resolve =>
+      setTimeout(() => resolve(makeErrorResponse(
+        "I'm taking longer than expected. Please try again in a moment.",
+        503, 5, metadata,
+      )), GLOBAL_TIMEOUT_MS)
+    ),
+  ]);
 }
 
 async function callProvider(provider: Provider, messages: any[], env: any, maxTokens: number = 4096): Promise<Response> {

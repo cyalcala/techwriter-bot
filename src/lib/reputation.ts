@@ -1,12 +1,13 @@
 export interface ReputationState {
   score: number;
-  tier: 'premium' | 'standard' | 'curious' | 'throttled' | 'restricted';
+  tier: 'premium' | 'standard' | 'curious' | 'throttled' | 'restricted' | 'blocked';
   lastSeen: number;
   history: Array<{ action: string; delta: number; ts: number }>;
   burstWindow: number[];
   queries: Array<{ query: string; ts: number }>;
   sessionIds: string[];
   turnstilePassed: boolean;
+  turnstileFailures: Array<{ ts: number }>;
 }
 
 const BURST_WINDOW_MS = 10_000;
@@ -15,6 +16,10 @@ const BURST_THRESHOLD = 5;
 const DECAY_INTERVAL_MS = 30 * 60_000;
 const DECAY_AMOUNT = 1;
 const RESET_IDLE_MS = 2 * 60 * 60_000;
+
+const TURNSTILE_FAIL_WINDOW_MS = 10 * 60_000;
+const TURNSTILE_FAIL_THRESHOLD = 3;
+const BLOCK_DURATION_MS = 24 * 60 * 60_000;
 
 function computeTier(score: number): ReputationState['tier'] {
   if (score <= 3) return 'premium';
@@ -35,6 +40,7 @@ export function getDefaultState(): ReputationState {
     queries: [],
     sessionIds: [],
     turnstilePassed: false,
+    turnstileFailures: [],
   };
 }
 
@@ -95,8 +101,16 @@ export function updateReputation(
       break;
 
     case 'turnstile_fail':
-      state.score += 5;
-      pushHistory(state, 'turnstile_fail', 5);
+      state.turnstileFailures.push({ ts: Date.now() });
+      state.turnstileFailures = state.turnstileFailures.filter(f => Date.now() - f.ts < TURNSTILE_FAIL_WINDOW_MS);
+      if (state.turnstileFailures.length >= TURNSTILE_FAIL_THRESHOLD) {
+        state.score += 20;
+        state.tier = 'blocked';
+        pushHistory(state, 'auto_blocked', 20);
+      } else {
+        state.score += 5;
+        pushHistory(state, 'turnstile_fail', 5);
+      }
       break;
 
     case 'session_long': {
@@ -180,6 +194,7 @@ export function deserializeReputation(raw: string): ReputationState {
       queries: parsed.queries ?? [],
       sessionIds: parsed.sessionIds ?? [],
       turnstilePassed: parsed.turnstilePassed ?? false,
+      turnstileFailures: parsed.turnstileFailures ?? [],
     };
   } catch {
     return getDefaultState();
@@ -191,13 +206,15 @@ export function getTierProviderPool(tier: ReputationState['tier']): { pool: stri
     case 'premium':
       return { pool: ['groq-fast', 'gemini-flash'] };
     case 'standard':
-      return { pool: ['groq-fast', 'cerebras-llama'] };
+      return { pool: ['groq-fast', 'cerebras-llama', 'gemini-flash'] };
     case 'curious':
-      return { pool: ['cerebras-llama', 'nvidia-fast'] };
+      return { pool: ['cerebras-llama', 'nvidia-fast', 'groq-fast'] };
     case 'throttled':
-      return { pool: ['cloudflare-llama'], maxTokens: 1024 };
+      return { pool: ['cloudflare-llama', 'cerebras-llama', 'nvidia-fast'], maxTokens: 1024 };
     case 'restricted':
-      return { pool: ['cloudflare-llama'], maxTokens: 1024 };
+      return { pool: ['cloudflare-llama', 'cerebras-llama'], maxTokens: 1024 };
+    case 'blocked':
+      return { pool: ['cloudflare-llama'], maxTokens: 512 };
   }
 }
 
@@ -208,5 +225,6 @@ export function getDailyLimits(tier: ReputationState['tier']): { chatPerDay: num
     case 'curious': return { chatPerDay: 100, enhancedPerDay: 3 };
     case 'throttled': return { chatPerDay: 50, enhancedPerDay: 0 };
     case 'restricted': return { chatPerDay: 10, enhancedPerDay: 0 };
+    case 'blocked': return { chatPerDay: 0, enhancedPerDay: 0 };
   }
 }

@@ -39,6 +39,7 @@
   let copiedMessageIdx = $state<number | null>(null);
   let artifacts = $state<{ messageIdx: number; artifact: Artifact }[]>([]);
   let searchTier = $state<'basic' | 'enhanced' | 'none'>('basic');
+  let ragDegraded = $state(false);
 
   function generateSessionId() {
     const stored = getStoredSessionId();
@@ -94,6 +95,7 @@
     uploadProgress = null;
     artifacts = [];
     isLiveMode = false;
+    ragDegraded = false;
     if (fileInput) fileInput.value = '';
   }
 
@@ -104,6 +106,7 @@
     uploadedFileName = '';
     uploadProgress = null;
     artifacts = [];
+    ragDegraded = false;
     if (fileInput) fileInput.value = '';
   }
 
@@ -111,6 +114,7 @@
     uploadStatus = 'idle';
     uploadedFileName = '';
     uploadProgress = null;
+    ragDegraded = false;
     if (fileInput) fileInput.value = '';
   }
 
@@ -136,7 +140,8 @@
       const chunks = chunkText(text, 500, 100, 100);
       uploadProgress = { done: 0, total: chunks.length, skipped: 0, stage: 'embedding' };
 
-      const { vectors, skipped } = await embedChunks(chunks, (p) => { uploadProgress = p; });
+      const { vectors, skipped, degraded } = await embedChunks(chunks, (p) => { uploadProgress = p; });
+      ragDegraded = degraded;
 
       const validChunks: { text: string; vector: number[] }[] = [];
       for (let i = 0; i < chunks.length; i++) {
@@ -152,9 +157,10 @@
 
       uploadStatus = 'done';
       uploadProgress = { done: chunks.length, total: chunks.length, skipped, stage: 'done' };
+      let modeNote = degraded ? ' (offline fallback)' : '';
       messages = [...messages, {
         role: 'assistant',
-        content: `I've processed **${file.name}** — ${validChunks.length} chunks indexed${skipped > 0 ? ` (${skipped} skipped)` : ''}. You can now ask questions about it.`
+        content: `I've processed **${file.name}** — ${validChunks.length} chunks indexed${skipped > 0 ? ` (${skipped} skipped)` : ''}${modeNote}. You can now ask questions about it.`
       }];
     } catch (err: any) {
       console.error('[Upload]', err);
@@ -606,6 +612,9 @@
               <path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
             </svg>
             <span class="text-xs font-medium truncate max-w-[120px] md:max-w-[200px]">{uploadedFileName || 'Processing...'}</span>
+            {#if ragDegraded}
+              <span class="text-[9px] font-bold text-amber-600 bg-amber-50 px-1 py-0.5 rounded shrink-0" title="Running on local fallback. Slower, but functional.">&#9889; Local</span>
+            {/if}
             {#if uploadProgress && uploadStatus === 'uploading'}
               <span class="text-[10px] font-bold shrink-0">{uploadProgress.done}/{uploadProgress.total}{uploadProgress.skipped > 0 ? ` (${uploadProgress.skipped} skip)` : ''}</span>
             {/if}
@@ -637,7 +646,7 @@
             on:keydown={handleKeydown}
             disabled={isLoading}
             class="w-full bg-white/80 border border-[#d6d0c4] rounded-xl md:rounded-2xl p-2.5 md:p-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#8c8576]/20 text-[#1a1a1a] placeholder:text-[#a39e91] text-sm md:text-lg"
-            placeholder={uploadStatus === 'done' ? 'Ask about your document...' : 'Ask anything...'}
+            placeholder={uploadStatus === 'done' ? (ragDegraded ? 'Ask about your document (offline mode)...' : 'Ask about your document...') : 'Ask anything...'}
           />
         </div>
 
