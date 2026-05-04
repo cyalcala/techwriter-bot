@@ -12,7 +12,7 @@ export interface Artifact {
 
 type ParserState = 'normal' | 'in_opening_tag' | 'in_artifact_body' | 'in_closing_tag';
 
-const ARTIFACT_OPEN_RE = /<\w*rtifact\s+type="(\w+)"\s+placement="(\w+)"\s+title="([^"]*)"\s*>/i;
+const ARTIFACT_OPEN_RE = /<\w*rtifact\s+type="(\w+)"(?:\s+placement="(\w+)")?(?:\s+title="([^"]*)")?(?:\s+language="([^"]*)")?\s*\/?>/i;
 const ARTIFACT_CLOSE_RE = /<\/\w*rtifact\s*>/i;
 
 export class ArtifactStreamParser {
@@ -48,10 +48,12 @@ export class ArtifactStreamParser {
         } else if (char === '>' && this.tagBuf.includes('<artifact')) {
           const match = this.tagBuf.match(ARTIFACT_OPEN_RE);
           if (match) {
+            const artifactType = match[1] as ArtifactType;
             this.currentArtifact = {
-              type: match[1] as ArtifactType,
-              placement: match[2] as ArtifactPlacement,
-              title: match[3] || 'Artifact',
+              type: artifactType,
+              placement: (match[2] || 'inline') as ArtifactPlacement,
+              title: match[3] || (artifactType === 'code' ? 'Code' : `${artifactType.charAt(0).toUpperCase() + artifactType.slice(1)} Diagram`),
+              language: match[4] || undefined,
             };
             this.artifactBuf = '';
             this.state = 'in_artifact_body';
