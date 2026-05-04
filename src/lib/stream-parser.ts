@@ -12,8 +12,8 @@ export interface Artifact {
 
 type ParserState = 'normal' | 'in_opening_tag' | 'in_artifact_body' | 'in_closing_tag';
 
-const ARTIFACT_OPEN_RE = /<artifact\s+type="(\w+)"\s+placement="(\w+)"\s+title="([^"]*)"\s*>/i;
-const ARTIFACT_CLOSE_RE = /<\/artifact\s*>/i;
+const ARTIFACT_OPEN_RE = /<\w*rtifact\s+type="(\w+)"\s+placement="(\w+)"\s+title="([^"]*)"\s*>/i;
+const ARTIFACT_CLOSE_RE = /<\/\w*rtifact\s*>/i;
 
 export class ArtifactStreamParser {
   private state: ParserState = 'normal';
