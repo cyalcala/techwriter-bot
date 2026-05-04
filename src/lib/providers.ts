@@ -43,7 +43,7 @@ export const ZEN_REGISTRY: Provider[] = [
     name: 'nvidia',
     role: 'fallback',
     endpoint: 'https://integrate.api.nvidia.com/v1',
-    model: 'nvidia/llama-3.1-nemotron-8b-instruct',
+    model: 'google/gemma-3-27b-it',
     timeoutMs: 12000,
     freeTier: true,
   },
