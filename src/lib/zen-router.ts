@@ -103,10 +103,12 @@ async function callProvider(provider: Provider, messages: any[], env: any, maxTo
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), provider.timeoutMs);
   try {
+    const body: any = { model: provider.model, messages, temperature: 0.7, max_tokens: maxTokens, stream: true, stream_options: { include_usage: true } };
+    if (provider.name === 'gemini') body.tools = [{ googleSearch: {} }];
     return await fetch(endpoint, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
-      body: JSON.stringify({ model: provider.model, messages, temperature: 0.7, max_tokens: maxTokens, stream: true, stream_options: { include_usage: true } }),
+      body: JSON.stringify(body),
       signal: ctrl.signal,
     });
   } finally { clearTimeout(t); }

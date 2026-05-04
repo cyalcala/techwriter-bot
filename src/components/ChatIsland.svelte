@@ -7,6 +7,7 @@
   import { setupCleanupCallbacks, runStaleCheck, clearAllData, persistSessionId, getStoredSessionId } from '../lib/cleanup';
   import { ArtifactStreamParser, detectCodeFenceFallback, type Artifact } from '../lib/stream-parser';
   import ArtifactPanel from './ArtifactPanel.svelte';
+  import { preloadPopular } from '../lib/renderer-loader';
 
   interface Message {
     role: 'user' | 'assistant' | 'system';
@@ -84,6 +85,7 @@
     setupCleanupCallbacks(sessionId);
     pollCredits();
     checkKeys();
+    preloadPopular();
 
     isOnline = navigator.onLine;
     window.addEventListener('online', () => { isOnline = true; });

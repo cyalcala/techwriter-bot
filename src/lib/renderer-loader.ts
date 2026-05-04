@@ -9,7 +9,7 @@ function loadScript(src: string): Promise<void> {
     const script = document.createElement('script');
     script.src = src;
     script.onload = () => { loadedScripts.add(src); resolve(); };
-    script.onerror = reject;
+    script.onerror = () => { loadedScripts.delete(src); reject(new Error(`Failed to load ${src}`)); };
     document.head.appendChild(script);
   });
 }
@@ -24,6 +24,16 @@ function loadStyle(href: string): Promise<void> {
     link.onerror = reject;
     document.head.appendChild(link);
   });
+}
+
+export function preloadPopular(): void {
+  Promise.all([
+    loadScript('https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js'),
+    loadStyle('https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css'),
+    loadScript('https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js'),
+    loadStyle('https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css'),
+    loadScript('https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js'),
+  ]).catch(() => {});
 }
 
 export async function loadRenderer(type: ArtifactType): Promise<void> {
@@ -45,9 +55,7 @@ export async function loadRenderer(type: ArtifactType): Promise<void> {
       ]);
       return;
     case 'markmap':
-      await Promise.all([
-        loadScript('https://cdn.jsdelivr.net/npm/markmap-autoloader@0.17.0/dist/index.js'),
-      ]);
+      await loadScript('https://cdn.jsdelivr.net/npm/markmap-autoloader@0.17.0/dist/index.js');
       return;
     case 'd2':
       await loadScript('https://cdn.jsdelivr.net/npm/@terrastruct/d2-js@0.6.3/dist/d2-js.umd.min.js');
@@ -74,28 +82,26 @@ export async function loadRenderer(type: ArtifactType): Promise<void> {
   }
 }
 
+function domReady(fn: () => void): void {
+  requestAnimationFrame(() => requestAnimationFrame(fn));
+}
+
 export function renderCodeArtifact(code: string, language?: string): string {
   const lang = language || detectLanguage(code);
-  const escaped = escapeHtml(code);
   if (window.Prism) {
     const highlighted = window.Prism.highlight(code, window.Prism.languages[lang] || window.Prism.languages.plaintext, lang);
     return `<pre class="language-${lang}" style="margin:0;font-size:13px;line-height:1.5"><code class="language-${lang}">${highlighted}</code></pre>`;
   }
-  return `<pre style="margin:0;background:#1e1e1e;color:#d4d4d4;padding:16px;overflow-x:auto;font-size:13px;line-height:1.5"><code>${escaped}</code></pre>`;
+  return `<pre style="margin:0;background:#1e1e1e;color:#d4d4d4;padding:16px;overflow-x:auto;font-size:13px;line-height:1.5"><code>${escapeHtml(code)}</code></pre>`;
 }
 
-export function renderHtmlArtifact(code: string): string {
-  return sanitizeHtml(code);
-}
-
-export function renderSvgArtifact(code: string): string {
-  return code;
-}
+export function renderHtmlArtifact(code: string): string { return sanitizeHtml(code); }
+export function renderSvgArtifact(code: string): string { return code; }
 
 export function renderMermaidArtifact(code: string): string {
   const sanitized = sanitizeMermaid(code);
   const id = `mer-${rand()}`;
-  setTimeout(async () => {
+  domReady(async () => {
     try {
       const el = document.getElementById(id);
       if (el && window.mermaid) {
@@ -105,123 +111,104 @@ export function renderMermaidArtifact(code: string): string {
       }
     } catch (e) {
       const el = document.getElementById(id);
-      if (el) {
-        el.innerHTML = `<div class="text-red-500 text-xs p-3 bg-red-50 rounded-lg border border-red-200">
-          <strong>Mermaid error:</strong><br/>
-          <code class="text-[11px] whitespace-pre-wrap break-all">${escapeHtml(String(e))}</code>
-          <button class="mt-2 px-2 py-1 text-[10px] bg-red-100 hover:bg-red-200 rounded border border-red-300" onclick="this.nextElementSibling.classList.toggle('hidden')">Show raw</button>
-          <pre class="hidden mt-2 p-2 bg-gray-100 rounded text-[11px] overflow-x-auto whitespace-pre-wrap">${escapeHtml(code)}</pre>
-        </div>`;
-      }
+      if (el) el.innerHTML = `<div class="text-red-500 text-xs p-3 bg-red-50 rounded-lg border border-red-200"><strong>Mermaid error:</strong><br/><code class="text-[11px] whitespace-pre-wrap break-all">${escapeHtml(String(e))}</code><button class="mt-2 px-2 py-1 text-[10px] bg-red-100 hover:bg-red-200 rounded border border-red-300" onclick="this.nextElementSibling.classList.toggle('hidden')">Show raw</button><pre class="hidden mt-2 p-2 bg-gray-100 rounded text-[11px] overflow-x-auto whitespace-pre-wrap">${escapeHtml(code)}</pre></div>`;
     }
-  }, 100);
+  });
   return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm">Rendering diagram...</div>`;
 }
 
 export function renderKatexArtifact(code: string): string {
   const id = `katex-${rand()}`;
-  setTimeout(() => {
+  domReady(() => {
     try {
       const el = document.getElementById(id);
-      if (el && window.katex) {
-        window.katex.render(code, el, { throwOnError: false, displayMode: true });
-      }
+      if (el && window.katex) window.katex.render(code, el, { throwOnError: false, displayMode: true });
     } catch (e) {
       const el = document.getElementById(id);
       if (el) el.innerHTML = `<pre class="text-red-500 text-xs">${escapeHtml(String(e))}</pre>`;
     }
-  }, 50);
+  });
   return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm">Rendering math...</div>`;
 }
 
 export function renderMarkmapArtifact(code: string): string {
   const id = `markmap-${rand()}`;
-  setTimeout(() => {
+  domReady(() => {
     const el = document.getElementById(id);
     if (el) {
-      const { Markmap } = (window as any).markmap || {};
-      if (Markmap) {
-        const { Transformer } = (window as any).markmap;
-        const transformer = new Transformer();
-        const { root } = transformer.transform(code);
+      const mm = (window as any).markmap;
+      if (mm?.Markmap) {
+        const t = new mm.Transformer();
+        const { root } = t.transform(code);
         const svgEl = document.createElement('div');
         el.innerHTML = '';
         el.appendChild(svgEl);
-        Markmap.create(svgEl, undefined, root);
+        mm.Markmap.create(svgEl, undefined, root);
       } else {
-        el.innerHTML = `<div class="text-xs text-[#8c8576]">Mind map renderer not loaded. Refresh to retry.</div>`;
+        el.innerHTML = `<div class="text-xs text-[#8c8576]">Mind map renderer not loaded.</div>`;
       }
     }
-  }, 200);
+  });
   return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm" style="min-height:300px">Rendering mind map...</div>`;
 }
 
 export function renderD2Artifact(code: string): string {
   const id = `d2-${rand()}`;
-  setTimeout(async () => {
+  domReady(async () => {
     try {
       const el = document.getElementById(id);
       if (el && (window as any).d2) {
-        const d2 = (window as any).d2;
-        const result = await d2.compile(code, { layout: 'dagre' });
-        if (result.svg) {
-          el.innerHTML = result.svg;
-          el.className = 'flex justify-center overflow-x-auto';
-        } else {
-          el.innerHTML = `<pre class="text-red-500 text-xs">D2 compile error: no output</pre>`;
-        }
+        const result = await (window as any).d2.compile(code, { layout: 'dagre' });
+        el.innerHTML = result.svg || '';
+        el.className = 'flex justify-center overflow-x-auto';
       }
     } catch (e) {
       const el = document.getElementById(id);
       if (el) el.innerHTML = `<pre class="text-red-500 text-xs">${escapeHtml(String(e))}</pre>`;
     }
-  }, 100);
+  });
   return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm">Rendering D2 diagram...</div>`;
 }
 
 export function renderVegaArtifact(code: string): string {
   const id = `vega-${rand()}`;
-  setTimeout(async () => {
+  domReady(async () => {
     try {
       const el = document.getElementById(id);
       if (el && (window as any).vegaEmbed) {
-        const spec = JSON.parse(code);
-        await (window as any).vegaEmbed(`#${id}`, spec, { actions: true });
+        await (window as any).vegaEmbed(`#${id}`, JSON.parse(code), { actions: true });
       }
     } catch (e) {
       const el = document.getElementById(id);
       if (el) el.innerHTML = `<pre class="text-red-500 text-xs">${escapeHtml(String(e))}</pre>`;
     }
-  }, 100);
+  });
   return `<div id="${id}" class="p-4" style="min-height:200px"></div>`;
 }
 
 export function renderGraphvizArtifact(code: string): string {
   const id = `gv-${rand()}`;
-  setTimeout(async () => {
+  domReady(async () => {
     try {
       const el = document.getElementById(id);
       const gv = (window as any).graphviz;
-      if (el && gv) {
-        const svg = await gv.layout(code, 'svg', 'dot');
-        el.innerHTML = svg;
-      }
+      if (el && gv) el.innerHTML = await gv.layout(code, 'svg', 'dot');
     } catch (e) {
       const el = document.getElementById(id);
       if (el) el.innerHTML = `<pre class="text-red-500 text-xs">${escapeHtml(String(e))}</pre>`;
     }
-  }, 100);
+  });
   return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm" style="min-height:200px">Rendering Graphviz...</div>`;
 }
 
 export function renderPlantUMLArtifact(code: string): string {
   const encoded = btoa(code);
-  return `<div class="flex justify-center p-2"><img src="https://www.plantuml.com/plantuml/svg/${encoded}" alt="PlantUML diagram" style="max-width:100%" onerror="this.parentElement.innerHTML='<pre class=\\'text-red-500 text-xs p-2\\'>PlantUML render error. Check syntax.</pre>'" /></div>`;
+  return `<div class="flex justify-center p-2"><img src="https://www.plantuml.com/plantuml/svg/${encoded}" alt="PlantUML diagram" style="max-width:100%" onerror="this.parentElement.innerHTML='<pre class=\\'text-red-500 text-xs p-2\\'>PlantUML render error.</pre>'" /></div>`;
 }
 
 export function renderFlowchartArtifact(code: string): string {
   const id = `fc-${rand()}`;
-  setTimeout(() => {
+  domReady(() => {
     try {
       const el = document.getElementById(id);
       if (el && (window as any).flowchart) {
@@ -233,7 +220,7 @@ export function renderFlowchartArtifact(code: string): string {
       const el = document.getElementById(id);
       if (el) el.innerHTML = `<pre class="text-red-500 text-xs">${escapeHtml(String(e))}</pre>`;
     }
-  }, 100);
+  });
   return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm">Rendering flowchart...</div>`;
 }
 
@@ -257,23 +244,8 @@ function detectLanguage(code: string): string {
   return 'plaintext';
 }
 
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
+function escapeHtml(s: string): string { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function sanitizeHtml(html: string): string { return html.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/on\w+\s*=\s*"[^"]*"/gi, '').replace(/on\w+\s*=\s*'[^']*'/gi, ''); }
+function rand(): string { return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`; }
 
-function sanitizeHtml(html: string): string {
-  return html.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/on\w+\s*=\s*"[^"]*"/gi, '').replace(/on\w+\s*=\s*'[^']*'/gi, '');
-}
-
-function rand(): string {
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
-}
-
-declare global {
-  interface Window {
-    Prism: any;
-    mermaid: any;
-    katex: any;
-    flowchart: any;
-  }
-}
+declare global { interface Window { Prism: any; mermaid: any; katex: any; flowchart: any; } }
