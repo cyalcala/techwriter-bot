@@ -42,6 +42,8 @@
   let searchTier = $state<'basic' | 'enhanced' | 'none'>('basic');
   let ragDegraded = $state(false);
   let keyStatus = $state<{ groq: boolean; gemini: boolean; cerebras: boolean } | null>(null);
+  let splitArtifact = $state<{ messageIdx: number; artifact: Artifact } | null>(null);
+  let splitTab = $state<'code' | 'preview'>('preview');
 
   async function checkKeys() {
     try {
@@ -437,6 +439,11 @@
         }
       }
 
+      const msgArtifacts = artifacts.filter(a => a.messageIdx === msgIdx);
+      if (msgArtifacts.length > 0) {
+        splitArtifact = msgArtifacts[0];
+      }
+
       if (!messages[msgIdx].content) {
         messages[msgIdx] = { ...messages[msgIdx], content: '', empty: true, sources: sourcesFromHeaders };
       }
@@ -474,7 +481,8 @@
 
 <svelte:window on:keydown={handleGlobalKeydown} />
 
-<div class="flex flex-col h-dvh bg-[#fcfaf6] text-[#2e2e2e] font-['Outfit'] selection:bg-[#e8e4db] overflow-hidden">
+<div class="flex h-dvh bg-[#fcfaf6] text-[#2e2e2e] font-['Outfit'] selection:bg-[#e8e4db] overflow-hidden">
+  <div class="flex flex-col flex-1 min-w-0 transition-all duration-300">
   {#if !isOnline}
     <div class="bg-amber-500 text-white text-center text-xs py-1.5 font-medium">
       You're offline. Reconnecting...
@@ -602,7 +610,7 @@
           {/if}
         </div>
       </div>
-      {#if !isStreaming}
+      {#if !isStreaming && !splitArtifact}
         {#each artifacts.filter(a => a.messageIdx === i) as { artifact }}
           <div class="flex justify-start w-full">
             <div class="w-full max-w-4xl">
@@ -737,4 +745,26 @@
       </div>
     </div>
   </footer>
+  </div>
+
+  {#if splitArtifact}
+    <div class="w-[55%] min-w-[400px] border-l border-[#d6d0c4] bg-white flex flex-col overflow-hidden shadow-2xl z-10">
+      <div class="flex items-center justify-between px-4 py-2.5 bg-[#1e1e2e] text-white shrink-0">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <span class="text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-md bg-purple-600">{splitArtifact.artifact.type}</span>
+          <span class="text-xs font-medium text-gray-300 truncate">{splitArtifact.artifact.title || 'Artifact'}</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <button on:click={() => splitTab = 'code'} class="text-[10px] px-2.5 py-1 rounded-md {splitTab === 'code' ? 'bg-white/20 text-white font-bold' : 'text-gray-400 hover:text-white'}">Code</button>
+          <button on:click={() => splitTab = 'preview'} class="text-[10px] px-2.5 py-1 rounded-md {splitTab === 'preview' ? 'bg-white/20 text-white font-bold' : 'text-gray-400 hover:text-white'}">Preview</button>
+          <button on:click={() => splitArtifact = null} class="text-[10px] px-2 py-1 rounded-md text-gray-400 hover:text-white hover:bg-white/10 transition-all" title="Close">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="flex-1 overflow-auto">
+        <ArtifactPanel artifact={splitArtifact.artifact} />
+      </div>
+    </div>
+  {/if}
 </div>
