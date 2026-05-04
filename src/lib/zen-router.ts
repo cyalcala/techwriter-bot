@@ -347,6 +347,39 @@ export async function routeChat(
       }
     }
 
+    const allCandidates = candidates.filter(p => {
+      const apiKey = getApiKey(p, env);
+      return (apiKey || p.name === 'cloudflare');
+    });
+
+    if (allCandidates.length > 0) {
+      console.log(JSON.stringify({
+        event: 'last_resort_bypass',
+        candidates: allCandidates.map(p => p.id),
+        tier: metadata?.tier,
+      }));
+      for (const p of allCandidates) {
+        try {
+          const result = await callProvider(p, messages, env, maxTokens);
+          if (result.ok) {
+            recordSuccess(p.id, Date.now() - 0);
+            const newHeaders = new Headers(result.headers);
+            newHeaders.set('x-provider', p.id);
+            newHeaders.set('x-latency-ms', '0');
+            newHeaders.set('x-role', p.role);
+            newHeaders.set('Content-Type', 'text/event-stream');
+            if (sources && sources.length > 0) newHeaders.set('x-sources', JSON.stringify(sources));
+            if (metadata) {
+              newHeaders.set('x-search-tier', metadata.searchTier);
+              newHeaders.set('x-search-remaining', metadata.searchRemaining);
+              newHeaders.set('x-tier', metadata.tier);
+            }
+            return new Response(result.body, { status: result.status, headers: newHeaders });
+          }
+        } catch {}
+      }
+    }
+
     return makeErrorResponse(
       'All AI providers are currently unavailable. Please try again in a moment.',
       503, 10, metadata,

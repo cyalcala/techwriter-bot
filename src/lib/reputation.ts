@@ -204,11 +204,11 @@ export function deserializeReputation(raw: string): ReputationState {
 export function getTierProviderPool(tier: ReputationState['tier']): { pool: string[]; maxTokens?: number } {
   switch (tier) {
     case 'premium':
-      return { pool: ['groq-fast', 'gemini-flash'] };
+      return { pool: ['groq-fast', 'gemini-flash', 'cloudflare-llama'] };
     case 'standard':
-      return { pool: ['groq-fast', 'cerebras-llama', 'gemini-flash'] };
+      return { pool: ['groq-fast', 'cerebras-llama', 'gemini-flash', 'cloudflare-llama'] };
     case 'curious':
-      return { pool: ['cerebras-llama', 'nvidia-fast', 'groq-fast'] };
+      return { pool: ['cerebras-llama', 'nvidia-fast', 'groq-fast', 'cloudflare-llama'] };
     case 'throttled':
       return { pool: ['cloudflare-llama', 'cerebras-llama', 'nvidia-fast'], maxTokens: 1024 };
     case 'restricted':
