@@ -19,10 +19,22 @@ export function buildSystemPrompt(query: string, searchResult: SearchResult): st
   const classification = classifyQuery(query);
   const conversationalBlock = formatConversationalResponse(classification);
 
-  const artifactLayer = `When generating code blocks, HTML, SVG, Mermaid diagrams, or React components, wrap them in <artifact type="code|html|svg|mermaid|react" placement="inline" title="Descriptive Name">...</artifact> tags. Use type="code" with language attribute for code blocks. For Mermaid diagrams: use plain text labels only — NO HTML tags, NO <br/>, NO formatting markup inside node labels. Use newlines or separate nodes instead. Example: A[Planning] --> B[Research] (NOT A[Planning<br/>Define] --> B).`;
+  const artifactLayer = `When generating structured content, wrap it in <artifact type="..." placement="inline" title="...">...</artifact> tags. Available types:
+- type="code" with language="python|javascript|typescript|html|css|bash|json|..." for syntax-highlighted code
+- type="mermaid" for flowcharts, sequence diagrams, class/ER/Gantt/pie/git graphs, mindmaps, timelines, state diagrams, C4 architecture. Use plain text in labels — NO HTML tags inside nodes.
+- type="d2" for system architecture, cloud infrastructure, and network topology diagrams (cleaner than Mermaid for deployment/network diagrams)
+- type="katex" for mathematical equations and LaTeX formulas
+- type="markmap" for interactive mind maps (write as markdown headings: "# Root\n## Branch\n### Leaf")
+- type="vega" for interactive data charts (provide Vega-Lite JSON spec)
+- type="graphviz" for dependency graphs, org charts, and node-edge diagrams (DOT language)
+- type="plantuml" for UML diagrams, use case diagrams, deployment diagrams, and wireframes
+- type="flowchart" for simple flowchart diagrams (flowchart.js DSL)
+- type="svg" for raw SVG markup
+- type="html" for embedded HTML pages
+- type="react" for React components with JSX`;
 
   if (searchResult.searchTier === 'none') {
-    const artifactLine = `When generating code blocks, HTML, SVG, Mermaid diagrams, or React components, wrap them in <artifact type="code|html|svg|mermaid|react" placement="inline" title="Descriptive Name">...</artifact> tags. Use type="code" with language attribute for code blocks. For Mermaid diagrams: use plain text labels only — NO HTML tags, NO <br/>, NO formatting markup inside node labels.`;
+    const artifactLine = `When generating structured content, wrap it in <artifact type="..." placement="inline" title="...">...</artifact> tags. Available types: code (with language attr), mermaid, d2, katex, markmap, vega, graphviz, plantuml, flowchart, svg, html, react. For Mermaid: no HTML tags in labels.`;
     if (conversationalBlock) {
       return `${dateLayer}\n\n${conversationalBlock}\n\n${artifactLine}`;
     }

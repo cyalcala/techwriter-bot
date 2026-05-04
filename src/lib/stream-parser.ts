@@ -1,4 +1,4 @@
-export type ArtifactType = 'code' | 'html' | 'svg' | 'mermaid' | 'react';
+export type ArtifactType = 'code' | 'html' | 'svg' | 'mermaid' | 'react' | 'katex' | 'markmap' | 'd2' | 'vega' | 'graphviz' | 'plantuml' | 'flowchart';
 export type ArtifactPlacement = 'inline' | 'side' | 'modal';
 
 export interface Artifact {
