@@ -440,21 +440,18 @@ async function getOrCreateReputation(
 }
 
 function readEnvKeys(baseEnv: any): any {
-  const keys: Record<string, string | undefined> = {};
-
-  const v = (k: string, val: string | undefined) => { if (val) keys[k] = val; };
-
-  v('GROQ_API_KEY', process.env.GROQ_API_KEY);
-  v('CEREBRAS_API_KEY', process.env.CEREBRAS_API_KEY);
-  v('GEMINI_API_KEY', process.env.GEMINI_API_KEY);
-  v('NVIDIA_API_KEY', process.env.NVIDIA_API_KEY);
-  v('OPENROUTER_API_KEY', process.env.OPENROUTER_API_KEY);
-  v('TAVILY_API_KEY', process.env.TAVILY_API_KEY);
-  v('EXA_API_KEY', process.env.EXA_API_KEY);
-  v('TURNSTILE_SECRET_KEY', process.env.TURNSTILE_SECRET_KEY);
-  v('DEV_IPS', process.env.DEV_IPS);
-
-  for (const [k, v] of Object.entries(keys)) {
+  const pairs: [string, string | undefined][] = [
+    ['GROQ_API_KEY', import.meta.env.GROQ_API_KEY],
+    ['CEREBRAS_API_KEY', import.meta.env.CEREBRAS_API_KEY],
+    ['GEMINI_API_KEY', import.meta.env.GEMINI_API_KEY],
+    ['NVIDIA_API_KEY', import.meta.env.NVIDIA_API_KEY],
+    ['OPENROUTER_API_KEY', import.meta.env.OPENROUTER_API_KEY],
+    ['TAVILY_API_KEY', import.meta.env.TAVILY_API_KEY],
+    ['EXA_API_KEY', import.meta.env.EXA_API_KEY],
+    ['TURNSTILE_SECRET_KEY', import.meta.env.TURNSTILE_SECRET_KEY],
+    ['DEV_IPS', import.meta.env.DEV_IPS],
+  ];
+  for (const [k, v] of pairs) {
     if (v && !baseEnv[k]) baseEnv[k] = v;
   }
 }
