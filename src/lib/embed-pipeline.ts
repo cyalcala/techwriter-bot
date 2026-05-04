@@ -16,6 +16,7 @@ export interface EmbedProgress {
 
 let localPipeline: any = null;
 let localPipelineLoading = false;
+const TRANSFORMERS_CDN = 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js';
 
 async function getLocalPipeline(): Promise<any> {
   if (localPipeline) return localPipeline;
@@ -27,8 +28,8 @@ async function getLocalPipeline(): Promise<any> {
 
   localPipelineLoading = true;
   try {
-    const { pipeline } = await import('@xenova/transformers');
-    localPipeline = await pipeline('feature-extraction', 'Xenova/bge-small-en-v1.5', { quantized: true });
+    const mod: any = await import(/* @vite-ignore */ TRANSFORMERS_CDN);
+    localPipeline = await mod.pipeline('feature-extraction', 'Xenova/bge-small-en-v1.5', { quantized: true });
     return localPipeline;
   } catch (e) {
     console.warn('[embed] local fallback failed to load:', e);
