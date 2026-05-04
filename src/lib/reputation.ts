@@ -204,7 +204,7 @@ export function deserializeReputation(raw: string): ReputationState {
 export function getTierProviderPool(tier: ReputationState['tier']): { pool: string[]; maxTokens?: number } {
   switch (tier) {
     case 'premium':
-      return { pool: ['groq-fast', 'gemini-flash', 'cloudflare-llama'] };
+      return { pool: ['groq-fast', 'gemini-flash', 'cerebras-llama', 'cloudflare-llama'] };
     case 'standard':
       return { pool: ['groq-fast', 'cerebras-llama', 'gemini-flash', 'cloudflare-llama'] };
     case 'curious':
