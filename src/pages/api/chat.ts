@@ -38,6 +38,7 @@ interface SearchResult {
   contextParts: string[];
   sources: { title: string; url: string; provider?: string }[];
   searchTier: 'none' | 'basic' | 'enhanced';
+  searchAttempted: boolean;
   enhancedRemaining?: number;
 }
 
@@ -209,12 +210,15 @@ async function searchRouter(
   const sources: { title: string; url: string; provider?: string }[] = [];
   let sourceIdx = 0;
   let searchTier: 'none' | 'basic' | 'enhanced' = 'none';
+  let searchAttempted = false;
   let enhancedRemaining: number | undefined;
 
   const classified = classifyQuery(query);
   if (classified === 'greeting' || classified === 'conversational') {
-    return { contextParts, sources, searchTier: 'none' };
+    return { contextParts, sources, searchTier: 'none', searchAttempted: false };
   }
+
+  searchAttempted = true;
 
   let enhancedResults: (SearchSource | null)[] = [];
   let basicFetchPromise: Promise<(SearchSource | null)[]> | null = null;
@@ -337,7 +341,29 @@ async function searchRouter(
     }
   }
 
-  return { contextParts, sources, searchTier, enhancedRemaining };
+  if (searchAttempted && searchTier === 'none') {
+    searchTier = 'basic';
+  }
+
+  if (searchAttempted && contextParts.length === 0 && searchQuery !== query) {
+    console.log(JSON.stringify({ event: 'search_retry_original', query: query.slice(0, 80) }));
+    const retryResults = await Promise.all([
+      searchDuckDuckGo(query),
+      searchWikipedia(query),
+      searchReddit(query),
+    ]);
+
+    for (const r of retryResults) {
+      if (!r || seenUrls.has(r.url)) continue;
+      seenUrls.add(r.url);
+      sourceIdx++;
+      const providerLabel = r.provider ? `[${sourceIdx}: ${r.provider.toUpperCase()}]` : `[${sourceIdx}]`;
+      contextParts.push(`${providerLabel}\n${r.content}`);
+      sources.push({ title: r.title, url: r.url, provider: r.provider });
+    }
+  }
+
+  return { contextParts, sources, searchTier, searchAttempted, enhancedRemaining };
 }
 
 function buildSystemPrompt(
@@ -362,6 +388,10 @@ function buildSystemPrompt(
       return `${dateLayer}\n\n${conversationalBlock}\n\n${artifactLine}`;
     }
     return `${dateLayer}\n\nYou are a helpful technical writing assistant. Be conversational when appropriate. If the user's query is ambiguous, you may offer to help with writing, coding, or research.\n\n${artifactLine}`;
+  }
+
+  if (searchResult.contextParts.length === 0) {
+    return `${dateLayer}\n\nIMPORTANT: A live web search was attempted but returned NO results. Your training data ended in 2023. You are NOT current. DO NOT fabricate news, recent events, or claim to have up-to-date information. Be honest: tell the user you couldn't find current results for their query. Offer to help with what your pre-2023 training data covers, always labeling it explicitly as "[Pre-2023 knowledge]."\n\n${artifactLayer}`;
   }
 
   const isEnhanced = searchResult.searchTier === 'enhanced';

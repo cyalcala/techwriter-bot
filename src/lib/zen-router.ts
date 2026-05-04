@@ -194,7 +194,17 @@ export async function routeChat(
   const allowedIds = tierConfig?.allowedProviders;
   const isProviderAllowed = (id: string) => !allowedIds || allowedIds.length === 0 || allowedIds.includes(id);
 
-  const openCandidates = candidates.filter(p => !isCircuitOpen(p.id));
+  const tier = metadata?.tier || 'curious';
+  const bypassEjection = tier === 'premium' || tier === 'standard' || tier === 'dev';
+
+  let openCandidates: Provider[];
+  if (bypassEjection) {
+    const open = candidates.filter(p => !isCircuitOpen(p.id));
+    const ejected = candidates.filter(p => isCircuitOpen(p.id) && isProviderAllowed(p.id));
+    openCandidates = [...open, ...ejected];
+  } else {
+    openCandidates = candidates.filter(p => !isCircuitOpen(p.id));
+  }
 
   if (openCandidates.length === 0) {
     return makeErrorResponse(
@@ -206,8 +216,8 @@ export async function routeChat(
   const primary = openCandidates[0];
   const hedges = openCandidates.slice(1, 3);
 
-  async function trySingleProvider(provider: Provider): Promise<Response | null> {
-    if (isCircuitOpen(provider.id)) return null;
+  async function trySingleProvider(provider: Provider, skipEjectionCheck: boolean = false): Promise<Response | null> {
+    if (!skipEjectionCheck && isCircuitOpen(provider.id)) return null;
 
     const apiKey = getApiKey(provider, env);
     if (!apiKey && provider.name !== 'cloudflare') {
@@ -306,7 +316,7 @@ export async function routeChat(
     if (session?.lockedProviderId && isProviderAllowed(session.lockedProviderId)) {
       const lockedProvider = getProvider(session.lockedProviderId);
       if (lockedProvider && !isCircuitOpen(lockedProvider.id)) {
-        const lockedResult = await trySingleProvider(lockedProvider);
+        const lockedResult = await trySingleProvider(lockedProvider, bypassEjection);
         if (lockedResult) return lockedResult;
       }
       session.lockedProviderId = null;
@@ -314,17 +324,17 @@ export async function routeChat(
     }
 
     if (hedges.length === 0) {
-      const result = await trySingleProvider(primary);
+      const result = await trySingleProvider(primary, bypassEjection);
       if (result) return result;
 
       for (const p of openCandidates.slice(1)) {
-        const result = await trySingleProvider(p);
+        const result = await trySingleProvider(p, bypassEjection);
         if (result) return result;
       }
     } else {
       let hedgeResolved = false;
 
-      const primaryPromise = trySingleProvider(primary).then(result => {
+      const primaryPromise = trySingleProvider(primary, bypassEjection).then(result => {
         if (result && !hedgeResolved) { hedgeResolved = true; return result; }
         return null;
       });
@@ -332,7 +342,7 @@ export async function routeChat(
       const hedgePromise = new Promise<Response | null>(resolve => {
         setTimeout(async () => {
           if (hedgeResolved) { resolve(null); return; }
-          const results = await Promise.all(hedges.map(p => trySingleProvider(p)));
+          const results = await Promise.all(hedges.map(p => trySingleProvider(p, bypassEjection)));
           const first = results.find(r => r !== null);
           if (first && !hedgeResolved) { hedgeResolved = true; resolve(first); } else { resolve(null); }
         }, HEDGE_DELAY_MS);
@@ -342,7 +352,7 @@ export async function routeChat(
       if (winner) return winner;
 
       for (const p of openCandidates) {
-        const r = await trySingleProvider(p);
+        const r = await trySingleProvider(p, bypassEjection);
         if (r) return r;
       }
     }
