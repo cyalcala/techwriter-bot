@@ -426,9 +426,14 @@
       console.debug('[Artifact]', { streamDetected: existingArtifacts.length, messageIdx: msgIdx, contentLen: messages[msgIdx]?.content?.length || 0 });
       if (existingArtifacts.length === 0 && messages[msgIdx].content) {
         const fallbackArtifacts = detectCodeFenceFallback(messages[msgIdx].content);
-        console.debug('[Artifact Fallback]', { found: fallbackArtifacts.length, types: fallbackArtifacts.map(a => a.type) });
         for (const fa of fallbackArtifacts) {
           artifacts = [...artifacts, { messageIdx: msgIdx, artifact: fa }];
+        }
+        if (fallbackArtifacts.length > 0) {
+          let clean = messages[msgIdx].content;
+          clean = clean.replace(/<[\/]?\w*rtifact[^>]*>/gi, '');
+          clean = clean.replace(/```[\w-]*\n[\s\S]*?```/g, '');
+          messages[msgIdx] = { ...messages[msgIdx], content: clean };
         }
       }
 
