@@ -1,40 +1,28 @@
-import { ZEN_REGISTRY, classifyQuery, getProvidersForRole, getProvider, type Provider, type ProviderRole } from './providers';
+import { ZEN_REGISTRY, classifyQuery, getProvidersForRole, type Provider, type ProviderRole } from './providers';
 
-const CIRCUIT_TRANSIENT_WINDOW_MS = 120_000;
-const CIRCUIT_TRANSIENT_FAILURES = 8;
-const CIRCUIT_TRANSIENT_EJECT_MS = 60_000;
-const CIRCUIT_TRANSIENT_PROBE_MS = 30_000;
-const CIRCUIT_PERMANENT_EJECT_MS = 600_000;
-const MAX_TRANSIENT_ATTEMPTS = 8;
+const FAIL_WINDOW_MS = 60_000;
+const FAIL_THRESHOLD = 3;
+const EJECT_MS = 30_000;
+const PERMANENT_EJECT_MS = 600_000;
 const GLOBAL_TIMEOUT_MS = 25_000;
-const HEDGE_DELAY_MS = 1500;
 
-const RETRYABLE_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504]);
-const PERMANENT_STATUSES = new Set([401]);
+const RETRYABLE = new Set([408, 425, 429, 500, 502, 503, 504]);
+const PERMANENT = new Set([401]);
 
 interface CircuitState {
   failures: number[];
   ejectedUntil: number;
-  halfOpen: boolean;
-  totalErrors: number;
-  rateLimitHits: number;
-  totalLatency: number;
-  requestCount: number;
   permanent: boolean;
-  lastFailStatus: number;
-  lastFailError: string;
+  totalErrors: number;
+  requests: number;
+  lastStatus: number;
+  lastError: string;
 }
 
 interface SessionState {
   lockedProviderId: string | null;
   turnCount: number;
-  maxTurns: number;
   createdAt: number;
-}
-
-export interface TierConfig {
-  allowedProviders: string[];
-  maxTokens?: number;
 }
 
 export interface ResponseMetadata {
@@ -46,21 +34,19 @@ export interface ResponseMetadata {
 
 const circuits = new Map<string, CircuitState>();
 const sessions = new Map<string, SessionState>();
-const SESSION_TTL_MS = 30 * 60_000;
+const SESSION_TTL = 30 * 60_000;
 
 if (typeof setInterval !== 'undefined') {
   setInterval(() => {
     const now = Date.now();
-    sessions.forEach((s, k) => { if (now - s.createdAt > SESSION_TTL_MS) sessions.delete(k); });
-    circuits.forEach((c, k) => {
-      if (c.failures.length === 0 && c.ejectedUntil < now && c.requestCount === 0) circuits.delete(k);
-    });
+    for (const [k, s] of sessions) { if (now - s.createdAt > SESSION_TTL) sessions.delete(k); }
+    for (const [k, c] of circuits) { if (c.failures.length === 0 && c.ejectedUntil < now && c.requests === 0) circuits.delete(k); }
   }, 300_000);
 }
 
 function getCircuit(id: string): CircuitState {
   if (!circuits.has(id)) {
-    circuits.set(id, { failures: [], ejectedUntil: 0, halfOpen: false, totalErrors: 0, rateLimitHits: 0, totalLatency: 0, requestCount: 0, permanent: false, lastFailStatus: 0, lastFailError: '' });
+    circuits.set(id, { failures: [], ejectedUntil: 0, permanent: false, totalErrors: 0, requests: 0, lastStatus: 0, lastError: '' });
   }
   return circuits.get(id)!;
 }
@@ -68,385 +54,43 @@ function getCircuit(id: string): CircuitState {
 function isCircuitOpen(id: string): boolean {
   const c = getCircuit(id);
   const now = Date.now();
-  const recentFailures = c.failures.filter(t => now - t < CIRCUIT_TRANSIENT_WINDOW_MS);
-  c.failures = recentFailures;
-
-  if (c.ejectedUntil > 0) {
-    if (now >= c.ejectedUntil) {
-      c.ejectedUntil = 0;
-      c.halfOpen = true;
-      c.failures = [];
-      c.permanent = false;
-      return false;
-    }
-    if (!c.permanent && now >= c.ejectedUntil - CIRCUIT_TRANSIENT_PROBE_MS) {
-      c.halfOpen = true;
-      return false;
-    }
-    return true;
-  }
-
-  if (recentFailures.length >= CIRCUIT_TRANSIENT_FAILURES) {
-    c.ejectedUntil = now + CIRCUIT_TRANSIENT_EJECT_MS;
-    c.halfOpen = false;
-    c.permanent = false;
-    return true;
-  }
-
+  c.failures = c.failures.filter(t => now - t < FAIL_WINDOW_MS);
+  if (c.ejectedUntil > now) return true;
+  if (c.failures.length >= FAIL_THRESHOLD) { c.ejectedUntil = now + EJECT_MS; return true; }
   return false;
 }
 
-function recordSuccess(id: string, latencyMs: number) {
+function recordFail(id: string, status: number, err?: string) {
+  const c = getCircuit(id);
+  c.totalErrors++;
+  c.lastStatus = status;
+  if (err) c.lastError = err.slice(0, 120);
+  if (PERMANENT.has(status)) { c.ejectedUntil = Date.now() + PERMANENT_EJECT_MS; c.permanent = true; return; }
+  c.failures.push(Date.now());
+}
+
+function recordSuccess(id: string) {
   const c = getCircuit(id);
   c.failures = [];
   c.ejectedUntil = 0;
-  c.halfOpen = false;
   c.permanent = false;
-  c.totalLatency += latencyMs;
-  c.requestCount++;
-}
-
-function recordTransientFailure(id: string, isRateLimit: boolean, status?: number, errMsg?: string) {
-  const c = getCircuit(id);
-  const now = Date.now();
-  c.failures.push(now);
-  c.failures = c.failures.filter(t => now - t < CIRCUIT_TRANSIENT_WINDOW_MS);
-  c.totalErrors++;
-  if (status) c.lastFailStatus = status;
-  if (errMsg) c.lastFailError = errMsg.slice(0, 120);
-  if (isRateLimit) c.rateLimitHits++;
-  if (c.halfOpen) {
-    c.ejectedUntil = now + CIRCUIT_TRANSIENT_EJECT_MS;
-    c.halfOpen = false;
-  }
-}
-
-function recordPermanentFailure(id: string, status?: number, errMsg?: string) {
-  const c = getCircuit(id);
-  c.totalErrors++;
-  c.ejectedUntil = Date.now() + CIRCUIT_PERMANENT_EJECT_MS;
-  c.halfOpen = false;
-  c.permanent = true;
-  if (status) c.lastFailStatus = status;
-  if (errMsg) c.lastFailError = errMsg.slice(0, 120);
-}
-
-function getSession(sessionId: string, maxTurns: number = 3): SessionState {
-  if (!sessions.has(sessionId)) {
-    sessions.set(sessionId, { lockedProviderId: null, turnCount: 0, maxTurns, createdAt: Date.now() });
-  }
-  return sessions.get(sessionId)!;
-}
-
-export async function runHealthCheck(_env: any) {
+  c.requests++;
 }
 
 function getApiKey(provider: Provider, env: any): string | undefined {
   const raw = env[`${provider.name.toUpperCase()}_API_KEY`];
-  if (typeof raw === 'string') return raw.trim();
-  return raw;
+  return typeof raw === 'string' ? raw.trim() : undefined;
 }
 
-function filterByTier(providers: Provider[], tierConfig?: TierConfig): Provider[] {
-  if (!tierConfig || tierConfig.allowedProviders.length === 0) return providers;
-  return providers.filter(p => tierConfig.allowedProviders.includes(p.id));
-}
-
-function makeErrorResponse(message: string, status: number, retryAfter: number, metadata?: ResponseMetadata): Response {
-  return new Response(JSON.stringify({
-    error: status >= 500 ? 'AI_PROVIDER_FATAL_ERROR' : 'provider_unavailable',
-    message,
-    retryAfter,
-  }), {
-    status,
-    headers: {
-      'Content-Type': 'application/json',
-      'Retry-After': String(retryAfter),
-      ...(metadata ? {
-        'x-search-tier': metadata.searchTier,
-        'x-search-remaining': metadata.searchRemaining,
-        'x-tier': metadata.tier,
-      } : {}),
-    },
-  });
-}
-
-export async function routeChat(
-  rawIntent: string,
-  messages: any[],
-  locals: any,
-  providedEnv: any,
-  sessionId: string = '',
-  sources?: { title: string; url: string; provider?: string }[],
-  metadata?: ResponseMetadata,
-  tierConfig?: TierConfig,
-) {
-  const env = providedEnv || {};
-  const intent = rawIntent || 'chat-fast';
-  const maxTokens = tierConfig?.maxTokens || 4096;
-
-  const role: ProviderRole = classifyQuery(messages, intent);
-  let candidates = getProvidersForRole(role);
-
-  candidates = filterByTier(candidates, tierConfig);
-
-  if (candidates.length === 0) {
-    candidates = getProvidersForRole('fallback');
-    candidates = filterByTier(candidates, tierConfig);
-  }
-
-  const session = sessionId ? getSession(sessionId) : null;
-
-  const allowedIds = tierConfig?.allowedProviders;
-  const isProviderAllowed = (id: string) => !allowedIds || allowedIds.length === 0 || allowedIds.includes(id);
-
-  const tier = metadata?.tier || 'curious';
-  const bypassEjection = tier === 'premium' || tier === 'standard' || tier === 'dev';
-
-  let openCandidates: Provider[];
-  if (bypassEjection) {
-    const open = candidates.filter(p => !isCircuitOpen(p.id));
-    const ejected = candidates.filter(p => isCircuitOpen(p.id) && isProviderAllowed(p.id));
-    openCandidates = [...open, ...ejected];
-  } else {
-    openCandidates = candidates.filter(p => !isCircuitOpen(p.id));
-  }
-
-  if (openCandidates.length === 0) {
-    return makeErrorResponse(
-      'All AI providers are currently overloaded. Please wait a moment and try again.',
-      503, 15, metadata,
-    );
-  }
-
-  const primary = openCandidates[0];
-  const hedges = openCandidates.slice(1, 3);
-
-  async function trySingleProvider(provider: Provider, skipEjectionCheck: boolean = false): Promise<Response | null> {
-    if (!skipEjectionCheck && isCircuitOpen(provider.id)) return null;
-
-    const apiKey = getApiKey(provider, env);
-    if (!apiKey && provider.name !== 'cloudflare') {
-      recordPermanentFailure(provider.id);
-      return null;
-    }
-
-    const start = Date.now();
-    try {
-      const res = await callProvider(provider, messages, env, maxTokens);
-      const latency = Date.now() - start;
-
-      console.log(JSON.stringify({
-        event: 'provider_attempt',
-        provider: provider.id,
-        status: res.status,
-        latencyMs: latency,
-        tier: metadata?.tier,
-        searchTier: metadata?.searchTier,
-      }));
-
-      if (res.ok) {
-        recordSuccess(provider.id, latency);
-
-        if (session) {
-          if (session.lockedProviderId === null) {
-            session.lockedProviderId = provider.id;
-            session.turnCount = 1;
-          } else if (session.lockedProviderId === provider.id && session.turnCount < session.maxTurns) {
-            session.turnCount++;
-          } else if (session.lockedProviderId !== provider.id) {
-            session.lockedProviderId = provider.id;
-            session.turnCount = 1;
-          }
-        }
-
-        const newHeaders = new Headers(res.headers);
-        newHeaders.set('x-provider', provider.id);
-        newHeaders.set('x-latency-ms', String(latency));
-        newHeaders.set('x-role', provider.role);
-        newHeaders.set('Content-Type', 'text/event-stream');
-
-        if (sources && sources.length > 0) {
-          newHeaders.set('x-sources', JSON.stringify(sources));
-        }
-
-        if (metadata) {
-          newHeaders.set('x-search-tier', metadata.searchTier);
-          newHeaders.set('x-search-remaining', metadata.searchRemaining);
-          newHeaders.set('x-tier', metadata.tier);
-        }
-
-        return new Response(res.body, { status: res.status, headers: newHeaders });
-      }
-
-      const status = res.status;
-
-      console.log(JSON.stringify({
-        event: 'provider_failure',
-        provider: provider.id,
-        status,
-        permanent: PERMANENT_STATUSES.has(status),
-      }));
-
-      if (PERMANENT_STATUSES.has(status)) {
-        recordPermanentFailure(provider.id, status);
-      } else if (RETRYABLE_STATUSES.has(status)) {
-        recordTransientFailure(provider.id, status === 429, status);
-        if (status === 429) {
-          let retrySuccess = false;
-          for (let retry = 0; retry < 2; retry++) {
-            await new Promise(r => setTimeout(r, retry === 0 ? 1500 : 3000));
-            const retryRes = await callProvider(provider, messages, env, maxTokens);
-            if (retryRes.ok) {
-              recordSuccess(provider.id, Date.now() - start);
-              if (session) {
-                if (session.lockedProviderId === null) { session.lockedProviderId = provider.id; session.turnCount = 1; }
-                else if (session.lockedProviderId === provider.id && session.turnCount < session.maxTurns) { session.turnCount++; }
-                else if (session.lockedProviderId !== provider.id) { session.lockedProviderId = provider.id; session.turnCount = 1; }
-              }
-              const nh = new Headers(retryRes.headers);
-              nh.set('x-provider', provider.id);
-              nh.set('x-latency-ms', String(Date.now() - start));
-              nh.set('x-role', provider.role);
-              nh.set('Content-Type', 'text/event-stream');
-              if (sources && sources.length > 0) nh.set('x-sources', JSON.stringify(sources));
-              if (metadata) {
-                nh.set('x-search-tier', metadata.searchTier);
-                nh.set('x-search-remaining', metadata.searchRemaining);
-                nh.set('x-tier', metadata.tier);
-              }
-              return new Response(retryRes.body, { status: retryRes.status, headers: nh });
-            }
-            retrySuccess = true;
-          }
-          if (retrySuccess) {
-            console.log(JSON.stringify({ event: 'provider_retry_exhausted', provider: provider.id }));
-          }
-        }
-      } else {
-        recordTransientFailure(provider.id, false);
-      }
-
-      return null;
-    } catch (e: any) {
-      const isTimeout = e.name === 'TimeoutError' || e.message?.includes('timeout') || e.code === 'ETIMEDOUT';
-      console.log(JSON.stringify({
-        event: 'provider_exception',
-        provider: provider.id,
-        isTimeout,
-        message: e.message?.slice(0, 200),
-      }));
-      recordTransientFailure(provider.id, false, 0, e.message || `${e.name}:${e.code || ''}`);
-
-      if (isTimeout) {
-        const c = circuits.get(provider.id);
-        if (c && c.failures.length >= CIRCUIT_TRANSIENT_FAILURES) {
-          c.ejectedUntil = Date.now() + CIRCUIT_TRANSIENT_EJECT_MS;
-        }
-      }
-
-      return null;
-    }
-  }
-
-  async function doChain(): Promise<Response> {
-    if (session?.lockedProviderId && isProviderAllowed(session.lockedProviderId)) {
-      const lockedProvider = getProvider(session.lockedProviderId);
-      if (lockedProvider && !isCircuitOpen(lockedProvider.id)) {
-        const lockedResult = await trySingleProvider(lockedProvider, bypassEjection);
-        if (lockedResult) return lockedResult;
-      }
-      session.lockedProviderId = null;
-      session.turnCount = 0;
-    }
-
-    if (hedges.length === 0) {
-      const result = await trySingleProvider(primary, bypassEjection);
-      if (result) return result;
-
-      for (const p of openCandidates.slice(1)) {
-        const result = await trySingleProvider(p, bypassEjection);
-        if (result) return result;
-      }
-    } else {
-      let hedgeResolved = false;
-
-      const primaryPromise = trySingleProvider(primary, bypassEjection).then(result => {
-        if (result && !hedgeResolved) { hedgeResolved = true; return result; }
-        return null;
-      });
-
-      const hedgePromise = new Promise<Response | null>(resolve => {
-        setTimeout(async () => {
-          if (hedgeResolved) { resolve(null); return; }
-          const results = await Promise.all(hedges.map(p => trySingleProvider(p, bypassEjection)));
-          const first = results.find(r => r !== null);
-          if (first && !hedgeResolved) { hedgeResolved = true; resolve(first); } else { resolve(null); }
-        }, HEDGE_DELAY_MS);
-      });
-
-      const winner = await Promise.race([primaryPromise, hedgePromise]);
-      if (winner) return winner;
-
-      for (const p of openCandidates) {
-        const r = await trySingleProvider(p, bypassEjection);
-        if (r) return r;
-      }
-    }
-
-    const allCandidates = candidates.filter(p => {
-      const apiKey = getApiKey(p, env);
-      return (apiKey || p.name === 'cloudflare');
-    });
-
-    if (allCandidates.length > 0) {
-      console.log(JSON.stringify({
-        event: 'last_resort_bypass',
-        candidates: allCandidates.map(p => p.id),
-        tier: metadata?.tier,
-      }));
-      for (const p of allCandidates) {
-        try {
-          const result = await callProvider(p, messages, env, maxTokens);
-          if (result.ok) {
-            recordSuccess(p.id, Date.now() - 0);
-            const newHeaders = new Headers(result.headers);
-            newHeaders.set('x-provider', p.id);
-            newHeaders.set('x-latency-ms', '0');
-            newHeaders.set('x-role', p.role);
-            newHeaders.set('Content-Type', 'text/event-stream');
-            if (sources && sources.length > 0) newHeaders.set('x-sources', JSON.stringify(sources));
-            if (metadata) {
-              newHeaders.set('x-search-tier', metadata.searchTier);
-              newHeaders.set('x-search-remaining', metadata.searchRemaining);
-              newHeaders.set('x-tier', metadata.tier);
-            }
-            return new Response(result.body, { status: result.status, headers: newHeaders });
-          }
-        } catch {}
-      }
-    }
-
-    return makeErrorResponse(
-      'All AI providers are currently unavailable. Please try again in a moment.',
-      503, 10, metadata,
-    );
-  }
-
-  return await Promise.race([
-    doChain(),
-    new Promise<Response>(resolve =>
-      setTimeout(() => resolve(makeErrorResponse(
-        "I'm taking longer than expected. Please try again in a moment.",
-        503, 5, metadata,
-      )), GLOBAL_TIMEOUT_MS)
-    ),
-  ]);
-}
-
-async function callProvider(provider: Provider, messages: any[], env: any, maxTokens: number = 4096): Promise<Response> {
+async function callProvider(provider: Provider, messages: any[], env: any, maxTokens: number): Promise<Response> {
   if (provider.name === 'cloudflare') {
-    return await callWorkersAI(provider, messages, env, maxTokens);
+    const ai = env.AI;
+    if (!ai) throw new Error('AI binding not found');
+    const raw = await Promise.race([
+      ai.run(provider.model as any, { messages, stream: true, max_tokens: maxTokens, temperature: 0.7 }),
+      new Promise<never>((_, r) => setTimeout(() => r(new Error('timeout')), provider.timeoutMs)),
+    ]) as ReadableStream;
+    return convertWorkersAIStream(raw, provider, maxTokens);
   }
 
   const endpoint = provider.name === 'gemini'
@@ -454,183 +98,137 @@ async function callProvider(provider: Provider, messages: any[], env: any, maxTo
     : `${provider.endpoint}/chat/completions`;
 
   const apiKey = getApiKey(provider, env);
+  if (!apiKey) throw new Error(`Missing API key for ${provider.name}`);
 
-  if (!apiKey) {
-    throw new Error(`Missing API Key for ${provider.name}`);
-  }
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), provider.timeoutMs);
-
-  const payload: any = {
-    model: provider.model,
-    messages,
-    temperature: 0.7,
-    max_tokens: maxTokens,
-    stream: true,
-    stream_options: { include_usage: true },
-  };
-
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), provider.timeoutMs);
   try {
     return await fetch(endpoint, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'Accept': 'text/event-stream',
-      },
-      body: JSON.stringify(payload),
-      signal: controller.signal,
+      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
+      body: JSON.stringify({ model: provider.model, messages, temperature: 0.7, max_tokens: maxTokens, stream: true, stream_options: { include_usage: true } }),
+      signal: ctrl.signal,
     });
-  } finally {
-    clearTimeout(timeout);
-  }
+  } finally { clearTimeout(t); }
 }
 
-async function callWorkersAI(provider: Provider, messages: any[], env: any, maxTokens: number = 4096): Promise<Response> {
-  const ai = env.AI;
-  if (!ai) {
-    throw new Error('Cloudflare AI binding not found');
-  }
-
-  let rawStream: ReadableStream;
-  try {
-    rawStream = await Promise.race([
-      ai.run(provider.model as any, {
-        messages,
-        stream: true,
-        max_tokens: maxTokens,
-        temperature: 0.7,
-      }) as Promise<ReadableStream>,
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('timeout')), provider.timeoutMs)
-      ),
-    ]);
-  } catch (e: any) {
-    throw new Error(`Cloudflare AI invocation failed: ${e.message}`);
-  }
-
-  if (!rawStream || typeof (rawStream as any).getReader !== 'function') {
-    throw new Error('Cloudflare AI did not return a readable stream');
-  }
-
-  const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>();
+function convertWorkersAIStream(raw: ReadableStream, provider: Provider, maxTokens: number): Response {
+  const { readable, writable } = new TransformStream();
   const writer = writable.getWriter();
-  const encoder = new TextEncoder();
-  const decoder = new TextDecoder();
-  let chunkIdx = 0;
+  const enc = new TextEncoder();
+  const dec = new TextDecoder();
+  let idx = 0;
 
   (async () => {
     try {
-      const reader = rawStream.getReader();
-      let buffer = '';
-
+      const reader = raw.getReader();
+      let buf = '';
       while (true) {
         const { done, value } = await reader.read();
-
-        if (value) {
-          buffer += decoder.decode(value, { stream: !done });
-        }
-
-        const lines = buffer.split('\n');
-        buffer = done ? '' : (lines.pop() || '');
-
+        if (value) buf += dec.decode(value, { stream: !done });
+        const lines = buf.split('\n');
+        buf = done ? '' : (lines.pop() || '');
         for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed || !trimmed.startsWith('data:')) continue;
-
-          const rawData = trimmed.slice(5).trim();
-
-          if (rawData === '[DONE]') {
-            await writer.write(encoder.encode('data: [DONE]\n\n'));
-            continue;
-          }
-
+          const s = line.trim();
+          if (!s.startsWith('data:')) continue;
+          const d = s.slice(5).trim();
+          if (d === '[DONE]') { await writer.write(enc.encode('data: [DONE]\n\n')); continue; }
           try {
-            const parsed = JSON.parse(rawData);
-            if (parsed.error) {
-              const errChunk = JSON.stringify({
-                error: { message: String(parsed.error), type: 'workers_ai_error' }
-              });
-              await writer.write(encoder.encode(`data: ${errChunk}\n\n`));
-              continue;
+            const p = JSON.parse(d);
+            if (p.error) { await writer.write(enc.encode(`data: ${JSON.stringify({ error: { message: String(p.error), type: 'workers_ai_error' } })}\n\n`)); continue; }
+            if (p.response) {
+              await writer.write(enc.encode(`data: ${JSON.stringify({ id: `cf-${idx++}`, object: 'chat.completion.chunk', created: Math.floor(Date.now() / 1000), model: provider.model, choices: [{ index: 0, delta: { content: p.response }, finish_reason: null }] })}\n\n`));
             }
-            const token = parsed.response;
-            if (token != null && token !== '') {
-              const openAIChunk = JSON.stringify({
-                id: `cf-${chunkIdx++}`,
-                object: 'chat.completion.chunk',
-                created: Math.floor(Date.now() / 1000),
-                model: provider.model,
-                choices: [{
-                  index: 0,
-                  delta: { content: token },
-                  finish_reason: null,
-                }],
-              });
-              await writer.write(encoder.encode(`data: ${openAIChunk}\n\n`));
-            }
-          } catch (e) {
-          }
+          } catch {}
         }
-
         if (done) break;
       }
-
-      if (buffer.trim()) {
-        const trimmed = buffer.trim();
-        if (trimmed.startsWith('data:')) {
-          const rawData = trimmed.slice(5).trim();
-          if (rawData !== '[DONE]') {
-            try {
-              const parsed = JSON.parse(rawData);
-              const token = parsed.response;
-              if (token != null && token !== '') {
-                const openAIChunk = JSON.stringify({
-                  id: `cf-${chunkIdx}`,
-                  object: 'chat.completion.chunk',
-                  created: Math.floor(Date.now() / 1000),
-                  model: provider.model,
-                  choices: [{
-                    index: 0,
-                    delta: { content: token },
-                    finish_reason: 'stop',
-                  }],
-                });
-                await writer.write(encoder.encode(`data: ${openAIChunk}\n\n`));
-              }
-            } catch (e) {}
-          }
+      if (buf.trim().startsWith('data:')) {
+        const d = buf.trim().slice(5).trim();
+        if (d !== '[DONE]') {
+          try { const p = JSON.parse(d); if (p.response) await writer.write(enc.encode(`data: ${JSON.stringify({ id: `cf-${idx}`, object: 'chat.completion.chunk', created: Math.floor(Date.now() / 1000), model: provider.model, choices: [{ index: 0, delta: { content: p.response }, finish_reason: 'stop' }] })}\n\n`)); } catch {}
         }
-        await writer.write(encoder.encode('data: [DONE]\n\n'));
+        await writer.write(enc.encode('data: [DONE]\n\n'));
       }
-
       reader.releaseLock();
-    } catch (e: any) {
-      console.log(JSON.stringify({ event: 'workers_ai_stream_error', message: e.message?.slice(0, 200) }));
-    } finally {
-      try { await writer.close(); } catch (e) {}
-    }
+    } catch (e: any) { console.log(JSON.stringify({ event: 'workers_ai_stream_error', message: e.message?.slice(0, 200) })); }
+    finally { try { await writer.close(); } catch {} }
   })();
+  return new Response(readable, { status: 200, headers: { 'Content-Type': 'text/event-stream' } });
+}
 
-  return new Response(readable, {
-    status: 200,
-    headers: { 'Content-Type': 'text/event-stream' },
-  });
+function makeHeaders(provider: Provider, latency: number, sources?: any[], metadata?: ResponseMetadata): Headers {
+  const h = new Headers();
+  h.set('x-provider', provider.id);
+  h.set('x-latency-ms', String(latency));
+  h.set('Content-Type', 'text/event-stream');
+  if (sources?.length) h.set('x-sources', JSON.stringify(sources));
+  if (metadata) { h.set('x-search-tier', metadata.searchTier); h.set('x-search-remaining', metadata.searchRemaining); h.set('x-tier', metadata.tier); }
+  return h;
+}
+
+export async function routeChat(
+  intent: string, messages: any[], _locals: any, env: any,
+  sessionId: string = '',
+  sources?: { title: string; url: string; provider?: string }[],
+  metadata?: ResponseMetadata,
+  allowedProviders?: string[],
+) {
+  const role: ProviderRole = classifyQuery(messages, intent);
+  let candidates = getProvidersForRole(role);
+  if (allowedProviders?.length) candidates = candidates.filter(p => allowedProviders.includes(p.id));
+  if (candidates.length === 0) candidates = getProvidersForRole('fallback').filter(p => !allowedProviders?.length || allowedProviders.includes(p.id));
+
+  const session = sessionId ? (sessions.get(sessionId) || sessions.set(sessionId, { lockedProviderId: null, turnCount: 0, createdAt: Date.now() }).get(sessionId)!) : null;
+  const maxTokens = 4096;
+
+  const ordered: Provider[] = [];
+  const added = new Set<string>();
+
+  if (session?.lockedProviderId) {
+    const lp = candidates.find(p => p.id === session.lockedProviderId);
+    if (lp) { ordered.push(lp); added.add(lp.id); }
+  }
+
+  for (const p of candidates) { if (!added.has(p.id)) { ordered.push(p); added.add(p.id); } }
+
+  const attempt = async (): Promise<Response> => {
+    for (const provider of ordered) {
+      if (provider.id !== ordered[0]?.id && isCircuitOpen(provider.id)) continue;
+
+      const apiKey = getApiKey(provider, env);
+      if (!apiKey && provider.name !== 'cloudflare') { recordFail(provider.id, 401, 'no key'); continue; }
+
+      const start = Date.now();
+      try {
+        const res = await callProvider(provider, messages, env, maxTokens);
+        const latency = Date.now() - start;
+
+        if (res.ok) {
+          recordSuccess(provider.id);
+          if (session) { session.lockedProviderId = provider.id; session.turnCount = (session.turnCount || 0) + 1; }
+          return new Response(res.body, { status: res.status, headers: makeHeaders(provider, latency, sources, metadata) });
+        }
+
+        recordFail(provider.id, res.status);
+        console.log(JSON.stringify({ event: 'provider_fail', provider: provider.id, status: res.status, latency }));
+      } catch (e: any) {
+        recordFail(provider.id, 0, e.message || e.name);
+        console.log(JSON.stringify({ event: 'provider_err', provider: provider.id, error: e.message?.slice(0, 100) }));
+      }
+    }
+
+    return new Response(JSON.stringify({ error: 'all_providers_exhausted', message: 'All AI providers are currently unavailable. Please try again in a moment.', retryAfter: 10 }), {
+      status: 503, headers: { 'Content-Type': 'application/json', 'Retry-After': '10' },
+    });
+  };
+
+  return Promise.race([attempt(), new Promise<Response>(r => setTimeout(() => r(new Response(JSON.stringify({ message: 'Request timed out. Please try again.', retryAfter: 5 }), { status: 503, headers: { 'Content-Type': 'application/json', 'Retry-After': '5' } })), GLOBAL_TIMEOUT_MS))]);
 }
 
 export function getCircuitDiagnostics() {
-  return Object.fromEntries(
-    [...circuits.entries()].map(([k, v]) => [k, {
-      ejected: v.ejectedUntil > Date.now(),
-      permanent: v.permanent,
-      failures: v.failures.length,
-      errors: v.totalErrors,
-      rlHits: v.rateLimitHits,
-      avgLatency: v.requestCount > 0 ? Math.round(v.totalLatency / v.requestCount) : 0,
-      requests: v.requestCount,
-      lastStatus: v.lastFailStatus,
-      lastError: v.lastFailError,
-    }])
-  );
+  return Object.fromEntries([...circuits.entries()].map(([k, v]) => [k, {
+    ejected: v.ejectedUntil > Date.now(), permanent: v.permanent, failures: v.failures.length,
+    errors: v.totalErrors, requests: v.requests, lastStatus: v.lastStatus, lastError: v.lastError,
+  }]));
 }

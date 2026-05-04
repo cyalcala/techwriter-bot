@@ -1,616 +1,178 @@
 import type { APIRoute } from 'astro';
 import { env as cfGlobalEnv } from 'cloudflare:workers';
-import { routeChat, getCircuitDiagnostics, type TierConfig, type ResponseMetadata } from '../../lib/zen-router';
-import { searchReddit, type SearchSource } from '../../lib/search-reddit';
-import { searchTavily, searchExa, checkEnhancedBudget, incrementEnhancedBudget, getEnhancedCredits, useEnhancedCredit } from '../../lib/search-enhanced';
+import { routeChat, getCircuitDiagnostics, type ResponseMetadata } from '../../lib/zen-router';
+import { searchRouter } from '../../lib/search';
+import { buildSystemPrompt } from '../../lib/prompts';
+import { readEnvKeys, checkEnvKeys } from '../../lib/env-reader';
 import { updateReputation, getDefaultState, deserializeReputation, serializeReputation, getTierProviderPool, getDailyLimits, type ReputationState } from '../../lib/reputation';
-import { classifyQuery, filterRelevantResults, formatConversationalResponse, extractKeyTerms } from '../../lib/relevance';
 
-interface RateLimitEntry { count: number; resetTime: number; }
-const rateLimits = new Map<string, RateLimitEntry>();
-const RATE_LIMIT_WINDOW = 60 * 1000;
-const MAX_REQUESTS_PER_WINDOW = 20;
-const MAX_BODY_SIZE = 64 * 1024;
-
-function bindSession(sessionId: string, ip: string, ua: string): string {
-  const data = `${sessionId}|${ip}|${ua.slice(0, 100)}`;
-  let hash = 0;
-  for (let i = 0; i < data.length; i++) {
-    const ch = data.charCodeAt(i);
-    hash = ((hash << 5) - hash) + ch;
-    hash |= 0;
-  }
-  return `s_${Math.abs(hash).toString(36)}`;
-}
-
-function validateMessages(messages: any[]): boolean {
-  if (!Array.isArray(messages)) return false;
-  for (const m of messages) {
-    if (typeof m !== 'object' || m === null) return false;
-    if (!['user', 'assistant', 'system'].includes(m.role)) return false;
-    if (typeof m.content !== 'string') return false;
-    if (m.role === 'assistant' && m.content.length > 8000) return false;
-  }
-  return true;
-}
-
-interface SearchResult {
-  contextParts: string[];
-  sources: { title: string; url: string; provider?: string }[];
-  searchTier: 'none' | 'basic' | 'enhanced';
-  searchAttempted: boolean;
-  enhancedRemaining?: number;
-}
-
+const rateLimits = new Map<string, { count: number; reset: number }>();
+const RATE_WINDOW = 60_000;
+const MAX_RATE = 20;
+const MAX_BODY = 64 * 1024;
 const dailyUsage = new Map<string, number>();
-let lastDailyReset = Date.now() + 86400000;
+let dailyReset = Date.now() + 86400000;
 
 if (typeof setInterval !== 'undefined') {
   setInterval(() => {
     const now = Date.now();
-    rateLimits.forEach((v, k) => { if (now > v.resetTime) rateLimits.delete(k); });
-    if (now > lastDailyReset) { dailyUsage.clear(); lastDailyReset = now + 86400000; }
-    searchCache.forEach((v, k) => { if (now - v.ts > 900_000) searchCache.delete(k); });
+    for (const [k, v] of rateLimits) { if (now > v.reset) rateLimits.delete(k); }
+    if (now > dailyReset) { dailyUsage.clear(); dailyReset = now + 86400000; }
   }, 60_000);
+}
+
+function bindSession(sid: string, ip: string, ua: string): string {
+  let h = 0; const d = `${sid}|${ip}|${ua.slice(0, 100)}`;
+  for (let i = 0; i < d.length; i++) { h = ((h << 5) - h) + d.charCodeAt(i); h |= 0; }
+  return `s_${Math.abs(h).toString(36)}`;
+}
+
+function validateMessages(msgs: any[]): boolean {
+  if (!Array.isArray(msgs)) return false;
+  for (const m of msgs) {
+    if (!m || typeof m !== 'object') return false;
+    if (!['user', 'assistant', 'system'].includes(m.role)) return false;
+    if (typeof m.content !== 'string') return false;
+  }
+  return true;
 }
 
 function checkRateLimit(ip: string): boolean {
   const now = Date.now();
-  const entry = rateLimits.get(ip);
-  if (!entry || now > entry.resetTime) { rateLimits.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW }); return true; }
-  if (entry.count >= MAX_REQUESTS_PER_WINDOW) return false;
-  entry.count++; return true;
+  const e = rateLimits.get(ip);
+  if (!e || now > e.reset) { rateLimits.set(ip, { count: 1, reset: now + RATE_WINDOW }); return true; }
+  if (e.count >= MAX_RATE) return false;
+  e.count++; return true;
+}
+
+const ALLOWED_ORIGINS = ['https://tw-bot.pages.dev', 'https://techwriter-bot.pages.dev', 'http://localhost:4321', 'http://localhost:3000'];
+
+function checkCSRF(req: Request): boolean {
+  const origin = req.headers.get('origin'); const referer = req.headers.get('referer');
+  if (!origin && !referer) return true;
+  const ok = (url: string) => { try { const p = new URL(url); return ALLOWED_ORIGINS.some(a => `${p.protocol}//${p.host}`.startsWith(a) || a.startsWith(`${p.protocol}//${p.host}`)); } catch { return false; } };
+  if (origin && !ok(origin)) return false;
+  if (referer && !ok(referer)) return false;
+  return true;
 }
 
 function sanitizeInput(input: any): any {
   if (typeof input === 'string') return input.slice(0, 8000).replace(/[\x00-\x1F\x7F]/g, '');
   if (Array.isArray(input)) return input.map(sanitizeInput);
-  if (input && typeof input === 'object') {
-    const sanitized: any = {};
-    for (const key of ['role', 'content', 'name']) { if (input[key] != null) sanitized[key] = sanitizeInput(input[key]); }
-    return sanitized;
-  }
+  if (input && typeof input === 'object') { const s: any = {}; for (const k of ['role', 'content', 'name']) { if (input[k] != null) s[k] = sanitizeInput(input[k]); } return s; }
   return input;
 }
 
-const ALLOWED_ORIGINS = [
-  'https://tw-bot.pages.dev',
-  'https://techwriter-bot.pages.dev',
-  'http://localhost:4321',
-  'http://localhost:3000',
-];
-
-function checkCSRF(request: Request): boolean {
-  const origin = request.headers.get('origin');
-  const referer = request.headers.get('referer');
-  if (!origin && !referer) return true;
-  const checkUrl = (url: string): boolean => {
-    try {
-      const parsed = new URL(url);
-      const hostPart = `${parsed.protocol}//${parsed.host}`;
-      return ALLOWED_ORIGINS.some(allowed => hostPart.startsWith(allowed) || allowed.startsWith(hostPart));
-    } catch { return false; }
-  };
-  if (origin && !checkUrl(origin)) return false;
-  if (referer && !checkUrl(referer)) return false;
-  return true;
-}
-
-async function verifyTurnstileToken(token: string, secret: string): Promise<boolean> {
+async function verifyTurnstile(token: string, secret: string): Promise<boolean> {
   if (!token || !secret) return true;
-  try {
-    const form = new FormData();
-    form.append('secret', secret);
-    form.append('response', token);
-    const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', { method: 'POST', body: form });
-    const data = await res.json() as any;
-    return !!data.success;
-  } catch (e: any) {
-    console.log(JSON.stringify({ event: 'turnstile_verify_error', message: e.message?.slice(0, 200) }));
-    return false;
-  }
+  try { const f = new FormData(); f.append('secret', secret); f.append('response', token); const r = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', { method: 'POST', body: f }); const d = await r.json() as any; return !!d.success; }
+  catch { return false; }
 }
 
-function isBotUserAgent(ua: string): boolean {
-  if (!ua) return true;
-  const lower = ua.toLowerCase();
-  const botPatterns = ['curl', 'wget', 'python', 'go-http', 'bot', 'scrape', 'crawler', 'spider', 'headless', 'axios', 'node-fetch', 'libwww'];
-  return botPatterns.some(p => lower.includes(p)) || lower.length < 10;
+function isBotUA(ua: string): boolean {
+  const bots = ['curl', 'wget', 'python', 'go-http', 'bot', 'scrape', 'crawler', 'spider', 'headless', 'axios', 'node-fetch', 'libwww'];
+  return !ua || bots.some(p => ua.toLowerCase().includes(p)) || ua.length < 10;
 }
 
-const DATA_CENTER_ASNS = new Set([
-  '14061', '24940', '16276', '51167', '200130', '202448',
-  '13213', '60068', '20473', '202015', '201206', '197133',
-]);
+const DC_ASNS = new Set(['14061', '24940', '16276', '51167', '200130', '202448', '13213', '60068', '20473', '202015', '201206', '197133']);
+function isDC(asn: string): boolean { return !!asn && DC_ASNS.has(asn.replace(/[^0-9]/g, '')); }
 
-function isDatacenterASN(asn: string): boolean {
-  if (!asn) return false;
-  return DATA_CENTER_ASNS.has(asn.replace(/[^0-9]/g, ''));
+function loadEnv(locals: any): any {
+  const env: any = {};
+  try { if (cfGlobalEnv) Object.assign(env, cfGlobalEnv); } catch {}
+  try { const r = (locals as any)?.runtime?.env; if (r) for (const [k, v] of Object.entries(r)) { if (v != null && !env[k]) env[k] = v; } } catch {}
+  readEnvKeys(env);
+  return env;
 }
 
-const searchCache = new Map<string, { result: string; ts: number }>();
-const SEARCH_CACHE_MS = 900_000;
-const DDG_TIMEOUT_MS = 3000;
-const WIKI_TIMEOUT_MS = 4000;
-
-function searchCacheKey(query: string): string {
-  return query.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim().slice(0, 80);
-}
-
-async function searchDuckDuckGo(query: string): Promise<SearchSource | null> {
-  const key = searchCacheKey(query);
-  const cached = searchCache.get(key);
-  if (cached && Date.now() - cached.ts < SEARCH_CACHE_MS) {
-    return { title: 'DuckDuckGo', url: `https://duckduckgo.com/?q=${encodeURIComponent(query)}`, content: cached.result, provider: 'ddg' };
-  }
-
-  try {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), DDG_TIMEOUT_MS);
-    const res = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`, { signal: ctrl.signal });
-    clearTimeout(t);
-    if (!res.ok) return null;
-
-    const data = await res.json() as any;
-    const parts: string[] = [];
-    if (data.Answer) parts.push(data.Answer);
-    if (data.AbstractText) parts.push(data.AbstractText);
-    if (data.Definition) parts.push(data.Definition);
-    if (data.Heading) parts.push(`Topic: ${data.Heading}`);
-    const topics = data.RelatedTopics?.slice(0, 5)?.filter((t: any) => t.Text)?.map((t: any) => `- ${t.Text}`) || [];
-    if (topics.length) parts.push(topics.join('\n'));
-    const results = data.Results?.slice(0, 3)?.filter((r: any) => r.Text)?.map((r: any) => `${r.FirstURL}: ${r.Text}`) || [];
-    if (results.length) parts.push(results.join('\n'));
-
-    if (parts.length === 0) return null;
-
-    const content = parts.join('\n\n');
-    const firstResultUrl = (data.Results?.[0] as any)?.FirstURL || data.AbstractURL || `https://duckduckgo.com/?q=${encodeURIComponent(query)}`;
-    searchCache.set(key, { result: content, ts: Date.now() });
-    return { title: 'DuckDuckGo', url: firstResultUrl, content, provider: 'ddg' };
-  } catch (e: any) {
-    console.log(JSON.stringify({ event: 'ddg_error', message: e.message?.slice(0, 200), query: query.slice(0, 80) }));
-    return null;
-  }
-}
-
-async function searchWikipedia(query: string): Promise<SearchSource | null> {
-  try {
-    const params = new URLSearchParams({ action: 'query', list: 'search', srsearch: query, format: 'json', srlimit: '3' });
-    const res = await fetch(`https://en.wikipedia.org/w/api.php?${params}`, { signal: AbortSignal.timeout(WIKI_TIMEOUT_MS) });
-    if (!res.ok) return null;
-    const data = await res.json() as any;
-    const results = data?.query?.search;
-    if (!results?.length) return null;
-
-    const pages = results.slice(0, 2);
-    const parts: string[] = [];
-    let firstUrl = '';
-    for (const page of pages) {
-      const snippet = (page.snippet || '').replace(/<[^>]+>/g, '');
-      const url = `https://en.wikipedia.org/wiki/${encodeURIComponent((page.title || '').replace(/ /g, '_'))}`;
-      if (!firstUrl) firstUrl = url;
-      parts.push(`${page.title}: ${snippet}`);
-    }
-    return { title: `Wikipedia: ${query.slice(0, 50)}`, url: firstUrl, content: parts.join('\n\n'), provider: 'wikipedia' };
-  } catch (e: any) {
-    console.log(JSON.stringify({ event: 'wiki_error', message: e.message?.slice(0, 200), query: query.slice(0, 80) }));
-    return null;
-  }
-}
-
-async function searchRouter(
-  query: string,
-  liveSearch: boolean,
-  env: any,
-  clientIP: string,
-  repState: ReputationState,
-): Promise<SearchResult> {
-  const contextParts: string[] = [];
-  const sources: { title: string; url: string; provider?: string }[] = [];
-  let sourceIdx = 0;
-  let searchTier: 'none' | 'basic' | 'enhanced' = 'none';
-  let searchAttempted = false;
-  let enhancedRemaining: number | undefined;
-
-  const classified = classifyQuery(query);
-  if (classified === 'greeting' || classified === 'conversational') {
-    return { contextParts, sources, searchTier: 'none', searchAttempted: false };
-  }
-
-  searchAttempted = true;
-
-  let enhancedResults: (SearchSource | null)[] = [];
-  let basicFetchPromise: Promise<(SearchSource | null)[]> | null = null;
-
-  const searchQuery = extractKeyTerms(query) || query;
-
-  if (liveSearch) {
-    const devIPs = (env.DEV_IPS || '').split(',').map((s: string) => s.trim()).filter(Boolean);
-    const isDev = devIPs.includes(clientIP);
-
-    const tier = repState.tier;
-    const limits = getDailyLimits(tier);
-
-    if (isDev || limits.enhancedPerDay > 0) {
-      if (!isDev) {
-        const creds = await getEnhancedCredits(env.SESSION, clientIP);
-        if (creds.remaining <= 0) {
-          console.log(JSON.stringify({ event: 'enhanced_exhausted', ip: clientIP.slice(0, 8) }));
-        } else {
-          const monthKey = new Date().toISOString().slice(0, 7);
-          const tavilyBudget = await checkEnhancedBudget(env.SESSION, 'tavily', monthKey);
-          const exaBudget = await checkEnhancedBudget(env.SESSION, 'exa', monthKey);
-
-          if (tavilyBudget && exaBudget) {
-            const tavilyKey = env.TAVILY_API_KEY || '';
-            const exaKey = env.EXA_API_KEY || '';
-
-            if (tavilyKey || exaKey) {
-              await useEnhancedCredit(env.SESSION, clientIP);
-              searchTier = 'enhanced';
-
-              enhancedResults = await Promise.all([
-                tavilyKey ? searchTavily(searchQuery, tavilyKey) : null,
-                exaKey ? searchExa(searchQuery, exaKey) : null,
-              ]);
-
-              if (tavilyKey) await incrementEnhancedBudget(env.SESSION, 'tavily', monthKey);
-              if (exaKey) await incrementEnhancedBudget(env.SESSION, 'exa', monthKey);
-
-              const refreshedCreds = await getEnhancedCredits(env.SESSION, clientIP);
-              enhancedRemaining = refreshedCreds.remaining;
-            }
-          } else {
-            console.log(JSON.stringify({ event: 'budget_exhausted', monthKey }));
-          }
-        }
-      } else {
-        searchTier = 'enhanced';
-        enhancedRemaining = -1;
-        enhancedResults = await Promise.all([
-          env.TAVILY_API_KEY ? searchTavily(searchQuery, env.TAVILY_API_KEY || '') : null,
-          env.EXA_API_KEY ? searchExa(searchQuery, env.EXA_API_KEY || '') : null,
-        ]);
-      }
-    }
-
-    basicFetchPromise = Promise.all([
-      searchDuckDuckGo(searchQuery),
-      searchWikipedia(searchQuery),
-      searchReddit(searchQuery),
-    ]);
-  } else {
-    basicFetchPromise = Promise.all([
-      searchDuckDuckGo(searchQuery),
-      searchWikipedia(searchQuery),
-      searchReddit(searchQuery),
-    ]);
-  }
-
-  const basicResults = await basicFetchPromise;
-
-  const allResults: SearchSource[] = [];
-  const seenUrls = new Set<string>();
-
-  const addResults = (results: (SearchSource | null)[]) => {
-    for (const r of results) {
-      if (!r || seenUrls.has(r.url)) continue;
-      seenUrls.add(r.url);
-      allResults.push(r);
-    }
-  };
-
-  addResults(enhancedResults);
-  addResults(basicResults);
-
-  const scored = allResults.map(r => {
-    if (r.provider === 'ddg' || r.provider === 'wikipedia') {
-      return { result: r, score: 999 };
-    }
-    return { result: r, score: 0 };
-  });
-
-  const sorted = scored.sort((a, b) => b.score - a.score).map(s => s.result);
-
-  const relevant = searchTier === 'enhanced'
-    ? filterRelevantResults(sorted, searchQuery, 1.0)
-    : sorted;
-
-  for (const r of relevant) {
-    sourceIdx++;
-    const providerLabel = r.provider ? `[${sourceIdx}: ${r.provider.toUpperCase()}]` : `[${sourceIdx}]`;
-    contextParts.push(`${providerLabel}\n${r.content}`);
-    sources.push({ title: r.title, url: r.url, provider: r.provider });
-  }
-
-  if (searchTier === 'enhanced' && contextParts.length === 0) {
-    searchTier = 'basic';
-    sourceIdx = 0;
-    contextParts.length = 0;
-    sources.length = 0;
-    seenUrls.clear();
-
-    for (const r of basicResults) {
-      if (!r || seenUrls.has(r.url)) continue;
-      seenUrls.add(r.url);
-      sourceIdx++;
-      const providerLabel = r.provider ? `[${sourceIdx}: ${r.provider.toUpperCase()}]` : `[${sourceIdx}]`;
-      contextParts.push(`${providerLabel}\n${r.content}`);
-      sources.push({ title: r.title, url: r.url, provider: r.provider });
-    }
-  }
-
-  if (searchAttempted && searchTier === 'none') {
-    searchTier = 'basic';
-  }
-
-  if (searchAttempted && contextParts.length === 0 && searchQuery !== query) {
-    console.log(JSON.stringify({ event: 'search_retry_original', query: query.slice(0, 80) }));
-    const retryResults = await Promise.all([
-      searchDuckDuckGo(query),
-      searchWikipedia(query),
-      searchReddit(query),
-    ]);
-
-    for (const r of retryResults) {
-      if (!r || seenUrls.has(r.url)) continue;
-      seenUrls.add(r.url);
-      sourceIdx++;
-      const providerLabel = r.provider ? `[${sourceIdx}: ${r.provider.toUpperCase()}]` : `[${sourceIdx}]`;
-      contextParts.push(`${providerLabel}\n${r.content}`);
-      sources.push({ title: r.title, url: r.url, provider: r.provider });
-    }
-  }
-
-  return { contextParts, sources, searchTier, searchAttempted, enhancedRemaining };
-}
-
-function buildSystemPrompt(
-  query: string,
-  searchResult: SearchResult,
-): string {
-  const now = new Date();
-  const dayName = now.toLocaleDateString('en-US', { weekday: 'long' });
-  const dateStr = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  const year = now.getFullYear();
-
-  const dateLayer = `Today is ${dayName}, ${dateStr}. Current year is ${year}. Your training data ended in 2023. You are NOT current unless the search sources below provide up-to-date information.`;
-
-  const classification = classifyQuery(query);
-  const conversationalBlock = formatConversationalResponse(classification);
-
-  const artifactLayer = `When generating code blocks, HTML, SVG, Mermaid diagrams, or React components, wrap them in <artifact type="code|html|svg|mermaid|react" placement="inline" title="Descriptive Name">...</artifact> tags. Use type="code" with language attribute for code blocks. For Mermaid diagrams: use plain text labels only — NO HTML tags, NO <br/>, NO formatting markup inside node labels. Use newlines or separate nodes instead. Example: A[Planning] --> B[Research] (NOT A[Planning<br/>Define] --> B).`;
-
-  if (searchResult.searchTier === 'none') {
-    const artifactLine = `When generating code blocks, HTML, SVG, Mermaid diagrams, or React components, wrap them in <artifact type="code|html|svg|mermaid|react" placement="inline" title="Descriptive Name">...</artifact> tags. Use type="code" with language attribute for code blocks. For Mermaid diagrams: use plain text labels only — NO HTML tags, NO <br/>, NO formatting markup inside node labels.`;
-    if (conversationalBlock) {
-      return `${dateLayer}\n\n${conversationalBlock}\n\n${artifactLine}`;
-    }
-    return `${dateLayer}\n\nYou are a helpful technical writing assistant. Be conversational when appropriate. If the user's query is ambiguous, you may offer to help with writing, coding, or research.\n\n${artifactLine}`;
-  }
-
-  if (searchResult.contextParts.length === 0) {
-    return `${dateLayer}\n\nIMPORTANT: A live web search was attempted but returned NO results. Your training data ended in 2023. You are NOT current. DO NOT fabricate news, recent events, or claim to have up-to-date information. Be honest: tell the user you couldn't find current results for their query. Offer to help with what your pre-2023 training data covers, always labeling it explicitly as "[Pre-2023 knowledge]."\n\n${artifactLayer}`;
-  }
-
-  const isEnhanced = searchResult.searchTier === 'enhanced';
-
-  let searchLayer: string;
-  if (isEnhanced) {
-    searchLayer = `ENHANCED LIVE SEARCH (DDG + Wikipedia + Reddit + Tavily + Exa):\n${searchResult.contextParts.join('\n\n')}\n\nBase your ENTIRE response on these results, which are comprehensive and current. EVERY factual claim MUST cite sources using [1]-[${searchResult.sources.length}] format. Do NOT use your training data unless ALL sources are silent on the topic.`;
-  } else {
-    searchLayer = `BASIC LIVE SEARCH (DDG + Wikipedia + Reddit):\n${searchResult.contextParts.join('\n\n')}\n\nBase your answer on these sources. Cite sources using [1]-[${searchResult.sources.length}] format. If sources don't fully answer the question, you may supplement with pre-2023 knowledge but you MUST label pre-2023 knowledge explicitly as "[Pre-2023 knowledge]".`;
-  }
-
-  return `${dateLayer}\n\n${searchLayer}\n\n${artifactLayer}`;
-}
-
-async function getOrCreateReputation(
-  kv: any,
-  clientIP: string,
-  requestHeaders: Headers,
-): Promise<ReputationState> {
-  let state = getDefaultState();
-
-  if (kv) {
-    try {
-      const raw = await kv.get(`reputation:${clientIP}`);
-      if (raw) state = deserializeReputation(raw);
-    } catch {}
-  }
-
-  const ua = requestHeaders.get('user-agent') || '';
-  const cfBotScore = requestHeaders.get('cf-bot-score');
-  const cfASN = requestHeaders.get('cf-asn') || '';
-
-  if (isBotUserAgent(ua)) {
-    state = updateReputation(state, 'bot_ua', { userAgent: ua });
-  } else if (cfBotScore && parseFloat(cfBotScore) >= 1) {
-    state = updateReputation(state, 'bot_ua', { userAgent: ua });
-  }
-
-  if (isDatacenterASN(cfASN)) {
-    state = updateReputation(state, 'datacenter_ip', { asn: cfASN, ip: clientIP });
-  }
-
-  state = updateReputation(state, 'request');
-
-  return state;
-}
-
-function readEnvKeys(baseEnv: any): any {
-  const pairs: [string, string | undefined][] = [
-    ['GROQ_API_KEY', import.meta.env.GROQ_API_KEY],
-    ['CEREBRAS_API_KEY', import.meta.env.CEREBRAS_API_KEY],
-    ['GEMINI_API_KEY', import.meta.env.GEMINI_API_KEY],
-    ['NVIDIA_API_KEY', import.meta.env.NVIDIA_API_KEY],
-    ['OPENROUTER_API_KEY', import.meta.env.OPENROUTER_API_KEY],
-    ['TAVILY_API_KEY', import.meta.env.TAVILY_API_KEY],
-    ['EXA_API_KEY', import.meta.env.EXA_API_KEY],
-    ['TURNSTILE_SECRET_KEY', import.meta.env.TURNSTILE_SECRET_KEY],
-    ['DEV_IPS', import.meta.env.DEV_IPS],
-  ];
-  for (const [k, v] of pairs) {
-    if (v && !baseEnv[k]) baseEnv[k] = v;
-  }
+async function getReputation(kv: any, ip: string, headers: Headers): Promise<ReputationState> {
+  let s = getDefaultState();
+  if (kv) { try { const raw = await kv.get(`reputation:${ip}`); if (raw) s = deserializeReputation(raw); } catch {} }
+  const ua = headers.get('user-agent') || '';
+  if (isBotUA(ua)) s = updateReputation(s, 'bot_ua', { userAgent: ua });
+  else if (headers.get('cf-bot-score') && parseFloat(headers.get('cf-bot-score')!) >= 1) s = updateReputation(s, 'bot_ua', { userAgent: ua });
+  if (isDC(headers.get('cf-asn') || '')) s = updateReputation(s, 'datacenter_ip', { ip });
+  return updateReputation(s, 'request');
 }
 
 export const GET: APIRoute = async ({ request, locals }) => {
-  let env: any = {};
-  try { if (cfGlobalEnv) env = { ...(cfGlobalEnv as any) }; } catch (e) {}
-  try { const rEnv = (locals as any)?.runtime?.env; if (rEnv) for (const [k, v] of Object.entries(rEnv)) { if (v != null && !env[k]) env[k] = v; } } catch (e) {}
-  readEnvKeys(env);
-
-  const keyNames = ['GROQ_API_KEY', 'CEREBRAS_API_KEY', 'GEMINI_API_KEY', 'NVIDIA_API_KEY', 'OPENROUTER_API_KEY', 'TAVILY_API_KEY', 'EXA_API_KEY', 'TURNSTILE_SECRET_KEY', 'DEV_IPS'];
-  const keys: Record<string, boolean> = {};
-  for (const k of keyNames) {
-    keys[k] = typeof env[k] === 'string' && (env[k] as string).trim().length > 0;
-  }
-
+  const env = loadEnv(locals);
   return new Response(JSON.stringify({
-    status: 'ok',
-    circuits: getCircuitDiagnostics(),
+    status: 'ok', circuits: getCircuitDiagnostics(),
     dailyRequests: [...dailyUsage.entries()].reduce((a, [, c]) => a + c, 0),
-    keys,
-    clientIP: request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'unknown',
+    keys: checkEnvKeys(env),
+    clientIP: request.headers.get('cf-connecting-ip') || 'unknown',
   }, null, 2), { headers: { 'Content-Type': 'application/json' } });
 };
 
-export const POST: APIRoute = async (context) => {
-  const { request, locals } = context;
+export const POST: APIRoute = async (ctx) => {
+  const { request, locals } = ctx;
+  const env = loadEnv(locals);
+  const ip = request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'unknown';
 
-  let env: any = {};
-  try { if (cfGlobalEnv) env = { ...(cfGlobalEnv as any) }; } catch (e) {}
-  try { const rEnv = (locals as any)?.runtime?.env; if (rEnv) for (const [k, v] of Object.entries(rEnv)) { if (v != null && !env[k]) env[k] = v; } } catch (e) {}
-  readEnvKeys(env);
-
-  const clientIP = request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'unknown';
-
-  if (!checkCSRF(request)) {
-    return new Response(JSON.stringify({ error: 'forbidden' }), { status: 403 });
-  }
-
-  if (!checkRateLimit(clientIP)) {
-    return new Response(JSON.stringify({ error: 'rate_limit' }), { status: 429 });
-  }
+  if (!checkCSRF(request)) return new Response(JSON.stringify({ error: 'forbidden' }), { status: 403 });
+  if (!checkRateLimit(ip)) return new Response(JSON.stringify({ error: 'rate_limit' }), { status: 429 });
 
   const devIPs = (env.DEV_IPS || '').split(',').map((s: string) => s.trim()).filter(Boolean);
-  const isDev = devIPs.includes(clientIP);
+  const isDev = devIPs.includes(ip);
 
-  let repState = getDefaultState();
+  let rep = getDefaultState();
   if (!isDev) {
-    repState = await getOrCreateReputation(env.SESSION, clientIP, request.headers);
-
-    if (repState.tier === 'blocked') {
-      return new Response(JSON.stringify({ error: 'access_denied', message: 'Access temporarily suspended due to suspicious activity. Try again later.' }), { status: 403 });
-    }
-
-    const tier = repState.tier;
-    const limits = getDailyLimits(tier);
-
-    const dailyCount = (dailyUsage.get(clientIP) || 0) + 1;
-    dailyUsage.set(clientIP, dailyCount);
-    if (dailyCount > limits.chatPerDay) {
-      return new Response(JSON.stringify({ error: 'daily_limit' }), { status: 429 });
-    }
+    rep = await getReputation(env.SESSION, ip, request.headers);
+    if (rep.tier === 'blocked') return new Response(JSON.stringify({ error: 'access_denied', message: 'Access temporarily suspended.' }), { status: 403 });
+    const dc = (dailyUsage.get(ip) || 0) + 1; dailyUsage.set(ip, dc);
+    if (dc > getDailyLimits(rep.tier).chatPerDay) return new Response(JSON.stringify({ error: 'daily_limit' }), { status: 429 });
   } else {
-    const dailyCount = (dailyUsage.get(clientIP) || 0) + 1;
-    dailyUsage.set(clientIP, dailyCount);
-    if (dailyCount > 500) {
-      return new Response(JSON.stringify({ error: 'daily_limit' }), { status: 429 });
-    }
+    const dc = (dailyUsage.get(ip) || 0) + 1; dailyUsage.set(ip, dc);
+    if (dc > 500) return new Response(JSON.stringify({ error: 'daily_limit' }), { status: 429 });
   }
 
-  if (Number(request.headers.get('content-length') || '0') > MAX_BODY_SIZE) {
-    return new Response(JSON.stringify({ error: 'request_too_large' }), { status: 413 });
-  }
+  if (Number(request.headers.get('content-length') || '0') > MAX_BODY) return new Response(JSON.stringify({ error: 'too_large' }), { status: 413 });
 
   try {
     const body = await request.json().catch(() => null);
-    if (!body?.messages || !Array.isArray(body.messages)) {
-      return new Response(JSON.stringify({ error: 'invalid_request' }), { status: 400 });
-    }
-
-    if (!validateMessages(body.messages)) {
-      return new Response(JSON.stringify({ error: 'invalid_messages', message: 'Messages must have valid role and content fields.' }), { status: 400 });
-    }
-
-    const rawSessionId = String(body.sessionId || '');
-
-    const ua = request.headers.get('user-agent') || '';
-    const sessionId = rawSessionId ? bindSession(rawSessionId, clientIP, ua) : '';
+    if (!body?.messages || !Array.isArray(body.messages)) return new Response(JSON.stringify({ error: 'invalid' }), { status: 400 });
+    if (!validateMessages(body.messages)) return new Response(JSON.stringify({ error: 'invalid_messages' }), { status: 400 });
 
     if (env.TURNSTILE_SECRET_KEY) {
-      const turnstileOk = await verifyTurnstileToken(body.turnstileToken, env.TURNSTILE_SECRET_KEY);
-      if (!turnstileOk) {
-        if (!isDev) repState = updateReputation(repState, 'turnstile_fail');
-        return new Response(JSON.stringify({ error: 'captcha_failed', message: 'Turnstile verification failed.' }), { status: 403 });
-      }
-      if (!isDev) repState = updateReputation(repState, 'turnstile_pass');
+      const ok = await verifyTurnstile(body.turnstileToken, env.TURNSTILE_SECRET_KEY);
+      if (!ok) { if (!isDev) rep = updateReputation(rep, 'turnstile_fail'); return new Response(JSON.stringify({ error: 'captcha_failed' }), { status: 403 }); }
+      if (!isDev) rep = updateReputation(rep, 'turnstile_pass');
     }
+
+    const ua = request.headers.get('user-agent') || '';
+    const sessionId = body.sessionId ? bindSession(String(body.sessionId), ip, ua) : '';
 
     let messages = sanitizeInput(body.messages);
     const liveSearch = !!body.liveSearch;
-
-    const lastUserMsg = [...messages].reverse().find((m: any) => m.role === 'user');
-    const userQuery = lastUserMsg?.content || '';
+    const lastMsg = [...messages].reverse().find((m: any) => m.role === 'user');
+    const query = lastMsg?.content || '';
 
     if (!isDev) {
-      repState = updateReputation(repState, 'dup_query', { message: userQuery });
-      repState = updateReputation(repState, 'natural_message', { message: userQuery });
+      rep = updateReputation(rep, 'dup_query', { message: query });
+      rep = updateReputation(rep, 'natural_message', { message: query });
     }
 
-    const searchResult = liveSearch
-      ? await searchRouter(userQuery, true, env, clientIP, repState)
-      : await searchRouter(userQuery, false, env, clientIP, repState);
-
+    const searchResult = await searchRouter(query, liveSearch, env, ip, rep);
     const sources = searchResult.sources || [];
+    messages = [{ role: 'system', content: buildSystemPrompt(query, searchResult) }, ...messages];
 
-    const systemContent = buildSystemPrompt(userQuery, searchResult);
-    messages = [{ role: 'system', content: systemContent }, ...messages];
-
-    if (!isDev) {
-      try {
-        if (env.SESSION) {
-          const serialized = serializeReputation(repState);
-          await env.SESSION.put(`reputation:${clientIP}`, serialized, { expirationTtl: 2 * 3600 });
-        }
-      } catch (e: any) {
-        console.log(JSON.stringify({ event: 'rep_save_error', message: e.message?.slice(0, 100) }));
-      }
+    if (!isDev && env.SESSION) {
+      try { await env.SESSION.put(`reputation:${ip}`, serializeReputation(rep), { expirationTtl: 7200 }); } catch {}
     }
 
-    const tier = isDev ? 'premium' : repState.tier;
-    const tierPool = isDev ? { allowedProviders: ['groq-fast', 'gemini-flash'], maxTokens: 4096 } : { allowedProviders: getTierProviderPool(tier).pool, maxTokens: getTierProviderPool(tier).maxTokens || 4096 };
+    const tier = isDev ? 'premium' : rep.tier;
+    const pool = isDev ? ['groq-fast', 'gemini-flash'] : getTierProviderPool(tier).pool;
 
-    const searchRemaining = searchResult.enhancedRemaining != null
-      ? String(searchResult.enhancedRemaining)
-      : (isDev ? 'unlimited' : '0');
-
-    const metadata: ResponseMetadata = {
-      provider: null,
-      searchTier: searchResult.searchTier,
-      searchRemaining,
+    const meta: ResponseMetadata = {
+      provider: null, searchTier: searchResult.searchTier,
+      searchRemaining: searchResult.enhancedRemaining != null ? String(searchResult.enhancedRemaining) : (isDev ? 'unlimited' : '0'),
       tier: isDev ? 'dev' : tier,
     };
 
-    return await routeChat(
-      body.intent || 'chat-fast',
-      messages,
-      locals,
-      env,
-      sessionId,
-      sources,
-      metadata,
-      tierPool,
-    );
-  } catch (error: any) {
-    console.log(JSON.stringify({ event: 'processing_error', message: error.message?.slice(0, 200) }));
-    return new Response(JSON.stringify({
-      error: 'processing_error',
-      message: 'An unexpected error occurred. Please try again.',
-      retryAfter: 5,
-    }), { status: 500, headers: { 'Content-Type': 'application/json', 'Retry-After': '5' } });
+    return await routeChat(body.intent || 'chat-fast', messages, locals, env, sessionId, sources, meta, pool);
+  } catch (e: any) {
+    console.log(JSON.stringify({ event: 'error', message: e.message?.slice(0, 200) }));
+    return new Response(JSON.stringify({ error: 'server_error', message: 'Unexpected error.', retryAfter: 5 }), { status: 500, headers: { 'Content-Type': 'application/json', 'Retry-After': '5' } });
   }
 };
