@@ -293,29 +293,35 @@ export async function routeChat(
       } else if (RETRYABLE_STATUSES.has(status)) {
         recordTransientFailure(provider.id, status === 429, status);
         if (status === 429) {
-          await new Promise(r => setTimeout(r, 1500));
-          const retryRes = await callProvider(provider, messages, env, maxTokens);
-          if (retryRes.ok) {
-            recordSuccess(provider.id, Date.now() - start);
-            if (session) {
-              if (session.lockedProviderId === null) { session.lockedProviderId = provider.id; session.turnCount = 1; }
-              else if (session.lockedProviderId === provider.id && session.turnCount < session.maxTurns) { session.turnCount++; }
-              else if (session.lockedProviderId !== provider.id) { session.lockedProviderId = provider.id; session.turnCount = 1; }
+          let retrySuccess = false;
+          for (let retry = 0; retry < 2; retry++) {
+            await new Promise(r => setTimeout(r, retry === 0 ? 1500 : 3000));
+            const retryRes = await callProvider(provider, messages, env, maxTokens);
+            if (retryRes.ok) {
+              recordSuccess(provider.id, Date.now() - start);
+              if (session) {
+                if (session.lockedProviderId === null) { session.lockedProviderId = provider.id; session.turnCount = 1; }
+                else if (session.lockedProviderId === provider.id && session.turnCount < session.maxTurns) { session.turnCount++; }
+                else if (session.lockedProviderId !== provider.id) { session.lockedProviderId = provider.id; session.turnCount = 1; }
+              }
+              const nh = new Headers(retryRes.headers);
+              nh.set('x-provider', provider.id);
+              nh.set('x-latency-ms', String(Date.now() - start));
+              nh.set('x-role', provider.role);
+              nh.set('Content-Type', 'text/event-stream');
+              if (sources && sources.length > 0) nh.set('x-sources', JSON.stringify(sources));
+              if (metadata) {
+                nh.set('x-search-tier', metadata.searchTier);
+                nh.set('x-search-remaining', metadata.searchRemaining);
+                nh.set('x-tier', metadata.tier);
+              }
+              return new Response(retryRes.body, { status: retryRes.status, headers: nh });
             }
-            const nh = new Headers(retryRes.headers);
-            nh.set('x-provider', provider.id);
-            nh.set('x-latency-ms', String(Date.now() - start));
-            nh.set('x-role', provider.role);
-            nh.set('Content-Type', 'text/event-stream');
-            if (sources && sources.length > 0) nh.set('x-sources', JSON.stringify(sources));
-            if (metadata) {
-              nh.set('x-search-tier', metadata.searchTier);
-              nh.set('x-search-remaining', metadata.searchRemaining);
-              nh.set('x-tier', metadata.tier);
-            }
-            return new Response(retryRes.body, { status: retryRes.status, headers: nh });
+            retrySuccess = true;
           }
-          console.log(JSON.stringify({ event: 'provider_retry_failed', provider: provider.id }));
+          if (retrySuccess) {
+            console.log(JSON.stringify({ event: 'provider_retry_exhausted', provider: provider.id }));
+          }
         }
       } else {
         recordTransientFailure(provider.id, false);
