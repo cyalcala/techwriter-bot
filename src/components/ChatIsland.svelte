@@ -239,6 +239,7 @@
 
   function handleGlobalKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape') {
+      if (splitArtifact) { splitArtifact = null; return; }
       if (editingMessageIdx !== null) {
         cancelEdit();
         return;
@@ -748,7 +749,8 @@
   </div>
 
   {#if splitArtifact}
-    <div class="w-[55%] min-w-[400px] border-l border-[#d6d0c4] bg-white flex flex-col overflow-hidden shadow-2xl z-10">
+    <div class="hidden md:block w-1.5 bg-[#d6d0c4] hover:bg-indigo-400 cursor-col-resize shrink-0 transition-colors z-20" role="separator"></div>
+    <div class="w-full md:w-[50%] min-w-0 md:min-w-[360px] bg-white flex flex-col overflow-hidden shadow-2xl z-10 fixed md:relative inset-0 md:inset-auto animate-in slide-in-from-right duration-200" style="resize: horizontal;">
       <div class="flex items-center justify-between px-4 py-2.5 bg-[#1e1e2e] text-white shrink-0">
         <div class="flex items-center gap-2.5 min-w-0">
           <span class="text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-md bg-purple-600">{splitArtifact.artifact.type}</span>
@@ -757,7 +759,11 @@
         <div class="flex items-center gap-1.5">
           <button on:click={() => splitTab = 'code'} class="text-[10px] px-2.5 py-1 rounded-md {splitTab === 'code' ? 'bg-white/20 text-white font-bold' : 'text-gray-400 hover:text-white'}">Code</button>
           <button on:click={() => splitTab = 'preview'} class="text-[10px] px-2.5 py-1 rounded-md {splitTab === 'preview' ? 'bg-white/20 text-white font-bold' : 'text-gray-400 hover:text-white'}">Preview</button>
-          <button on:click={() => splitArtifact = null} class="text-[10px] px-2 py-1 rounded-md text-gray-400 hover:text-white hover:bg-white/10 transition-all" title="Close">
+          <button on:click={async () => { try { await navigator.clipboard.writeText(splitArtifact.artifact.code); } catch {} }} class="text-[10px] px-2 py-1 rounded-md text-gray-400 hover:text-white hover:bg-white/10 transition-all">Copy</button>
+          <button on:click={() => { const b = new Blob([splitArtifact.artifact.code], {type:'text/plain'}); const u = URL.createObjectURL(b); const a = document.createElement('a'); a.href=u; a.download=(splitArtifact.artifact.title||'artifact').replace(/[^a-zA-Z0-9_-]/g,'_'); document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(u); }} class="text-[10px] px-2 py-1 rounded-md text-gray-400 hover:text-white hover:bg-white/10 transition-all" title="Download">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          </button>
+          <button on:click={() => splitArtifact = null} class="text-[10px] px-2 py-1 rounded-md text-gray-400 hover:text-white hover:bg-white/10 transition-all" title="Close (Esc)">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </div>
