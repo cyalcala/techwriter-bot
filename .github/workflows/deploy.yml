@@ -23,6 +23,18 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Inject env vars into wrangler.json
+        run: |
+          node -e "
+          const fs = require('fs');
+          const cfg = JSON.parse(fs.readFileSync('wrangler.json','utf8'));
+          cfg.vars = {};
+          const keys = ['GROQ_API_KEY','CEREBRAS_API_KEY','GEMINI_API_KEY','NVIDIA_API_KEY','OPENROUTER_API_KEY','TAVILY_API_KEY','EXA_API_KEY','TURNSTILE_SECRET_KEY','DEV_IPS'];
+          for (const k of keys) { if (process.env[k]) cfg.vars[k] = process.env[k]; }
+          fs.writeFileSync('wrangler.json', JSON.stringify(cfg, null, 2));
+          console.log('Injected', Object.keys(cfg.vars).length, 'env vars into wrangler.json');
+          "
+
       - name: Build
         run: npm run build
         env:
