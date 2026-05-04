@@ -336,7 +336,7 @@ export async function routeChat(
         isTimeout,
         message: e.message?.slice(0, 200),
       }));
-      recordTransientFailure(provider.id, false, 0, e.message);
+      recordTransientFailure(provider.id, false, 0, e.message || `${e.name}:${e.code || ''}`);
 
       if (isTimeout) {
         const c = circuits.get(provider.id);
