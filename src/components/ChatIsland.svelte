@@ -40,6 +40,19 @@
   let artifacts = $state<{ messageIdx: number; artifact: Artifact }[]>([]);
   let searchTier = $state<'basic' | 'enhanced' | 'none'>('basic');
   let ragDegraded = $state(false);
+  let keyStatus = $state<{ groq: boolean; gemini: boolean; cerebras: boolean } | null>(null);
+
+  async function checkKeys() {
+    try {
+      const res = await fetch('/api/chat');
+      const data = await res.json();
+      keyStatus = {
+        groq: data.keys?.GROQ_API_KEY === true,
+        gemini: data.keys?.GEMINI_API_KEY === true,
+        cerebras: data.keys?.CEREBRAS_API_KEY === true,
+      };
+    } catch { keyStatus = null; }
+  }
 
   function generateSessionId() {
     const stored = getStoredSessionId();
@@ -70,6 +83,7 @@
     runStaleCheck();
     setupCleanupCallbacks(sessionId);
     pollCredits();
+    checkKeys();
 
     isOnline = navigator.onLine;
     window.addEventListener('online', () => { isOnline = true; });
@@ -457,6 +471,12 @@
   {#if !isOnline}
     <div class="bg-amber-500 text-white text-center text-xs py-1.5 font-medium">
       You're offline. Reconnecting...
+    </div>
+  {/if}
+  {#if keyStatus && (!keyStatus.groq || !keyStatus.gemini || !keyStatus.cerebras)}
+    <div class="bg-red-500 text-white text-center text-xs py-1.5 font-medium flex items-center justify-center gap-2">
+      <span>Keys missing: {!keyStatus.groq ? 'Groq ' : ''}{!keyStatus.gemini ? 'Gemini ' : ''}{!keyStatus.cerebras ? 'Cerebras' : ''}</span>
+      <span class="opacity-70">(using fallback)</span>
     </div>
   {/if}
 
