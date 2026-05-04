@@ -439,11 +439,31 @@ async function getOrCreateReputation(
   return state;
 }
 
+function readEnvKeys(baseEnv: any): any {
+  const keys: Record<string, string | undefined> = {};
+
+  const v = (k: string, val: string | undefined) => { if (val) keys[k] = val; };
+
+  v('GROQ_API_KEY', process.env.GROQ_API_KEY);
+  v('CEREBRAS_API_KEY', process.env.CEREBRAS_API_KEY);
+  v('GEMINI_API_KEY', process.env.GEMINI_API_KEY);
+  v('NVIDIA_API_KEY', process.env.NVIDIA_API_KEY);
+  v('OPENROUTER_API_KEY', process.env.OPENROUTER_API_KEY);
+  v('TAVILY_API_KEY', process.env.TAVILY_API_KEY);
+  v('EXA_API_KEY', process.env.EXA_API_KEY);
+  v('TURNSTILE_SECRET_KEY', process.env.TURNSTILE_SECRET_KEY);
+  v('DEV_IPS', process.env.DEV_IPS);
+
+  for (const [k, v] of Object.entries(keys)) {
+    if (v && !baseEnv[k]) baseEnv[k] = v;
+  }
+}
+
 export const GET: APIRoute = async ({ request, locals }) => {
   let env: any = {};
   try { if (cfGlobalEnv) env = { ...(cfGlobalEnv as any) }; } catch (e) {}
   try { const rEnv = (locals as any)?.runtime?.env; if (rEnv) for (const [k, v] of Object.entries(rEnv)) { if (v != null && !env[k]) env[k] = v; } } catch (e) {}
-  if (typeof process !== 'undefined' && process.env) { for (const [k, v] of Object.entries(process.env)) { if (v && !env[k]) env[k] = v; } }
+  readEnvKeys(env);
 
   const keyNames = ['GROQ_API_KEY', 'CEREBRAS_API_KEY', 'GEMINI_API_KEY', 'NVIDIA_API_KEY', 'OPENROUTER_API_KEY', 'TAVILY_API_KEY', 'EXA_API_KEY', 'TURNSTILE_SECRET_KEY', 'DEV_IPS'];
   const keys: Record<string, boolean> = {};
@@ -466,7 +486,7 @@ export const POST: APIRoute = async (context) => {
   let env: any = {};
   try { if (cfGlobalEnv) env = { ...(cfGlobalEnv as any) }; } catch (e) {}
   try { const rEnv = (locals as any)?.runtime?.env; if (rEnv) for (const [k, v] of Object.entries(rEnv)) { if (v != null && !env[k]) env[k] = v; } } catch (e) {}
-  if (typeof process !== 'undefined' && process.env) { for (const [k, v] of Object.entries(process.env)) { if (v && !env[k]) env[k] = v; } }
+  readEnvKeys(env);
 
   const clientIP = request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'unknown';
 
