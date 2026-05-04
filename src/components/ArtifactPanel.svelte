@@ -2,24 +2,40 @@
   import type { Artifact, ArtifactType } from '../lib/stream-parser';
   import { loadRenderer, renderCodeArtifact, renderHtmlArtifact, renderSvgArtifact, renderMermaidArtifact, renderReactArtifact, renderKatexArtifact, renderMarkmapArtifact, renderD2Artifact, renderVegaArtifact, renderGraphvizArtifact, renderPlantUMLArtifact, renderFlowchartArtifact } from '../lib/renderer-loader';
 
-  interface Props {
-    artifact: Artifact;
-  }
-
+  interface Props { artifact: Artifact; }
   let { artifact }: Props = $props();
 
   let renderedHtml = $state('');
   let isLoaded = $state(false);
   let activeTab = $state<'code' | 'preview'>('preview');
   let copied = $state(false);
+  let collapsed = $state(false);
 
   const previewableTypes: ArtifactType[] = ['html', 'svg', 'mermaid', 'react', 'katex', 'markmap', 'd2', 'vega', 'graphviz', 'plantuml', 'flowchart'];
+
+  const typeBadgeMap: Record<string, string> = {
+    code: 'bg-slate-700 text-slate-100',
+    mermaid: 'bg-indigo-600 text-white',
+    d2: 'bg-emerald-600 text-white',
+    graphviz: 'bg-purple-600 text-white',
+    plantuml: 'bg-orange-600 text-white',
+    katex: 'bg-cyan-600 text-white',
+    markmap: 'bg-pink-600 text-white',
+    vega: 'bg-teal-600 text-white',
+    flowchart: 'bg-blue-600 text-white',
+    html: 'bg-rose-600 text-white',
+    svg: 'bg-amber-600 text-white',
+    react: 'bg-sky-600 text-white',
+  };
+
+  const typeBadge = $derived(typeBadgeMap[artifact.type] || 'bg-gray-600 text-white');
 
   $effect(() => {
     const a = artifact;
     if (!a) return;
     isLoaded = false;
     renderedHtml = '';
+    collapsed = false;
 
     loadRenderer(a.type).then(() => {
       switch (a.type) {
@@ -38,19 +54,12 @@
         default: renderedHtml = `<pre>${escapeHtml(a.code)}</pre>`;
       }
       isLoaded = true;
-    }).catch(() => {
-      renderedHtml = `<pre>${escapeHtml(a.code)}</pre>`;
-      isLoaded = true;
-    });
+    }).catch(() => { renderedHtml = `<pre>${escapeHtml(a.code)}</pre>`; isLoaded = true; });
   });
 
-  function escapeHtml(s: string): string {
-    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  }
+  function escapeHtml(s: string): string { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
-  async function copyCode() {
-    try { await navigator.clipboard.writeText(artifact.code); copied = true; setTimeout(() => copied = false, 1500); } catch {}
-  }
+  async function copyCode() { try { await navigator.clipboard.writeText(artifact.code); copied = true; setTimeout(() => copied = false, 1500); } catch {} }
 
   function downloadArtifact() {
     const extMap: Record<string, string> = {
@@ -63,51 +72,53 @@
     const filename = (artifact.title || 'artifact').replace(/[^a-zA-Z0-9_-]/g, '_') + ext;
     const blob = new Blob([artifact.code], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = filename;
-    document.body.appendChild(a); a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    const a = document.createElement('a'); a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
   }
 
   const showPreview = $derived(previewableTypes.includes(artifact.type));
 </script>
 
-<div class="artifact-panel border border-[#d6d0c4] rounded-2xl overflow-hidden shadow-sm bg-white mt-3 transition-all">
-  <div class="flex items-center justify-between px-4 py-2 bg-[#f1ede4]/80 border-b border-[#e5e1d8]">
-    <div class="flex items-center gap-2">
-      <span class="text-[10px] uppercase tracking-widest font-bold text-[#8c8576] opacity-60">{artifact.type}</span>
-      <span class="text-xs font-medium text-[#1a1a1a] truncate max-w-[150px]">{artifact.title}</span>
+<div class="artifact-card rounded-xl overflow-hidden shadow-lg border border-[#d6d0c4] bg-white w-full transition-all">
+  <div class="flex items-center justify-between px-4 py-2.5 bg-[#1e1e2e] text-white">
+    <div class="flex items-center gap-2.5 min-w-0">
+      <span class="text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-md {typeBadge}">{artifact.type}</span>
+      <span class="text-xs font-medium text-gray-300 truncate">{artifact.title || 'Untitled'}</span>
     </div>
-    <div class="flex items-center gap-1">
+    <div class="flex items-center gap-1.5 shrink-0">
       {#if showPreview}
-        <button on:click={() => activeTab = 'code'} class="text-[10px] px-2 py-0.5 rounded-md transition-all {activeTab === 'code' ? 'bg-white text-[#1a1a1a] shadow-sm font-bold' : 'text-[#8c8576]'}">Code</button>
-        <button on:click={() => activeTab = 'preview'} class="text-[10px] px-2 py-0.5 rounded-md transition-all {activeTab === 'preview' ? 'bg-white text-[#1a1a1a] shadow-sm font-bold' : 'text-[#8c8576]'}">Preview</button>
+        <button on:click={() => activeTab = 'code'} class="text-[10px] px-2.5 py-1 rounded-md transition-all {activeTab === 'code' ? 'bg-white/20 text-white font-bold' : 'text-gray-400 hover:text-white'}">Code</button>
+        <button on:click={() => activeTab = 'preview'} class="text-[10px] px-2.5 py-1 rounded-md transition-all {activeTab === 'preview' ? 'bg-white/20 text-white font-bold' : 'text-gray-400 hover:text-white'}">Preview</button>
       {/if}
-      <button on:click={copyCode} class="text-[10px] px-2 py-0.5 rounded-md bg-[#f1ede4] hover:bg-[#e8e4db] text-[#6d675b] border border-[#d6d0c4] transition-all">{copied ? 'Copied!' : 'Copy'}</button>
-      <button on:click={downloadArtifact} class="text-[10px] px-2 py-0.5 rounded-md bg-[#f1ede4] hover:bg-[#e8e4db] text-[#6d675b] border border-[#d6d0c4] transition-all" title="Download as file">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+      <button on:click={copyCode} class="text-[10px] px-2.5 py-1 rounded-md text-gray-400 hover:text-white hover:bg-white/10 transition-all">{copied ? 'Copied!' : 'Copy'}</button>
+      <button on:click={downloadArtifact} class="text-[10px] px-2 py-1 rounded-md text-gray-400 hover:text-white hover:bg-white/10 transition-all" title="Download">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+      </button>
+      <button on:click={() => collapsed = !collapsed} class="text-[10px] px-2 py-1 rounded-md text-gray-400 hover:text-white hover:bg-white/10 transition-all" title={collapsed ? 'Expand' : 'Collapse'}>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 transition-transform {collapsed ? '' : 'rotate-180'}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/></svg>
       </button>
     </div>
   </div>
 
-  <div class="p-0">
-    {#if activeTab === 'code' || !showPreview}
-      <div class="overflow-x-auto max-h-[500px] overflow-y-auto">
-        <pre class="language-{artifact.language || 'plaintext'} m-0 rounded-none text-[13px]" style="line-height:1.5"><code>{artifact.code}</code></pre>
-      </div>
-    {:else}
-      {#if !isLoaded}
-        <div class="p-4 text-center text-sm text-[#8c8576] animate-pulse">Loading renderer...</div>
+  {#if !collapsed}
+    <div class="p-0">
+      {#if activeTab === 'code' || !showPreview}
+        <div class="overflow-x-auto max-h-[600px] overflow-y-auto bg-[#0d1117]">
+          <pre class="language-{artifact.language || 'plaintext'} m-0 rounded-none text-[13px] !bg-transparent" style="line-height:1.6"><code>{artifact.code}</code></pre>
+        </div>
       {:else}
-        {#if artifact.type === 'html' || artifact.type === 'react'}
-          <div class="w-full">{@html renderedHtml}</div>
-        {:else if artifact.type === 'svg' || artifact.type === 'plantuml'}
-          <div class="flex justify-center p-4">{@html renderedHtml}</div>
+        {#if !isLoaded}
+          <div class="p-6 text-center text-sm text-[#8c8576]">Loading renderer...</div>
         {:else}
-          <div class="p-4">{@html renderedHtml}</div>
+          {#if artifact.type === 'html' || artifact.type === 'react'}
+            <div class="w-full">{@html renderedHtml}</div>
+          {:else if artifact.type === 'svg' || artifact.type === 'plantuml'}
+            <div class="flex justify-center p-4 bg-[#fafafa]">{@html renderedHtml}</div>
+          {:else}
+            <div class="p-4 bg-[#fafafa]">{@html renderedHtml}</div>
+          {/if}
         {/if}
       {/if}
-    {/if}
-  </div>
+    </div>
+  {/if}
 </div>

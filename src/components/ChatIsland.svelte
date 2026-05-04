@@ -537,11 +537,6 @@
             {:else}
               <div class="ai-content whitespace-pre-wrap">{@html formatMarkdown(msg.content)}</div>
             {/if}
-            {#if !isStreaming}
-              {#each artifacts.filter(a => a.messageIdx === i) as { artifact }}
-                <ArtifactPanel {artifact} />
-              {/each}
-            {/if}
             {#if msg.sources && msg.sources.length > 0 && !isStreaming}
               <div class="mt-3 pt-3 border-t border-[#e5e1d8]">
                 <span class="text-[8px] uppercase tracking-widest font-bold text-[#8c8576] opacity-50">Sources</span>
@@ -577,7 +572,7 @@
                 {/if}
               </div>
             {/if}
-          {:else}
+            {:else}
             {#if editingMessageIdx === i}
               <div class="w-full">
                 <textarea bind:value={editText} class="w-full bg-white border border-[#d6d0c4] rounded-xl p-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#8c8576]/20" rows="3" on:keydown={(e) => { if (e.key === 'Escape') cancelEdit(); }}></textarea>
@@ -602,6 +597,15 @@
           {/if}
         </div>
       </div>
+      {#if !isStreaming}
+        {#each artifacts.filter(a => a.messageIdx === i) as { artifact }}
+          <div class="flex justify-start w-full">
+            <div class="w-full max-w-4xl">
+              <ArtifactPanel {artifact} />
+            </div>
+          </div>
+        {/each}
+      {/if}
     {/each}
     {#if isLoading && !isStreaming}
       <div class="flex justify-start">
