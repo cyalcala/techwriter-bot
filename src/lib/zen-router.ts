@@ -21,6 +21,8 @@ interface CircuitState {
   totalLatency: number;
   requestCount: number;
   permanent: boolean;
+  lastFailStatus: number;
+  lastFailError: string;
 }
 
 interface SessionState {
@@ -58,7 +60,7 @@ if (typeof setInterval !== 'undefined') {
 
 function getCircuit(id: string): CircuitState {
   if (!circuits.has(id)) {
-    circuits.set(id, { failures: [], ejectedUntil: 0, halfOpen: false, totalErrors: 0, rateLimitHits: 0, totalLatency: 0, requestCount: 0, permanent: false });
+    circuits.set(id, { failures: [], ejectedUntil: 0, halfOpen: false, totalErrors: 0, rateLimitHits: 0, totalLatency: 0, requestCount: 0, permanent: false, lastFailStatus: 0, lastFailError: '' });
   }
   return circuits.get(id)!;
 }
@@ -104,12 +106,14 @@ function recordSuccess(id: string, latencyMs: number) {
   c.requestCount++;
 }
 
-function recordTransientFailure(id: string, isRateLimit: boolean) {
+function recordTransientFailure(id: string, isRateLimit: boolean, status?: number, errMsg?: string) {
   const c = getCircuit(id);
   const now = Date.now();
   c.failures.push(now);
   c.failures = c.failures.filter(t => now - t < CIRCUIT_TRANSIENT_WINDOW_MS);
   c.totalErrors++;
+  if (status) c.lastFailStatus = status;
+  if (errMsg) c.lastFailError = errMsg.slice(0, 120);
   if (isRateLimit) c.rateLimitHits++;
   if (c.halfOpen) {
     c.ejectedUntil = now + CIRCUIT_TRANSIENT_EJECT_MS;
@@ -117,12 +121,14 @@ function recordTransientFailure(id: string, isRateLimit: boolean) {
   }
 }
 
-function recordPermanentFailure(id: string) {
+function recordPermanentFailure(id: string, status?: number, errMsg?: string) {
   const c = getCircuit(id);
   c.totalErrors++;
   c.ejectedUntil = Date.now() + CIRCUIT_PERMANENT_EJECT_MS;
   c.halfOpen = false;
   c.permanent = true;
+  if (status) c.lastFailStatus = status;
+  if (errMsg) c.lastFailError = errMsg.slice(0, 120);
 }
 
 function getSession(sessionId: string, maxTurns: number = 3): SessionState {
@@ -283,9 +289,9 @@ export async function routeChat(
       }));
 
       if (PERMANENT_STATUSES.has(status)) {
-        recordPermanentFailure(provider.id);
+        recordPermanentFailure(provider.id, status);
       } else if (RETRYABLE_STATUSES.has(status)) {
-        recordTransientFailure(provider.id, status === 429);
+        recordTransientFailure(provider.id, status === 429, status);
         if (status === 429) {
           await new Promise(r => setTimeout(r, 1500));
           const retryRes = await callProvider(provider, messages, env, maxTokens);
@@ -324,7 +330,7 @@ export async function routeChat(
         isTimeout,
         message: e.message?.slice(0, 200),
       }));
-      recordTransientFailure(provider.id, false);
+      recordTransientFailure(provider.id, false, 0, e.message);
 
       if (isTimeout) {
         const c = circuits.get(provider.id);
@@ -617,6 +623,8 @@ export function getCircuitDiagnostics() {
       rlHits: v.rateLimitHits,
       avgLatency: v.requestCount > 0 ? Math.round(v.totalLatency / v.requestCount) : 0,
       requests: v.requestCount,
+      lastStatus: v.lastFailStatus,
+      lastError: v.lastFailError,
     }])
   );
 }
