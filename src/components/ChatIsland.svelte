@@ -526,7 +526,7 @@
     .msg-group:hover .msg-actions { opacity: 1; }
   </style>
 
-  <main bind:this={chatContainer} class="flex-1 overflow-y-auto px-3 py-4 md:p-8 space-y-4 md:space-y-6 max-w-4xl mx-auto w-full scroll-smooth">
+  <main bind:this={chatContainer} class="flex-1 overflow-y-auto px-3 py-4 md:px-6 md:py-8 space-y-4 md:space-y-6 w-full scroll-smooth" style="overscroll-behavior: contain;">
     {#each messages as msg, i}
       <div class="flex msg-group {msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300">
         <div class="max-w-[92%] md:max-w-[85%] rounded-3xl p-4 md:p-6 shadow-sm border {msg.role === 'user' ? 'bg-[#e8e4db] border-[#d6d0c4] text-[#1a1a1a] rounded-tr-none' : 'bg-white border-[#e5e1d8] text-[#2e2e2e] rounded-tl-none'}">

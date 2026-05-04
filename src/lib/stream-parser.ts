@@ -166,21 +166,25 @@ export function detectCodeFenceFallback(text: string): Artifact[] {
   let count = 0;
 
   while ((match = CODE_RE.exec(text)) !== null) {
-    const lang = match[1] || '';
+    const lang = (match[1] || '').toLowerCase();
     const code = match[2].trim();
     let type: ArtifactType = 'code';
+    let title = lang ? `${lang.toUpperCase()} Code` : 'Code Block';
 
-    if (lang === 'html' || lang === 'htm') type = 'html';
-    else if (lang === 'svg') type = 'svg';
-    else if (lang === 'mermaid') type = 'mermaid';
-    else if (lang === 'jsx' || lang === 'tsx' || lang === 'react') type = 'react';
+    if (lang === 'html' || lang === 'htm') { type = 'html'; title = 'HTML'; }
+    else if (lang === 'svg') { type = 'svg'; title = 'SVG'; }
+    else if (lang === 'mermaid') { type = 'mermaid'; title = 'Mermaid Diagram'; }
+    else if (lang === 'jsx' || lang === 'tsx' || lang === 'react') { type = 'react'; title = 'React Component'; }
+    else if (lang === 'graphviz' || lang === 'dot') { type = 'graphviz'; title = 'Graphviz Diagram'; }
+    else if (lang === 'd2') { type = 'd2'; title = 'D2 Diagram'; }
+    else if (lang === 'plantuml' || lang === 'puml') { type = 'plantuml'; title = 'PlantUML Diagram'; }
+    else if (lang === 'katex' || lang === 'latex' || lang === 'tex') { type = 'katex'; title = 'Math Formula'; }
+    else if (lang === 'vega' || lang === 'vega-lite' || lang === 'json') { type = 'vega'; title = 'Vega Chart'; }
+    else if (lang === 'flowchart') { type = 'flowchart'; title = 'Flowchart'; }
 
     artifacts.push({
       id: `fallback-${Date.now()}-${count++}`,
-      type,
-      title: lang ? `${lang.toUpperCase()} Code` : 'Code Block',
-      placement: 'inline',
-      code,
+      type, title, placement: 'inline', code,
       language: lang || undefined,
     });
   }
@@ -189,9 +193,7 @@ export function detectCodeFenceFallback(text: string): Artifact[] {
   if (svgMatch) {
     artifacts.push({
       id: `fallback-svg-${Date.now()}-${count++}`,
-      type: 'svg',
-      title: 'SVG Graphic',
-      placement: 'inline',
+      type: 'svg', title: 'SVG Graphic', placement: 'inline',
       code: svgMatch[0],
     });
   }
