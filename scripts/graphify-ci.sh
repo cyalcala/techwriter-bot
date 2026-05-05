@@ -29,7 +29,7 @@ if len(all_files) == 0:
 
 print(f'Extracting AST from {len(all_files)} files...')
 from graphify.extract import extract as extract_fn
-results = extract_fn(root, workers=None)
+results = extract_fn(root)
 
 print('Building graph...')
 from graphify import build_from_json
