@@ -29,16 +29,21 @@ if len(all_files) == 0:
 
 print(f'Extracting AST from {len(all_files)} files...')
 from graphify.extract import extract as extract_fn
-results = extract_fn(root)
+results = extract_fn(all_files)
 
 print('Building graph...')
-from graphify import build_from_json
-graph = build_from_json(results)
+from graphify.build import build, build_from_json
+if isinstance(results, list):
+    graph = build(results)
+else:
+    graph = build_from_json(results)
 
 print('Clustering communities...')
 try:
-    from graphify import cluster
+    from graphify.cluster import cluster
     cluster(graph)
+except ImportError:
+    print('graphify.cluster not available — skipping clustering')
 except Exception as e:
     print(f'Clustering skipped: {e}')
 
