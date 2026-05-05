@@ -33,6 +33,13 @@ export function preloadPopular(): void {
     loadScript('https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js'),
     loadStyle('https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css'),
     loadScript('https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js'),
+    loadScript('https://cdn.jsdelivr.net/npm/@terrastruct/d2-js@0.6.3/dist/d2-js.umd.min.js'),
+    loadScript('https://cdn.jsdelivr.net/npm/@hpcc-js/wasm@2.15.3/dist/graphviz.umd.min.js'),
+    loadScript('https://cdn.jsdelivr.net/npm/vega@5.25.0/build/vega.min.js'),
+    loadScript('https://cdn.jsdelivr.net/npm/vega-lite@5.16.3/build/vega-lite.min.js'),
+    loadScript('https://cdn.jsdelivr.net/npm/vega-embed@6.24.0/build/vega-embed.min.js'),
+    loadScript('https://cdn.jsdelivr.net/npm/markmap-autoloader@0.17.0/dist/index.js'),
+    loadScript('https://cdn.jsdelivr.net/npm/flowchart.js@1.18.0/release/flowchart.min.js'),
   ]).catch(() => {});
 }
 

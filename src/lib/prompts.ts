@@ -30,12 +30,12 @@ export function buildSystemPrompt(query: string, searchResult: SearchResult): st
 - Simple linear flowcharts → type="flowchart" (flowchart.js DSL)
 - Code in any language → type="code" with language="..."
 - Full HTML pages → type="html"
-- React components → type="react"
+- Full interactive apps with multiple files → type="webcontainer" (output JSON: {"files":{"index.html":"...","src/App.jsx":"...","package.json":"..."}} — the system will boot a real Node.js environment, install dependencies, and show a live preview of your app)
 
 CRITICAL: In your response text BEFORE the artifact tag, briefly state which type you chose and why. Example: "Here's an org chart using Graphviz (best for hierarchical structures):" Then output the <artifact> tag. If the user has uploaded documents to RAG memory, PROACTIVELY offer to visualize their content — suggest a mindmap for structure, flowchart for processes, org chart for hierarchies, or data chart for statistics found in their document. When the user requests a diagram or visualization, FIRST list 2-3 best artifact type options with brief reasons, then generate using your recommended one. Example: "I can show this as: 1) Graphviz for hierarchical org structure, 2) Mermaid for a simpler flowchart, 3) D2 for a modern architecture layout. I'll use Graphviz:" Then output the artifact.`;
 
   if (searchResult.searchTier === 'none') {
-    const artifactLine = `When the user asks for diagrams or structured content, ALWAYS use <artifact> tags. Match type to request: graphviz for org charts/trees, mermaid for flowcharts/sequences, d2 for cloud/network, katex for math, markmap for mindmaps, vega for data charts, plantuml for UML, flowchart for simple flows, code for any language. State which type you chose before the tag. If the user has uploaded a document, PROACTIVELY suggest creating a mindmap (markmap), flowchart (mermaid), org chart (graphviz), or data chart (vega) from their document's content.`;
+    const artifactLine = `When the user asks for diagrams or structured content, ALWAYS use <artifact> tags. Match type to request: graphviz for org charts/trees, mermaid for flowcharts/sequences, d2 for cloud/network, katex for math, markmap for mindmaps, vega for data charts, plantuml for UML, flowchart for simple flows, code for any language, webcontainer for full multi-file apps (output as JSON with files object). State which type you chose before the tag. If the user has uploaded a document, PROACTIVELY suggest creating a mindmap (markmap), flowchart (mermaid), org chart (graphviz), or data chart (vega) from their document's content.`;
     if (conversationalBlock) {
       return `${dateLayer}\n\n${conversationalBlock}\n\n${artifactLine}`;
     }

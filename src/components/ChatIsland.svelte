@@ -629,9 +629,13 @@
       {#if !isStreaming && !splitArtifact}
         {#each artifacts.filter(a => a.messageIdx === i) as { artifact }}
           <div class="flex justify-start w-full">
-            <div class="w-full max-w-4xl">
-              <ArtifactPanel {artifact} />
-            </div>
+            <button on:click={() => splitArtifact = { messageIdx: i, artifact }} class="w-full max-w-md text-left px-4 py-2.5 rounded-xl bg-[#f1ede4]/60 hover:bg-[#e8e4db] border border-[#d6d0c4] transition-all group">
+              <div class="flex items-center gap-2">
+                <span class="text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-md bg-purple-600 text-white">{artifact.type}</span>
+                <span class="text-xs font-medium text-[#1a1a1a] truncate">{artifact.title || 'Artifact'}</span>
+                <span class="text-[10px] text-[#8c8576] group-hover:text-[#1a1a1a] ml-auto shrink-0">View →</span>
+              </div>
+            </button>
           </div>
         {/each}
       {/if}
@@ -768,6 +772,9 @@
     <div class="w-full md:w-[50%] min-w-0 md:min-w-[360px] bg-white flex flex-col overflow-hidden shadow-2xl z-10 fixed md:relative inset-0 md:inset-auto animate-in slide-in-from-right duration-200" style="resize: horizontal;">
       <div class="flex items-center justify-between px-4 py-2.5 bg-[#1e1e2e] text-white shrink-0">
         <div class="flex items-center gap-2.5 min-w-0">
+          <button on:click={() => splitArtifact = null} class="md:hidden text-white mr-1" title="Back to chat">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+          </button>
           <span class="text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-md bg-purple-600">{splitArtifact.artifact.type}</span>
           <span class="text-xs font-medium text-gray-300 truncate">{splitArtifact.artifact.title || 'Artifact'}</span>
         </div>
