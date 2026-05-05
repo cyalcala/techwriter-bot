@@ -4,7 +4,7 @@ set -e
 echo "::group::Installing uv & Graphify"
 pip install uv -q 2>/dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh
 export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
-uv tool install graphify 2>/dev/null || true
+uv tool install graphifyy 2>/dev/null || true
 echo "::endgroup::"
 
 echo "::group::Building knowledge graph"
