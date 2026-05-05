@@ -542,45 +542,38 @@
 
 <svelte:window on:keydown={handleGlobalKeydown} />
 
-<div class="flex h-dvh bg-[#fcfaf6] text-[#2e2e2e] font-['Outfit'] selection:bg-[#e8e4db] overflow-hidden">
+<div class="flex h-dvh bg-[#0d0d12] text-[#e4e4e7] font-['Inter'] selection:bg-indigo-500/30 overflow-hidden">
   <div class="flex flex-col flex-1 min-w-0 transition-all duration-300">
   {#if !isOnline}
-    <div class="bg-amber-500 text-white text-center text-xs py-1.5 font-medium">
+    <div class="bg-amber-600 text-white text-center text-xs py-1.5 font-medium tracking-wide">
       You're offline. Reconnecting...
     </div>
   {/if}
   {#if keyStatus && (!keyStatus.groq || !keyStatus.gemini || !keyStatus.cerebras)}
-    <div class="bg-red-500 text-white text-center text-xs py-1.5 font-medium flex items-center justify-center gap-2">
-      <span>Keys missing: {!keyStatus.groq ? 'Groq ' : ''}{!keyStatus.gemini ? 'Gemini ' : ''}{!keyStatus.cerebras ? 'Cerebras' : ''}</span>
+    <div class="bg-red-600/80 text-white text-center text-xs py-1.5 font-medium flex items-center justify-center gap-2">
+      <span>Keys missing</span>
       <span class="opacity-70">(using fallback)</span>
     </div>
   {/if}
 
-  <header class="p-3 md:p-4 bg-[#f1ede4]/90 backdrop-blur-md border-b border-[#e5e1d8] flex justify-between items-center shadow-sm z-20 pt-safe">
-    <div class="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
-      <div class="flex items-center gap-2">
-        <div class="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-green-600 shadow-[0_0_8px_rgba(22,163,74,0.5)]"></div>
-        <h1 class="text-sm md:text-lg font-bold tracking-tight text-[#1a1a1a]">
-          Technical Writer <span class="hidden md:inline text-gray-400 font-normal mx-2">/</span>
-          <span class="md:hidden text-[#8c8576] font-normal">Bot</span>
+  <header class="px-4 md:px-6 py-3 bg-[#16161d]/70 backdrop-blur-xl border-b border-white/[0.06] flex justify-between items-center z-20">
+    <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2.5">
+        <div class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.5)] animate-pulse"></div>
+        <h1 class="text-sm md:text-base font-semibold tracking-tight text-white">
+          TechWriter
         </h1>
       </div>
-      <a href="https://www.linkedin.com/in/cyrusalcala/" target="_blank" rel="noopener" class="text-[8px] md:text-[10px] text-[#8c8576] hover:text-[#1a1a1a] transition-colors flex items-center gap-1 font-medium group">
-        <span class="opacity-50">made with</span>
-        <span class="text-red-500 text-[10px] group-hover:scale-125 transition-transform duration-300">&#10084;&#65039;</span>
-        <span class="opacity-50">by</span>
-        <span class="border-b border-transparent group-hover:border-[#8c8576] transition-all">Cy Alcala</span>
-      </a>
     </div>
-    <div class="flex items-center gap-1 md:gap-2">
-      <button on:click={clearChat} class="text-[10px] md:text-xs bg-white/50 hover:bg-white text-[#6d675b] px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl transition-all flex items-center gap-1.5 border border-[#d6d0c4] shadow-sm active:scale-95" title="Clear chat & memory">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+    <div class="flex items-center gap-1.5">
+      <button on:click={clearChat} class="text-[11px] md:text-xs bg-white/[0.05] hover:bg-white/[0.1] text-[#a1a1aa] px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 border border-white/[0.06] active:scale-95" title="Clear chat & memory">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
         </svg>
         <span class="hidden md:inline">Clear</span>
       </button>
-      <button on:click={newChat} class="text-[10px] md:text-xs bg-white/50 hover:bg-white text-[#6d675b] px-2 md:px-3 py-1 md:py-1.5 rounded-lg md:rounded-xl transition-all flex items-center gap-1.5 border border-[#d6d0c4] shadow-sm active:scale-95" title="New session">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+      <button on:click={newChat} class="text-[11px] md:text-xs bg-white/[0.05] hover:bg-white/[0.1] text-[#a1a1aa] px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 border border-white/[0.06] active:scale-95" title="New session">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
           <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
         </svg>
         <span class="hidden md:inline">New Chat</span>
@@ -600,23 +593,23 @@
     .msg-group:hover .msg-actions { opacity: 1; }
   </style>
 
-  <main bind:this={chatContainer} class="flex-1 overflow-y-auto px-3 py-4 md:px-6 md:py-8 space-y-4 md:space-y-6 w-full scroll-smooth" style="overscroll-behavior: contain;">
+  <main bind:this={chatContainer} class="flex-1 overflow-y-auto px-4 md:px-8 py-4 md:py-6 space-y-5 w-full scroll-smooth max-w-3xl mx-auto" style="overscroll-behavior: contain;">
     {#each messages as msg, i}
-      <div class="flex msg-group {msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300">
-        <div class="max-w-[92%] md:max-w-[85%] rounded-3xl p-4 md:p-6 shadow-sm border {msg.role === 'user' ? 'bg-[#e8e4db] border-[#d6d0c4] text-[#1a1a1a] rounded-tr-none' : 'bg-white border-[#e5e1d8] text-[#2e2e2e] rounded-tl-none'}">
+      <div class="flex msg-group animate-in fade-in slide-in-from-bottom-2 duration-200 {msg.role === 'user' ? 'flex-row-reverse' : ''}">
+        <div class="max-w-[92%] md:max-w-[80%] rounded-2xl px-4 py-3 md:px-5 md:py-4 {msg.role === 'user' ? 'bg-indigo-500/20 border border-indigo-400/20 text-[#e4e4e7]' : 'bg-[#1a1a22] border border-white/[0.06] text-[#e4e4e7]'}">
           {#if msg.role === 'assistant'}
             {#if msg.empty}
-              <div class="ai-content italic text-[#8c8576]">No response received.</div>
-              <button on:click={regenerate} class="mt-2 text-[10px] md:text-xs bg-[#f1ede4] hover:bg-[#e8e4db] text-[#6d675b] px-3 py-1 rounded-lg transition-all border border-[#d6d0c4] active:scale-95">Retry</button>
+              <div class="ai-content italic text-[#71717a]">No response received.</div>
+              <button on:click={regenerate} class="mt-2 text-[10px] md:text-xs bg-white/[0.05] hover:bg-white/[0.1] text-[#a1a1aa] px-3 py-1 rounded-lg transition-all border border-white/[0.06] active:scale-95">Retry</button>
             {:else}
               <div class="ai-content whitespace-pre-wrap">{@html formatMarkdown(stripDisclaimers(msg.content), msg.sources)}</div>
             {/if}
             {#if msg.sources && msg.sources.length > 0 && !isStreaming}
-              <div class="mt-3 pt-3 border-t border-[#e5e1d8]">
-                <span class="text-[8px] uppercase tracking-widest font-bold text-[#8c8576] opacity-50">Sources</span>
+              <div class="mt-3 pt-3 border-t border-white/[0.06]">
+                <span class="text-[8px] uppercase tracking-widest font-bold text-[#71717a]">Sources</span>
                 <div class="mt-1 space-y-0.5">
                   {#each msg.sources as source, si}
-                    <a href={source.url} target="_blank" rel="noopener noreferrer" class="block text-[10px] md:text-[11px] text-[#6d675b] hover:text-[#1a1a1a] transition-colors truncate">
+                    <a href={source.url} target="_blank" rel="noopener noreferrer" class="block text-[10px] md:text-[11px] text-[#a1a1aa] hover:text-white transition-colors truncate">
                       <span class="font-bold">[{si + 1}]</span> {source.title}
                     </a>
                   {/each}
@@ -624,25 +617,25 @@
               </div>
             {/if}
             {#if msg.searchTier && msg.searchTier !== 'none' && msg.sources && msg.sources.length > 0}
-                <span class="text-[8px] uppercase tracking-widest font-bold text-green-600 opacity-60 ml-2">{msg.searchTier === 'enhanced' ? '🔍 Enhanced Search' : '🔍 Live Search'}</span>
-              {/if}
+              <span class="text-[8px] uppercase tracking-widest font-bold text-emerald-400 ml-2">{msg.searchTier === 'enhanced' ? '🔍 Enhanced' : '🔍 Live'}</span>
+            {/if}
               {#if msg.provider && !isStreaming}
-              <div class="mt-4 pt-3 border-t border-[#e5e1d8] flex items-center gap-2">
+              <div class="mt-3 pt-3 border-t border-white/[0.06] flex items-center gap-2">
                 {#if msg.provider === 'cloudflare-llama'}
-                  <span class="text-[8px] uppercase tracking-widest font-bold text-amber-600 opacity-50">&#9889; Fallback Engine</span>
+                  <span class="text-[8px] uppercase tracking-widest font-medium text-amber-400/70">&#9889; Fallback</span>
                 {:else}
-                  <span class="text-[8px] uppercase tracking-widest font-bold text-[#8c8576] opacity-40">Engine: {msg.provider}</span>
+                  <span class="text-[8px] uppercase tracking-widest font-medium text-[#71717a]">{msg.provider}</span>
                 {/if}
               </div>
             {/if}
             {#if !isStreaming && msg.content && !msg.empty}
               <div class="msg-actions opacity-0 transition-opacity duration-200 mt-2 flex items-center gap-1">
-                <button on:click={() => copyMessage(i)} class="text-[10px] px-2 py-0.5 rounded-md bg-[#f1ede4] hover:bg-[#e8e4db] text-[#6d675b] border border-[#d6d0c4] transition-all active:scale-95" title="Copy response">
+                <button on:click={() => copyMessage(i)} class="text-[10px] px-2 py-0.5 rounded-md bg-white/[0.05] hover:bg-white/[0.1] text-[#a1a1aa] border border-white/[0.06] transition-all active:scale-95" title="Copy response">
                   {copiedMessageIdx === i ? 'Copied!' : 'Copy'}
                 </button>
                 {#if i === messages.length - 1 || (i < messages.length - 1 && messages[i + 1]?.role === 'user')}
                   {#if i === messages.length - 1}
-                    <button on:click={regenerate} class="text-[10px] px-2 py-0.5 rounded-md bg-[#f1ede4] hover:bg-[#e8e4db] text-[#6d675b] border border-[#d6d0c4] transition-all active:scale-95" title="Regenerate response">
+                    <button on:click={regenerate} class="text-[10px] px-2 py-0.5 rounded-md bg-white/[0.05] hover:bg-white/[0.1] text-[#a1a1aa] border border-white/[0.06] transition-all active:scale-95" title="Regenerate response">
                       Regenerate
                     </button>
                   {/if}
@@ -652,20 +645,20 @@
             {:else}
             {#if editingMessageIdx === i}
               <div class="w-full">
-                <textarea bind:value={editText} class="w-full bg-white border border-[#d6d0c4] rounded-xl p-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#8c8576]/20" rows="3" on:keydown={(e) => { if (e.key === 'Escape') cancelEdit(); }}></textarea>
+                <textarea bind:value={editText} class="w-full bg-[#1a1a22] border border-white/[0.1] rounded-xl p-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/30 text-[#e4e4e7]" rows="3" on:keydown={(e) => { if (e.key === 'Escape') cancelEdit(); }}></textarea>
                 <div class="flex gap-1 mt-1.5">
-                  <button on:click={() => saveEdit(i)} disabled={!editText.trim()} class="text-[10px] bg-black text-white px-3 py-1 rounded-lg disabled:opacity-40 transition-all">Save</button>
-                  <button on:click={cancelEdit} class="text-[10px] bg-[#f1ede4] text-[#6d675b] px-3 py-1 rounded-lg border border-[#d6d0c4] transition-all">Cancel</button>
+                  <button on:click={() => saveEdit(i)} disabled={!editText.trim()} class="text-[10px] bg-white text-black px-3 py-1 rounded-lg disabled:opacity-40 transition-all font-medium">Save</button>
+                  <button on:click={cancelEdit} class="text-[10px] bg-white/[0.05] text-[#a1a1aa] px-3 py-1 rounded-lg border border-white/[0.06] transition-all">Cancel</button>
                 </div>
               </div>
             {:else}
-              <div class="leading-relaxed whitespace-pre-wrap font-['Inter'] text-sm md:text-base">{msg.content}</div>
+              <div class="leading-relaxed whitespace-pre-wrap text-sm md:text-base text-[#e4e4e7]">{msg.content}</div>
               {#if !isLoading}
                 <div class="msg-actions opacity-0 transition-opacity duration-200 mt-1 flex items-center gap-1">
-                  <button on:click={() => startEdit(i)} class="text-[10px] px-2 py-0.5 rounded-md bg-[#e8e4db]/50 hover:bg-[#e8e4db] text-[#8c8576] border border-[#d6d0c4]/50 transition-all active:scale-95" title="Edit message">
+                  <button on:click={() => startEdit(i)} class="text-[10px] px-2 py-0.5 rounded-md bg-white/[0.05] hover:bg-white/[0.08] text-[#a1a1aa] border border-white/[0.04] transition-all active:scale-95" title="Edit message">
                     Edit
                   </button>
-                  <button on:click={() => copyMessage(i)} class="text-[10px] px-2 py-0.5 rounded-md bg-[#e8e4db]/50 hover:bg-[#e8e4db] text-[#8c8576] border border-[#d6d0c4]/50 transition-all active:scale-95" title="Copy message">
+                  <button on:click={() => copyMessage(i)} class="text-[10px] px-2 py-0.5 rounded-md bg-white/[0.05] hover:bg-white/[0.08] text-[#a1a1aa] border border-white/[0.04] transition-all active:scale-95" title="Copy message">
                     {copiedMessageIdx === i ? 'Copied!' : 'Copy'}
                   </button>
                 </div>
