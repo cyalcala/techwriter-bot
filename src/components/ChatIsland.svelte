@@ -476,8 +476,19 @@
       }
 
       const msgArtifacts = artifacts.filter(a => a.messageIdx === msgIdx);
-      if (msgArtifacts.length > 0) {
-        splitArtifact = msgArtifacts[0];
+      if (msgArtifacts.length > 1) {
+        const seen = new Set<string>();
+        artifacts = artifacts.filter(a => {
+          if (a.messageIdx !== msgIdx) return true;
+          const key = `${a.artifact.type}:${a.artifact.code.slice(0, 100)}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+      }
+      const dedupeArtifacts = artifacts.filter(a => a.messageIdx === msgIdx);
+      if (dedupeArtifacts.length > 0) {
+        splitArtifact = dedupeArtifacts[0];
       }
 
       if (!messages[msgIdx].content) {
