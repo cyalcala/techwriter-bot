@@ -542,7 +542,7 @@
 
 <svelte:window on:keydown={handleGlobalKeydown} />
 
-<div class="flex h-dvh bg-[#0d0d12] text-[#e4e4e7] font-['Inter'] selection:bg-indigo-500/30 overflow-hidden">
+<div class="flex h-dvh bg-white text-[#1a1a1a] font-['Inter'] selection:bg-black/10 overflow-hidden">
   <div class="flex flex-col flex-1 min-w-0 transition-all duration-300">
   {#if !isOnline}
     <div class="bg-amber-600 text-white text-center text-xs py-1.5 font-medium tracking-wide">
@@ -556,28 +556,23 @@
     </div>
   {/if}
 
-  <header class="px-4 md:px-6 py-3 bg-[#16161d]/70 backdrop-blur-xl border-b border-white/[0.06] flex justify-between items-center z-20">
+  <header class="px-4 md:px-6 py-3 bg-white/80 backdrop-blur-xl border-b border-black/5 flex justify-between items-center z-20">
     <div class="flex items-center gap-3">
       <div class="flex items-center gap-2.5">
-        <div class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.5)] animate-pulse"></div>
-        <h1 class="text-sm md:text-base font-semibold tracking-tight text-white">
+        <div class="w-2.5 h-2.5 rounded-full bg-black"></div>
+        <h1 class="text-sm md:text-base font-semibold tracking-tight text-black">
           TechWriter
         </h1>
       </div>
     </div>
-    <div class="flex items-center gap-1.5">
-      <button on:click={clearChat} class="text-[11px] md:text-xs bg-white/[0.05] hover:bg-white/[0.1] text-[#a1a1aa] px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 border border-white/[0.06] active:scale-95" title="Clear chat & memory">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-        </svg>
-        <span class="hidden md:inline">Clear</span>
+    <div class="flex items-center gap-1">
+      <button on:click={clearChat} class="text-xs text-[#6b6b6b] hover:text-black hover:bg-black/5 px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5" title="Clear">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+        Clear
       </button>
-      <button on:click={newChat} class="text-[11px] md:text-xs bg-white/[0.05] hover:bg-white/[0.1] text-[#a1a1aa] px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 border border-white/[0.06] active:scale-95" title="New session">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd" />
-        </svg>
-        <span class="hidden md:inline">New Chat</span>
-        <span class="md:hidden">New</span>
+      <button on:click={newChat} class="text-xs text-[#6b6b6b] hover:text-black hover:bg-black/5 px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5" title="New">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/></svg>
+        New
       </button>
     </div>
   </header>
@@ -604,24 +599,24 @@
               <div class="ai-content whitespace-pre-wrap">{@html formatMarkdown(stripDisclaimers(msg.content), msg.sources)}</div>
             {/if}
             {#if !isStreaming && msg.content && !msg.empty}
-              <div class="flex items-center gap-2 mt-2 opacity-0 hover:opacity-100 transition-opacity duration-150">
-                <button on:click={() => copyMessage(i)} class="text-[10px] px-2 py-0.5 rounded-md text-[#71717a] hover:text-white hover:bg-white/[0.08] transition-all">{copiedMessageIdx === i ? 'Copied' : 'Copy'}</button>
+              <div class="flex items-center gap-2 mt-1.5 opacity-0 hover:opacity-100 transition-opacity duration-150">
+                <button on:click={() => copyMessage(i)} class="text-[11px] px-2 py-0.5 rounded-md text-[#999] hover:text-black hover:bg-black/5 transition-all">{copiedMessageIdx === i ? 'Copied' : 'Copy'}</button>
                 {#if i === messages.length - 1}
-                  <button on:click={regenerate} class="text-[10px] px-2 py-0.5 rounded-md text-[#71717a] hover:text-white hover:bg-white/[0.08] transition-all">Retry</button>
+                  <button on:click={regenerate} class="text-[11px] px-2 py-0.5 rounded-md text-[#999] hover:text-black hover:bg-black/5 transition-all">Retry</button>
                 {/if}
               </div>
             {/if}
             {#if msg.sources && msg.sources.length > 0 && !isStreaming}
               <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
                 {#if msg.searchTier && msg.searchTier !== 'none'}
-                  <span class="text-[10px] font-medium text-emerald-400">{msg.searchTier === 'enhanced' ? '🔍 Enhanced' : '🔍 Live'}</span>
+                  <span class="text-[11px] font-medium text-black/60">{msg.searchTier === 'enhanced' ? 'Enhanced' : 'Live'}</span>
                 {/if}
                 {#each msg.sources as source, si}
-                  <a href={source.url} target="_blank" rel="noopener noreferrer" class="text-[10px] text-[#71717a] hover:text-white transition-colors">
-                    <span class="font-semibold">[{si + 1}]</span> {source.title}
+                  <a href={source.url} target="_blank" rel="noopener noreferrer" class="text-[11px] text-[#999] hover:text-black transition-colors underline underline-offset-2 decoration-[#d9d9d9] hover:decoration-black">
+                    [{si + 1}] {source.title}
                   </a>
                 {/each}
-                <span class="text-[9px] text-[#52525b]">{msg.provider}</span>
+                <span class="text-[10px] text-[#bbb]">{msg.provider}</span>
               </div>
             {/if}
           {:else}
@@ -634,12 +629,12 @@
                 </div>
               </div>
             {:else}
-              <div class="bg-indigo-500/10 rounded-2xl px-4 py-2.5 inline-block text-left">
-                <div class="leading-relaxed text-sm md:text-base text-[#e4e4e7]">{msg.content}</div>
+              <div class="bg-[#f5f5f5] rounded-2xl px-4 py-2.5 inline-block text-left">
+                <div class="leading-relaxed text-[15px] text-[#1a1a1a]">{msg.content}</div>
               </div>
               <div class="flex items-center gap-2 mt-1 justify-end opacity-0 hover:opacity-100 transition-opacity duration-150">
-                <button on:click={() => startEdit(i)} class="text-[10px] px-2 py-0.5 rounded-md text-[#71717a] hover:text-white hover:bg-white/[0.08] transition-all">Edit</button>
-                <button on:click={() => copyMessage(i)} class="text-[10px] px-2 py-0.5 rounded-md text-[#71717a] hover:text-white hover:bg-white/[0.08] transition-all">{copiedMessageIdx === i ? 'Copied' : 'Copy'}</button>
+                <button on:click={() => startEdit(i)} class="text-[11px] px-2 py-0.5 rounded-md text-[#999] hover:text-black hover:bg-black/5 transition-all">Edit</button>
+                <button on:click={() => copyMessage(i)} class="text-[11px] px-2 py-0.5 rounded-md text-[#999] hover:text-black hover:bg-black/5 transition-all">{copiedMessageIdx === i ? 'Copied' : 'Copy'}</button>
               </div>
             {/if}
           {/if}
@@ -669,74 +664,51 @@
     {/if}
   </main>
 
-  <footer class="p-3 md:p-4 bg-[#0d0d12]/80 backdrop-blur-xl border-t border-white/[0.06] transition-all">
+  <footer class="p-3 md:p-4 bg-white/80 backdrop-blur-xl border-t border-black/5 transition-all">
     <div class="max-w-3xl mx-auto">
 
       {#if uploadStatus !== 'idle'}
-        <div class="mb-2 transition-all duration-300">
-          <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border {uploadStatus === 'done' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : uploadStatus === 'error' ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-white/[0.03] border-white/[0.06] text-[#a1a1aa]'}">
-            {#if uploadStatus === 'uploading'}
-              <div class="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin shrink-0"></div>
-            {:else if uploadStatus === 'done'}
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            {:else if uploadStatus === 'error'}
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            {/if}
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 shrink-0 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-            <span class="text-xs font-medium truncate max-w-[120px] md:max-w-[200px]">{uploadedFileName || 'Processing...'}</span>
-            {#if ragDegraded}<span class="text-[9px] font-bold text-amber-400 bg-amber-400/10 px-1 py-0.5 rounded shrink-0">&#9889; Local</span>{/if}
-            {#if uploadProgress && uploadStatus === 'uploading'}<span class="text-[10px] font-bold shrink-0">{uploadProgress.done}/{uploadProgress.total}</span>{/if}
-            <button on:click={removeFile} class="ml-1 p-0.5 rounded-full hover:bg-white/10 transition-all shrink-0"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
+        <div class="mb-2">
+          <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border {uploadStatus === 'done' ? 'bg-black/5 border-black/10' : uploadStatus === 'error' ? 'bg-red-50 border-red-200 text-red-600' : 'bg-black/[0.02] border-black/5 text-[#666]'}">
+            {#if uploadStatus === 'uploading'}<div class="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin shrink-0"></div>{/if}
+            <span class="text-xs font-medium truncate max-w-[160px]">{uploadedFileName || 'Processing...'}</span>
+            {#if ragDegraded}<span class="text-[10px] text-amber-600">&#9889;</span>{/if}
+            {#if uploadProgress && uploadStatus === 'uploading'}<span class="text-[10px] font-bold">{uploadProgress.done}/{uploadProgress.total}</span>{/if}
+            <button on:click={removeFile} class="p-0.5 rounded-full hover:bg-black/10 transition-all shrink-0"><svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
           </div>
         </div>
       {/if}
 
       <div class="flex gap-2 items-center">
         <input type="file" bind:this={fileInput} on:change={handleFileUpload} class="hidden" accept=".txt,.md,.json,.csv" />
-        <button on:click={() => fileInput.click()} disabled={isUploading} class="p-2.5 md:p-3 bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.08] rounded-xl text-[#71717a] hover:text-white transition-all disabled:opacity-30 shrink-0" title={uploadStatus === 'done' ? 'Replace document' : 'Upload document'}>
+        <button on:click={() => fileInput.click()} disabled={isUploading} class="p-2.5 hover:bg-black/[0.03] rounded-xl text-[#999] hover:text-black transition-all disabled:opacity-30 shrink-0" title="Upload">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
         </button>
-
         <div class="relative flex-1">
           <input bind:value={inputMessage} on:keydown={handleKeydown} disabled={isLoading}
-            class="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-2.5 md:py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/30 text-[#e4e4e7] placeholder:text-[#52525b] text-sm md:text-base transition-all"
+            class="w-full bg-[#f5f5f5] border border-transparent rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-black/10 focus:border-black/20 text-[#1a1a1a] placeholder:text-[#999] text-[15px] transition-all"
             placeholder={uploadStatus === 'done' ? 'Ask about your document...' : 'Ask anything...'}
           />
         </div>
-
         {#if isStreaming}
-          <button on:click={stopStreaming} class="bg-red-500/20 hover:bg-red-500/30 text-red-400 p-2.5 md:px-5 md:py-3 rounded-xl transition-all active:scale-95 shrink-0 flex items-center justify-center border border-red-500/20">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><rect x="3" y="3" width="14" height="14" rx="2"/></svg>
-            <span class="hidden md:inline text-sm font-medium ml-1">Stop</span>
-          </button>
+          <button on:click={stopStreaming} class="bg-black/5 hover:bg-black/10 text-black/60 p-2.5 rounded-xl transition-all active:scale-95 shrink-0"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><rect x="3" y="3" width="14" height="14" rx="2"/></svg></button>
         {:else}
-          <button on:click={sendMessage} disabled={isLoading || !inputMessage.trim()}
-            class="bg-white text-black p-2.5 md:px-5 md:py-3 rounded-xl transition-all active:scale-95 disabled:opacity-30 shrink-0 flex items-center justify-center hover:bg-gray-200 font-medium text-sm">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 md:hidden" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/></svg>
-            <span class="hidden md:inline">Send</span>
-          </button>
+          <button on:click={sendMessage} disabled={isLoading || !inputMessage.trim()} class="bg-black hover:bg-black/80 text-white p-2.5 rounded-xl transition-all active:scale-95 disabled:opacity-30 shrink-0"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/></svg></button>
         {/if}
       </div>
 
-      <div class="flex justify-between items-center gap-2 text-[10px] text-[#52525b] mt-2.5">
+      <div class="flex justify-between items-center text-[11px] text-[#999] mt-2.5">
         <div class="flex items-center gap-2">
-          <div class="flex items-center bg-white/[0.03] p-0.5 rounded-lg border border-white/[0.06] shrink-0">
-            <button on:click={() => { isThinkingMode = false; isLiveMode = false; }} class="px-2.5 md:px-3 py-1 rounded-md transition-all {!isThinkingMode && !isLiveMode ? 'bg-white/[0.08] text-white font-medium' : 'text-[#71717a] hover:text-white'} text-[10px] md:text-xs">Fast</button>
-            <button on:click={() => { isThinkingMode = true; isLiveMode = false; }} class="px-2.5 md:px-3 py-1 rounded-md transition-all {isThinkingMode && !isLiveMode ? 'bg-white/[0.08] text-white font-medium' : 'text-[#71717a] hover:text-white'} text-[10px] md:text-xs">Brain</button>
+          <div class="flex items-center bg-[#f5f5f5] p-0.5 rounded-lg shrink-0">
+            <button on:click={() => { isThinkingMode = false; isLiveMode = false; }} class="px-2.5 py-1 rounded-md transition-all {!isThinkingMode && !isLiveMode ? 'bg-white text-black font-medium shadow-sm' : 'text-[#999] hover:text-black'}">Fast</button>
+            <button on:click={() => { isThinkingMode = true; isLiveMode = false; }} class="px-2.5 py-1 rounded-md transition-all {isThinkingMode && !isLiveMode ? 'bg-white text-black font-medium shadow-sm' : 'text-[#999] hover:text-black'}">Brain</button>
             <button on:click={() => { const canUse = enhancedCredits.remaining > 0 && !enhancedCredits.budgetExhausted; if (canUse) { isThinkingMode = false; isLiveMode = !isLiveMode; } }}
-              class="px-2.5 md:px-3 py-1 rounded-md transition-all text-[10px] md:text-xs {isLiveMode ? 'bg-emerald-500/20 text-emerald-400 font-medium' : (enhancedCredits.remaining <= 0 || enhancedCredits.budgetExhausted ? 'text-[#3f3f46] cursor-not-allowed' : 'text-[#71717a] hover:text-white')}"
-              title={enhancedCredits.budgetExhausted ? 'Monthly pool exhausted.' : enhancedCredits.remaining <= 0 ? 'Resets tomorrow.' : 'Enhanced web search'}>
-              Live <span class="ml-1 opacity-60">{enhancedCredits.remaining <= 0 ? '0' : enhancedCredits.remaining}</span>
+              class="px-2.5 py-1 rounded-md transition-all {isLiveMode ? 'bg-black text-white font-medium' : (enhancedCredits.remaining <= 0 || enhancedCredits.budgetExhausted ? 'text-[#ccc] cursor-not-allowed' : 'text-[#999] hover:text-black')}">
+              Live {enhancedCredits.remaining <= 0 ? '' : enhancedCredits.remaining}
             </button>
           </div>
-          <span class="font-mono text-[#3f3f46]">{sessionId.slice(0, 6)}</span>
         </div>
-        <div class="text-center">
-          AI can make mistakes. Verify important info.
-        </div>
-        <div class="text-emerald-400/60 hidden md:block">
-          Cloudflare Secured
-        </div>
+        <span>AI can make mistakes. Verify important info.</span>
       </div>
     </div>
   </footer>
