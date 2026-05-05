@@ -225,23 +225,27 @@ export const POST: APIRoute = async (ctx) => {
     log('path', { path: pathCtx.path, reason: pathCtx.reason });
 
     let searchResult: SearchResult = { contextParts: [], sources: [], searchTier: 'none', searchAttempted: false };
-
-    if (!pathCtx.skipSearch) {
-      searchResult = await searchRouter(query, liveSearch, env, ip, rep);
-    }
-
-    const graphAvail = await ensureGraph(env.SESSION);
     let graphContextStr = '';
-    if (pathCtx.includeGraph && graphAvail.available) {
-      const gctx = queryGraph(query);
-      if (gctx.available) graphContextStr = gctx.context;
-    }
-
     let documentContextStr = '';
-    if (hasDocument) {
-      documentContextStr = await searchRagKV(env.SESSION, `rag:${clientSessionId}`, query);
-      if (!documentContextStr) {
-        documentContextStr = 'NOTE: User has uploaded a document, but its embeddings are unavailable. Ask them to re-upload if document context is needed.';
+
+    if (pathCtx.path !== 'fast') {
+      if (!pathCtx.skipSearch) {
+        searchResult = await searchRouter(query, liveSearch, env, ip, rep);
+      }
+
+      if (pathCtx.includeGraph) {
+        const graphAvail = await ensureGraph(env.SESSION);
+        if (graphAvail.available) {
+          const gctx = queryGraph(query);
+          if (gctx.available) graphContextStr = gctx.context;
+        }
+      }
+
+      if (hasDocument) {
+        documentContextStr = await searchRagKV(env.SESSION, `rag:${clientSessionId}`, query);
+        if (!documentContextStr) {
+          documentContextStr = 'NOTE: User has uploaded a document, but its embeddings are unavailable. Ask them to re-upload if document context is needed.';
+        }
       }
     }
 
