@@ -593,76 +593,54 @@
     .msg-group:hover .msg-actions { opacity: 1; }
   </style>
 
-  <main bind:this={chatContainer} class="flex-1 overflow-y-auto px-4 md:px-8 py-4 md:py-6 space-y-5 w-full scroll-smooth max-w-3xl mx-auto" style="overscroll-behavior: contain;">
+  <main bind:this={chatContainer} class="flex-1 overflow-y-auto px-4 md:px-8 py-4 md:py-6 space-y-6 w-full scroll-smooth max-w-3xl mx-auto" style="overscroll-behavior: contain;">
     {#each messages as msg, i}
-      <div class="flex msg-group animate-in fade-in slide-in-from-bottom-2 duration-200 {msg.role === 'user' ? 'flex-row-reverse' : ''}">
-        <div class="max-w-[92%] md:max-w-[80%] rounded-2xl px-4 py-3 md:px-5 md:py-4 {msg.role === 'user' ? 'bg-indigo-500/20 border border-indigo-400/20 text-[#e4e4e7]' : 'bg-[#1a1a22] border border-white/[0.06] text-[#e4e4e7]'}">
+      <div class="msg-group relative {msg.role === 'user' ? 'flex flex-row-reverse' : ''}">
+        <div class="{msg.role === 'user' ? 'ml-auto text-right max-w-[85%] md:max-w-[70%]' : 'max-w-full'}">
           {#if msg.role === 'assistant'}
             {#if msg.empty}
-              <div class="ai-content italic text-[#71717a]">No response received.</div>
-              <button on:click={regenerate} class="mt-2 text-[10px] md:text-xs bg-white/[0.05] hover:bg-white/[0.1] text-[#a1a1aa] px-3 py-1 rounded-lg transition-all border border-white/[0.06] active:scale-95">Retry</button>
+              <div class="text-[#71717a] italic text-sm">No response received.</div>
             {:else}
               <div class="ai-content whitespace-pre-wrap">{@html formatMarkdown(stripDisclaimers(msg.content), msg.sources)}</div>
             {/if}
-            {#if msg.sources && msg.sources.length > 0 && !isStreaming}
-              <div class="mt-3 pt-3 border-t border-white/[0.06]">
-                <span class="text-[8px] uppercase tracking-widest font-bold text-[#71717a]">Sources</span>
-                <div class="mt-1 space-y-0.5">
-                  {#each msg.sources as source, si}
-                    <a href={source.url} target="_blank" rel="noopener noreferrer" class="block text-[10px] md:text-[11px] text-[#a1a1aa] hover:text-white transition-colors truncate">
-                      <span class="font-bold">[{si + 1}]</span> {source.title}
-                    </a>
-                  {/each}
-                </div>
-              </div>
-            {/if}
-            {#if msg.searchTier && msg.searchTier !== 'none' && msg.sources && msg.sources.length > 0}
-              <span class="text-[8px] uppercase tracking-widest font-bold text-emerald-400 ml-2">{msg.searchTier === 'enhanced' ? '🔍 Enhanced' : '🔍 Live'}</span>
-            {/if}
-              {#if msg.provider && !isStreaming}
-              <div class="mt-3 pt-3 border-t border-white/[0.06] flex items-center gap-2">
-                {#if msg.provider === 'cloudflare-llama'}
-                  <span class="text-[8px] uppercase tracking-widest font-medium text-amber-400/70">&#9889; Fallback</span>
-                {:else}
-                  <span class="text-[8px] uppercase tracking-widest font-medium text-[#71717a]">{msg.provider}</span>
-                {/if}
-              </div>
-            {/if}
             {#if !isStreaming && msg.content && !msg.empty}
-              <div class="msg-actions opacity-0 transition-opacity duration-200 mt-2 flex items-center gap-1">
-                <button on:click={() => copyMessage(i)} class="text-[10px] px-2 py-0.5 rounded-md bg-white/[0.05] hover:bg-white/[0.1] text-[#a1a1aa] border border-white/[0.06] transition-all active:scale-95" title="Copy response">
-                  {copiedMessageIdx === i ? 'Copied!' : 'Copy'}
-                </button>
-                {#if i === messages.length - 1 || (i < messages.length - 1 && messages[i + 1]?.role === 'user')}
-                  {#if i === messages.length - 1}
-                    <button on:click={regenerate} class="text-[10px] px-2 py-0.5 rounded-md bg-white/[0.05] hover:bg-white/[0.1] text-[#a1a1aa] border border-white/[0.06] transition-all active:scale-95" title="Regenerate response">
-                      Regenerate
-                    </button>
-                  {/if}
+              <div class="flex items-center gap-2 mt-2 opacity-0 hover:opacity-100 transition-opacity duration-150">
+                <button on:click={() => copyMessage(i)} class="text-[10px] px-2 py-0.5 rounded-md text-[#71717a] hover:text-white hover:bg-white/[0.08] transition-all">{copiedMessageIdx === i ? 'Copied' : 'Copy'}</button>
+                {#if i === messages.length - 1}
+                  <button on:click={regenerate} class="text-[10px] px-2 py-0.5 rounded-md text-[#71717a] hover:text-white hover:bg-white/[0.08] transition-all">Retry</button>
                 {/if}
               </div>
             {/if}
-            {:else}
+            {#if msg.sources && msg.sources.length > 0 && !isStreaming}
+              <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
+                {#if msg.searchTier && msg.searchTier !== 'none'}
+                  <span class="text-[10px] font-medium text-emerald-400">{msg.searchTier === 'enhanced' ? '🔍 Enhanced' : '🔍 Live'}</span>
+                {/if}
+                {#each msg.sources as source, si}
+                  <a href={source.url} target="_blank" rel="noopener noreferrer" class="text-[10px] text-[#71717a] hover:text-white transition-colors">
+                    <span class="font-semibold">[{si + 1}]</span> {source.title}
+                  </a>
+                {/each}
+                <span class="text-[9px] text-[#52525b]">{msg.provider}</span>
+              </div>
+            {/if}
+          {:else}
             {#if editingMessageIdx === i}
-              <div class="w-full">
-                <textarea bind:value={editText} class="w-full bg-[#1a1a22] border border-white/[0.1] rounded-xl p-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/30 text-[#e4e4e7]" rows="3" on:keydown={(e) => { if (e.key === 'Escape') cancelEdit(); }}></textarea>
-                <div class="flex gap-1 mt-1.5">
+              <div class="w-full text-left">
+                <textarea bind:value={editText} class="w-full bg-[#1a1a22] border border-white/[0.1] rounded-xl p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/30 text-[#e4e4e7]" rows="3"></textarea>
+                <div class="flex gap-1.5 mt-2">
                   <button on:click={() => saveEdit(i)} disabled={!editText.trim()} class="text-[10px] bg-white text-black px-3 py-1 rounded-lg disabled:opacity-40 transition-all font-medium">Save</button>
                   <button on:click={cancelEdit} class="text-[10px] bg-white/[0.05] text-[#a1a1aa] px-3 py-1 rounded-lg border border-white/[0.06] transition-all">Cancel</button>
                 </div>
               </div>
             {:else}
-              <div class="leading-relaxed whitespace-pre-wrap text-sm md:text-base text-[#e4e4e7]">{msg.content}</div>
-              {#if !isLoading}
-                <div class="msg-actions opacity-0 transition-opacity duration-200 mt-1 flex items-center gap-1">
-                  <button on:click={() => startEdit(i)} class="text-[10px] px-2 py-0.5 rounded-md bg-white/[0.05] hover:bg-white/[0.08] text-[#a1a1aa] border border-white/[0.04] transition-all active:scale-95" title="Edit message">
-                    Edit
-                  </button>
-                  <button on:click={() => copyMessage(i)} class="text-[10px] px-2 py-0.5 rounded-md bg-white/[0.05] hover:bg-white/[0.08] text-[#a1a1aa] border border-white/[0.04] transition-all active:scale-95" title="Copy message">
-                    {copiedMessageIdx === i ? 'Copied!' : 'Copy'}
-                  </button>
-                </div>
-              {/if}
+              <div class="bg-indigo-500/10 rounded-2xl px-4 py-2.5 inline-block text-left">
+                <div class="leading-relaxed text-sm md:text-base text-[#e4e4e7]">{msg.content}</div>
+              </div>
+              <div class="flex items-center gap-2 mt-1 justify-end opacity-0 hover:opacity-100 transition-opacity duration-150">
+                <button on:click={() => startEdit(i)} class="text-[10px] px-2 py-0.5 rounded-md text-[#71717a] hover:text-white hover:bg-white/[0.08] transition-all">Edit</button>
+                <button on:click={() => copyMessage(i)} class="text-[10px] px-2 py-0.5 rounded-md text-[#71717a] hover:text-white hover:bg-white/[0.08] transition-all">{copiedMessageIdx === i ? 'Copied' : 'Copy'}</button>
+              </div>
             {/if}
           {/if}
         </div>
