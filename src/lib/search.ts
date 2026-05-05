@@ -3,6 +3,32 @@ import { searchTavily, searchExa, checkEnhancedBudget, incrementEnhancedBudget, 
 import { classifyQuery, filterRelevantResults, extractKeyTerms } from './relevance';
 import { getDailyLimits, type ReputationState } from './reputation';
 
+function expandQuery(query: string): string[] {
+  const expanded: string[] = [];
+  const seen = new Set<string>();
+  const add = (q: string) => { const s = q.trim(); if (s.length > 2 && !seen.has(s)) { seen.add(s); expanded.push(s); } };
+
+  add(query);
+
+  const timeWords = /\b(latest|newest|current|recent|today|now|2026|2025|this year)\b/gi;
+  let stripped = query.replace(timeWords, '').replace(/\s+/g, ' ').trim();
+  if (stripped && stripped !== query) add(stripped);
+
+  const fillerWords = /\b(the|a|an|is|are|was|were|be|been|being|have|has|had|do|does|did|can|could|will|would|should|may|might|in|on|at|to|for|of|with|by|from|about|me|my|give|show|tell|find|get|what|who|where|when|why|how|search|look|check|please|pls|just|want|need)\b/gi;
+  let keywords = stripped.replace(fillerWords, '').replace(/\s+/g, ' ').trim();
+  if (keywords && keywords !== stripped) add(keywords);
+
+  const words = query.split(/\s+/).filter(w => w.length > 3 && !/^\d+$/.test(w));
+  if (words.length <= 3 && expanded.length < 2) {
+    for (const w of words) {
+      const gen = `${w} information`;
+      if (gen !== query) add(gen);
+    }
+  }
+
+  return expanded;
+}
+
 export interface SearchResult {
   contextParts: string[];
   sources: { title: string; url: string; provider?: string }[];
@@ -219,20 +245,24 @@ export async function searchRouter(
     searchTier = 'basic';
   }
 
-  if (searchAttempted && contextParts.length === 0 && searchQuery !== query) {
-    console.log(JSON.stringify({ event: 'search_retry_original', query: query.slice(0, 80) }));
-    const retryResults = await Promise.all([
-      searchDuckDuckGo(query),
-      searchWikipedia(query),
-      searchReddit(query),
-    ]);
-    for (const r of retryResults) {
-      if (!r || seenUrls.has(r.url)) continue;
-      seenUrls.add(r.url);
-      sourceIdx++;
-      const providerLabel = r.provider ? `[${sourceIdx}: ${r.provider.toUpperCase()}]` : `[${sourceIdx}]`;
-      contextParts.push(`${providerLabel}\n${r.content}`);
-      sources.push({ title: r.title, url: r.url, provider: r.provider });
+  if (searchAttempted && contextParts.length === 0) {
+    const expansions = expandQuery(query);
+    for (const expanded of expansions) {
+      console.log(JSON.stringify({ event: 'search_expansion', expanded: expanded.slice(0, 80) }));
+      const retryResults = await Promise.all([
+        searchDuckDuckGo(expanded),
+        searchWikipedia(expanded),
+        searchReddit(expanded),
+      ]);
+      for (const r of retryResults) {
+        if (!r || seenUrls.has(r.url)) continue;
+        seenUrls.add(r.url);
+        sourceIdx++;
+        const providerLabel = r.provider ? `[${sourceIdx}: ${r.provider.toUpperCase()}]` : `[${sourceIdx}]`;
+        contextParts.push(`${providerLabel}\n${r.content}`);
+        sources.push({ title: r.title, url: r.url, provider: r.provider });
+      }
+      if (contextParts.length > 0) break;
     }
   }
 
