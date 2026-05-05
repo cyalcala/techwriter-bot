@@ -44,6 +44,15 @@
   let keyStatus = $state<{ groq: boolean; gemini: boolean; cerebras: boolean } | null>(null);
   let splitArtifact = $state<{ messageIdx: number; artifact: Artifact } | null>(null);
   let splitTab = $state<'code' | 'preview'>('preview');
+  let artifactError = $state<string | null>(null);
+
+  function fixArtifactError() {
+    if (!artifactError || !splitArtifact) return;
+    const fixPrompt = `The following artifact has an error:\n\n\`\`\`\n${splitArtifact.artifact.code}\n\`\`\`\n\nError: ${artifactError}\n\nPlease fix this code.`;
+    messages = [...messages, { role: 'user', content: fixPrompt }];
+    artifactError = null;
+    doSend();
+  }
 
   async function checkKeys() {
     try {
@@ -88,6 +97,12 @@
     pollCredits();
     checkKeys();
     preloadPopular();
+
+    window.addEventListener('message', (e) => {
+      if (e.data?.type === 'ARTIFACT_ERROR') {
+        artifactError = e.data.error;
+      }
+    });
 
     isOnline = navigator.onLine;
     window.addEventListener('online', () => { isOnline = true; });
@@ -769,6 +784,14 @@
         </div>
       </div>
       <div class="flex-1 overflow-auto">
+        {#if artifactError}
+          <div class="bg-red-50 border-b border-red-200 px-4 py-2 flex items-center justify-between gap-2">
+            <div class="text-xs text-red-700 truncate min-w-0">
+              <span class="font-bold">Error:</span> {artifactError}
+            </div>
+            <button on:click={fixArtifactError} class="text-[10px] px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-md font-bold shrink-0 transition-all">Fix with AI</button>
+          </div>
+        {/if}
         <ArtifactPanel artifact={splitArtifact.artifact} />
       </div>
     </div>
