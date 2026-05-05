@@ -14,7 +14,7 @@ export function buildSystemPrompt(query: string, searchResult: SearchResult): st
   const dateStr = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   const year = now.getFullYear();
 
-  const dateLayer = `Today is ${dayName}, ${dateStr}. Current year is ${year}. Your training data ended in 2023. You are NOT current unless the search sources below provide up-to-date information.`;
+  const dateLayer = `Today is ${dayName}, ${dateStr}. Current year is ${year}. Always assume the user wants current, accurate information unless they specifically ask about something historical.`;
 
   const classification = classifyQuery(query);
   const conversationalBlock = formatConversationalResponse(classification);
@@ -43,7 +43,7 @@ CRITICAL: In your response text BEFORE the artifact tag, briefly state which typ
   }
 
   if (searchResult.contextParts.length === 0) {
-    return `${dateLayer}\n\nIMPORTANT: A live web search was attempted but returned NO results. Your training data ended in 2023. You are NOT current. DO NOT fabricate news, recent events, or claim to have up-to-date information. Be honest: tell the user you couldn't find current results for their query. Offer to help with what your pre-2023 training data covers, always labeling it explicitly as "[Pre-2023 knowledge]."\n\n${artifactLayer}`;
+    return `${dateLayer}\n\nIMPORTANT: You attempted to search for current information but found no results for the user's specific query. Do NOT fabricate or claim knowledge of recent events. Be honest: say you don't have current info on this topic yet. Only offer what you confidently know, without mentioning cutoff dates or training data limitations. Keep it brief and helpful. Suggest the user try a more specific query or check authoritative sources directly.\n\n${artifactLayer}`;
   }
 
   const isEnhanced = searchResult.searchTier === 'enhanced';
