@@ -212,8 +212,12 @@ export function renderGraphvizArtifact(code: string): string {
 }
 
 export function renderPlantUMLArtifact(code: string): string {
-  const encoded = btoa(code);
-  return `<div class="flex justify-center p-2"><img src="https://www.plantuml.com/plantuml/svg/${encoded}" alt="PlantUML diagram" style="max-width:100%" onerror="this.parentElement.innerHTML='<pre class=\\'text-red-500 text-xs p-2\\'>PlantUML render error.</pre>'" /></div>`;
+  const encoded = encodePlantUML(code);
+  return `<div class="flex justify-center p-2"><img src="https://www.plantuml.com/plantuml/svg/~1${encoded}" alt="PlantUML diagram" style="max-width:100%" onerror="this.parentElement.innerHTML='<pre class=\\'text-red-500 text-xs p-2\\'>PlantUML render error.</pre>'" /></div>`;
+}
+
+function encodePlantUML(code: string): string {
+  return btoa(code).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
 export function renderFlowchartArtifact(code: string): string {

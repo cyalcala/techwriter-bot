@@ -449,12 +449,14 @@
         for (const fa of fallbackArtifacts) {
           artifacts = [...artifacts, { messageIdx: msgIdx, artifact: fa }];
         }
-        if (fallbackArtifacts.length > 0) {
-          let clean = messages[msgIdx].content;
-          clean = clean.replace(/<[\/]?\w*rtifact[^>]*>/gi, '');
-          clean = clean.replace(/```[\w-]*\n[\s\S]*?```/g, '');
-          messages[msgIdx] = { ...messages[msgIdx], content: clean };
-        }
+      }
+
+      const allMsgArtifacts = artifacts.filter(a => a.messageIdx === msgIdx);
+      if (allMsgArtifacts.length > 0 && messages[msgIdx].content) {
+        let clean = messages[msgIdx].content;
+        clean = clean.replace(/<[\/]?\w*rtifact[^>]*>/gi, '');
+        clean = clean.replace(/```[\w-]*\n[\s\S]*?```/g, '');
+        messages[msgIdx] = { ...messages[msgIdx], content: clean };
       }
 
       const msgArtifacts = artifacts.filter(a => a.messageIdx === msgIdx);
