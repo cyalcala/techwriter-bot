@@ -79,6 +79,9 @@ export async function loadRenderer(type: ArtifactType): Promise<void> {
     case 'html':
     case 'react':
       return;
+    case 'webcontainer':
+      await loadScript('https://cdn.jsdelivr.net/npm/@webcontainer/api@1.3.0-internal.8/dist/webcontainer.api.min.js');
+      return;
   }
 }
 
@@ -228,6 +231,56 @@ export function renderReactArtifact(code: string): string {
   return `<iframe sandbox="allow-scripts" srcdoc="${getReactHtml(encodeURIComponent(code))}" style="width:100%;min-height:300px;border:1px solid #e5e1d8;border-radius:12px;overflow:hidden"></iframe>`;
 }
 
+export function renderWebContainerArtifact(code: string): string {
+  const id = `wc-${rand()}`;
+  try {
+    const parsed = JSON.parse(code);
+    if (!parsed.files) throw new Error('Missing files object');
+    loadWebContainer(id, parsed);
+  } catch (e) {
+    setTimeout(() => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = `<pre class="text-red-500 text-xs p-4">WebContainer error: ${escapeHtml(String(e))}</pre>`;
+    }, 50);
+  }
+  return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm" style="min-height:400px">Booting development environment...</div>`;
+}
+
+async function loadWebContainer(id: string, project: { files: Record<string, { contents?: string } | string>; title?: string }) {
+  try {
+    const { WebContainer } = (window as any).webcontainer || {};
+    if (!WebContainer) {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = '<pre class="text-red-500 text-xs p-4">WebContainer not loaded. Refresh and try again.</pre>';
+      return;
+    }
+    const instance = await WebContainer.boot();
+    const files: Record<string, { file: { contents: string } }> = {};
+    for (const [path, content] of Object.entries(project.files)) {
+      const text = typeof content === 'string' ? content : (content.contents || '');
+      files[path] = { file: { contents: text } };
+    }
+    await instance.mount(files);
+
+    const install = await instance.spawn('npm', ['install']);
+    await install.exit;
+
+    const dev = await instance.spawn('npx', ['vite', '--port', '5173', '--host', '0.0.0.0']);
+    instance.on('server-ready', (_port: number, url: string) => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = `<iframe src="${url}" style="width:100%;min-height:500px;border:none;border-radius:8px"></iframe>`;
+    });
+
+    dev.output.pipeTo(new WritableStream({
+      write(data) { console.log('[WebContainer]', data); }
+    }));
+
+  } catch (e) {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = `<pre class="text-red-500 text-xs p-4">WebContainer boot error: ${escapeHtml(String(e))}</pre>`;
+  }
+}
+
 function getReactHtml(encoded: string): string {
   const d = decodeURIComponent(encoded);
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"><\/script><script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"><\/script><script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script><style>body{font-family:system-ui,sans-serif;margin:16px;background:#fff;color:#1a1a1a}</style></head><body><div id="root"></div><script type="text/babel" data-type="module">${d}\nconst container=document.getElementById('root');if(typeof App!=='undefined'){try{ReactDOM.createRoot(container).render(React.createElement(App));}catch(e){window.parent.postMessage({type:'ARTIFACT_ERROR',error:e.message||String(e),stack:e.stack},'*');}}<\/script><script>window.onerror=function(m,s,l,c,e){window.parent.postMessage({type:'ARTIFACT_ERROR',error:m+' (line '+l+')',stack:e?e.stack:''},'*');};<\/script></body></html>`;
@@ -248,4 +301,4 @@ function escapeHtml(s: string): string { return s.replace(/&/g, '&amp;').replace
 function sanitizeHtml(html: string): string { return html.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/on\w+\s*=\s*"[^"]*"/gi, '').replace(/on\w+\s*=\s*'[^']*'/gi, ''); }
 function rand(): string { return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`; }
 
-declare global { interface Window { Prism: any; mermaid: any; katex: any; flowchart: any; } }
+declare global { interface Window { Prism: any; mermaid: any; katex: any; flowchart: any; webcontainer: any; } }
