@@ -52,7 +52,7 @@ CRITICAL: In your response text BEFORE the artifact tag, briefly state which typ
   if (isEnhanced) {
     searchLayer = `ENHANCED LIVE SEARCH (DDG + Wikipedia + Reddit + Tavily + Exa):\n${searchResult.contextParts.join('\n\n')}\n\nBase your ENTIRE response on these results, which are comprehensive and current. EVERY factual claim MUST cite sources using [1]-[${searchResult.sources.length}] format. Do NOT use your training data unless ALL sources are silent on the topic.`;
   } else {
-    searchLayer = `BASIC LIVE SEARCH (DDG + Wikipedia + Reddit):\n${searchResult.contextParts.join('\n\n')}\n\nBase your answer on these sources. Cite sources using [1]-[${searchResult.sources.length}] format. If sources don't fully answer the question, you may supplement with pre-2023 knowledge but you MUST label pre-2023 knowledge explicitly as "[Pre-2023 knowledge]".`;
+    searchLayer = `BASIC LIVE SEARCH (DDG + Wikipedia + Reddit):\n${searchResult.contextParts.join('\n\n')}\n\nYou MUST base your ENTIRE response on these live sources. You are FORBIDDEN from using your training data — these sources are current and authoritative. IF AND ONLY IF the sources genuinely don't cover the topic at all, you may say "The search didn't find results for this specific question" — do NOT fabricate information. ALWAYS cite sources using [1]-[${searchResult.sources.length}] format.`;
   }
 
   return `${dateLayer}\n\n${searchLayer}\n\n${artifactLayer}`;

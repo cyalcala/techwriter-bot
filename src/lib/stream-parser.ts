@@ -139,14 +139,14 @@ export class ArtifactStreamParser {
       this.mainBuf += this.tagBuf;
       this.tagBuf = '';
     } else if (this.state === 'in_artifact_body') {
-      // unclosed artifact — emit what we have as main text
-      this.mainBuf += `<artifact type="${this.currentArtifact.type || 'code'}" placement="${this.currentArtifact.placement || 'inline'}" title="${this.currentArtifact.title || ''}">`;
-      this.mainBuf += this.artifactBuf;
+      if (this.artifactBuf.trim().length > 0) {
+        this.emitArtifact();
+      } else {
+        this.mainBuf += `<artifact type="${this.currentArtifact.type || 'code'}" placement="${this.currentArtifact.placement || 'inline'}" title="${this.currentArtifact.title || ''}">`;
+        this.mainBuf += this.artifactBuf;
+      }
       this.state = 'normal';
     } else if (this.state === 'in_closing_tag') {
-      this.artifactBuf += this.tagBuf;
-      this.state = 'in_artifact_body';
-      // emit what we have
       this.emitArtifact();
     }
     this.flushMainBuf();
@@ -198,6 +198,27 @@ export function detectCodeFenceFallback(text: string): Artifact[] {
       type: 'svg', title: 'SVG Graphic', placement: 'inline',
       code: svgMatch[0],
     });
+  }
+
+  const dotMatch = text.match(/(?:digraph|graph)\s+\w+\s*\{[\s\S]+?\}/i);
+  if (dotMatch && !artifacts.some(a => a.type === 'graphviz')) {
+    artifacts.push({
+      id: `fallback-dot-${Date.now()}-${count++}`,
+      type: 'graphviz', title: 'Graphviz Diagram', placement: 'inline',
+      code: dotMatch[0],
+    });
+  }
+
+  const d2Match = text.match(/(?:^|\n)(?:\w+)(?:\s*->\s*\w+|\s*\.\w+\s*\{)/m);
+  if (d2Match && !artifacts.some(a => a.type === 'd2' || a.type === 'mermaid' || a.type === 'graphviz')) {
+    const d2Code = text.replace(/<[\/]?\w*rtifact[^>]*>/gi, '').trim();
+    if (d2Code.length > 50 && (d2Code.includes('->') || d2Code.includes('shape:'))) {
+      artifacts.push({
+        id: `fallback-d2-${Date.now()}-${count++}`,
+        type: 'd2', title: 'D2 Diagram', placement: 'inline',
+        code: d2Code,
+      });
+    }
   }
 
   return artifacts;

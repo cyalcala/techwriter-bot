@@ -14,6 +14,7 @@
     content: string;
     provider?: string;
     sources?: { title: string; url: string }[];
+    searchTier?: 'none' | 'basic' | 'enhanced';
     empty?: boolean;
   }
 
@@ -288,6 +289,7 @@
 
     let messagesToSend = [...messages];
     let sourcesFromHeaders: { title: string; url: string }[] = [];
+    let msgSearchTier: 'none' | 'basic' | 'enhanced' = 'none';
 
     try {
       if (uploadStatus === 'done') {
@@ -341,9 +343,9 @@
       if (sourcesRaw) { try { sourcesFromHeaders = JSON.parse(sourcesRaw); } catch (e) {} }
 
       const responseSearchTier = response.headers.get('x-search-tier') as 'basic' | 'enhanced' | 'none' | null;
-      const responseSearchRemaining = response.headers.get('x-search-remaining');
+      if (responseSearchTier) msgSearchTier = responseSearchTier;
 
-      if (responseSearchTier) searchTier = responseSearchTier;
+      const responseSearchRemaining = response.headers.get('x-search-remaining');
       if (responseSearchRemaining != null) {
         const remaining = responseSearchRemaining === 'unlimited' ? -1 : parseInt(responseSearchRemaining, 10);
         if (!isNaN(remaining)) {
@@ -359,7 +361,7 @@
       const reader = stream.getReader();
       const decoder = new TextDecoder();
 
-      messages = [...messages, { role: 'assistant', content: '', provider: providerName, sources: sourcesFromHeaders }];
+      messages = [...messages, { role: 'assistant', content: '', provider: providerName, sources: sourcesFromHeaders, searchTier: msgSearchTier }];
       const msgIdx = messages.length - 1;
 
       const batcher = new TokenBatcher((batch) => {
@@ -482,10 +484,21 @@
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
-  function formatMarkdown(text: string | null | undefined): string {
+  function formatMarkdown(text: string | null | undefined, sources?: { title: string; url: string }[]): string {
     if (!text) return '';
     let formatted = escapeHtml(String(text));
-    formatted = formatted.replace(/\[(\d+)\]/g, '<sup class="citation">[$1]</sup>');
+
+    if (sources && sources.length > 0) {
+      formatted = formatted.replace(/\[(\d+)\]/g, (match, num) => {
+        const idx = parseInt(num) - 1;
+        if (sources[idx]) {
+          return `<sup class="citation"><a href="${sources[idx].url}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(sources[idx].title)}" style="color:#2563eb;text-decoration:none;font-weight:600">[${num}]</a></sup>`;
+        }
+        return `<sup class="citation">[${num}]</sup>`;
+      });
+    } else {
+      formatted = formatted.replace(/\[(\d+)\]/g, '<sup class="citation">[$1]</sup>');
+    }
     formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
     formatted = formatted.replace(/^\- (.*)/gm, '<li class="ml-4 list-disc">$1</li>');
@@ -564,7 +577,7 @@
               <div class="ai-content italic text-[#8c8576]">No response received.</div>
               <button on:click={regenerate} class="mt-2 text-[10px] md:text-xs bg-[#f1ede4] hover:bg-[#e8e4db] text-[#6d675b] px-3 py-1 rounded-lg transition-all border border-[#d6d0c4] active:scale-95">Retry</button>
             {:else}
-              <div class="ai-content whitespace-pre-wrap">{@html formatMarkdown(msg.content)}</div>
+              <div class="ai-content whitespace-pre-wrap">{@html formatMarkdown(msg.content, msg.sources)}</div>
             {/if}
             {#if msg.sources && msg.sources.length > 0 && !isStreaming}
               <div class="mt-3 pt-3 border-t border-[#e5e1d8]">
@@ -578,7 +591,10 @@
                 </div>
               </div>
             {/if}
-            {#if msg.provider && !isStreaming}
+            {#if msg.searchTier && msg.searchTier !== 'none'}
+                <span class="text-[8px] uppercase tracking-widest font-bold text-green-600 opacity-60 ml-2">{msg.searchTier === 'enhanced' ? '🔍 Enhanced Search' : '🔍 Live Search'}</span>
+              {/if}
+              {#if msg.provider && !isStreaming}
               <div class="mt-4 pt-3 border-t border-[#e5e1d8] flex items-center gap-2">
                 {#if msg.provider === 'cloudflare-llama'}
                   <span class="text-[8px] uppercase tracking-widest font-bold text-amber-600 opacity-50">&#9889; Fallback Engine</span>
