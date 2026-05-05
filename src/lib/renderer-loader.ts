@@ -310,6 +310,8 @@ function sanitizeMermaid(code: string): string {
     .replace(/<div[^>]*>/gi, '')
     .replace(/<\/div>/gi, '\n')
     .replace(/&nbsp;/gi, ' ')
+    .replace(/->>/g, '-->')
+    .replace(/-\|>/g, '-->')
     .replace(/(\w+)\|(\w+)/g, '$1/$2')
     .replace(/\|>/g, '/>')
     .replace(/\[([^\]]*)\|([^\]]*)\]/g, '[$1/$2]');
