@@ -10,7 +10,7 @@ export interface Artifact {
   language?: string;
 }
 
-type ParserState = 'normal' | 'in_opening_tag' | 'in_artifact_body' | 'in_closing_tag';
+type ParserState = 'normal' | 'in_artifact_body';
 
 const ARTIFACT_OPEN_RE = /<\w*rtifact\s+type="(\w+)"(?:\s+placement="(\w+)")?(?:\s+title="([^"]*)")?(?:\s+language="([^"]*)")?\s*\/?>/i;
 const ARTIFACT_CLOSE_RE = /<\/\w*rtifact\s*>/i;
@@ -18,7 +18,6 @@ const ARTIFACT_CLOSE_RE = /<\/\w*rtifact\s*>/i;
 export class ArtifactStreamParser {
   private state: ParserState = 'normal';
   private artifactBuf = '';
-  private tagBuf = '';
   private mainBuf = '';
   private currentArtifact: Partial<Artifact> = {};
   private onArtifactComplete: (artifact: Artifact) => void;
@@ -34,68 +33,67 @@ export class ArtifactStreamParser {
   }
 
   feed(tokens: string) {
-    for (const char of tokens) {
-      this.processChar(char);
+    let remaining = tokens;
+    while (remaining.length > 0) {
+      if (this.state === 'normal') {
+        const openIdx = remaining.indexOf('<artifact');
+        if (openIdx === -1) {
+          this.emitMain(remaining);
+          remaining = '';
+          break;
+        }
+
+        if (openIdx > 0) {
+          this.emitMain(remaining.slice(0, openIdx));
+        }
+
+        const closeIdx = remaining.indexOf('>', openIdx);
+        if (closeIdx === -1) {
+          this.emitMain(remaining);
+          remaining = '';
+          break;
+        }
+
+        const tagStr = remaining.slice(openIdx, closeIdx + 1);
+        const match = tagStr.match(ARTIFACT_OPEN_RE);
+        if (match) {
+          const artifactType = match[1] as ArtifactType;
+          this.currentArtifact = {
+            type: artifactType,
+            placement: (match[2] || 'inline') as ArtifactPlacement,
+            title: match[3] || (artifactType === 'code' ? 'Code' : `${artifactType.charAt(0).toUpperCase() + artifactType.slice(1)} Diagram`),
+            language: match[4] || undefined,
+          };
+          this.artifactBuf = '';
+          this.state = 'in_artifact_body';
+          remaining = remaining.slice(closeIdx + 1);
+        } else {
+          this.emitMain(tagStr);
+          remaining = remaining.slice(closeIdx + 1);
+        }
+      } else {
+        const closeIdx = remaining.indexOf('</artifact>');
+        if (closeIdx === -1) {
+          this.artifactBuf += remaining;
+          remaining = '';
+        } else {
+          this.artifactBuf += remaining.slice(0, closeIdx);
+          remaining = remaining.slice(closeIdx + 11);
+          this.emitArtifact();
+          this.state = 'normal';
+        }
+      }
     }
   }
 
-  private processChar(char: string) {
-    switch (this.state) {
-      case 'normal':
-        this.tagBuf += char;
-        if (this.tagBuf.length > 100) {
-          this.flushTagBuf();
-        } else if (char === '>' && this.tagBuf.includes('<artifact')) {
-          const match = this.tagBuf.match(ARTIFACT_OPEN_RE);
-          if (match) {
-            const artifactType = match[1] as ArtifactType;
-            this.currentArtifact = {
-              type: artifactType,
-              placement: (match[2] || 'inline') as ArtifactPlacement,
-              title: match[3] || (artifactType === 'code' ? 'Code' : `${artifactType.charAt(0).toUpperCase() + artifactType.slice(1)} Diagram`),
-              language: match[4] || undefined,
-            };
-            this.artifactBuf = '';
-            this.state = 'in_artifact_body';
-            this.tagBuf = '';
-          } else {
-            this.flushTagBuf();
-          }
-        }
-        break;
-
-      case 'in_artifact_body':
-        if (char === '<') {
-          this.tagBuf = '<';
-          this.state = 'in_closing_tag';
-        } else {
-          this.artifactBuf += char;
-        }
-        break;
-
-      case 'in_closing_tag':
-        this.tagBuf += char;
-        if (this.tagBuf.length > 50) {
-          this.artifactBuf += this.tagBuf;
-          this.tagBuf = '';
-          this.state = 'in_artifact_body';
-        } else if (char === '>') {
-          if (ARTIFACT_CLOSE_RE.test(this.tagBuf)) {
-            this.emitArtifact();
-            this.state = 'normal';
-            this.tagBuf = '';
-          } else {
-            this.artifactBuf += this.tagBuf;
-            this.tagBuf = '';
-            this.state = 'in_artifact_body';
-          }
-        }
-        break;
+  private emitMain(text: string) {
+    if (text.length > 0) {
+      this.onMainText(text);
     }
   }
 
   private emitArtifact() {
-    const code = this.artifactBuf;
+    let code = this.artifactBuf;
     const artifact: Artifact = {
       id: `artifact-${Date.now()}-${this.artifactCounter++}`,
       type: this.currentArtifact.type || 'code',
@@ -121,43 +119,29 @@ export class ArtifactStreamParser {
     this.onArtifactComplete(artifact);
   }
 
-  private flushTagBuf() {
-    this.mainBuf += this.tagBuf;
-    this.flushMainBuf();
-    this.tagBuf = '';
-  }
-
-  private flushMainBuf() {
-    if (this.mainBuf.length > 0) {
-      this.onMainText(this.mainBuf);
-      this.mainBuf = '';
-    }
-  }
-
   flush() {
-    if (this.state === 'normal') {
-      this.mainBuf += this.tagBuf;
-      this.tagBuf = '';
-    } else if (this.state === 'in_artifact_body') {
-      if (this.artifactBuf.trim().length > 0) {
-        this.emitArtifact();
-      } else {
-        this.mainBuf += `<artifact type="${this.currentArtifact.type || 'code'}" placement="${this.currentArtifact.placement || 'inline'}" title="${this.currentArtifact.title || ''}">`;
-        this.mainBuf += this.artifactBuf;
-      }
-      this.state = 'normal';
-    } else if (this.state === 'in_closing_tag') {
+    if (this.state === 'in_artifact_body' && this.artifactBuf.trim().length > 0) {
       this.emitArtifact();
     }
-    this.flushMainBuf();
+    this.emitMain(this.mainBuf);
+    this.state = 'normal';
+    this.artifactBuf = '';
+    this.mainBuf = '';
+    this.currentArtifact = {};
   }
 
   reset() {
     this.state = 'normal';
     this.artifactBuf = '';
-    this.tagBuf = '';
     this.mainBuf = '';
     this.currentArtifact = {};
+  }
+
+  feedChunk(chunk: string, onText: (text: string) => void) {
+    this.mainBuf += chunk;
+    this.feed(chunk);
+    this.emitMain(this.mainBuf);
+    this.mainBuf = '';
   }
 }
 
@@ -207,18 +191,6 @@ export function detectCodeFenceFallback(text: string): Artifact[] {
       type: 'graphviz', title: 'Graphviz Diagram', placement: 'inline',
       code: dotMatch[0],
     });
-  }
-
-  const d2Match = text.match(/(?:^|\n)(?:\w+)(?:\s*->\s*\w+|\s*\.\w+\s*\{)/m);
-  if (d2Match && !artifacts.some(a => a.type === 'd2' || a.type === 'mermaid' || a.type === 'graphviz')) {
-    const d2Code = text.replace(/<[\/]?\w*rtifact[^>]*>/gi, '').trim();
-    if (d2Code.length > 50 && (d2Code.includes('->') || d2Code.includes('shape:'))) {
-      artifacts.push({
-        id: `fallback-d2-${Date.now()}-${count++}`,
-        type: 'd2', title: 'D2 Diagram', placement: 'inline',
-        code: d2Code,
-      });
-    }
   }
 
   return artifacts;

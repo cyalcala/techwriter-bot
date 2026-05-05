@@ -6,7 +6,47 @@ on:
   workflow_dispatch:
 
 jobs:
+  graphify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install Graphify
+        run: uv tool install graphify
+
+      - name: Build knowledge graph
+        run: |
+          graphify . --no-viz --mode normal
+          gzip -9f graphify-out/graph.json
+          echo "Graph size: $(wc -c < graphify-out/graph.json.gz) bytes"
+
+      - name: Setup Node.js for Wrangler
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Upload graph to KV
+        run: |
+          npm install -g wrangler
+          echo "$(date -u +%s)" > graphify-out/version.txt
+          npx wrangler kv key put --binding=SESSION "graph:latest" --path=graphify-out/graph.json.gz
+          npx wrangler kv key put --binding=SESSION "graph:version" --path=graphify-out/version.txt
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
   deploy:
+    needs: graphify
     runs-on: ubuntu-latest
     permissions:
       contents: read

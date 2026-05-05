@@ -1,4 +1,5 @@
 import { classifyQuery, formatConversationalResponse } from './relevance';
+import { enforceBudget } from './token-counter';
 
 export interface SearchResult {
   contextParts: string[];
@@ -8,35 +9,79 @@ export interface SearchResult {
   enhancedRemaining?: number;
 }
 
-export function buildSystemPrompt(query: string, searchResult: SearchResult): string {
+export interface PromptContext {
+  path: 'fast' | 'balanced' | 'heavy';
+  graphContext?: string;
+  documentContext?: string;
+  searchResult?: SearchResult;
+  needsArtifact: boolean;
+}
+
+const ARTIFACT_COMPACT = 'Use <artifact type="X"> for structured output. Types: code|html|svg|mermaid|react|katex|markmap|d2|vega|graphviz|plantuml|flowchart|webcontainer. Suggest best type, then generate.';
+
+const CORE_PERSONA_FAST = `You are a helpful, concise technical writing assistant. Respond naturally and briefly. Keep responses under 3 sentences unless the user asks for detail.`;
+
+const CORE_PERSONA_BALANCED = `You are an expert technical writing assistant. You write clear, accurate technical content. Be thorough but concise. Use the provided knowledge graph context to ground your answers in the actual codebase.`;
+
+const CORE_PERSONA_HEAVY = `You are an expert technical writing and research assistant. You have access to live search results and codebase knowledge. Answer thoroughly with citations. Prioritize recent, accurate information from provided sources. Never mention training data or knowledge cutoffs.`;
+
+export function buildSystemPrompt(query: string, ctx: PromptContext): string {
   const now = new Date();
   const dayName = now.toLocaleDateString('en-US', { weekday: 'long' });
   const dateStr = now.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   const year = now.getFullYear();
+  const dateLayer = `Today is ${dayName}, ${dateStr}. Current year is ${year}.`;
 
-  const dateLayer = `Today is ${dayName}, ${dateStr}. Current year is ${year}. Always assume the user wants current, accurate information unless they specifically ask about something historical.`;
+  const layers: { priority: number; content: string }[] = [];
 
-  const classification = classifyQuery(query);
-  const conversationalBlock = formatConversationalResponse(classification);
-  const needsArtifact = /(diagram|chart|graph|draw|visualize|plot|flowchart|mind.?map|org.?chart|architecture|uml|code|equation|math|latex|mermaid|graphviz|d2|plantuml|katex|vega|markmap|flowchart|webcontainer|react|component|app|wireframe)/i.test(query);
+  switch (ctx.path) {
+    case 'fast':
+      layers.push({ priority: 0, content: dateLayer });
+      layers.push({ priority: 0, content: CORE_PERSONA_FAST });
+      break;
+    case 'balanced':
+      layers.push({ priority: 0, content: dateLayer });
+      layers.push({ priority: 0, content: CORE_PERSONA_BALANCED });
+      break;
+    case 'heavy':
+      layers.push({ priority: 0, content: dateLayer });
+      layers.push({ priority: 0, content: CORE_PERSONA_HEAVY });
+      break;
+  }
 
-  const artifactLayer = needsArtifact ? `Use <artifact> tags for structured output. Match type to request: graphviz for org charts/trees, mermaid for flowcharts/sequences, d2 for cloud/network, katex for math, markmap for mindmaps, vega for data charts, plantuml for UML, flowchart for simple flows, code for any language, webcontainer for full multi-file apps (JSON with files object). First list 2-3 best type options with reasons, then generate using your recommended one.` : '';
+  if (ctx.graphContext) {
+    layers.push({ priority: 1, content: ctx.graphContext });
+  }
 
-  if (searchResult.searchTier === 'none') {
-    if (conversationalBlock) {
-      return `${dateLayer}\n\n${conversationalBlock}` + (needsArtifact ? `\n\n${artifactLayer}` : '');
+  if (ctx.documentContext) {
+    layers.push({ priority: 2, content: ctx.documentContext });
+  }
+
+  if (ctx.path === 'heavy' && ctx.searchResult) {
+    const searchResult = ctx.searchResult;
+
+    if (searchResult.searchTier === 'none' && !ctx.graphContext) {
+      layers.push({
+        priority: 1,
+        content: 'Search returned no results for this query. Be honest: say you don\'t have current info yet. Only offer what you confidently know.',
+      });
+    } else if (searchResult.contextParts.length === 0 && searchResult.searchAttempted) {
+      layers.push({
+        priority: 1,
+        content: 'IMPORTANT: Search returned no results. Be honest about what you can and cannot answer.',
+      });
+    } else if (searchResult.contextParts.length > 0) {
+      const isEnhanced = searchResult.searchTier === 'enhanced';
+      const searchLayer = isEnhanced
+        ? `ENHANCED LIVE SEARCH:\n${searchResult.contextParts.join('\n\n')}\n\nAnswer using these live sources. Cite every fact with [1]-[${searchResult.sources.length}]. NEVER mention training data.`
+        : `BASIC LIVE SEARCH:\n${searchResult.contextParts.join('\n\n')}\n\nAnswer using these live sources. Cite every fact with [1]-[${searchResult.sources.length}]. NEVER mention training data.`;
+      layers.push({ priority: 3, content: searchLayer });
     }
-    return `${dateLayer}\n\nYou are a helpful technical writing assistant.` + (needsArtifact ? `\n\n${artifactLayer}` : '');
   }
 
-  if (searchResult.contextParts.length === 0) {
-    return `${dateLayer}\n\nIMPORTANT: Search returned no results for this query. Be honest: say you don't have current info yet. Only offer what you confidently know, without mentioning cutoff dates or training data limitations.` + (needsArtifact ? `\n\n${artifactLayer}` : '');
+  if (ctx.needsArtifact) {
+    layers.push({ priority: 4, content: ARTIFACT_COMPACT });
   }
 
-  const isEnhanced = searchResult.searchTier === 'enhanced';
-  const searchLayer = isEnhanced
-    ? `ENHANCED LIVE SEARCH:\n${searchResult.contextParts.join('\n\n')}\n\nMUST answer using ONLY these live sources. Training data FORBIDDEN. Cite every fact with [1]-[${searchResult.sources.length}]. NEVER mention training data or 2023 cutoff.`
-    : `BASIC LIVE SEARCH:\n${searchResult.contextParts.join('\n\n')}\n\nMUST answer using ONLY these live sources. Training data FORBIDDEN. Cite every fact with [1]-[${searchResult.sources.length}]. If a source is vague, say what it says anyway. NEVER mention training data or 2023 cutoff.`;
-
-  return [dateLayer, searchLayer, needsArtifact ? artifactLayer : ''].filter(Boolean).join('\n\n');
+  return enforceBudget(layers, 2048);
 }

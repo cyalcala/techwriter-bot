@@ -2,9 +2,12 @@ import type { APIRoute } from 'astro';
 import { env as cfGlobalEnv } from 'cloudflare:workers';
 import { routeChat, getCircuitDiagnostics, initCircuitKV, type ResponseMetadata } from '../../lib/zen-router';
 import { searchRouter } from '../../lib/search';
-import { buildSystemPrompt } from '../../lib/prompts';
+import { buildSystemPrompt, type SearchResult, type PromptContext } from '../../lib/prompts';
 import { readEnvKeys, checkEnvKeys } from '../../lib/env-reader';
 import { updateReputation, getDefaultState, deserializeReputation, serializeReputation, getTierProviderPool, getDailyLimits, type ReputationState } from '../../lib/reputation';
+import { determineChatPath, isArtifactGenerationRequest } from '../../lib/path-router';
+import { ensureGraph, queryGraph, getGraphStats } from '../../lib/graph-query';
+import { logTokenUsage, estimateTokens } from '../../lib/token-counter';
 
 const rateLimits = new Map<string, { count: number; reset: number }>();
 const RATE_WINDOW = 60_000;
@@ -103,13 +106,64 @@ async function getReputation(kv: any, ip: string, headers: Headers): Promise<Rep
   return updateReputation(s, 'request');
 }
 
+async function searchRagKV(kv: any, sessionId: string, query: string): Promise<string> {
+  if (!kv) return '';
+  try {
+    const raw = await kv.get(`rag:${sessionId}`);
+    if (!raw) return '';
+    const vectors: { text: string; vector: number[]; timestamp: number }[] = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    if (!vectors?.length) return '';
+
+    const qTerms = query.toLowerCase().split(/\s+/).filter(t => t.length > 2);
+    if (qTerms.length === 0) {
+      const parts = vectors.slice(0, 3).map((v, i) => `[Doc ${i + 1}] ${v.text.slice(0, 400)}`);
+      return `DOCUMENT CONTEXT (recent excerpts):\n${parts.join('\n\n')}`;
+    }
+
+    const scored = vectors.map((v, i) => {
+      const lower = v.text.toLowerCase();
+      let score = 0;
+      for (const term of qTerms) {
+        let idx = 0;
+        while ((idx = lower.indexOf(term, idx)) !== -1) { score++; idx += term.length; }
+      }
+      return { text: v.text, score, idx: i };
+    });
+
+    scored.sort((a, b) => b.score - a.score);
+    const top = scored.filter(v => v.score > 0).slice(0, 3);
+
+    if (top.length === 0) {
+      const parts = vectors.slice(0, 3).map((v, i) => `[Doc ${i + 1}] ${v.text.slice(0, 300)}`);
+      return `DOCUMENT CONTEXT (keyword match weak — showing recent excerpts):\n${parts.join('\n\n')}`;
+    }
+
+    const extractKeyPoints = (text: string, max: number = 300): string => {
+      const sentences = text.split(/[.!?]\s+/);
+      let result = '';
+      for (const s of sentences) {
+        if (s.length < 10) continue;
+        if (result.length + s.length > max) break;
+        result += (result ? '. ' : '') + s;
+      }
+      return result || text.slice(0, max);
+    };
+
+    return `DOCUMENT CONTEXT:\n${top.map((c, i) => `[Point ${i + 1}] (match: ${c.score}) ${extractKeyPoints(c.text)}`).join('\n')}`;
+  } catch {
+    return '';
+  }
+}
+
 export const GET: APIRoute = async ({ request, locals }) => {
   const env = loadEnv(locals);
+  const graphStats = getGraphStats();
   return new Response(JSON.stringify({
     status: 'ok', circuits: getCircuitDiagnostics(),
     dailyRequests: [...dailyUsage.entries()].reduce((a, [, c]) => a + c, 0),
     keys: checkEnvKeys(env),
     clientIP: request.headers.get('cf-connecting-ip') || 'unknown',
+    graph: graphStats || { available: false },
   }, null, 2), { headers: { 'Content-Type': 'application/json' } });
 };
 
@@ -156,38 +210,87 @@ export const POST: APIRoute = async (ctx) => {
 
     let messages = sanitizeInput(body.messages);
     const liveSearch = !!body.liveSearch;
+    const hasDocument = !!body.hasDocument;
+    const clientSessionId = body.sessionId || '';
     const lastMsg = [...messages].reverse().find((m: any) => m.role === 'user');
     const query = lastMsg?.content || '';
+    const msgLen = query.length;
 
     if (!isDev) {
       rep = updateReputation(rep, 'dup_query', { message: query });
       rep = updateReputation(rep, 'natural_message', { message: query });
     }
 
-    const searchResult = await searchRouter(query, liveSearch, env, ip, rep);
-    const sources = searchResult.sources || [];
-    messages = [{ role: 'system', content: buildSystemPrompt(query, searchResult) }, ...messages];
+    const pathCtx = determineChatPath(query, msgLen, body.intent || 'chat-fast', clientSessionId);
+    log('path', { path: pathCtx.path, reason: pathCtx.reason });
+
+    let searchResult: SearchResult = { contextParts: [], sources: [], searchTier: 'none', searchAttempted: false };
+
+    if (!pathCtx.skipSearch) {
+      searchResult = await searchRouter(query, liveSearch, env, ip, rep);
+    }
+
+    const graphAvail = await ensureGraph(env.SESSION);
+    let graphContextStr = '';
+    if (pathCtx.includeGraph && graphAvail.available) {
+      const gctx = queryGraph(query);
+      if (gctx.available) graphContextStr = gctx.context;
+    }
+
+    let documentContextStr = '';
+    if (hasDocument) {
+      documentContextStr = await searchRagKV(env.SESSION, `rag:${clientSessionId}`, query);
+      if (!documentContextStr) {
+        documentContextStr = 'NOTE: User has uploaded a document, but its embeddings are unavailable. Ask them to re-upload if document context is needed.';
+      }
+    }
+
+    const needsArtifact = isArtifactGenerationRequest(query);
+
+    const promptCtx: PromptContext = {
+      path: pathCtx.path,
+      graphContext: graphContextStr || undefined,
+      documentContext: documentContextStr || undefined,
+      searchResult,
+      needsArtifact,
+    };
+
+    messages = [{ role: 'system', content: buildSystemPrompt(query, promptCtx) }, ...messages];
 
     if (!isDev && env.SESSION) {
       try { await env.SESSION.put(`reputation:${ip}`, serializeReputation(rep), { expirationTtl: 7200 }); } catch {}
     }
 
     const tier = isDev ? 'premium' : rep.tier;
-    let pool = isDev ? ['groq-fast', 'gemini-flash'] : getTierProviderPool(tier).pool;
+    let pool = isDev
+      ? (pathCtx.path === 'fast' ? ['groq-fast'] : ['groq-fast', 'gemini-flash'])
+      : getTierProviderPool(tier).pool;
 
-    const needsArtifact = /(diagram|chart|graph|draw|visualize|plot|flowchart|mind.?map|org.?chart|architecture|uml|code|equation|math|latex|mermaid|graphviz|d2|plantuml|katex|vega|markmap|webcontainer|react|component|app|wireframe)/i.test(query);
-    if (needsArtifact) {
+    if (pathCtx.path === 'fast') {
+      pool = ['groq-fast'];
+    } else if (needsArtifact) {
       const strong = ['groq-fast', 'gemini-flash', 'cerebras-llama'];
       pool = [...strong.filter(m => pool.includes(m)), ...pool.filter(m => !strong.includes(m))];
     }
 
     const meta: ResponseMetadata = {
-      provider: null, searchTier: searchResult.searchTier,
+      provider: null,
+      searchTier: searchResult.searchTier,
       searchRemaining: searchResult.enhancedRemaining != null ? String(searchResult.enhancedRemaining) : (isDev ? 'unlimited' : '0'),
       tier: isDev ? 'dev' : tier,
+      chatPath: pathCtx.path,
     };
 
-    return await routeChat(body.intent || 'chat-fast', messages, locals, env, sessionId, sources, meta, pool);
+    const response = await routeChat(
+      pathCtx.path === 'fast' ? 'chat-fast' : body.intent || 'chat-fast',
+      messages, locals, env, sessionId, searchResult.sources, meta, pool, pathCtx.path,
+    );
+
+    const systemPrompt = messages.find((m: any) => m.role === 'system');
+    const inputTokens = estimateTokens(systemPrompt?.content || '') + messages.slice(1).reduce((s: number, m: any) => s + estimateTokens(m.content || ''), 0);
+    logTokenUsage(env.SESSION, clientSessionId, meta.provider || 'unknown', inputTokens, 0).catch(() => {});
+
+    return response;
   } catch (e: any) {
     log('error', { message: e.message?.slice(0, 200) });
     return new Response(JSON.stringify({ error: 'server_error', message: 'Unexpected error. Please try again.', retryAfter: 5 }), { status: 500, headers: { 'Content-Type': 'application/json', 'Retry-After': '5' } });

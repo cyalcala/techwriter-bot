@@ -11,11 +11,18 @@ import ChatIsland from '../components/ChatIsland.svelte';
   <meta name="generator" content={Astro.generator} />
   <title>Technical Writer Bot</title>
 
-  <!-- Premium Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500&display=swap" rel="stylesheet">
 
+  <!-- Preload artifact renderers for instant first artifact rendering -->
+  <link rel="preload" as="script" href="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js">
+  <link rel="preload" as="style" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" onload="this.rel='stylesheet'">
+  <link rel="preload" as="script" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js">
+  <link rel="preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" onload="this.rel='stylesheet'">
+  <link rel="preload" as="script" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js">
+  <link rel="preload" as="script" href="https://cdn.jsdelivr.net/npm/@hpcc-js/wasm@2.15.3/dist/graphviz.umd.min.js">
+  <link rel="preload" as="script" href="https://cdn.jsdelivr.net/npm/@terrastruct/d2-js@0.6.3/dist/d2-js.umd.min.js">
 </head>
 <body class="bg-[#fcfaf6] text-[#2e2e2e] m-0 p-0 overflow-hidden">
   <ChatIsland client:load />

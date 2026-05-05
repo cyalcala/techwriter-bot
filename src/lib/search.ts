@@ -72,8 +72,10 @@ export interface SearchResult {
   enhancedRemaining?: number;
 }
 
-const DDG_TIMEOUT_MS = 4000;
-const WIKI_TIMEOUT_MS = 5000;
+const DDG_TIMEOUT_MS = 3000;
+const WIKI_TIMEOUT_MS = 4000;
+const REDDIT_TIMEOUT_MS = 4000;
+const SEARCH_TOTAL_TIMEOUT_MS = 8000;
 
 async function searchDuckDuckGo(query: string, kv?: any): Promise<SearchSource | null> {
   const cachedKv = await getCachedSearch(kv, `ddg:${query}`);

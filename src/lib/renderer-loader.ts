@@ -96,6 +96,18 @@ function domReady(fn: () => void): void {
   requestAnimationFrame(() => requestAnimationFrame(fn));
 }
 
+function renderSafely<T>(
+  fn: () => T,
+  fallbackCode: string,
+  errorPrefix: string,
+): T | string {
+  try {
+    return fn();
+  } catch (e) {
+    return `<div class="text-red-500 text-xs p-3 bg-red-50 rounded-lg border border-red-200"><strong>${errorPrefix}:</strong><br/><code class="text-[11px] whitespace-pre-wrap break-all">${escapeHtml(String(e))}</code><pre class="mt-2 p-2 bg-gray-100 rounded text-[11px] overflow-x-auto whitespace-pre-wrap hidden">${escapeHtml(fallbackCode)}</pre></div>`;
+  }
+}
+
 export function renderCodeArtifact(code: string, language?: string): string {
   const lang = language || detectLanguage(code);
   if (window.Prism) {
@@ -112,16 +124,16 @@ export function renderMermaidArtifact(code: string): string {
   const sanitized = sanitizeMermaid(code);
   const id = `mer-${rand()}`;
   domReady(async () => {
+    const el = document.getElementById(id);
+    if (!el) return;
     try {
-      const el = document.getElementById(id);
-      if (el && window.mermaid) {
+      if (window.mermaid) {
         window.mermaid.initialize({ startOnLoad: false, securityLevel: 'loose' });
         const { svg } = await window.mermaid.render(`${id}-s`, sanitized);
         el.innerHTML = svg;
       }
     } catch (e) {
-      const el = document.getElementById(id);
-      if (el) el.innerHTML = `<div class="text-red-500 text-xs p-3 bg-red-50 rounded-lg border border-red-200"><strong>Mermaid error:</strong><br/><code class="text-[11px] whitespace-pre-wrap break-all">${escapeHtml(String(e))}</code><button class="mt-2 px-2 py-1 text-[10px] bg-red-100 hover:bg-red-200 rounded border border-red-300" onclick="this.nextElementSibling.classList.toggle('hidden')">Show raw</button><pre class="hidden mt-2 p-2 bg-gray-100 rounded text-[11px] overflow-x-auto whitespace-pre-wrap">${escapeHtml(code)}</pre></div>`;
+      el.innerHTML = renderError('Mermaid', String(e), code);
     }
   });
   return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm">Rendering diagram...</div>`;
@@ -130,12 +142,12 @@ export function renderMermaidArtifact(code: string): string {
 export function renderKatexArtifact(code: string): string {
   const id = `katex-${rand()}`;
   domReady(() => {
+    const el = document.getElementById(id);
+    if (!el) return;
     try {
-      const el = document.getElementById(id);
-      if (el && window.katex) window.katex.render(code, el, { throwOnError: false, displayMode: true });
+      if (window.katex) window.katex.render(code, el, { throwOnError: false, displayMode: true });
     } catch (e) {
-      const el = document.getElementById(id);
-      if (el) el.innerHTML = `<pre class="text-red-500 text-xs">${escapeHtml(String(e))}</pre>`;
+      el.innerHTML = renderError('KaTeX', String(e), code);
     }
   });
   return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm">Rendering math...</div>`;
@@ -145,18 +157,17 @@ export function renderMarkmapArtifact(code: string): string {
   const id = `markmap-${rand()}`;
   domReady(() => {
     const el = document.getElementById(id);
-    if (el) {
-      const mm = (window as any).markmap;
-      if (mm?.Markmap) {
-        const t = new mm.Transformer();
-        const { root } = t.transform(code);
-        const svgEl = document.createElement('div');
-        el.innerHTML = '';
-        el.appendChild(svgEl);
-        mm.Markmap.create(svgEl, undefined, root);
-      } else {
-        el.innerHTML = `<div class="text-xs text-[#8c8576]">Mind map renderer not loaded.</div>`;
-      }
+    if (!el) return;
+    const mm = (window as any).markmap;
+    if (mm?.Markmap) {
+      const t = new mm.Transformer();
+      const { root } = t.transform(code);
+      const svgEl = document.createElement('div');
+      el.innerHTML = '';
+      el.appendChild(svgEl);
+      mm.Markmap.create(svgEl, undefined, root);
+    } else {
+      el.innerHTML = `<div class="text-xs text-[#8c8576]">Mind map renderer not loaded.</div>`;
     }
   });
   return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm" style="min-height:300px">Rendering mind map...</div>`;
@@ -165,16 +176,16 @@ export function renderMarkmapArtifact(code: string): string {
 export function renderD2Artifact(code: string): string {
   const id = `d2-${rand()}`;
   domReady(async () => {
+    const el = document.getElementById(id);
+    if (!el) return;
     try {
-      const el = document.getElementById(id);
-      if (el && (window as any).d2) {
+      if ((window as any).d2) {
         const result = await (window as any).d2.compile(code, { layout: 'dagre' });
         el.innerHTML = result.svg || '';
         el.className = 'flex justify-center overflow-x-auto';
       }
     } catch (e) {
-      const el = document.getElementById(id);
-      if (el) el.innerHTML = `<pre class="text-red-500 text-xs">${escapeHtml(String(e))}</pre>`;
+      el.innerHTML = renderError('D2', String(e), code);
     }
   });
   return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm">Rendering D2 diagram...</div>`;
@@ -183,14 +194,14 @@ export function renderD2Artifact(code: string): string {
 export function renderVegaArtifact(code: string): string {
   const id = `vega-${rand()}`;
   domReady(async () => {
+    const el = document.getElementById(id);
+    if (!el) return;
     try {
-      const el = document.getElementById(id);
-      if (el && (window as any).vegaEmbed) {
+      if ((window as any).vegaEmbed) {
         await (window as any).vegaEmbed(`#${id}`, JSON.parse(code), { actions: true });
       }
     } catch (e) {
-      const el = document.getElementById(id);
-      if (el) el.innerHTML = `<pre class="text-red-500 text-xs">${escapeHtml(String(e))}</pre>`;
+      if (el) el.innerHTML = renderError('Vega', String(e), code);
     }
   });
   return `<div id="${id}" class="p-4" style="min-height:200px"></div>`;
@@ -199,13 +210,13 @@ export function renderVegaArtifact(code: string): string {
 export function renderGraphvizArtifact(code: string): string {
   const id = `gv-${rand()}`;
   domReady(async () => {
+    const el = document.getElementById(id);
+    if (!el) return;
     try {
-      const el = document.getElementById(id);
       const gv = (window as any).graphviz;
-      if (el && gv) el.innerHTML = await gv.layout(code, 'svg', 'dot');
+      if (gv) el.innerHTML = await gv.layout(code, 'svg', 'dot');
     } catch (e) {
-      const el = document.getElementById(id);
-      if (el) el.innerHTML = `<pre class="text-red-500 text-xs">${escapeHtml(String(e))}</pre>`;
+      if (el) el.innerHTML = renderError('Graphviz', String(e), code);
     }
   });
   return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm" style="min-height:200px">Rendering Graphviz...</div>`;
@@ -223,16 +234,16 @@ function encodePlantUML(code: string): string {
 export function renderFlowchartArtifact(code: string): string {
   const id = `fc-${rand()}`;
   domReady(() => {
+    const el = document.getElementById(id);
+    if (!el) return;
     try {
-      const el = document.getElementById(id);
-      if (el && (window as any).flowchart) {
+      if ((window as any).flowchart) {
         const diagram = (window as any).flowchart.parse(code);
         el.innerHTML = '';
         diagram.drawSVG(id);
       }
     } catch (e) {
-      const el = document.getElementById(id);
-      if (el) el.innerHTML = `<pre class="text-red-500 text-xs">${escapeHtml(String(e))}</pre>`;
+      if (el) el.innerHTML = renderError('Flowchart', String(e), code);
     }
   });
   return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm">Rendering flowchart...</div>`;
@@ -251,10 +262,10 @@ export function renderWebContainerArtifact(code: string): string {
   } catch (e) {
     setTimeout(() => {
       const el = document.getElementById(id);
-      if (el) el.innerHTML = `<pre class="text-red-500 text-xs p-4">WebContainer error: ${escapeHtml(String(e))}</pre>`;
+      if (el) el.innerHTML = renderError('WebContainer', String(e), code);
     }, 50);
   }
-  return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm" style="min-height:400px">Booting development environment...</div>`;
+  return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm" style="min-height:400px">Booting development environment (~30s)...</div>`;
 }
 
 async function loadWebContainer(id: string, project: { files: Record<string, { contents?: string } | string>; title?: string }) {
@@ -285,10 +296,9 @@ async function loadWebContainer(id: string, project: { files: Record<string, { c
     dev.output.pipeTo(new WritableStream({
       write(data) { console.log('[WebContainer]', data); }
     }));
-
   } catch (e) {
     const el = document.getElementById(id);
-    if (el) el.innerHTML = `<pre class="text-red-500 text-xs p-4">WebContainer boot error: ${escapeHtml(String(e))}</pre>`;
+    if (el) el.innerHTML = renderError('WebContainer', String(e), '');
   }
 }
 
@@ -327,5 +337,8 @@ function detectLanguage(code: string): string {
 function escapeHtml(s: string): string { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 function sanitizeHtml(html: string): string { return html.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/on\w+\s*=\s*"[^"]*"/gi, '').replace(/on\w+\s*=\s*'[^']*'/gi, ''); }
 function rand(): string { return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`; }
+function renderError(type: string, message: string, code: string): string {
+  return `<div class="text-red-500 text-xs p-3 bg-red-50 rounded-lg border border-red-200"><strong>${type} error:</strong><br/><code class="text-[11px] whitespace-pre-wrap break-all">${escapeHtml(message)}</code><button class="mt-2 px-2 py-1 text-[10px] bg-red-100 hover:bg-red-200 rounded border border-red-300" onclick="this.nextElementSibling.classList.toggle('hidden')">Show raw</button><pre class="hidden mt-2 p-2 bg-gray-100 rounded text-[11px] overflow-x-auto whitespace-pre-wrap">${escapeHtml(code)}</pre></div>`;
+}
 
 declare global { interface Window { Prism: any; mermaid: any; katex: any; flowchart: any; webcontainer: any; } }

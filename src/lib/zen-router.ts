@@ -4,7 +4,6 @@ const FAIL_WINDOW_MS = 60_000;
 const FAIL_THRESHOLD = 3;
 const EJECT_MS = 30_000;
 const PERMANENT_EJECT_MS = 600_000;
-const GLOBAL_TIMEOUT_MS = 25_000;
 
 const RETRYABLE = new Set([408, 425, 429, 500, 502, 503, 504]);
 const PERMANENT = new Set([401]);
@@ -30,11 +29,18 @@ export interface ResponseMetadata {
   searchTier: 'none' | 'basic' | 'enhanced';
   searchRemaining: string;
   tier: string;
+  chatPath?: 'fast' | 'balanced' | 'heavy';
 }
 
 const circuits = new Map<string, CircuitState>();
 const sessions = new Map<string, SessionState>();
 const SESSION_TTL = 30 * 60_000;
+
+const PATH_TIMEOUTS: Record<string, number> = {
+  fast: 15_000,
+  balanced: 25_000,
+  heavy: 35_000,
+};
 
 if (typeof setInterval !== 'undefined') {
   setInterval(() => {
@@ -59,20 +65,6 @@ async function persistCircuit(id: string) {
   try {
     const c = circuits.get(id);
     if (c) await circuitKV.put(`circuit:${id}`, JSON.stringify(c), { expirationTtl: 3600 });
-  } catch {}
-}
-
-async function loadCircuits() {
-  if (!circuitKV) return;
-  try {
-    const keys = await circuitKV.list({ prefix: 'circuit:' });
-    for (const k of keys.keys) {
-      const raw = await circuitKV.get(k.name);
-      if (raw) {
-        const id = k.name.replace('circuit:', '');
-        try { circuits.set(id, JSON.parse(raw)); } catch {}
-      }
-    }
   } catch {}
 }
 
@@ -192,7 +184,7 @@ function makeHeaders(provider: Provider, latency: number, sources?: any[], metad
   h.set('x-latency-ms', String(latency));
   h.set('Content-Type', 'text/event-stream');
   if (sources?.length) h.set('x-sources', JSON.stringify(sources));
-  if (metadata) { h.set('x-search-tier', metadata.searchTier); h.set('x-search-remaining', metadata.searchRemaining); h.set('x-tier', metadata.tier); }
+  if (metadata) { h.set('x-search-tier', metadata.searchTier); h.set('x-search-remaining', metadata.searchRemaining); h.set('x-tier', metadata.tier); if (metadata.chatPath) h.set('x-chat-path', metadata.chatPath); }
   return h;
 }
 
@@ -202,6 +194,7 @@ export async function routeChat(
   sources?: { title: string; url: string; provider?: string }[],
   metadata?: ResponseMetadata,
   allowedProviders?: string[],
+  chatPath: 'fast' | 'balanced' | 'heavy' = 'balanced',
 ) {
   const role: ProviderRole = classifyQuery(messages, intent);
   let candidates = getProvidersForRole(role);
@@ -211,9 +204,9 @@ export async function routeChat(
   const session = sessionId ? (sessions.get(sessionId) || sessions.set(sessionId, { lockedProviderId: null, turnCount: 0, createdAt: Date.now() }).get(sessionId)!) : null;
 
   const unlimitedProviders = new Set(['gemini-flash', 'nvidia-fast', 'cloudflare-llama']);
-  const artifactProviders = new Set(['groq-fast', 'gemini-flash', 'cerebras-llama']);
 
   const getMaxTokens = (provider: Provider): number => {
+    if (chatPath === 'fast') return 1024;
     if (unlimitedProviders.has(provider.id)) return 4096;
     return 2048;
   };
@@ -243,6 +236,7 @@ export async function routeChat(
         if (res.ok) {
           recordSuccess(provider.id);
           if (session) { session.lockedProviderId = provider.id; session.turnCount = (session.turnCount || 0) + 1; }
+          if (metadata) metadata.provider = provider.id;
           return new Response(res.body, { status: res.status, headers: makeHeaders(provider, latency, sources, metadata) });
         }
 
@@ -259,6 +253,7 @@ export async function routeChat(
     });
   };
 
+  const globalTimeout = PATH_TIMEOUTS[chatPath] || 25_000;
   const retryDelays = [2000, 5000, 10000];
 
   const attemptWithRetry = async (): Promise<Response> => {
@@ -266,7 +261,7 @@ export async function routeChat(
     let lastResult: Response | null = null;
 
     for (let round = 0; round <= retryDelays.length; round++) {
-      if (Date.now() - start > GLOBAL_TIMEOUT_MS - 3000) break;
+      if (Date.now() - start > globalTimeout - 3000) break;
 
       const result = await attempt();
       if (result.status !== 503) return result;
@@ -281,7 +276,7 @@ export async function routeChat(
     return lastResult || attempt();
   };
 
-  return Promise.race([attemptWithRetry(), new Promise<Response>(r => setTimeout(() => r(new Response(JSON.stringify({ message: 'Request timed out. Please try again.', retryAfter: 5 }), { status: 503, headers: { 'Content-Type': 'application/json', 'Retry-After': '5' } })), GLOBAL_TIMEOUT_MS))]);
+  return Promise.race([attemptWithRetry(), new Promise<Response>(r => setTimeout(() => r(new Response(JSON.stringify({ message: 'Request timed out. Please try again.', retryAfter: 5 }), { status: 503, headers: { 'Content-Type': 'application/json', 'Retry-After': '5' } })), globalTimeout))]);
 }
 
 export function getCircuitDiagnostics() {

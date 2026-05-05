@@ -8,6 +8,10 @@ interface RawArtifact {
 }
 
 export function detectAllArtifacts(text: string, streamArtifacts: Artifact[]): { artifacts: Artifact[]; cleanText: string } {
+  if (text.length < 50 && streamArtifacts.length === 0) {
+    return { artifacts: [], cleanText: text.trim() };
+  }
+
   const found: RawArtifact[] = [];
   let clean = text;
 
@@ -23,20 +27,21 @@ export function detectAllArtifacts(text: string, streamArtifacts: Artifact[]): {
     }
   }
 
+  const streamIds = new Set(streamArtifacts.map(a => a.id));
   const fenceRe = /```(\w[\w-]*)?\n([\s\S]*?)```/g;
   let fenceMatch: RegExpExecArray | null;
   while ((fenceMatch = fenceRe.exec(clean)) !== null) {
     const lang = (fenceMatch[1] || '').toLowerCase();
     const code = fenceMatch[2].trim();
     const type = langToType(lang);
-    if (type && code) {
+    if (type && code && !found.some(f => f.type === type && f.code === code)) {
       const title = lang ? `${lang.toUpperCase()} Diagram` : 'Code Block';
       found.push({ type, title, code, confidence: 'fence' });
       clean = clean.replace(fenceMatch[0], '');
     }
   }
 
-  const dotRe = /(?:digraph|graph)\s+\w+\s*\{[\s\S]+?\}/gi;
+  const dotRe = /\b(?:digraph|graph)\s+\w+\s*\{[\s\S]+?\}/gi;
   let dotMatch: RegExpExecArray | null;
   while ((dotMatch = dotRe.exec(clean)) !== null) {
     const code = dotMatch[0];
@@ -50,6 +55,7 @@ export function detectAllArtifacts(text: string, streamArtifacts: Artifact[]): {
 
   if (streamArtifacts.length > 0) {
     for (const sa of streamArtifacts) {
+      if (!streamIds.has(sa.id)) continue;
       found.unshift({ type: sa.type, title: sa.title || '', code: sa.code, confidence: 'tag' });
     }
   }
@@ -112,7 +118,7 @@ function validateArtifact(type: ArtifactType, code: string): boolean {
     case 'mermaid':
       return /(graph\s+(TB|TD|BT|RL|LR)|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|flowchart|gitgraph|mindmap|timeline|quadrantChart|block-beta|requirementDiagram|C4Context|C4Container)/i.test(code);
     case 'graphviz':
-      return /(digraph|graph|strict)\s+\w+\s*\{/i.test(code) && (code.match(/\{/g) || []).length === (code.match(/\}/g) || []).length;
+      return /\b(digraph|graph|strict)\s+\w+\s*\{/i.test(code) && (code.match(/\{/g) || []).length === (code.match(/\}/g) || []).length;
     case 'd2':
       return /(?:->|<->|--|\.shape|\.style|\.label)/.test(code) && code.length > 20;
     case 'plantuml':

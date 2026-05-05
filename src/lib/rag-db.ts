@@ -151,6 +151,36 @@ export async function clearSessionVectors(sessionId: string): Promise<void> {
   } catch {}
 }
 
+export async function storeVectorsKV(sessionId: string, chunks: { text: string; vector: number[] }[], kv: any): Promise<void> {
+  if (!kv) return;
+  try {
+    const vectors = chunks.map(c => ({
+      text: c.text.slice(0, 2000),
+      vector: c.vector.slice(0, 384),
+      timestamp: Date.now(),
+    }));
+    await kv.put(`rag:${sessionId}`, JSON.stringify(vectors), { expirationTtl: 86400 });
+  } catch {}
+}
+
+export async function getStoredVectorsKV(sessionId: string, kv: any): Promise<ChunkVector[]> {
+  if (!kv) return [];
+  try {
+    const raw = await kv.get(`rag:${sessionId}`);
+    if (!raw) return [];
+    const vectors: { text: string; vector: number[]; timestamp: number }[] = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    return vectors.map((v, i) => ({
+      id: `kv-${sessionId}-${i}`,
+      sessionId,
+      text: v.text,
+      vector: v.vector,
+      timestamp: v.timestamp || Date.now(),
+    }));
+  } catch {
+    return [];
+  }
+}
+
 export async function purgeStaleData(maxHours: number = 2): Promise<void> {
   try {
     const db = await openDB();
