@@ -92,7 +92,7 @@
   const showPreview = $derived(previewableTypes.includes(artifact.type));
 </script>
 
-<div class="artifact-card rounded-xl overflow-hidden shadow-lg border border-[#d6d0c4] bg-white w-full transition-all">
+<div class="artifact-card rounded-xl overflow-hidden shadow-md border border-stone-200 bg-white w-full transition-all">
   <div class="flex items-center justify-between px-4 py-2.5 bg-[#1e1e2e] text-white">
     <div class="flex items-center gap-2.5 min-w-0">
       <span class="text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-md {typeBadge}">{artifact.type}</span>

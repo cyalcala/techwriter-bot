@@ -224,7 +224,8 @@ export function renderGraphvizArtifact(code: string): string {
 
 export function renderPlantUMLArtifact(code: string): string {
   const encoded = encodePlantUML(code);
-  return `<div class="flex justify-center p-2"><img src="https://www.plantuml.com/plantuml/svg/~1${encoded}" alt="PlantUML diagram" style="max-width:100%" onerror="this.parentElement.innerHTML='<pre class=\\'text-red-500 text-xs p-2\\'>PlantUML render error.</pre>'" /></div>`;
+  const id = `puml-${rand()}`;
+  return `<div class="flex justify-center p-2" id="${id}"><img src="https://www.plantuml.com/plantuml/svg/~1${encoded}" alt="PlantUML diagram" style="max-width:100%;min-height:100px" onerror="this.style.display='none';document.getElementById('${id}-fallback').style.display='block';" onload="this.style.opacity='1';" /><div id="${id}-fallback" style="display:none;padding:12px;text-align:center"><div class="text-xs text-stone-500 mb-2">PlantUML render failed</div><pre class="text-[11px] text-stone-700 bg-stone-100 p-3 rounded-lg overflow-x-auto text-left max-h-[300px] overflow-y-auto">${escapeHtml(code)}</pre><button class="mt-2 text-[10px] px-3 py-1 bg-stone-200 hover:bg-stone-300 rounded-md transition-all" onclick="navigator.clipboard.writeText(this.parentElement.querySelector('pre').textContent)">Copy Code</button></div></div>`;
 }
 
 function encodePlantUML(code: string): string {

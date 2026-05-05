@@ -19,7 +19,7 @@ export interface PromptContext {
 
 const ARTIFACT_COMPACT = 'Use <artifact type="X"> for structured output. Types: code|html|svg|mermaid|react|katex|markmap|d2|vega|graphviz|plantuml|flowchart|webcontainer. Suggest best type, then generate.';
 
-const CORE_PERSONA_FAST = `You are a helpful, concise technical writing assistant. Respond naturally and briefly. Keep responses under 3 sentences unless the user asks for detail.`;
+const CORE_PERSONA_FAST = `You are a helpful, concise technical writing assistant. Respond naturally and briefly.`;
 
 const CORE_PERSONA_BALANCED = `You are an expert technical writing assistant. You write clear, accurate technical content. Be thorough but concise. Use the provided knowledge graph context to ground your answers in the actual codebase.`;
 
