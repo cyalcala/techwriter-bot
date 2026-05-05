@@ -7,6 +7,7 @@ const RATE_LIMIT_WINDOW = 60_000;
 const MAX_REQUESTS_PER_WINDOW = 50;
 const MAX_DAILY_EMBED = 500;
 const EMBED_TIMEOUT_MS = 12_000;
+const MAX_BODY = 10 * 1024;
 
 const dailyEmbedCounts = new Map<string, number>();
 let dailyEmbedReset = Date.now() + 86400000;
@@ -117,6 +118,9 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   try {
+    if (Number(request.headers.get('content-length') || '0') > MAX_BODY) {
+      return new Response(JSON.stringify({ error: 'too_large' }), { status: 413 });
+    }
     const body = await request.json().catch(() => null);
     if (!body?.texts || !Array.isArray(body.texts)) {
       return new Response(JSON.stringify({ error: 'invalid_request', message: 'Expected { texts: string[] }' }), {

@@ -225,7 +225,29 @@ export async function routeChat(
     });
   };
 
-  return Promise.race([attempt(), new Promise<Response>(r => setTimeout(() => r(new Response(JSON.stringify({ message: 'Request timed out. Please try again.', retryAfter: 5 }), { status: 503, headers: { 'Content-Type': 'application/json', 'Retry-After': '5' } })), GLOBAL_TIMEOUT_MS))]);
+  const retryDelays = [2000, 5000, 10000];
+
+  const attemptWithRetry = async (): Promise<Response> => {
+    const start = Date.now();
+    let lastResult: Response | null = null;
+
+    for (let round = 0; round <= retryDelays.length; round++) {
+      if (Date.now() - start > GLOBAL_TIMEOUT_MS - 3000) break;
+
+      const result = await attempt();
+      if (result.status !== 503) return result;
+
+      lastResult = result;
+
+      if (round < retryDelays.length) {
+        await new Promise(r => setTimeout(r, retryDelays[round]));
+      }
+    }
+
+    return lastResult || attempt();
+  };
+
+  return Promise.race([attemptWithRetry(), new Promise<Response>(r => setTimeout(() => r(new Response(JSON.stringify({ message: 'Request timed out. Please try again.', retryAfter: 5 }), { status: 503, headers: { 'Content-Type': 'application/json', 'Retry-After': '5' } })), GLOBAL_TIMEOUT_MS))]);
 }
 
 export function getCircuitDiagnostics() {

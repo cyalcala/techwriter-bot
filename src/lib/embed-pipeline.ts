@@ -41,13 +41,8 @@ async function getLocalPipeline(): Promise<any> {
 async function embedLocal(texts: string[]): Promise<number[][]> {
   const pipe = await getLocalPipeline();
   if (!pipe) throw new Error('Local pipeline unavailable');
-
-  const vectors: number[][] = [];
-  for (const text of texts) {
-    const output = await pipe(text, { pooling: 'mean', normalize: true });
-    vectors.push(Array.from(output.data) as number[]);
-  }
-  return vectors;
+  const output = await pipe(texts, { pooling: 'mean', normalize: true });
+  return output.map((t: any) => Array.from(t.data) as number[]);
 }
 
 export async function embedChunks(
