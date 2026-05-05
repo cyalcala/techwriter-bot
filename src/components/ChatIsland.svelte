@@ -18,7 +18,7 @@
   }
 
   let messages = $state<Message[]>([
-    { role: 'assistant', content: 'Hi! I am your Technical Writer Bot. Upload a document (txt, md, json, csv) to my sandbox memory, and I can help you draft, edit, or analyze it.' }
+    { role: 'assistant', content: "Hi! I'm your Technical Writer Bot. I can help you write, research, and visualize ideas. Here's what I can create:\n\n**Diagrams** — ask me for org charts (Graphviz), flowcharts (Mermaid), cloud architecture (D2), mind maps (Markmap), UML diagrams (PlantUML)\n\n**Data** — charts and graphs (Vega-Lite), math equations (KaTeX)\n\n**Interactive apps** — React components, full web apps with live preview, multi-file projects with npm\n\n**Documents** — upload a .txt, .md, .json, or .csv and I'll analyze it, find patterns, suggest visualizations\n\nJust tell me what you need — I'll suggest the best format before creating it. What would you like to work on?" }
   ]);
   let inputMessage = $state('');
   let isLoading = $state(false);
