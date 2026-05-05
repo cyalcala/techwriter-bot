@@ -593,7 +593,7 @@
                 </div>
               </div>
             {/if}
-            {#if msg.searchTier && msg.searchTier !== 'none'}
+            {#if msg.searchTier && msg.searchTier !== 'none' && msg.sources && msg.sources.length > 0}
                 <span class="text-[8px] uppercase tracking-widest font-bold text-green-600 opacity-60 ml-2">{msg.searchTier === 'enhanced' ? '🔍 Enhanced Search' : '🔍 Live Search'}</span>
               {/if}
               {#if msg.provider && !isStreaming}
