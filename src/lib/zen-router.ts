@@ -250,7 +250,7 @@ export async function routeChat(
       }
     }
 
-    return new Response(JSON.stringify({ error: 'all_providers_exhausted', message: 'All AI providers are currently unavailable. Please try again in a moment.', retryAfter: 10 }), {
+    return new Response(JSON.stringify({ error: 'all_providers_exhausted', message: 'All AI providers are currently unavailable. Please try again in a moment.', retryAfter: 10, debug: { tried: ordered.map(p => p.id), circuits: [...circuits.entries()].map(([k,v]) => ({id:k, failures:v.failures.length, ejected:v.ejectedUntil > Date.now()})) } }), {
       status: 503, headers: { 'Content-Type': 'application/json', 'Retry-After': '10' },
     });
   };

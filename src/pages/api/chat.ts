@@ -267,7 +267,7 @@ export const POST: APIRoute = async (ctx) => {
       : getTierProviderPool(tier).pool;
 
     if (pathCtx.path === 'fast') {
-      pool = ['groq-fast', 'cerebras-llama'];
+      pool = ['groq-fast', 'cerebras-llama', 'gemini-flash', 'cloudflare-llama'];
     } else if (needsArtifact) {
       const strong = ['groq-fast', 'gemini-flash', 'cerebras-llama'];
       pool = [...strong.filter(m => pool.includes(m)), ...pool.filter(m => !strong.includes(m))];
