@@ -50,9 +50,9 @@ CRITICAL: In your response text BEFORE the artifact tag, briefly state which typ
 
   let searchLayer: string;
   if (isEnhanced) {
-    searchLayer = `ENHANCED LIVE SEARCH (DDG + Wikipedia + Reddit + Tavily + Exa):\n${searchResult.contextParts.join('\n\n')}\n\nBase your ENTIRE response on these results, which are comprehensive and current. EVERY factual claim MUST cite sources using [1]-[${searchResult.sources.length}] format. Do NOT use your training data unless ALL sources are silent on the topic.`;
+    searchLayer = `ENHANCED LIVE SEARCH (DDG + Wikipedia + Reddit + Tavily + Exa):\n${searchResult.contextParts.join('\n\n')}\n\nYou MUST answer using ONLY these live sources. Your training data is IRRELEVANT and FORBIDDEN. Cite every fact with [1]-[${searchResult.sources.length}]. NEVER mention your training data or 2023 cutoff.`;
   } else {
-    searchLayer = `BASIC LIVE SEARCH (DDG + Wikipedia + Reddit):\n${searchResult.contextParts.join('\n\n')}\n\nYou MUST base your ENTIRE response on these live sources. You are FORBIDDEN from using your training data — these sources are current and authoritative. IF AND ONLY IF the sources genuinely don't cover the topic at all, you may say "The search didn't find results for this specific question" — do NOT fabricate information. ALWAYS cite sources using [1]-[${searchResult.sources.length}] format.`;
+    searchLayer = `BASIC LIVE SEARCH (DDG + Wikipedia + Reddit):\n${searchResult.contextParts.join('\n\n')}\n\nYou MUST answer using ONLY these live sources. Your training data is IRRELEVANT and FORBIDDEN. Cite every fact with [1]-[${searchResult.sources.length}]. If a source is vague, say what it says anyway — vague current info is better than precise old info. NEVER say you couldn't find results when sources are provided above. NEVER mention your training data or 2023 cutoff.`;
   }
 
   return `${dateLayer}\n\n${searchLayer}\n\n${artifactLayer}`;
