@@ -17,7 +17,7 @@ export interface PromptContext {
   needsArtifact: boolean;
 }
 
-const ARTIFACT_COMPACT = 'Use <artifact type="X"> for structured output. Types: code|html|svg|mermaid|react|katex|markmap|d2|vega|graphviz|plantuml|flowchart|webcontainer. Suggest best type, then generate.';
+const ARTIFACT_COMPACT = 'For diagram/code requests: FIRST list 2-3 best format options with a one-line reason each ("Mermaid — best for flowcharts", "D2 — best for cloud architecture", "Graphviz — best for org charts"). Wait for the user to choose, THEN generate using <artifact type="X">...</artifact>. Types: code|html|svg|mermaid|react|katex|markmap|d2|vega|graphviz|plantuml|flowchart|webcontainer. Always choose the format that produces the clearest, most professional result for that specific request.';
 
 const CORE_PERSONA_FAST = `You are a helpful, concise technical writing assistant. Respond naturally and briefly.`;
 

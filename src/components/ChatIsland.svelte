@@ -517,10 +517,10 @@
               <div class="ai-content whitespace-pre-wrap">{@html formatMarkdown(stripDisclaimers(msg.content), msg.sources)}</div>
             {/if}
             {#if !isStreaming && msg.content && !msg.empty}
-              <div class="flex items-center gap-2 mt-1.5 opacity-0 hover:opacity-100 transition-opacity duration-150">
-                <button onclick={() => copyMessage(i)} class="text-[11px] px-2 py-0.5 rounded-md text-[#999] hover:text-black hover:bg-black/5 transition-all">{copiedMessageIdx === i ? 'Copied' : 'Copy'}</button>
+              <div class="flex items-center gap-2 mt-1.5 opacity-100 md:opacity-0 md:hover:opacity-100 transition-opacity duration-150">
+                <button onclick={() => copyMessage(i)} class="text-[11px] px-2 py-0.5 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 transition-all">{copiedMessageIdx === i ? 'Copied' : 'Copy'}</button>
                 {#if i === messages.length - 1}
-                  <button onclick={regenerate} class="text-[11px] px-2 py-0.5 rounded-md text-[#999] hover:text-black hover:bg-black/5 transition-all">Retry</button>
+                  <button onclick={regenerate} class="text-[11px] px-2 py-0.5 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 transition-all">Retry</button>
                 {/if}
               </div>
             {/if}
@@ -550,9 +550,9 @@
               <div class="bg-stone-100 rounded-2xl px-4 py-2.5 inline-block text-left">
                 <div class="leading-relaxed text-[15px] text-[#1a1a1a]">{msg.content}</div>
               </div>
-              <div class="flex items-center gap-2 mt-1 justify-end opacity-0 hover:opacity-100 transition-opacity duration-150">
-                <button onclick={() => startEdit(i)} class="text-[11px] px-2 py-0.5 rounded-md text-[#999] hover:text-black hover:bg-black/5 transition-all">Edit</button>
-                <button onclick={() => copyMessage(i)} class="text-[11px] px-2 py-0.5 rounded-md text-[#999] hover:text-black hover:bg-black/5 transition-all">{copiedMessageIdx === i ? 'Copied' : 'Copy'}</button>
+              <div class="flex items-center gap-2 mt-1 justify-end opacity-100 md:opacity-0 md:hover:opacity-100 transition-opacity duration-150">
+                <button onclick={() => startEdit(i)} class="text-[11px] px-2 py-0.5 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 transition-all">Edit</button>
+                <button onclick={() => copyMessage(i)} class="text-[11px] px-2 py-0.5 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 transition-all">{copiedMessageIdx === i ? 'Copied' : 'Copy'}</button>
               </div>
             {/if}
           {/if}

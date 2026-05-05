@@ -52,8 +52,13 @@ export function determineChatPath(
   return { path: 'balanced', skipSearch: true, includeGraph: true, includeRAG: true, reason: 'default_balanced' };
 }
 
-const GEN_ARTIFACT_TRIGGER = /(generate|create|make|build|draw|write|design|craft)\s+(a|an|the|me)\s+(diagram|chart|graph|drawing|visualization|plot|flowchart|mind\s?map|org\s?chart|architecture|uml|equation|formula|component|app|wireframe|code)/i;
+const GEN_ARTIFACT_TRIGGER = /(generate|create|make|build|draw|write|design|craft|show|visualize|render|display|give me|i need|i want)\b.*?\b(diagram|chart|graph|drawing|visualization|plot|flowchart|mind\s?map|org\s?chart|architecture|uml|equation|formula|component|app|wireframe|code|mermaid|graphviz|d2|plantuml|katex|vega|markmap|webcontainer|sequence|class\s?diagram|er\s?diagram|pie\s?chart|bar\s?chart|gantt|svg|html|css|website|page)/i;
+const QUICK_ARTIFACT_HINT = /^(diagram|chart|graph|uml|mermaid|graphviz|d2|plantuml|flowchart|mindmap|markmap|sequence|gantt|pie|bar|org)\b/i;
 
 export function isArtifactGenerationRequest(query: string): boolean {
-  return GEN_ARTIFACT_TRIGGER.test(query);
+  if (GEN_ARTIFACT_TRIGGER.test(query)) return true;
+  const trimmed = query.trim().toLowerCase();
+  if (trimmed.length < 60 && QUICK_ARTIFACT_HINT.test(trimmed)) return true;
+  if (/\b(draw|visualize|graph)\b/i.test(trimmed) && trimmed.length < 100) return true;
+  return false;
 }

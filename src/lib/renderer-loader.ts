@@ -127,11 +127,14 @@ export function renderMermaidArtifact(code: string): string {
     const el = document.getElementById(id);
     if (!el) return;
     try {
-      if (window.mermaid) {
-        window.mermaid.initialize({ startOnLoad: false, securityLevel: 'loose' });
-        const { svg } = await window.mermaid.render(`${id}-s`, sanitized);
-        el.innerHTML = svg;
+      const mm = window.mermaid || (window as any).mermaid;
+      if (!mm) {
+        el.innerHTML = renderError('Mermaid', 'Renderer not loaded. Try refreshing.', code);
+        return;
       }
+      await mm.initialize({ startOnLoad: false, securityLevel: 'loose', theme: 'default' });
+      const { svg } = await mm.render(`${id}-s`, sanitized);
+      el.innerHTML = svg;
     } catch (e) {
       el.innerHTML = renderError('Mermaid', String(e), code);
     }
