@@ -67,7 +67,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   let env: any = {};
   try { if (cfGlobalEnv) env = { ...(cfGlobalEnv as any) }; } catch (e) {}
   try { const rEnv = (locals as any)?.runtime?.env; if (rEnv) for (const [k, v] of Object.entries(rEnv)) { if (v != null && !env[k]) env[k] = v; } } catch (e) {}
-  if (typeof process !== 'undefined' && process.env) { for (const [k, v] of Object.entries(process.env)) { if (v && !env[k]) env[k] = v; } }
+  try { import('../../lib/env-reader').then(m => m.readEnvKeys(env)); } catch {}
 
   const ip = request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'unknown';
 
