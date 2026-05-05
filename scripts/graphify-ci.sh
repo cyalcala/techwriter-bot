@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "::group::Installing Graphify (Python package)"
+echo "::group::Installing Graphify"
 pip install graphifyy -q 2>/dev/null || uv pip install graphifyy
 echo "::endgroup::"
 
@@ -10,21 +10,37 @@ python3 -c "
 from pathlib import Path
 import json, sys
 
-print('Collecting files...')
-from graphify.detect import collect_files, detect
-corpus = detect(Path('.'))
+root = Path('.')
 
-from graphify.extract import extract
-print(f'Extracting AST from {len(corpus.files)} files...')
-extractions = extract(corpus, workers=None)
+print('Detecting files...')
+from graphify.detect import detect
+detection = detect(root)
+files = detection.get('files', {})
+code_files = files.get('code', [])
+doc_files = files.get('document', [])
+total_words = detection.get('total_words', 0)
+total_files = detection.get('total_files', 0)
+all_files = [Path(f) for f in (code_files + doc_files)]
+print(f'Found {total_files} files (~{total_words:,} words)')
 
-from graphify.build import build_from_json
+if len(all_files) == 0:
+    print('No code/doc files found — skipping')
+    sys.exit(0)
+
+print(f'Extracting AST from {len(all_files)} files...')
+from graphify.extract import extract as extract_fn
+results = extract_fn(root, workers=None)
+
 print('Building graph...')
-graph = build_from_json(extractions)
+from graphify import build_from_json
+graph = build_from_json(results)
 
-from graphify.cluster import cluster
 print('Clustering communities...')
-cluster(graph)
+try:
+    from graphify import cluster
+    cluster(graph)
+except Exception as e:
+    print(f'Clustering skipped: {e}')
 
 print(f'Graph: {graph.number_of_nodes()} nodes, {graph.number_of_edges()} edges')
 
@@ -33,12 +49,12 @@ data = nx.node_link_data(graph)
 Path('graphify-out').mkdir(parents=True, exist_ok=True)
 with open('graphify-out/graph.json', 'w') as f:
     json.dump(data, f, indent=2)
-print(f'graph.json written ({Path(\"graphify-out/graph.json\").stat().st_size} bytes)')
+print(f'graph.json written')
 " 2>&1 || echo "Graph extraction failed — continuing without graph"
 echo "::endgroup::"
 
 if [ -f graphify-out/graph.json ]; then
-  echo "::group::Compressing and uploading graph"
+  echo "::group::Compressing and uploading"
   gzip -9f graphify-out/graph.json
   GRAPH_SIZE=$(wc -c < graphify-out/graph.json.gz)
   echo "Compressed: ${GRAPH_SIZE} bytes"
