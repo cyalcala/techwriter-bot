@@ -173,7 +173,13 @@ export const POST: APIRoute = async (ctx) => {
     }
 
     const tier = isDev ? 'premium' : rep.tier;
-    const pool = isDev ? ['groq-fast', 'gemini-flash'] : getTierProviderPool(tier).pool;
+    let pool = isDev ? ['groq-fast', 'gemini-flash'] : getTierProviderPool(tier).pool;
+
+    const needsArtifact = /(diagram|chart|graph|draw|visualize|plot|flowchart|mind.?map|org.?chart|architecture|uml|code|equation|math|latex|mermaid|graphviz|d2|plantuml|katex|vega|markmap|webcontainer|react|component|app|wireframe)/i.test(query);
+    if (needsArtifact) {
+      const strong = ['groq-fast', 'gemini-flash', 'cerebras-llama'];
+      pool = [...strong.filter(m => pool.includes(m)), ...pool.filter(m => !strong.includes(m))];
+    }
 
     const meta: ResponseMetadata = {
       provider: null, searchTier: searchResult.searchTier,

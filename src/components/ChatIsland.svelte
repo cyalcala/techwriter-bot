@@ -308,9 +308,25 @@
               const storedVectors = await getStoredVectors(sessionId);
               const similar = await searchInWorker(storedVectors, queryVec, 3, 0.3);
               if (similar.length > 0) {
-                const ragContext = similar.map((c: { text: string }, i: number) => `[Doc Chunk ${i + 1}] ${c.text}`).join('\n\n');
+                const extractKeyPoints = (text: string, maxLen: number = 300): string => {
+                  const sentences = text.split(/[.!?]\s+/);
+                  let result = '';
+                  for (const s of sentences) {
+                    if (s.length < 10) continue;
+                    if (result.length + s.length > maxLen) break;
+                    result += (result ? '. ' : '') + s;
+                  }
+                  return result || text.slice(0, maxLen);
+                };
+                const ragContext = similar.map((c: { text: string }, i: number) =>
+                  `[Point ${i + 1}] ${extractKeyPoints(c.text)}`
+                ).join('\n');
+                const contextLen = ragContext.length;
+                const cappedContext = contextLen > 2000
+                  ? ragContext.slice(0, 2000) + '\n[Context truncated — ask for details on specific points]'
+                  : ragContext;
                 messagesToSend = [
-                  { role: 'system', content: `You are a helpful technical writing assistant. Use the document excerpts below to answer the user's question precisely. Cite chunks as [Doc Chunk 1], etc.\n\nDocument excerpts:\n${ragContext}` },
+                  { role: 'system', content: `Use these document key points to answer. Cite as [Point 1], [Point 2], etc. If info is insufficient, ask clarifying questions rather than guessing.\n\n${cappedContext}` },
                   ...messagesToSend,
                 ];
               }

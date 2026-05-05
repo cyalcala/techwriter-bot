@@ -202,17 +202,19 @@ export function deserializeReputation(raw: string): ReputationState {
 }
 
 export function getTierProviderPool(tier: ReputationState['tier']): { pool: string[]; maxTokens?: number } {
+  const unlimited = ['gemini-flash', 'nvidia-fast', 'cloudflare-llama'];
+  const credit = ['groq-fast', 'cerebras-llama', 'openrouter-fast'];
   switch (tier) {
     case 'premium':
-      return { pool: ['groq-fast', 'gemini-flash', 'cerebras-llama', 'nvidia-fast', 'openrouter-fast', 'cloudflare-llama'] };
+      return { pool: [...unlimited, ...credit] };
     case 'standard':
-      return { pool: ['groq-fast', 'cerebras-llama', 'gemini-flash', 'cloudflare-llama'] };
+      return { pool: [...unlimited, 'groq-fast', 'cerebras-llama'] };
     case 'curious':
-      return { pool: ['cerebras-llama', 'nvidia-fast', 'groq-fast', 'cloudflare-llama'] };
+      return { pool: [...unlimited, 'groq-fast'] };
     case 'throttled':
-      return { pool: ['cloudflare-llama', 'cerebras-llama', 'nvidia-fast'], maxTokens: 1024 };
+      return { pool: ['cloudflare-llama', 'nvidia-fast'], maxTokens: 1024 };
     case 'restricted':
-      return { pool: ['cloudflare-llama', 'cerebras-llama'], maxTokens: 1024 };
+      return { pool: ['cloudflare-llama'], maxTokens: 1024 };
     case 'blocked':
       return { pool: ['cloudflare-llama'], maxTokens: 512 };
   }

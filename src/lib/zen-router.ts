@@ -209,7 +209,14 @@ export async function routeChat(
   if (candidates.length === 0) candidates = getProvidersForRole('fallback').filter(p => !allowedProviders?.length || allowedProviders.includes(p.id));
 
   const session = sessionId ? (sessions.get(sessionId) || sessions.set(sessionId, { lockedProviderId: null, turnCount: 0, createdAt: Date.now() }).get(sessionId)!) : null;
-  const maxTokens = 4096;
+
+  const unlimitedProviders = new Set(['gemini-flash', 'nvidia-fast', 'cloudflare-llama']);
+  const artifactProviders = new Set(['groq-fast', 'gemini-flash', 'cerebras-llama']);
+
+  const getMaxTokens = (provider: Provider): number => {
+    if (unlimitedProviders.has(provider.id)) return 4096;
+    return 2048;
+  };
 
   const ordered: Provider[] = [];
   const added = new Set<string>();
@@ -230,7 +237,7 @@ export async function routeChat(
 
       const start = Date.now();
       try {
-        const res = await callProvider(provider, messages, env, maxTokens);
+        const res = await callProvider(provider, messages, env, getMaxTokens(provider));
         const latency = Date.now() - start;
 
         if (res.ok) {
