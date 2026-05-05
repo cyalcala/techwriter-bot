@@ -6,6 +6,7 @@
   import { searchInWorker } from '../lib/sim-search';
   import { setupCleanupCallbacks, runStaleCheck, clearAllData, persistSessionId, getStoredSessionId } from '../lib/cleanup';
   import { ArtifactStreamParser, detectCodeFenceFallback, type Artifact } from '../lib/stream-parser';
+  import { detectAllArtifacts } from '../lib/artifact-detector';
   import ArtifactPanel from './ArtifactPanel.svelte';
   import { preloadPopular } from '../lib/renderer-loader';
 
@@ -459,20 +460,13 @@
       }
 
       const existingArtifacts = artifacts.filter(a => a.messageIdx === msgIdx);
-      console.debug('[Artifact]', { streamDetected: existingArtifacts.length, messageIdx: msgIdx, contentLen: messages[msgIdx]?.content?.length || 0 });
-      if (existingArtifacts.length === 0 && messages[msgIdx].content) {
-        const fallbackArtifacts = detectCodeFenceFallback(messages[msgIdx].content);
-        for (const fa of fallbackArtifacts) {
+
+      if (messages[msgIdx].content) {
+        const result = detectAllArtifacts(messages[msgIdx].content, existingArtifacts);
+        for (const fa of result.artifacts) {
           artifacts = [...artifacts, { messageIdx: msgIdx, artifact: fa }];
         }
-      }
-
-      const allMsgArtifacts = artifacts.filter(a => a.messageIdx === msgIdx);
-      if (allMsgArtifacts.length > 0 && messages[msgIdx].content) {
-        let clean = messages[msgIdx].content;
-        clean = clean.replace(/<[\/]?\w*rtifact[^>]*>/gi, '');
-        clean = clean.replace(/```[\w-]*\n[\s\S]*?```/g, '');
-        messages[msgIdx] = { ...messages[msgIdx], content: clean };
+        messages[msgIdx] = { ...messages[msgIdx], content: result.cleanText };
       }
 
       const msgArtifacts = artifacts.filter(a => a.messageIdx === msgIdx);
