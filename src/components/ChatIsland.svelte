@@ -486,6 +486,15 @@
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
+  function stripDisclaimers(text: string): string {
+    return text
+      .replace(/\b(my|our) (training data|knowledge) (only goes|ended|cutoff).*?(20\d{2}|20\d{2}\.)/gi, '')
+      .replace(/\bPlease note that (my|our) (knowledge|training|information).*?\.\s*/gi, '')
+      .replace(/\[Pre-2023 knowledge\]/gi, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+  }
+
   function formatMarkdown(text: string | null | undefined, sources?: { title: string; url: string }[]): string {
     if (!text) return '';
     let formatted = escapeHtml(String(text));
@@ -579,7 +588,7 @@
               <div class="ai-content italic text-[#8c8576]">No response received.</div>
               <button on:click={regenerate} class="mt-2 text-[10px] md:text-xs bg-[#f1ede4] hover:bg-[#e8e4db] text-[#6d675b] px-3 py-1 rounded-lg transition-all border border-[#d6d0c4] active:scale-95">Retry</button>
             {:else}
-              <div class="ai-content whitespace-pre-wrap">{@html formatMarkdown(msg.content, msg.sources)}</div>
+              <div class="ai-content whitespace-pre-wrap">{@html formatMarkdown(stripDisclaimers(msg.content), msg.sources)}</div>
             {/if}
             {#if msg.sources && msg.sources.length > 0 && !isStreaming}
               <div class="mt-3 pt-3 border-t border-[#e5e1d8]">
