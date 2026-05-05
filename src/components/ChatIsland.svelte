@@ -558,12 +558,18 @@
 
   <header class="px-4 md:px-6 py-3 bg-white/80 backdrop-blur-xl border-b border-black/5 flex justify-between items-center z-20">
     <div class="flex items-center gap-3">
-      <div class="flex items-center gap-2.5">
-        <div class="w-2.5 h-2.5 rounded-full bg-black"></div>
+      <div class="flex items-center gap-2">
+        <div class="w-2.5 h-2.5 rounded-full bg-green-600 shadow-[0_0_8px_rgba(22,163,74,0.5)]"></div>
         <h1 class="text-sm md:text-base font-semibold tracking-tight text-black">
-          TechWriter
+          Technical Writer <span class="text-[#999] font-normal mx-1.5">/</span> Bot
         </h1>
       </div>
+      <a href="https://www.linkedin.com/in/cyrusalcala/" target="_blank" rel="noopener" class="hidden md:flex items-center gap-1 text-[11px] text-[#999] hover:text-black transition-colors font-medium">
+        <span>made with</span>
+        <span class="text-red-500 text-xs">&#10084;&#65039;</span>
+        <span>by</span>
+        <span class="border-b border-transparent hover:border-[#999] transition-all">Cy Alcala</span>
+      </a>
     </div>
     <div class="flex items-center gap-1">
       <button on:click={clearChat} class="text-xs text-[#6b6b6b] hover:text-black hover:bg-black/5 px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5" title="Clear">
