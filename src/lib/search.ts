@@ -3,6 +3,41 @@ import { searchTavily, searchExa, checkEnhancedBudget, incrementEnhancedBudget, 
 import { classifyQuery, filterRelevantResults, extractKeyTerms } from './relevance';
 import { getDailyLimits, type ReputationState } from './reputation';
 
+function searchCacheKey(query: string): string {
+  return `search:${query.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim().slice(0, 60)}`;
+}
+
+const searchCache = new Map<string, { result: string; ts: number }>();
+const SEARCH_CACHE_MS = 900_000;
+
+async function getCachedSearch(kv: any, query: string): Promise<SearchSource | null> {
+  const key = searchCacheKey(query);
+  const cached = searchCache.get(key);
+  if (cached && Date.now() - cached.ts < SEARCH_CACHE_MS) {
+    return JSON.parse(cached.result) as SearchSource;
+  }
+  if (kv) {
+    try {
+      const raw = await kv.get(key);
+      if (raw) {
+        const result = JSON.parse(raw);
+        searchCache.set(key, { result: raw, ts: Date.now() });
+        return result as SearchSource;
+      }
+    } catch {}
+  }
+  return null;
+}
+
+async function setCachedSearch(kv: any, query: string, result: SearchSource): Promise<void> {
+  const key = searchCacheKey(query);
+  const raw = JSON.stringify(result);
+  searchCache.set(key, { result: raw, ts: Date.now() });
+  if (kv) {
+    try { await kv.put(key, raw, { expirationTtl: Math.floor(SEARCH_CACHE_MS / 1000) }); } catch {}
+  }
+}
+
 function expandQuery(query: string): string[] {
   const expanded: string[] = [];
   const seen = new Set<string>();
@@ -37,20 +72,17 @@ export interface SearchResult {
   enhancedRemaining?: number;
 }
 
-const searchCache = new Map<string, { result: string; ts: number }>();
-const SEARCH_CACHE_MS = 900_000;
 const DDG_TIMEOUT_MS = 4000;
 const WIKI_TIMEOUT_MS = 5000;
 
-function searchCacheKey(query: string): string {
-  return query.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim().slice(0, 80);
-}
+async function searchDuckDuckGo(query: string, kv?: any): Promise<SearchSource | null> {
+  const cachedKv = await getCachedSearch(kv, `ddg:${query}`);
+  if (cachedKv) return cachedKv;
 
-async function searchDuckDuckGo(query: string): Promise<SearchSource | null> {
-  const key = searchCacheKey(query);
+  const key = searchCacheKey(`ddg:${query}`);
   const cached = searchCache.get(key);
   if (cached && Date.now() - cached.ts < SEARCH_CACHE_MS) {
-    return { title: 'DuckDuckGo', url: `https://duckduckgo.com/?q=${encodeURIComponent(query)}`, content: cached.result, provider: 'ddg' };
+    return JSON.parse(cached.result) as SearchSource;
   }
 
   try {
@@ -75,8 +107,10 @@ async function searchDuckDuckGo(query: string): Promise<SearchSource | null> {
 
     const content = parts.join('\n\n');
     const firstResultUrl = (data.Results?.[0] as any)?.FirstURL || data.AbstractURL || `https://duckduckgo.com/?q=${encodeURIComponent(query)}`;
-    searchCache.set(key, { result: content, ts: Date.now() });
-    return { title: 'DuckDuckGo', url: firstResultUrl, content, provider: 'ddg' };
+    const result: SearchSource = { title: 'DuckDuckGo', url: firstResultUrl, content, provider: 'ddg' };
+    searchCache.set(key, { result: JSON.stringify(result), ts: Date.now() });
+    setCachedSearch(kv, `ddg:${query}`, result);
+    return result;
   } catch (e: any) {
     console.log(JSON.stringify({ event: 'ddg_error', message: e.message?.slice(0, 200), query: query.slice(0, 80) }));
     return null;
@@ -186,7 +220,7 @@ export async function searchRouter(
   }
 
   const basicResults = await Promise.all([
-    searchDuckDuckGo(searchQuery),
+    searchDuckDuckGo(searchQuery, env?.SESSION),
     searchWikipedia(searchQuery),
     searchReddit(searchQuery),
   ]);
@@ -250,7 +284,7 @@ export async function searchRouter(
     for (const expanded of expansions) {
       console.log(JSON.stringify({ event: 'search_expansion', expanded: expanded.slice(0, 80) }));
       const retryResults = await Promise.all([
-        searchDuckDuckGo(expanded),
+        searchDuckDuckGo(expanded, env?.SESSION),
         searchWikipedia(expanded),
         searchReddit(expanded),
       ]);

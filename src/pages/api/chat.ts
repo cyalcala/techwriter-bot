@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { env as cfGlobalEnv } from 'cloudflare:workers';
-import { routeChat, getCircuitDiagnostics, type ResponseMetadata } from '../../lib/zen-router';
+import { routeChat, getCircuitDiagnostics, initCircuitKV, type ResponseMetadata } from '../../lib/zen-router';
 import { searchRouter } from '../../lib/search';
 import { buildSystemPrompt } from '../../lib/prompts';
 import { readEnvKeys, checkEnvKeys } from '../../lib/env-reader';
@@ -21,10 +21,11 @@ if (typeof setInterval !== 'undefined') {
   }, 60_000);
 }
 
-function bindSession(sid: string, ip: string, ua: string): string {
-  let h = 0; const d = `${sid}|${ip}|${ua.slice(0, 100)}`;
-  for (let i = 0; i < d.length; i++) { h = ((h << 5) - h) + d.charCodeAt(i); h |= 0; }
-  return `s_${Math.abs(h).toString(36)}`;
+async function bindSession(sid: string, ip: string, ua: string): Promise<string> {
+  const data = `${sid}|${ip}|${ua.slice(0, 100)}`;
+  const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(data));
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return `s_${hashArray.slice(0, 8).map(b => b.toString(16).padStart(2, '0')).join('')}`;
 }
 
 function validateMessages(msgs: any[]): boolean {
@@ -117,6 +118,7 @@ export const POST: APIRoute = async (ctx) => {
   const rid = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
   const log = (event: string, data?: any) => console.log(JSON.stringify({ rid, event, ...(data || {}) }));
   const env = loadEnv(locals);
+  if (env.SESSION) initCircuitKV(env.SESSION);
   const ip = request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'unknown';
 
   if (!checkCSRF(request)) return new Response(JSON.stringify({ error: 'forbidden' }), { status: 403 });
@@ -150,7 +152,7 @@ export const POST: APIRoute = async (ctx) => {
     }
 
     const ua = request.headers.get('user-agent') || '';
-    const sessionId = body.sessionId ? bindSession(String(body.sessionId), ip, ua) : '';
+    const sessionId = body.sessionId ? await bindSession(String(body.sessionId), ip, ua) : '';
 
     let messages = sanitizeInput(body.messages);
     const liveSearch = !!body.liveSearch;

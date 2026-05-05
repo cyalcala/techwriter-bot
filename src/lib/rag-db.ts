@@ -1,5 +1,5 @@
 const DB_NAME = 'techwriter-rag';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const VECTOR_STORE = 'vectors';
 const META_STORE = 'meta';
 
@@ -22,7 +22,14 @@ function openDB(): Promise<IDBDatabase> {
     req.onupgradeneeded = () => {
       const db = req.result;
       if (!db.objectStoreNames.contains(VECTOR_STORE)) {
-        db.createObjectStore(VECTOR_STORE, { keyPath: 'id' });
+        const store = db.createObjectStore(VECTOR_STORE, { keyPath: 'id' });
+        store.createIndex('sessionId', 'sessionId', { unique: false });
+      } else {
+        const tx = req.transaction;
+        const store = tx?.objectStore(VECTOR_STORE);
+        if (store && !store.indexNames.contains('sessionId')) {
+          store.createIndex('sessionId', 'sessionId', { unique: false });
+        }
       }
       if (!db.objectStoreNames.contains(META_STORE)) {
         db.createObjectStore(META_STORE, { keyPath: 'sessionId' });
@@ -39,12 +46,19 @@ export async function getStoredVectors(sessionId: string): Promise<ChunkVector[]
     return new Promise((resolve, reject) => {
       const tx = db.transaction(VECTOR_STORE, 'readonly');
       const store = tx.objectStore(VECTOR_STORE);
-      const req = store.getAll();
-      req.onsuccess = () => {
-        const all = req.result || [];
-        resolve(all.filter(v => v.sessionId === sessionId));
-      };
-      req.onerror = () => reject(req.error);
+      if (store.indexNames.contains('sessionId')) {
+        const index = store.index('sessionId');
+        const req = index.getAll(sessionId);
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => reject(req.error);
+      } else {
+        const req = store.getAll();
+        req.onsuccess = () => {
+          const all = req.result || [];
+          resolve(all.filter(v => v.sessionId === sessionId));
+        };
+        req.onerror = () => reject(req.error);
+      }
     });
   } catch {
     return [];

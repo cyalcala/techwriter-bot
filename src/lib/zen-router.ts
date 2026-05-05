@@ -51,6 +51,31 @@ function getCircuit(id: string): CircuitState {
   return circuits.get(id)!;
 }
 
+let circuitKV: any = null;
+export function initCircuitKV(kv: any) { circuitKV = kv; }
+
+async function persistCircuit(id: string) {
+  if (!circuitKV) return;
+  try {
+    const c = circuits.get(id);
+    if (c) await circuitKV.put(`circuit:${id}`, JSON.stringify(c), { expirationTtl: 3600 });
+  } catch {}
+}
+
+async function loadCircuits() {
+  if (!circuitKV) return;
+  try {
+    const keys = await circuitKV.list({ prefix: 'circuit:' });
+    for (const k of keys.keys) {
+      const raw = await circuitKV.get(k.name);
+      if (raw) {
+        const id = k.name.replace('circuit:', '');
+        try { circuits.set(id, JSON.parse(raw)); } catch {}
+      }
+    }
+  } catch {}
+}
+
 function isCircuitOpen(id: string): boolean {
   const c = getCircuit(id);
   const now = Date.now();
@@ -65,8 +90,9 @@ function recordFail(id: string, status: number, err?: string) {
   c.totalErrors++;
   c.lastStatus = status;
   if (err) c.lastError = err.slice(0, 120);
-  if (PERMANENT.has(status)) { c.ejectedUntil = Date.now() + PERMANENT_EJECT_MS; c.permanent = true; return; }
+  if (PERMANENT.has(status)) { c.ejectedUntil = Date.now() + PERMANENT_EJECT_MS; c.permanent = true; persistCircuit(id); return; }
   c.failures.push(Date.now());
+  persistCircuit(id);
 }
 
 function recordSuccess(id: string) {
@@ -75,6 +101,7 @@ function recordSuccess(id: string) {
   c.ejectedUntil = 0;
   c.permanent = false;
   c.requests++;
+  persistCircuit(id);
 }
 
 function getApiKey(provider: Provider, env: any): string | undefined {
