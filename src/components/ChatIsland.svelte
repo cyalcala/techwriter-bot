@@ -669,117 +669,73 @@
     {/if}
   </main>
 
-  <footer class="p-2 md:p-6 bg-[#f1ede4]/70 backdrop-blur-sm border-t border-[#e5e1d8] transition-all pb-safe">
-    <div class="max-w-4xl mx-auto">
+  <footer class="p-3 md:p-4 bg-[#0d0d12]/80 backdrop-blur-xl border-t border-white/[0.06] transition-all">
+    <div class="max-w-3xl mx-auto">
 
       {#if uploadStatus !== 'idle'}
         <div class="mb-2 transition-all duration-300">
-          <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border shadow-sm {uploadStatus === 'done' ? 'bg-green-50 border-green-200 text-green-700' : uploadStatus === 'error' ? 'bg-red-50 border-red-200 text-red-700' : 'bg-[#e8e4db]/60 border-[#d6d0c4] text-[#6d675b]'}">
+          <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border {uploadStatus === 'done' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : uploadStatus === 'error' ? 'bg-red-500/10 border-red-500/20 text-red-400' : 'bg-white/[0.03] border-white/[0.06] text-[#a1a1aa]'}">
             {#if uploadStatus === 'uploading'}
-              <div class="w-3.5 h-3.5 border-2 border-[#8c8576] border-t-transparent rounded-full animate-spin shrink-0"></div>
+              <div class="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin shrink-0"></div>
             {:else if uploadStatus === 'done'}
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             {:else if uploadStatus === 'error'}
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             {/if}
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 shrink-0 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 shrink-0 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
             <span class="text-xs font-medium truncate max-w-[120px] md:max-w-[200px]">{uploadedFileName || 'Processing...'}</span>
-            {#if ragDegraded}
-              <span class="text-[9px] font-bold text-amber-600 bg-amber-50 px-1 py-0.5 rounded shrink-0" title="Running on local fallback. Slower, but functional.">&#9889; Local</span>
-            {/if}
-            {#if uploadProgress && uploadStatus === 'uploading'}
-              <span class="text-[10px] font-bold shrink-0">{uploadProgress.done}/{uploadProgress.total}{uploadProgress.skipped > 0 ? ` (${uploadProgress.skipped} skip)` : ''}</span>
-            {/if}
-            <button on:click={removeFile} class="ml-1 p-0.5 rounded-full hover:bg-black/10 transition-all shrink-0">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+            {#if ragDegraded}<span class="text-[9px] font-bold text-amber-400 bg-amber-400/10 px-1 py-0.5 rounded shrink-0">&#9889; Local</span>{/if}
+            {#if uploadProgress && uploadStatus === 'uploading'}<span class="text-[10px] font-bold shrink-0">{uploadProgress.done}/{uploadProgress.total}</span>{/if}
+            <button on:click={removeFile} class="ml-1 p-0.5 rounded-full hover:bg-white/10 transition-all shrink-0"><svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg></button>
           </div>
         </div>
       {/if}
 
-      <div class="flex gap-2 md:gap-3 items-center">
+      <div class="flex gap-2 items-center">
         <input type="file" bind:this={fileInput} on:change={handleFileUpload} class="hidden" accept=".txt,.md,.json,.csv" />
-        <button
-          on:click={() => fileInput.click()}
-          disabled={isUploading}
-          class="p-2.5 md:p-4 bg-white hover:bg-[#fcfaf6] border border-[#d6d0c4] rounded-xl md:rounded-2xl text-[#8c8576] transition-all shadow-sm disabled:opacity-50 shrink-0"
-          title={uploadStatus === 'done' ? 'Replace document' : 'Upload document (txt, md, json, csv)'}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 md:h-6 md:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-          </svg>
+        <button on:click={() => fileInput.click()} disabled={isUploading} class="p-2.5 md:p-3 bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.08] rounded-xl text-[#71717a] hover:text-white transition-all disabled:opacity-30 shrink-0" title={uploadStatus === 'done' ? 'Replace document' : 'Upload document'}>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
         </button>
 
         <div class="relative flex-1">
-          <input
-            bind:value={inputMessage}
-            on:keydown={handleKeydown}
-            disabled={isLoading}
-            class="w-full bg-white/80 border border-[#d6d0c4] rounded-xl md:rounded-2xl p-2.5 md:p-4 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#8c8576]/20 text-[#1a1a1a] placeholder:text-[#a39e91] text-sm md:text-lg"
-            placeholder={uploadStatus === 'done' ? (ragDegraded ? 'Ask about your document (offline mode)...' : 'Ask about your document...') : 'Ask anything...'}
+          <input bind:value={inputMessage} on:keydown={handleKeydown} disabled={isLoading}
+            class="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl px-4 py-2.5 md:py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/30 text-[#e4e4e7] placeholder:text-[#52525b] text-sm md:text-base transition-all"
+            placeholder={uploadStatus === 'done' ? 'Ask about your document...' : 'Ask anything...'}
           />
         </div>
 
         {#if isStreaming}
-        <button
-          on:click={stopStreaming}
-          class="bg-red-600 hover:bg-red-700 text-white p-2.5 md:px-8 md:py-4 rounded-xl md:rounded-2xl transition-all shadow-md active:scale-95 shrink-0 flex items-center justify-center"
-          title="Stop generating"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-            <rect x="3" y="3" width="14" height="14" rx="2" />
-          </svg>
-          <span class="hidden md:inline text-sm md:text-base font-bold tracking-wide ml-1">Stop</span>
-        </button>
-      {:else}
-        <button
-          on:click={sendMessage}
-          disabled={isLoading || !inputMessage.trim()}
-          class="bg-black hover:bg-gray-800 text-white p-2.5 md:px-8 md:py-4 rounded-xl md:rounded-2xl transition-all shadow-md active:scale-95 disabled:opacity-50 shrink-0 flex items-center justify-center"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 md:hidden" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
-          </svg>
-          <span class="hidden md:inline text-sm md:text-base font-bold tracking-wide">Send</span>
-        </button>
-      {/if}
+          <button on:click={stopStreaming} class="bg-red-500/20 hover:bg-red-500/30 text-red-400 p-2.5 md:px-5 md:py-3 rounded-xl transition-all active:scale-95 shrink-0 flex items-center justify-center border border-red-500/20">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><rect x="3" y="3" width="14" height="14" rx="2"/></svg>
+            <span class="hidden md:inline text-sm font-medium ml-1">Stop</span>
+          </button>
+        {:else}
+          <button on:click={sendMessage} disabled={isLoading || !inputMessage.trim()}
+            class="bg-white text-black p-2.5 md:px-5 md:py-3 rounded-xl transition-all active:scale-95 disabled:opacity-30 shrink-0 flex items-center justify-center hover:bg-gray-200 font-medium text-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 md:hidden" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/></svg>
+            <span class="hidden md:inline">Send</span>
+          </button>
+        {/if}
       </div>
 
-      <div class="flex justify-between items-center gap-1 text-[9px] md:text-[11px] text-[#8c8576] mt-2">
-        <div class="flex items-center gap-1 md:gap-2">
-          <div class="flex items-center bg-[#e8e4db]/50 p-0.5 rounded-md md:rounded-lg border border-[#d6d0c4] shadow-inner shrink-0">
-            <button on:click={() => { isThinkingMode = false; isLiveMode = false; }} class="px-1.5 md:px-4 py-1 rounded-sm md:rounded-md transition-all {!isThinkingMode && !isLiveMode ? 'bg-white text-[#1a1a1a] shadow-sm font-bold' : 'text-[#8c8576]'} text-[9px] md:text-xs">Fast</button>
-            <button on:click={() => { isThinkingMode = true; isLiveMode = false; }} class="px-1.5 md:px-4 py-1 rounded-sm md:rounded-md transition-all {isThinkingMode && !isLiveMode ? 'bg-black text-white shadow-sm font-bold' : 'text-[#8c8576]'} text-[9px] md:text-xs">Brain</button>
-            <button
-              on:click={() => {
-                const canUse = enhancedCredits.remaining > 0 && !enhancedCredits.budgetExhausted;
-                if (canUse) { isThinkingMode = false; isLiveMode = !isLiveMode; }
-              }}
-              class="px-1.5 md:px-4 py-1 rounded-sm md:rounded-md transition-all text-[9px] md:text-xs {isLiveMode ? 'bg-green-600 text-white shadow-sm font-bold' : (enhancedCredits.remaining <= 0 || enhancedCredits.budgetExhausted ? 'text-[#c4bfb4] cursor-not-allowed' : 'text-[#8c8576] hover:text-green-600')}"
-              title={enhancedCredits.budgetExhausted ? 'Monthly pool exhausted. Resets 1st.' : enhancedCredits.remaining <= 0 ? 'Resets tomorrow. Basic search active.' : 'Click for enhanced web search'}
-            >
-              Live
-              <span class="ml-1 text-[7px] md:text-[8px] opacity-70">
-                {enhancedCredits.remaining <= 0 ? '0 left' : `${enhancedCredits.remaining} left`}
-              </span>
+      <div class="flex justify-between items-center gap-2 text-[10px] text-[#52525b] mt-2.5">
+        <div class="flex items-center gap-2">
+          <div class="flex items-center bg-white/[0.03] p-0.5 rounded-lg border border-white/[0.06] shrink-0">
+            <button on:click={() => { isThinkingMode = false; isLiveMode = false; }} class="px-2.5 md:px-3 py-1 rounded-md transition-all {!isThinkingMode && !isLiveMode ? 'bg-white/[0.08] text-white font-medium' : 'text-[#71717a] hover:text-white'} text-[10px] md:text-xs">Fast</button>
+            <button on:click={() => { isThinkingMode = true; isLiveMode = false; }} class="px-2.5 md:px-3 py-1 rounded-md transition-all {isThinkingMode && !isLiveMode ? 'bg-white/[0.08] text-white font-medium' : 'text-[#71717a] hover:text-white'} text-[10px] md:text-xs">Brain</button>
+            <button on:click={() => { const canUse = enhancedCredits.remaining > 0 && !enhancedCredits.budgetExhausted; if (canUse) { isThinkingMode = false; isLiveMode = !isLiveMode; } }}
+              class="px-2.5 md:px-3 py-1 rounded-md transition-all text-[10px] md:text-xs {isLiveMode ? 'bg-emerald-500/20 text-emerald-400 font-medium' : (enhancedCredits.remaining <= 0 || enhancedCredits.budgetExhausted ? 'text-[#3f3f46] cursor-not-allowed' : 'text-[#71717a] hover:text-white')}"
+              title={enhancedCredits.budgetExhausted ? 'Monthly pool exhausted.' : enhancedCredits.remaining <= 0 ? 'Resets tomorrow.' : 'Enhanced web search'}>
+              Live <span class="ml-1 opacity-60">{enhancedCredits.remaining <= 0 ? '0' : enhancedCredits.remaining}</span>
             </button>
           </div>
-          <span class="hidden sm:inline opacity-40">|</span>
-          <span class="hidden sm:inline font-mono opacity-60 text-[8px] md:text-[10px]">SESS:{sessionId.slice(0, 6)}</span>
+          <span class="font-mono text-[#3f3f46]">{sessionId.slice(0, 6)}</span>
         </div>
-        <div class="text-[7px] md:text-[8px] opacity-50 text-center flex-1 mx-2">
-          This AI can make mistakes. Verify important info.
+        <div class="text-center">
+          AI can make mistakes. Verify important info.
         </div>
-        <div class="flex items-center gap-1 text-green-600 font-bold uppercase tracking-tighter text-[7px] md:text-[8px] shrink-0">
-          <span class="hidden md:inline bg-green-50 px-1.5 py-0.5 rounded-full border border-green-100">Cloudflare Secured</span>
+        <div class="text-emerald-400/60 hidden md:block">
+          Cloudflare Secured
         </div>
       </div>
     </div>
