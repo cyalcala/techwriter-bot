@@ -101,13 +101,14 @@ function getApiKey(provider: Provider, env: any): string | undefined {
   return typeof raw === 'string' ? raw.trim() : undefined;
 }
 
-async function callProvider(provider: Provider, messages: any[], env: any, maxTokens: number): Promise<Response> {
+async function callProvider(provider: Provider, messages: any[], env: any, maxTokens: number, maxTimeout?: number): Promise<Response> {
+  const effectiveTimeout = maxTimeout && maxTimeout < provider.timeoutMs ? maxTimeout : provider.timeoutMs;
   if (provider.name === 'cloudflare') {
     const ai = env.AI;
     if (!ai) throw new Error('AI binding not found');
     const raw = await Promise.race([
       ai.run(provider.model as any, { messages, stream: true, max_tokens: maxTokens, temperature: 0.7 }),
-      new Promise<never>((_, r) => setTimeout(() => r(new Error('timeout')), provider.timeoutMs)),
+      new Promise<never>((_, r) => setTimeout(() => r(new Error('timeout')), effectiveTimeout)),
     ]) as ReadableStream;
     return convertWorkersAIStream(raw, provider, maxTokens);
   }
@@ -120,7 +121,7 @@ async function callProvider(provider: Provider, messages: any[], env: any, maxTo
   if (!apiKey) throw new Error(`Missing API key for ${provider.name}`);
 
   const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), provider.timeoutMs);
+  const t = setTimeout(() => ctrl.abort(), effectiveTimeout);
   try {
     const body: any = { model: provider.model, messages, temperature: 0.7, max_tokens: maxTokens, stream: true, stream_options: { include_usage: true } };
     if (provider.name === 'gemini') body.tools = [{ googleSearch: {} }];
@@ -230,7 +231,8 @@ export async function routeChat(
 
       const start = Date.now();
       try {
-        const res = await callProvider(provider, messages, env, getMaxTokens(provider));
+        const maxTimeout = chatPath === 'fast' ? 12_000 : undefined;
+        const res = await callProvider(provider, messages, env, getMaxTokens(provider), maxTimeout);
         const latency = Date.now() - start;
 
         if (res.ok) {
@@ -254,7 +256,7 @@ export async function routeChat(
   };
 
   const globalTimeout = PATH_TIMEOUTS[chatPath] || 25_000;
-  const retryDelays = [2000, 5000, 10000];
+  const retryDelays = chatPath === 'fast' ? [] : [2000, 5000, 10000];
 
   const attemptWithRetry = async (): Promise<Response> => {
     const start = Date.now();
