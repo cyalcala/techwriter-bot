@@ -19,26 +19,33 @@ export function buildSystemPrompt(query: string, searchResult: SearchResult): st
   const classification = classifyQuery(query);
   const conversationalBlock = formatConversationalResponse(classification);
 
-  const artifactLayer = `When the user asks for diagrams, charts, code, or structured content, ALWAYS use the <artifact> tag. Match the type to the request:
-- Org charts, dependency trees, node-edge graphs → type="graphviz" (DOT language)
-- Flowcharts, sequence diagrams, Gantt, ER, C4, state machines → type="mermaid"
-- Cloud architecture, network topology, deployment diagrams → type="d2"
-- Mathematical equations, formulas → type="katex" (LaTeX)
-- Brainstorming, outlining, hierarchical ideas → type="markmap" (markdown headings)
-- Data charts, bar/pie/line/scatter charts → type="vega" (Vega-Lite JSON)
-- UML, use case, deployment, wireframes → type="plantuml"
-- Simple linear flowcharts → type="flowchart" (flowchart.js DSL)
-- Code in any language → type="code" with language="..."
-- Full HTML pages → type="html"
-- Full interactive apps with multiple files → type="webcontainer" (output JSON: {"files":{"index.html":"...","src/App.jsx":"...","package.json":"..."}} — the system will boot a real Node.js environment, install dependencies, and show a live preview of your app)
+  const needsArtifact = /(diagram|chart|graph|draw|visualize|plot|flowchart|mind.?map|org.?chart|architecture|uml|code|equation|math|latex|mermaid|graphviz|d2|plantuml|katex|vega|markmap|flowchart|webcontainer|react|component|app|wireframe)/i.test(query);
 
-CRITICAL: In your response text BEFORE the artifact tag, briefly state which type you chose and why. Example: "Here's an org chart using Graphviz (best for hierarchical structures):" Then output the <artifact> tag. If the user has uploaded documents to RAG memory, PROACTIVELY offer to visualize their content — suggest a mindmap for structure, flowchart for processes, org chart for hierarchies, or data chart for statistics found in their document. When the user requests a diagram or visualization, FIRST list 2-3 best artifact type options with brief reasons, then generate using your recommended one. Example: "I can show this as: 1) Graphviz for hierarchical org structure, 2) Mermaid for a simpler flowchart, 3) D2 for a modern architecture layout. I'll use Graphviz:" Then output the artifact.`;
+  const artifactLayer = needsArtifact ? `CRITICAL — Use <artifact> tags for structured output. Match type to request: graphviz for org charts/trees, mermaid for flowcharts/sequences, d2 for cloud/network, katex for math, markmap for mindmaps, vega for data charts, plantuml for UML, flowchart for simple flows, code for any language, webcontainer for full multi-file apps (JSON with files object). First list 2-3 best type options with reasons, then generate using your recommended one.` : '';
 
   if (searchResult.searchTier === 'none') {
-    const artifactLine = `When the user asks for diagrams or structured content, ALWAYS use <artifact> tags. Match type to request: graphviz for org charts/trees, mermaid for flowcharts/sequences, d2 for cloud/network, katex for math, markmap for mindmaps, vega for data charts, plantuml for UML, flowchart for simple flows, code for any language, webcontainer for full multi-file apps (output as JSON with files object). State which type you chose before the tag. If the user has uploaded a document, PROACTIVELY suggest creating a mindmap (markmap), flowchart (mermaid), org chart (graphviz), or data chart (vega) from their document's content.`;
+    const artifactLine = needsArtifact ? `When generating structured content, wrap it in <artifact type="..." placement="inline" title="...">...</artifact> tags. Available: code, mermaid, d2, katex, markmap, vega, graphviz, plantuml, flowchart, svg, html, react, webcontainer. For Mermaid: no HTML tags in labels.` : '';
     if (conversationalBlock) {
-      return `${dateLayer}\n\n${conversationalBlock}\n\n${artifactLine}`;
+      return [dateLayer, conversationalBlock, artifactLine].filter(Boolean).join('\n\n');
     }
+    return [dateLayer, 'You are a helpful technical writing assistant. Be conversational when appropriate.', artifactLine].filter(Boolean).join('\n\n');
+  }
+
+  if (searchResult.contextParts.length === 0) {
+    return [dateLayer, "IMPORTANT: You attempted to search for current information but found no results for this query. Be honest: say you don't have current info yet. Only offer what you confidently know, without mentioning cutoff dates or training data limitations. Suggest the user try a more specific query.", artifactLayer].filter(Boolean).join('\n\n');
+  }
+
+  const isEnhanced = searchResult.searchTier === 'enhanced';
+
+  let searchLayer: string;
+  if (isEnhanced) {
+    searchLayer = `ENHANCED LIVE SEARCH:\n${searchResult.contextParts.join('\n\n')}\n\nYou MUST answer using ONLY these live sources. Your training data is IRRELEVANT and FORBIDDEN. Cite every fact with [1]-[${searchResult.sources.length}]. NEVER mention your training data or 2023 cutoff.`;
+  } else {
+    searchLayer = `BASIC LIVE SEARCH:\n${searchResult.contextParts.join('\n\n')}\n\nYou MUST answer using ONLY these live sources. Your training data is IRRELEVANT and FORBIDDEN. Cite every fact with [1]-[${searchResult.sources.length}]. If a source is vague, say what it says anyway. NEVER mention your training data or 2023 cutoff.`;
+  }
+
+  return [dateLayer, searchLayer, artifactLayer].filter(Boolean).join('\n\n');
+}
     return `${dateLayer}\n\nYou are a helpful technical writing assistant. Be conversational when appropriate. If the user's query is ambiguous, you may offer to help with writing, coding, or research.\n\n${artifactLine}`;
   }
 

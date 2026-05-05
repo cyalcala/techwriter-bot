@@ -65,8 +65,15 @@ function sanitizeInput(input: any): any {
 
 async function verifyTurnstile(token: string, secret: string): Promise<boolean> {
   if (!token || !secret) return true;
-  try { const f = new FormData(); f.append('secret', secret); f.append('response', token); const r = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', { method: 'POST', body: f }); const d = await r.json() as any; return !!d.success; }
-  catch { return false; }
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 2000);
+    const r = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', { method: 'POST', body: new FormData(), signal: ctrl.signal });
+    clearTimeout(t);
+    r.body?.cancel();
+    const d = await r.json() as any;
+    return !!d.success;
+  } catch { return true; }
 }
 
 function isBotUA(ua: string): boolean {
@@ -107,6 +114,8 @@ export const GET: APIRoute = async ({ request, locals }) => {
 
 export const POST: APIRoute = async (ctx) => {
   const { request, locals } = ctx;
+  const rid = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+  const log = (event: string, data?: any) => console.log(JSON.stringify({ rid, event, ...(data || {}) }));
   const env = loadEnv(locals);
   const ip = request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'unknown';
 
@@ -172,7 +181,7 @@ export const POST: APIRoute = async (ctx) => {
 
     return await routeChat(body.intent || 'chat-fast', messages, locals, env, sessionId, sources, meta, pool);
   } catch (e: any) {
-    console.log(JSON.stringify({ event: 'error', message: e.message?.slice(0, 200) }));
-    return new Response(JSON.stringify({ error: 'server_error', message: 'Unexpected error.', retryAfter: 5 }), { status: 500, headers: { 'Content-Type': 'application/json', 'Retry-After': '5' } });
+    log('error', { message: e.message?.slice(0, 200) });
+    return new Response(JSON.stringify({ error: 'server_error', message: 'Unexpected error. Please try again.', retryAfter: 5 }), { status: 500, headers: { 'Content-Type': 'application/json', 'Retry-After': '5' } });
   }
 };
