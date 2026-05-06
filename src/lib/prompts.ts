@@ -17,7 +17,7 @@ export interface PromptContext {
   needsArtifact: boolean;
 }
 
-const ARTIFACT_COMPACT = 'When a diagram would help the user, generate it immediately inside <artifact type="X" title="Title">...</artifact>. Choose the best format yourself. After generating, you may briefly offer 1-2 alternatives. Do NOT ask the user to pick a format first. Mermaid: spaces around arrows (A --> B), escape & as &amp;. Graphviz: quote labels. D2: 2-space indent.';
+const ARTIFACT_COMPACT = 'When a diagram would help the user, generate it immediately inside <artifact type="X" title="Title">...</artifact>. Choose the best format yourself. After generating, you may briefly offer 1-2 alternatives. Do NOT ask the user to pick first. Keep diagrams focused and clean — use short labels, avoid unnecessary nodes, prefer vertical or left-to-right flow. Mermaid: spaces around arrows (A --> B), escape & as &amp;. Graphviz: use rankdir=TB for vertical. D2: 2-space indent.';
 
 const CORE_PERSONA_FAST = `You are a helpful, concise technical writing assistant. Respond naturally and briefly.`;
 
