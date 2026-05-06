@@ -40,8 +40,7 @@
   });
 
   function getZoomableDoc(svgContent: string): string {
-    const escaped = svgContent.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes"><style>*{margin:0;padding:0}body{background:#faf7f2;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:16px;box-sizing:border-box}svg{max-width:100%;height:auto}</style></head><body>${escaped}</body></html>`;
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes"><style>*{margin:0;padding:0}body{background:#faf7f2;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:16px;box-sizing:border-box}svg{max-width:100%;height:auto}</style></head><body>${svgContent}</body></html>`;
   }
 
   function closeOverlay() {

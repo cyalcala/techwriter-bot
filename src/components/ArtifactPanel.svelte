@@ -11,6 +11,17 @@
   let copied = $state(false);
   let collapsed = $state(false);
   let progressiveCode = $state('');
+  let fading = $state(false);
+  let prevId = $state('');
+
+  $effect(() => {
+    if (artifact.id !== prevId && prevId) {
+      fading = true;
+      setTimeout(() => { fading = false; prevId = artifact.id; }, 150);
+    } else {
+      prevId = artifact.id;
+    }
+  });
 
   const previewableTypes: ArtifactType[] = ['html', 'svg', 'mermaid', 'react', 'katex', 'markmap', 'd2', 'vega', 'graphviz', 'plantuml', 'flowchart', 'webcontainer'];
 
@@ -114,7 +125,7 @@
   </div>
 
   {#if !collapsed}
-    <div class="p-0">
+    <div class="p-0 transition-opacity duration-150 {fading ? 'opacity-0' : 'opacity-100'}">
       {#if activeTab === 'code' || !showPreview}
         <div class="overflow-x-auto max-h-[600px] overflow-y-auto bg-[#0d1117]">
           {#if progressive && !isLoaded && artifact.type === 'code'}

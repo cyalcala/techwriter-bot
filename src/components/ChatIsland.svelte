@@ -520,8 +520,15 @@
       const msgArtifacts = artState.artifacts.filter(a => a.messageIdx === msgIdx);
       if (msgArtifacts.length > 0) {
         const { split, tab } = openSplitArtifacts(msgIdx, msgArtifacts);
-        artState.splitArtifact = split;
-        artState.splitTab = tab;
+        if (isMobile) {
+          artState.splitArtifact = split;
+          artState.splitTab = tab;
+        } else {
+          setTimeout(() => {
+            artState.splitArtifact = split;
+            artState.splitTab = tab;
+          }, 400);
+        }
       }
 
       if (!messages[msgIdx].content) {
@@ -743,15 +750,18 @@
     />
     <div class="hidden md:block w-1.5 bg-stone-300 hover:bg-amber-400 cursor-col-resize shrink-0 transition-colors z-20" role="separator"></div>
     <div class="hidden md:flex flex-col w-[50%] min-w-[360px] bg-[#faf7f2] overflow-hidden shadow-2xl z-10" style="resize: horizontal;">
-      <div class="flex items-center justify-between px-4 py-2.5 bg-stone-800 text-white shrink-0">
-        <div class="flex items-center gap-2 min-w-0">
+      <div class="flex items-center justify-between px-4 py-3 bg-stone-800 text-white shrink-0">
+        <div class="flex items-center gap-3 min-w-0">
           {#if artState.splitArtifact.artifacts.length > 1}
-            <button onclick={() => { artState.splitArtifact.activeIdx = prevArtifact(artState.splitArtifact); }} class="text-[10px] px-1.5 py-0.5 rounded text-stone-400 hover:text-white transition-colors">◂</button>
-            <span class="text-[10px] text-stone-400">{artState.splitArtifact.activeIdx + 1}/{artState.splitArtifact.artifacts.length}</span>
-            <button onclick={() => { artState.splitArtifact.activeIdx = nextArtifact(artState.splitArtifact); }} class="text-[10px] px-1.5 py-0.5 rounded text-stone-400 hover:text-white transition-colors">▸</button>
+            <div class="flex items-center gap-1">
+              <button onclick={() => { artState.splitArtifact.activeIdx = prevArtifact(artState.splitArtifact); }} class="text-[11px] px-1.5 py-0.5 rounded text-stone-400 hover:text-white transition-colors">◂</button>
+              <span class="text-[10px] text-stone-400 font-medium tabular-nums">{artState.splitArtifact.activeIdx + 1}/{artState.splitArtifact.artifacts.length}</span>
+              <button onclick={() => { artState.splitArtifact.activeIdx = nextArtifact(artState.splitArtifact); }} class="text-[11px] px-1.5 py-0.5 rounded text-stone-400 hover:text-white transition-colors">▸</button>
+            </div>
+            <div class="w-px h-4 bg-stone-600"></div>
           {/if}
-          <span class="text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-md bg-amber-500 text-stone-900">{active.artifact.type}</span>
-          <span class="text-xs font-medium text-stone-300 truncate">{active.artifact.title || 'Artifact'}</span>
+          <span class="text-[10px] uppercase tracking-widest font-bold px-2 py-1 rounded-md bg-amber-500 text-stone-900">{active.artifact.type}</span>
+          <span class="text-sm font-medium text-stone-200 truncate">{active.artifact.title || 'Artifact'}</span>
         </div>
         <div class="flex items-center gap-1">
           <button onclick={() => artState.splitTab = 'code'} class="text-[10px] px-2.5 py-1 rounded-md {artState.splitTab === 'code' ? 'bg-white/20 text-white font-bold' : 'text-stone-400 hover:text-white'}">Code</button>
@@ -762,6 +772,22 @@
           </button>
         </div>
       </div>
+      {#if artState.splitArtifact.artifacts.length > 1}
+        <div class="flex gap-2 overflow-x-auto px-3 py-2 bg-stone-100 border-b border-stone-200 shrink-0">
+          {#each artState.splitArtifact.artifacts as item, idx}
+            <button onclick={() => { artState.splitArtifact.activeIdx = idx; }}
+              class="shrink-0 w-20 rounded-lg overflow-hidden border-2 transition-all duration-150
+                {idx === artState.splitArtifact.activeIdx ? 'border-amber-400 shadow-md scale-105' : 'border-transparent hover:border-stone-300 hover:shadow-sm'}">
+              {#if item.artifact.type === 'svg'}
+                <div class="w-full h-12 bg-white overflow-hidden">{@html item.artifact.code}</div>
+              {:else}
+                <div class="w-full h-12 flex items-center justify-center bg-stone-200 text-[10px] font-bold text-stone-500 uppercase">{item.artifact.type}</div>
+              {/if}
+              <div class="text-[9px] text-stone-600 truncate px-1 py-0.5 leading-tight">{item.artifact.title || 'Untitled'}</div>
+            </button>
+          {/each}
+        </div>
+      {/if}
       <div class="flex-1 overflow-auto bg-[#faf7f2]">
         {#if artState.artifactError}
           <div class="bg-red-50 border-b border-red-200 px-4 py-2 flex items-center justify-between gap-2">
