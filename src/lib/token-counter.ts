@@ -69,3 +69,31 @@ export async function logTokenUsage(
     await kv.put(key, JSON.stringify(existing), { expirationTtl: 86400 * 7 });
   } catch {}
 }
+
+export interface TokenStats {
+  today: { total: number; providers: Record<string, number> };
+  hourly: { hour: string; total: number }[];
+}
+
+export async function getTokenStats(kv: any): Promise<TokenStats> {
+  if (!kv) return { today: { total: 0, providers: {} }, hourly: [] };
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const prefix = `tk:${today}:`;
+    const list = await kv.list({ prefix });
+    const stats: TokenStats = { today: { total: 0, providers: {} }, hourly: [] };
+
+    for (const { name } of list.keys) {
+      const data = await kv.get(name, 'json').catch(() => null);
+      if (!data) continue;
+      stats.today.total += data.total;
+      for (const [p, c] of Object.entries(data.providers || {})) {
+        stats.today.providers[p] = (stats.today.providers[p] || 0) + (c as number);
+      }
+      stats.hourly.push({ hour: name.replace(prefix, ''), total: data.total as number });
+    }
+    return stats;
+  } catch {
+    return { today: { total: 0, providers: {} }, hourly: [] };
+  }
+}

@@ -136,6 +136,38 @@ export function queryGraph(question: string, maxTokens: number = MAX_GRAPH_TOKEN
   const nodeMap = new Map<string, GraphNode>();
   for (const n of cachedData.nodes) nodeMap.set(n.id, n);
 
+  const labelIndex = new Map<string, string[]>();
+  for (const n of cachedData.nodes) {
+    const lower = n.label.toLowerCase();
+    if (!labelIndex.has(lower)) labelIndex.set(lower, []);
+    labelIndex.get(lower)!.push(n.id);
+    const stripped = n.label.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
+    if (stripped !== lower) {
+      if (!labelIndex.has(stripped)) labelIndex.set(stripped, []);
+      labelIndex.get(stripped)!.push(n.id);
+    }
+  }
+
+  const directHits = new Set<string>();
+  const identifiers = question.match(/\b([A-Z][a-z]+[A-Z][a-zA-Z]*|[a-z]+[A-Z][a-zA-Z]*)\b/g) || [];
+  const underscoreIds = question.match(/\b([a-z]+_[a-z_]+)\b/gi) || [];
+  const quoted = question.match(/[""]([^""]+)[""]/g) || [];
+  const allNames = [...identifiers, ...underscoreIds, ...quoted.map(q => q.replace(/[""]/g, '')), question];
+
+  for (const name of allNames) {
+    const exact = name.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
+    if (exact.length < 3) continue;
+    const hits = labelIndex.get(exact);
+    if (hits) for (const id of hits) directHits.add(id);
+    if (!hits) {
+      for (const [label, ids] of labelIndex) {
+        if (label.includes(exact) || exact.includes(label)) {
+          for (const id of ids) directHits.add(id);
+        }
+      }
+    }
+  }
+
   const degree = new Map<string, number>();
   for (const l of cachedData.links) {
     degree.set(l.source, (degree.get(l.source) || 0) + 1);
@@ -149,8 +181,8 @@ export function queryGraph(question: string, maxTokens: number = MAX_GRAPH_TOKEN
 
   const termScores = tokenizeAndScore(question);
   const scored = cachedData.nodes
-    .filter(n => nodeRelevanceScore(n, termScores) > 0)
-    .map(n => ({ node: n, score: nodeRelevanceScore(n, termScores) + (godSet.has(n.id) ? 3 : 0) }));
+    .filter(n => directHits.has(n.id) || nodeRelevanceScore(n, termScores) > 0)
+    .map(n => ({ node: n, score: (directHits.has(n.id) ? 10 : 0) + nodeRelevanceScore(n, termScores) + (godSet.has(n.id) ? 3 : 0) }));
   scored.sort((a, b) => b.score - a.score);
 
   const relevantNodes = scored.slice(0, 12);

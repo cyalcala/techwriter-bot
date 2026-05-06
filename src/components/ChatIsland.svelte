@@ -10,6 +10,7 @@
   import { preloadPopular } from '../lib/renderer-loader';
   import { createArtifactState, openSplitArtifact, closeSplitArtifact, fixArtifactError, type SplitTab } from '../lib/artifact-state';
   import { stripDisclaimers, formatMarkdown } from '../lib/markdown';
+  import { estimateTokens } from '../lib/token-counter';
 
   interface Message {
     role: 'user' | 'assistant' | 'system';
@@ -44,6 +45,7 @@
 
   let artState = $state(createArtifactState());
   let chatPath = $state<string | null>(null);
+  let tokenDisplay = $state<{ in: number; graph: number; cached?: boolean } | null>(null);
 
   function fixArtifactErr() {
     const prompt = fixArtifactError(artState.artifactError, artState.splitArtifact);
@@ -101,6 +103,13 @@
     window.addEventListener('message', (e) => {
       if (e.data?.type === 'ARTIFACT_ERROR') {
         artState.artifactError = e.data.error;
+      }
+      if (e.data?.source === 'artifact') {
+        const { action, payload } = e.data;
+        if (action === 'regenerate') { regenerate(); }
+        else if (action === 'copy') { navigator.clipboard.writeText(payload || '').catch(() => {}); }
+        else if (action === 'error') { artState.artifactError = payload; }
+        console.log('[ArtifactBridge]', action, payload);
       }
     });
 
@@ -262,6 +271,29 @@
     let sourcesFromHeaders: { title: string; url: string }[] = [];
     let msgSearchTier: 'none' | 'basic' | 'enhanced' = 'none';
 
+    const idempotencyKey = crypto.randomUUID();
+
+    const totalEst = messagesToSend.reduce((s, m) => s + estimateTokens(m.content || ''), 0);
+    if (totalEst > 4000) {
+      const oldest = messagesToSend.slice(1, -3);
+      if (oldest.length > 0) {
+        try {
+          const res = await fetch('/api/summarize', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ messages: oldest }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.summary) {
+              const recent = messagesToSend.slice(-3);
+              messagesToSend = [messagesToSend[0], { role: 'system', content: `Previous conversation summary: ${data.summary}` }, ...recent];
+            }
+          }
+        } catch {}
+      }
+    }
+
     try {
       const hasDocument = rag.uploadStatus === 'done';
 
@@ -293,6 +325,7 @@
           sessionId,
           liveSearch: isLiveMode,
           hasDocument,
+          idempotencyKey,
         }),
         signal: abortController.signal,
       });
@@ -321,6 +354,18 @@
 
       const pathFromServer = response.headers.get('x-chat-path');
       if (pathFromServer) chatPath = pathFromServer;
+
+      const tokenUsageHeader = response.headers.get('x-token-usage');
+      if (tokenUsageHeader) {
+        try { tokenDisplay = JSON.parse(tokenUsageHeader); } catch {}
+      } else {
+        tokenDisplay = null;
+      }
+
+      const cachedHeader = response.headers.get('x-cached');
+      if (cachedHeader === 'true' && tokenDisplay) {
+        tokenDisplay.cached = true;
+      }
 
       isStreaming = true;
 
@@ -625,6 +670,9 @@
               Live {enhancedCredits.remaining <= 0 ? '' : enhancedCredits.remaining}
             </button>
           </div>
+          {#if tokenDisplay}
+            <span class="text-[10px] text-stone-300 hidden sm:inline">{tokenDisplay.cached ? '⚡ cached' : `~${tokenDisplay.in} tokens`}{chatPath ? ` · ${chatPath}` : ''}</span>
+          {/if}
         </div>
         <span class="hidden sm:inline">AI can make mistakes. Verify important info.</span>
       </div>

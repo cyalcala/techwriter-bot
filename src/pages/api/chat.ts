@@ -7,7 +7,8 @@ import { readEnvKeys, checkEnvKeys } from '../../lib/env-reader';
 import { updateReputation, getDefaultState, deserializeReputation, serializeReputation, getTierProviderPool, getDailyLimits, type ReputationState } from '../../lib/reputation';
 import { determineChatPath, isArtifactGenerationRequest } from '../../lib/path-router';
 import { ensureGraph, queryGraph, getGraphStats } from '../../lib/graph-query';
-import { logTokenUsage, estimateTokens } from '../../lib/token-counter';
+import { logTokenUsage, estimateTokens, isWithinBudget, getTokenStats } from '../../lib/token-counter';
+import { checkCache, writeCache } from '../../lib/query-cache';
 
 const rateLimits = new Map<string, { count: number; reset: number }>();
 const RATE_WINDOW = 60_000;
@@ -158,12 +159,14 @@ async function searchRagKV(kv: any, sessionId: string, query: string): Promise<s
 export const GET: APIRoute = async ({ request, locals }) => {
   const env = loadEnv(locals);
   const graphStats = getGraphStats();
+  const tokenStats = await getTokenStats(env.SESSION);
   return new Response(JSON.stringify({
     status: 'ok', circuits: getCircuitDiagnostics(),
     dailyRequests: [...dailyUsage.entries()].reduce((a, [, c]) => a + c, 0),
     keys: checkEnvKeys(env),
     clientIP: request.headers.get('cf-connecting-ip') || 'unknown',
     graph: graphStats || { available: false },
+    tokenUsage: tokenStats,
   }, null, 2), { headers: { 'Content-Type': 'application/json' } });
 };
 
@@ -216,6 +219,26 @@ export const POST: APIRoute = async (ctx) => {
     const query = lastMsg?.content || '';
     const msgLen = query.length;
 
+    const idempotencyKey = body.idempotencyKey || '';
+    if (idempotencyKey && env.SESSION) {
+      const existing = await env.SESSION.get(`idem:${idempotencyKey}`);
+      if (existing) {
+        const cached = JSON.parse(existing);
+        return new Response(cached.body || '{}', { status: cached.status || 200, headers: new Headers(cached.headers || {}) });
+      }
+    }
+
+    const cacheResult = await checkCache(env.SESSION, query);
+    if (cacheResult.hit && cacheResult.response) {
+      return new Response(JSON.stringify({
+        choices: [{ message: { content: cacheResult.response.text } }],
+        provider: cacheResult.response.provider,
+        searchTier: cacheResult.response.searchTier,
+        path: cacheResult.response.path,
+        cached: true,
+      }), { headers: { 'Content-Type': 'text/event-stream', 'x-provider': cacheResult.response.provider, 'x-search-tier': cacheResult.response.searchTier, 'x-chat-path': cacheResult.response.path, 'x-cached': 'true' } });
+    }
+
     if (!isDev) {
       rep = updateReputation(rep, 'dup_query', { message: query });
       rep = updateReputation(rep, 'natural_message', { message: query });
@@ -265,6 +288,14 @@ export const POST: APIRoute = async (ctx) => {
       try { await env.SESSION.put(`reputation:${ip}`, serializeReputation(rep), { expirationTtl: 7200 }); } catch {}
     }
 
+    if (!isWithinBudget(messages, 2048, 4096)) {
+      const trimmed = messages.slice(-12);
+      if (!isWithinBudget(trimmed, 2048, 4096)) {
+        return new Response(JSON.stringify({ error: 'token_budget_exceeded', message: 'Conversation too long. Start a new chat.' }), { status: 413, headers: { 'Content-Type': 'application/json' } });
+      }
+      messages = messages.slice(0, 1).concat(trimmed);
+    }
+
     const tier = isDev ? 'premium' : rep.tier;
     let pool = isDev
       ? (pathCtx.path === 'fast' ? ['groq-fast'] : ['groq-fast', 'gemini-flash'])
@@ -293,9 +324,23 @@ export const POST: APIRoute = async (ctx) => {
 
     const systemPrompt = messages.find((m: any) => m.role === 'system');
     const inputTokens = estimateTokens(systemPrompt?.content || '') + messages.slice(1).reduce((s: number, m: any) => s + estimateTokens(m.content || ''), 0);
+    const graphTokens = graphContextStr ? estimateTokens(graphContextStr) : 0;
     logTokenUsage(env.SESSION, clientSessionId, meta.provider || 'unknown', inputTokens, 0).catch(() => {});
 
-    return response;
+    if (env.SESSION) {
+      if (idempotencyKey) {
+        env.SESSION.put(`idem:${idempotencyKey}`, JSON.stringify({ status: 200, headers: { 'x-provider': meta.provider, 'x-search-tier': searchResult.searchTier, 'x-chat-path': pathCtx.path, 'Content-Type': 'text/event-stream' } }), { expirationTtl: 300 }).catch(() => {});
+      }
+      if (!pathCtx.path || pathCtx.path !== 'fast') {
+        writeCache(env.SESSION, query, '', meta.provider || 'unknown', searchResult.searchTier, pathCtx.path).catch(() => {});
+      }
+    }
+
+    const headers = new Headers(response.headers);
+    headers.set('x-token-usage', JSON.stringify({ in: inputTokens, graph: graphTokens }));
+    if (graphContextStr) headers.set('x-graph-context', JSON.stringify({ available: true, tokens: graphTokens }));
+
+    return new Response(response.body, { status: response.status, headers });
   } catch (e: any) {
     log('error', { message: e.message?.slice(0, 200) });
     return new Response(JSON.stringify({ error: 'server_error', message: 'Unexpected error. Please try again.', retryAfter: 5 }), { status: 500, headers: { 'Content-Type': 'application/json', 'Retry-After': '5' } });
