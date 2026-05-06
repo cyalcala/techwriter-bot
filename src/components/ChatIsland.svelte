@@ -9,7 +9,7 @@
   import ArtifactPanel from './ArtifactPanel.svelte';
   import ArtifactOverlay from './ArtifactOverlay.svelte';
   import { preloadPopular } from '../lib/renderer-loader';
-  import { createArtifactState, openSplitArtifact, closeSplitArtifact, fixArtifactError, type SplitTab } from '../lib/artifact-state';
+  import { createArtifactState, openSplitArtifacts, closeSplitArtifact, fixArtifactError, nextArtifact, prevArtifact, getActiveArtifact, type SplitTab, type SplitArtifact } from '../lib/artifact-state';
   import { stripDisclaimers, formatMarkdown } from '../lib/markdown';
   import { estimateTokens } from '../lib/token-counter';
 
@@ -50,8 +50,13 @@
   let isMobile = $state(false);
 
   const KROKI_RENDERABLE = new Set(['mermaid', 'graphviz', 'd2', 'plantuml', 'vega', 'flowchart']);
+  const renderedHashes = new Set<string>();
 
   async function resolveArtifact(artifact: Artifact, msgIdx: number) {
+    const codeFingerprint = `${artifact.type}:${artifact.code.slice(0, 200)}:${artifact.code.length}`;
+    if (renderedHashes.has(codeFingerprint)) return;
+    renderedHashes.add(codeFingerprint);
+
     if (!KROKI_RENDERABLE.has(artifact.type)) {
       artState.artifacts = [...artState.artifacts, { messageIdx: msgIdx, artifact }];
       return;
@@ -514,7 +519,7 @@
 
       const msgArtifacts = artState.artifacts.filter(a => a.messageIdx === msgIdx);
       if (msgArtifacts.length > 0) {
-        const { split, tab } = openSplitArtifact(msgIdx, msgArtifacts[0].artifact, artState.artifacts);
+        const { split, tab } = openSplitArtifacts(msgIdx, msgArtifacts);
         artState.splitArtifact = split;
         artState.splitTab = tab;
       }
@@ -650,9 +655,13 @@
       {#if !isStreaming && !artState.splitArtifact}
         {#each artState.artifacts.filter(a => a.messageIdx === i) as { artifact }}
           <div class="flex justify-start w-full">
-            <button onclick={() => { const { split, tab } = openSplitArtifact(i, artifact, artState.artifacts); artState.splitArtifact = split; artState.splitTab = tab; }} class="w-full max-w-md text-left px-4 py-2.5 rounded-xl bg-[#f1ede4]/60 hover:bg-[#e8e4db] border border-[#d6d0c4] transition-all group">
+            <button onclick={() => { const msgArts = artState.artifacts.filter(a => a.messageIdx === i); const { split, tab } = openSplitArtifacts(i, msgArts); artState.splitArtifact = split; artState.splitTab = tab; }} class="w-full max-w-md text-left px-4 py-2.5 rounded-xl bg-[#f1ede4]/60 hover:bg-[#e8e4db] border border-[#d6d0c4] transition-all group">
               <div class="flex items-center gap-2">
-                <span class="text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-md bg-purple-600 text-white">{artifact.type}</span>
+                {#if artifact.type === 'svg'}
+                  <div class="w-6 h-6 rounded overflow-hidden shrink-0 bg-white">{@html artifact.code}</div>
+                {:else}
+                  <span class="text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-md bg-purple-600 text-white">{artifact.type}</span>
+                {/if}
                 <span class="text-xs font-medium text-[#1a1a1a] truncate">{artifact.title || 'Artifact'}</span>
                 <span class="text-[10px] text-[#8c8576] group-hover:text-[#1a1a1a] ml-auto shrink-0">View →</span>
               </div>
@@ -725,23 +734,29 @@
   </div>
 
   {#if artState.splitArtifact}
+    {@const active = getActiveArtifact(artState.splitArtifact)}
     <ArtifactOverlay
-      svg={artState.splitArtifact.artifact.type === 'svg' ? artState.splitArtifact.artifact.code : ''}
-      type={artState.splitArtifact.artifact.type}
-      title={artState.splitArtifact.artifact.title || 'Diagram'}
+      svg={active.artifact.type === 'svg' ? active.artifact.code : ''}
+      type={active.artifact.type}
+      title={active.artifact.title || 'Diagram'}
       onclose={() => { const r = closeSplitArtifact(); artState.splitArtifact = r.split; artState.artifactError = r.error; }}
     />
     <div class="hidden md:block w-1.5 bg-stone-300 hover:bg-amber-400 cursor-col-resize shrink-0 transition-colors z-20" role="separator"></div>
     <div class="hidden md:flex flex-col w-[50%] min-w-[360px] bg-[#faf7f2] overflow-hidden shadow-2xl z-10" style="resize: horizontal;">
       <div class="flex items-center justify-between px-4 py-2.5 bg-stone-800 text-white shrink-0">
-        <div class="flex items-center gap-2.5 min-w-0">
-          <span class="text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-md bg-amber-500 text-stone-900">{artState.splitArtifact.artifact.type}</span>
-          <span class="text-xs font-medium text-stone-300 truncate">{artState.splitArtifact.artifact.title || 'Artifact'}</span>
+        <div class="flex items-center gap-2 min-w-0">
+          {#if artState.splitArtifact.artifacts.length > 1}
+            <button onclick={() => { artState.splitArtifact.activeIdx = prevArtifact(artState.splitArtifact); }} class="text-[10px] px-1.5 py-0.5 rounded text-stone-400 hover:text-white transition-colors">◂</button>
+            <span class="text-[10px] text-stone-400">{artState.splitArtifact.activeIdx + 1}/{artState.splitArtifact.artifacts.length}</span>
+            <button onclick={() => { artState.splitArtifact.activeIdx = nextArtifact(artState.splitArtifact); }} class="text-[10px] px-1.5 py-0.5 rounded text-stone-400 hover:text-white transition-colors">▸</button>
+          {/if}
+          <span class="text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-md bg-amber-500 text-stone-900">{active.artifact.type}</span>
+          <span class="text-xs font-medium text-stone-300 truncate">{active.artifact.title || 'Artifact'}</span>
         </div>
         <div class="flex items-center gap-1">
           <button onclick={() => artState.splitTab = 'code'} class="text-[10px] px-2.5 py-1 rounded-md {artState.splitTab === 'code' ? 'bg-white/20 text-white font-bold' : 'text-stone-400 hover:text-white'}">Code</button>
           <button onclick={() => artState.splitTab = 'preview'} class="text-[10px] px-2.5 py-1 rounded-md {artState.splitTab === 'preview' ? 'bg-white/20 text-white font-bold' : 'text-stone-400 hover:text-white'}">Preview</button>
-          <button onclick={async () => { try { await navigator.clipboard.writeText(artState.splitArtifact!.artifact.code); } catch {} }} class="text-[10px] px-2 py-1 rounded-md text-stone-400 hover:text-white hover:bg-white/10 transition-all">Copy</button>
+          <button onclick={async () => { try { await navigator.clipboard.writeText(active.artifact.code); } catch {} }} class="text-[10px] px-2 py-1 rounded-md text-stone-400 hover:text-white hover:bg-white/10 transition-all">Copy</button>
           <button onclick={() => { const r = closeSplitArtifact(); artState.splitArtifact = r.split; artState.artifactError = r.error; }} class="text-[10px] px-2 py-1 rounded-md text-stone-400 hover:text-white hover:bg-white/10 transition-all" title="Close (Esc)">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
@@ -756,7 +771,7 @@
             <button onclick={fixArtifactErr} class="text-[10px] px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-md font-bold shrink-0 transition-all">Fix with AI</button>
           </div>
         {/if}
-        <ArtifactPanel artifact={artState.splitArtifact.artifact} progressive={true} />
+        <ArtifactPanel artifact={active.artifact} progressive={true} />
       </div>
     </div>
   {/if}
