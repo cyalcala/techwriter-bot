@@ -12,6 +12,7 @@
 
   let visible = $state(false);
   let isMobile = $state(false);
+  let copied = $state(false);
 
   $effect(() => {
     const check = () => { isMobile = window.innerWidth < 768; };
@@ -68,6 +69,10 @@
     a.download = (title || 'diagram').replace(/[^a-zA-Z0-9_-]/g, '_') + '.svg';
     document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
   }
+
+  async function copySVG() {
+    try { await navigator.clipboard.writeText(svg); copied = true; setTimeout(() => copied = false, 1500); } catch {}
+  }
 </script>
 
 {#if isMobile && svg}
@@ -95,6 +100,13 @@
           <span class="text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-md {typeBadge[type] || 'bg-stone-600 text-white'}">{type}</span>
           <span class="text-xs text-stone-300 truncate max-w-[120px]">{title || 'Diagram'}</span>
         </div>
+        <button onclick={copySVG} class="text-stone-400 hover:text-white transition-colors p-1" title="Copy SVG">
+          {#if copied}
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+          {:else}
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+          {/if}
+        </button>
         <button onclick={downloadSVG} class="text-stone-400 hover:text-white transition-colors p-1" title="Download SVG">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
         </button>
