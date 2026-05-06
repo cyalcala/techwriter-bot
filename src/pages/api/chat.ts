@@ -302,7 +302,7 @@ export const POST: APIRoute = async (ctx) => {
       : getTierProviderPool(tier).pool;
 
     if (needsArtifact) {
-      pool = ['groq-fast', 'gemini-flash', 'cerebras-llama'];
+      pool = ['groq-fast', 'gemini-flash', 'cerebras-llama', 'cloudflare-llama'];
       pathCtx.path = 'heavy';
       pathCtx.includeGraph = true;
     } else if (pathCtx.path === 'fast') {
