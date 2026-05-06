@@ -47,6 +47,36 @@
   let chatPath = $state<string | null>(null);
   let tokenDisplay = $state<{ in: number; graph: number; cached?: boolean } | null>(null);
 
+  const KROKI_RENDERABLE = new Set(['mermaid', 'graphviz', 'd2', 'plantuml', 'vega', 'flowchart']);
+
+  async function resolveArtifact(artifact: Artifact, msgIdx: number) {
+    if (!KROKI_RENDERABLE.has(artifact.type)) {
+      artState.artifacts = [...artState.artifacts, { messageIdx: msgIdx, artifact }];
+      return;
+    }
+    const pendingId = `${artifact.type}-pending-${Date.now().toString(36)}`;
+    const pendingArtifact: Artifact = { ...artifact, id: pendingId, code: '', title: `${artifact.title} (rendering...)` };
+    artState.artifacts = [...artState.artifacts, { messageIdx: msgIdx, artifact: pendingArtifact }];
+    try {
+      const res = await fetch('/api/render-artifact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: artifact.type, code: artifact.code }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.svg) {
+          const svgArtifact: Artifact = { ...artifact, code: data.svg, type: 'svg' as any, title: artifact.title, placement: 'inline' };
+          artState.artifacts = artState.artifacts.filter(a => a.artifact.id !== pendingId);
+          artState.artifacts = [...artState.artifacts, { messageIdx: msgIdx, artifact: svgArtifact }];
+          return;
+        }
+      }
+    } catch {}
+    artState.artifacts = artState.artifacts.filter(a => a.artifact.id !== pendingId);
+    artState.artifacts = [...artState.artifacts, { messageIdx: msgIdx, artifact }];
+  }
+
   function fixArtifactErr() {
     const prompt = fixArtifactError(artState.artifactError, artState.splitArtifact);
     if (prompt) {
@@ -384,7 +414,7 @@
 
       const artifactParser = new ArtifactStreamParser(
         (artifact) => {
-          artState.artifacts = [...artState.artifacts, { messageIdx: msgIdx, artifact }];
+          resolveArtifact(artifact, msgIdx);
         },
         (text) => {
           batcher.push(text);
@@ -462,9 +492,15 @@
 
       if (messages[msgIdx].content) {
         const result = detectAllArtifacts(messages[msgIdx].content, existingArtifacts);
+        const resolvePromises: Promise<void>[] = [];
         for (const fa of result.artifacts) {
-          artState.artifacts = [...artState.artifacts, { messageIdx: msgIdx, artifact: fa }];
+          resolvePromises.push(
+            (async () => {
+              await resolveArtifact(fa, msgIdx);
+            })()
+          );
         }
+        await Promise.all(resolvePromises);
         messages[msgIdx] = { ...messages[msgIdx], content: result.cleanText };
       }
 

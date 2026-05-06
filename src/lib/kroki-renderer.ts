@@ -1,0 +1,55 @@
+const KROKI_BASE = 'https://kroki.io';
+const KROKI_TIMEOUT_MS = 8000;
+const CACHE_TTL_SECONDS = 86400;
+
+const TYPE_MAP: Record<string, string> = {
+  mermaid: 'mermaid',
+  graphviz: 'graphviz',
+  d2: 'd2',
+  plantuml: 'plantuml',
+  vega: 'vega',
+  flowchart: 'mermaid',
+};
+
+export const KROKI_RENDERABLE = new Set(['mermaid', 'graphviz', 'd2', 'plantuml', 'vega', 'flowchart']);
+export const CLIENT_ONLY_TYPES = new Set(['code', 'html', 'svg', 'react', 'katex', 'markmap', 'webcontainer']);
+
+async function sha256(text: string): Promise<string> {
+  const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+export async function renderViaKroki(type: string, code: string, kv: any): Promise<{ svg?: string; error?: string; cached?: boolean }> {
+  const krokiType = TYPE_MAP[type] || type;
+  const hash = await sha256(krokiType + code);
+  const cacheKey = `kroki:${hash.slice(0, 20)}`;
+
+  if (kv) {
+    try {
+      const cached = await kv.get(cacheKey);
+      if (cached) return { svg: cached, cached: true };
+    } catch {}
+  }
+
+  try {
+    const res = await fetch(`${KROKI_BASE}/${krokiType}/svg`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: code,
+      signal: AbortSignal.timeout(KROKI_TIMEOUT_MS),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text().catch(() => 'unknown');
+      return { error: errText.slice(0, 300) };
+    }
+
+    const svg = await res.text();
+    if (kv) {
+      kv.put(cacheKey, svg, { expirationTtl: CACHE_TTL_SECONDS }).catch(() => {});
+    }
+    return { svg };
+  } catch (e: any) {
+    return { error: `Kroki unavailable: ${e.message?.slice(0, 100)}` };
+  }
+}
