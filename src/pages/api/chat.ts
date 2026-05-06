@@ -8,7 +8,7 @@ import { updateReputation, getDefaultState, deserializeReputation, serializeRepu
 import { determineChatPath, isArtifactGenerationRequest } from '../../lib/path-router';
 import { ensureGraph, queryGraph, getGraphStats } from '../../lib/graph-query';
 import { logTokenUsage, estimateTokens, isWithinBudget, getTokenStats } from '../../lib/token-counter';
-import { checkCache, writeCache } from '../../lib/query-cache';
+import { checkCache } from '../../lib/query-cache';
 
 const rateLimits = new Map<string, { count: number; reset: number }>();
 const RATE_WINDOW = 60_000;
@@ -303,8 +303,6 @@ export const POST: APIRoute = async (ctx) => {
 
     if (needsArtifact) {
       pool = ['groq-fast', 'gemini-flash', 'cerebras-llama', 'cloudflare-llama'];
-      pathCtx.path = 'heavy';
-      pathCtx.includeGraph = true;
     } else if (pathCtx.path === 'fast') {
       pool = ['groq-fast', 'cerebras-llama', 'gemini-flash', 'cloudflare-llama'];
     }
@@ -330,9 +328,6 @@ export const POST: APIRoute = async (ctx) => {
     if (env.SESSION) {
       if (idempotencyKey) {
         env.SESSION.put(`idem:${idempotencyKey}`, JSON.stringify({ status: 200, headers: { 'x-provider': meta.provider, 'x-search-tier': searchResult.searchTier, 'x-chat-path': pathCtx.path, 'Content-Type': 'text/event-stream' } }), { expirationTtl: 300 }).catch(() => {});
-      }
-      if (!pathCtx.path || pathCtx.path !== 'fast') {
-        writeCache(env.SESSION, query, '', meta.provider || 'unknown', searchResult.searchTier, pathCtx.path).catch(() => {});
       }
     }
 

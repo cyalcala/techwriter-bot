@@ -17,7 +17,7 @@ export interface PromptContext {
   needsArtifact: boolean;
 }
 
-const ARTIFACT_COMPACT = 'For diagram/code requests: FIRST list 2-3 best format options with a one-line reason each. Wait for the user to pick. THEN in your NEXT message, generate ONLY the artifact inside <artifact type="X">...</artifact> — no explanations, no markdown around it. Types: code|html|svg|mermaid|react|katex|markmap|d2|vega|graphviz|plantuml|flowchart|webcontainer. Mermaid rules: use spaces around arrows (A --> B not A-->B), escape & as &amp;, quote labels with special chars: A["Login &amp; Auth"]. Graphviz rules: quote labels with angle brackets or double quotes. D2 rules: indent with 2 spaces. Do not wrap artifact code in markdown code fences. The artifact tag IS the wrapper.';
+const ARTIFACT_COMPACT = 'For diagram/code requests: FIRST list 2-3 best format options with a one-line reason each. Wait for the user to pick. THEN in your NEXT message, generate the artifact inside <artifact type="X" title="Descriptive Title">...</artifact> with only a 1-sentence description before it. Mermaid rules: spaces around arrows (A --> B), escape & as &amp;, quote labels with special chars. Graphviz: quote labels. D2: 2-space indent. Never wrap artifact in markdown code fences. The artifact tag IS the wrapper.';
 
 const CORE_PERSONA_FAST = `You are a helpful, concise technical writing assistant. Respond naturally and briefly.`;
 
