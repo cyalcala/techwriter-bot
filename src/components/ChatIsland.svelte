@@ -7,6 +7,7 @@
   import { ArtifactStreamParser, detectCodeFenceFallback, type Artifact } from '../lib/stream-parser';
   import { detectAllArtifacts } from '../lib/artifact-detector';
   import ArtifactPanel from './ArtifactPanel.svelte';
+  import ArtifactOverlay from './ArtifactOverlay.svelte';
   import { preloadPopular } from '../lib/renderer-loader';
   import { createArtifactState, openSplitArtifact, closeSplitArtifact, fixArtifactError, type SplitTab } from '../lib/artifact-state';
   import { stripDisclaimers, formatMarkdown } from '../lib/markdown';
@@ -46,6 +47,7 @@
   let artState = $state(createArtifactState());
   let chatPath = $state<string | null>(null);
   let tokenDisplay = $state<{ in: number; graph: number; cached?: boolean } | null>(null);
+  let isMobile = $state(false);
 
   const KROKI_RENDERABLE = new Set(['mermaid', 'graphviz', 'd2', 'plantuml', 'vega', 'flowchart']);
 
@@ -146,6 +148,10 @@
     isOnline = navigator.onLine;
     window.addEventListener('online', () => { isOnline = true; });
     window.addEventListener('offline', () => { isOnline = false; });
+
+    const checkMobile = () => { isMobile = window.innerWidth < 768; };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
   });
 
   $effect(() => {
@@ -719,18 +725,15 @@
   </div>
 
   {#if artState.splitArtifact}
+    <ArtifactOverlay
+      svg={artState.splitArtifact.artifact.type === 'svg' ? artState.splitArtifact.artifact.code : ''}
+      type={artState.splitArtifact.artifact.type}
+      title={artState.splitArtifact.artifact.title || 'Diagram'}
+      onclose={() => { const r = closeSplitArtifact(); artState.splitArtifact = r.split; artState.artifactError = r.error; }}
+    />
     <div class="hidden md:block w-1.5 bg-stone-300 hover:bg-amber-400 cursor-col-resize shrink-0 transition-colors z-20" role="separator"></div>
-    <div class="w-full md:w-[50%] min-w-0 md:min-w-[360px] bg-[#faf7f2] flex flex-col overflow-hidden shadow-2xl z-10 fixed md:relative inset-0 md:inset-auto" style="resize: horizontal;">
-      <!-- Mobile back bar -->
-      <div class="md:hidden flex items-center justify-between px-4 py-3 bg-stone-800 text-white shrink-0 border-b border-stone-700">
-        <button onclick={() => { const r = closeSplitArtifact(); artState.splitArtifact = r.split; artState.artifactError = r.error; }} class="flex items-center gap-2 text-white hover:text-amber-300 transition-colors">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7 7"/></svg>
-          <span class="text-sm font-medium">Back to Chat</span>
-        </button>
-        <span class="text-[10px] uppercase tracking-widest font-bold px-2 py-1 rounded-md bg-amber-500 text-stone-900">{artState.splitArtifact.artifact.type}</span>
-      </div>
-      <!-- Desktop header -->
-      <div class="hidden md:flex items-center justify-between px-4 py-2.5 bg-stone-800 text-white shrink-0">
+    <div class="hidden md:flex flex-col w-[50%] min-w-[360px] bg-[#faf7f2] overflow-hidden shadow-2xl z-10" style="resize: horizontal;">
+      <div class="flex items-center justify-between px-4 py-2.5 bg-stone-800 text-white shrink-0">
         <div class="flex items-center gap-2.5 min-w-0">
           <span class="text-[10px] uppercase tracking-widest font-bold px-2 py-0.5 rounded-md bg-amber-500 text-stone-900">{artState.splitArtifact.artifact.type}</span>
           <span class="text-xs font-medium text-stone-300 truncate">{artState.splitArtifact.artifact.title || 'Artifact'}</span>
@@ -739,19 +742,10 @@
           <button onclick={() => artState.splitTab = 'code'} class="text-[10px] px-2.5 py-1 rounded-md {artState.splitTab === 'code' ? 'bg-white/20 text-white font-bold' : 'text-stone-400 hover:text-white'}">Code</button>
           <button onclick={() => artState.splitTab = 'preview'} class="text-[10px] px-2.5 py-1 rounded-md {artState.splitTab === 'preview' ? 'bg-white/20 text-white font-bold' : 'text-stone-400 hover:text-white'}">Preview</button>
           <button onclick={async () => { try { await navigator.clipboard.writeText(artState.splitArtifact!.artifact.code); } catch {} }} class="text-[10px] px-2 py-1 rounded-md text-stone-400 hover:text-white hover:bg-white/10 transition-all">Copy</button>
-          <button onclick={() => { const b = new Blob([artState.splitArtifact!.artifact.code], {type:'text/plain'}); const u = URL.createObjectURL(b); const a = document.createElement('a'); a.href=u; a.download=(artState.splitArtifact!.artifact.title||'artifact').replace(/[^a-zA-Z0-9_-]/g,'_'); document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(u); }} class="text-[10px] px-2 py-1 rounded-md text-stone-400 hover:text-white hover:bg-white/10 transition-all" title="Download">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-          </button>
           <button onclick={() => { const r = closeSplitArtifact(); artState.splitArtifact = r.split; artState.artifactError = r.error; }} class="text-[10px] px-2 py-1 rounded-md text-stone-400 hover:text-white hover:bg-white/10 transition-all" title="Close (Esc)">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </div>
-      </div>
-      <!-- Mobile tabs -->
-      <div class="md:hidden flex items-center gap-1 px-3 py-2 bg-stone-700 shrink-0">
-        <button onclick={() => artState.splitTab = 'code'} class="flex-1 text-[11px] px-3 py-1.5 rounded-md text-center {artState.splitTab === 'code' ? 'bg-white/20 text-white font-bold' : 'text-stone-400'}">Code</button>
-        <button onclick={() => artState.splitTab = 'preview'} class="flex-1 text-[11px] px-3 py-1.5 rounded-md text-center {artState.splitTab === 'preview' ? 'bg-white/20 text-white font-bold' : 'text-stone-400'}">Preview</button>
-        <button onclick={async () => { try { await navigator.clipboard.writeText(artState.splitArtifact!.artifact.code); } catch {} }} class="text-[11px] px-3 py-1.5 rounded-md text-stone-400">Copy</button>
       </div>
       <div class="flex-1 overflow-auto bg-[#faf7f2]">
         {#if artState.artifactError}
