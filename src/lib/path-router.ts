@@ -54,10 +54,18 @@ export function determineChatPath(
 
 const GEN_ARTIFACT_TRIGGER = /(generate|create|make|build|draw|write|design|craft|show|visualize|render|display|give me|i need|i want)\b.*?\b(diagram|chart|graph|drawing|visualization|plot|flowchart|mind\s?map|org\s?chart|architecture|uml|equation|formula|component|app|wireframe|code|mermaid|graphviz|d2|plantuml|katex|vega|markmap|webcontainer|sequence|class\s?diagram|er\s?diagram|pie\s?chart|bar\s?chart|gantt|svg|html|css|website|page)/i;
 const QUICK_ARTIFACT_HINT = /^(diagram|chart|graph|uml|mermaid|graphviz|d2|plantuml|flowchart|mindmap|markmap|sequence|gantt|pie|bar|org)\b/i;
+const FORMAT_CHOICE = /^[123]$|^(mermaid|graphviz|d2|plantuml|flowchart|markmap|vega|katex|code|react|webcontainer)$/i;
+const LAST_AI_SUGGESTED = /\b(Mermaid|Graphviz|D2|PlantUML|Flowchart|Markmap|Vega|KaTeX)\b.*\bbest for\b/i;
 
-export function isArtifactGenerationRequest(query: string): boolean {
+export function isArtifactGenerationRequest(query: string, messages?: any[]): boolean {
   if (GEN_ARTIFACT_TRIGGER.test(query)) return true;
-  const trimmed = query.trim().toLowerCase();
+
+  const trimmed = query.trim();
+  if (FORMAT_CHOICE.test(trimmed) && messages) {
+    const lastAI = [...messages].reverse().find((m: any) => m.role === 'assistant');
+    if (lastAI && LAST_AI_SUGGESTED.test(lastAI.content || '')) return true;
+  }
+
   if (trimmed.length < 60 && QUICK_ARTIFACT_HINT.test(trimmed)) return true;
   if (/\b(draw|visualize|graph)\b/i.test(trimmed) && trimmed.length < 100) return true;
   return false;

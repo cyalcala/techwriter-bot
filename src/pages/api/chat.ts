@@ -272,7 +272,7 @@ export const POST: APIRoute = async (ctx) => {
       }
     }
 
-    const needsArtifact = isArtifactGenerationRequest(query);
+    const needsArtifact = isArtifactGenerationRequest(query, messages);
 
     const promptCtx: PromptContext = {
       path: pathCtx.path,
