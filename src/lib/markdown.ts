@@ -11,12 +11,15 @@ export function stripDisclaimers(text: string): string {
     .trim();
 }
 
+const DIAGRAM_LANGS = new Set(['mermaid', 'graphviz', 'dot', 'd2', 'plantuml', 'puml', 'flowchart', 'markmap', 'vega', 'vega-lite', 'katex', 'block', 'webcontainer']);
+
 function wrapLines(text: string, streaming: boolean): string {
   const lines = text.split('\n');
   const result: string[] = [];
   let inCodeBlock = false;
   let codeBuf = '';
   let codeLang = '';
+  let skipBlock = false;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -24,20 +27,26 @@ function wrapLines(text: string, streaming: boolean): string {
 
     if (line.startsWith('```')) {
       if (inCodeBlock) {
-        result.push(`<pre class="bg-[#0d1117] rounded-xl overflow-hidden my-3 group relative"><div class="flex items-center justify-between px-4 py-1.5 bg-stone-800/50 text-stone-400 text-[10px]"><span>${codeLang || 'code'}</span><button class="hover:text-white transition-colors" onclick="navigator.clipboard.writeText(this.closest('pre').querySelector('code').textContent);this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',1500)">Copy</button></div><code class="block p-4 text-[13px] leading-relaxed overflow-x-auto text-stone-100 font-mono">${escapeHtml(codeBuf.trim())}</code></pre>`);
+        if (!skipBlock) {
+          result.push(`<pre class="bg-[#0d1117] rounded-xl overflow-hidden my-3 group relative"><div class="flex items-center justify-between px-4 py-1.5 bg-stone-800/50 text-stone-400 text-[10px]"><span>${codeLang || 'code'}</span><button class="hover:text-white transition-colors" onclick="navigator.clipboard.writeText(this.closest('pre').querySelector('code').textContent);this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',1500)">Copy</button></div><code class="block p-4 text-[13px] leading-relaxed overflow-x-auto text-stone-100 font-mono">${escapeHtml(codeBuf.trim())}</code></pre>`);
+        }
         codeBuf = '';
         codeLang = '';
+        skipBlock = false;
         inCodeBlock = false;
       } else {
         if (streaming && isLast) break;
+        codeLang = line.slice(3).trim().toLowerCase();
+        skipBlock = DIAGRAM_LANGS.has(codeLang);
         inCodeBlock = true;
-        codeLang = line.slice(3).trim();
       }
       continue;
     }
 
     if (inCodeBlock) {
-      codeBuf += (codeBuf ? '\n' : '') + line;
+      if (!skipBlock) {
+        codeBuf += (codeBuf ? '\n' : '') + line;
+      }
       if (!streaming || !isLast) continue;
       result.push(`<pre class="bg-[#0d1117] rounded-xl overflow-hidden my-3"><code class="block p-4 text-[13px] leading-relaxed overflow-x-auto text-stone-100 font-mono">${escapeHtml(codeBuf)}</code></pre>`);
       continue;
