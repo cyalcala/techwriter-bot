@@ -669,7 +669,7 @@
       const alreadyResolved = new Set(existingArtifacts.filter(a => a.artifact.type === 'svg').map(a => a.artifact.title));
 
       if (messages[msgIdx].content) {
-        const result = detectAllArtifacts(messages[msgIdx].content, existingArtifacts);
+        const result = detectAllArtifacts(messages[msgIdx].content, []);
         const resolvePromises: Promise<void>[] = [];
         for (const fa of result.artifacts) {
           if (KROKI_RENDERABLE.has(fa.type) && alreadyResolved.has(fa.title || `${fa.type} Diagram`)) continue;
