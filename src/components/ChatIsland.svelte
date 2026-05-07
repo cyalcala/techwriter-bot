@@ -68,19 +68,6 @@
   let activeArtifactEntry = $state<ArtifactEntry | null>(null);
   let artifactError = $state<string | null>(null);
 
-  $effect(() => {
-    return artifactQueue.subscribe(() => {
-      if (activeArtifactEntry) {
-        const updated = artifactQueue.entries.find(
-          e => e.messageIdx === activeArtifactEntry.messageIdx && e.artifact.type === 'svg'
-        );
-        if (updated) {
-          activeArtifactEntry = updated;
-        }
-      }
-    });
-  });
-
   async function resolveArtifact(art: Artifact, msgIdx: number) {
     let code = art.code;
     if (code.startsWith('```')) {
@@ -100,21 +87,32 @@
     if (!KROKI_RENDERABLE.has(cleanArt.type)) return;
     const pendingId = entry.artifact.id;
     try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 12_000);
       const res = await fetch('/api/render-artifact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type: cleanArt.type, code }),
+        signal: ctrl.signal,
       });
+      clearTimeout(timer);
       if (res.ok) {
         const data = await res.json();
         if (data.svg) {
+          console.log('[Kroki] SVG received, length:', data.svg.length);
           artifactQueue.replace(msgIdx, pendingId, { ...cleanArt, code: data.svg, type: 'svg' as any, title, placement: 'inline' });
           const updated = artifactQueue.entries.find(e => e.messageIdx === msgIdx && e.artifact.type === 'svg');
+          console.log('[Kroki] Updated entry found:', !!updated, 'activeMatch:', activeArtifactEntry?.artifact.id === pendingId);
           if (updated && activeArtifactEntry?.artifact.id === pendingId) {
             activeArtifactEntry = updated;
+            console.log('[Kroki] activeArtifactEntry updated to SVG');
           }
           saveArtifactQueue(sessionId, artifactQueue.entries);
+        } else {
+          console.log('[Kroki] No SVG in response:', data);
         }
+      } else {
+        console.log('[Kroki] Server error:', res.status);
       }
     } catch (e) {
       console.error('[Kroki] Render failed:', e);
