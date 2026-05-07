@@ -58,12 +58,5 @@ export function safeSetSplit(
   state: { artifacts: { messageIdx: number; artifact: import('./stream-parser').Artifact }[]; splitArtifact: SplitArtifact | null },
   split: SplitArtifact | null,
 ): void {
-  if (split === null) {
-    state.splitArtifact = null;
-    return;
-  }
-  const exists = split.artifacts.every(a =>
-    state.artifacts.some(existing => existing.artifact.id === a.artifact.id)
-  );
-  if (exists) state.splitArtifact = split;
+  state.splitArtifact = split;
 }
