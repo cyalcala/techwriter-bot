@@ -12,7 +12,6 @@
   import { createArtifactState, openSplitArtifacts, closeSplitArtifact, fixArtifactError, nextArtifact, prevArtifact, getActiveArtifact, type SplitTab, type SplitArtifact } from '../lib/artifact-state';
   import { stripDisclaimers, formatMarkdown } from '../lib/markdown';
   import { estimateTokens } from '../lib/token-counter';
-  import { saveConversation, loadConversation, clearConversation } from '../lib/session-persist';
 
   interface Message {
     role: 'user' | 'assistant' | 'system';
@@ -49,22 +48,6 @@
   let chatPath = $state<string | null>(null);
   let tokenDisplay = $state<{ in: number; graph: number; cached?: boolean } | null>(null);
   let isMobile = $state(false);
-  let documentTopics = $state('');
-
-  type ChatState = 'idle' | 'loading' | 'streaming' | 'aborting';
-  let chatState: ChatState = $state('idle');
-  let pendingResolutions = new Set<{ cancel: () => void }>();
-  let messageQueue: Array<{ content: string; timestamp: number }> = [];
-  let checkpointContent = '';
-  let checkpointTimer: ReturnType<typeof setInterval> | null = null;
-  let timeoutTimer1: ReturnType<typeof setTimeout> | null = null;
-  let timeoutTimer2: ReturnType<typeof setTimeout> | null = null;
-  let timeoutTimer3: ReturnType<typeof setTimeout> | null = null;
-  let sseDropCount = 0;
-  let sseDropWindow = 0;
-  const MAX_QUEUE = 3;
-  const SSE_MAX_DROPS = 3;
-  const SSE_DROP_WINDOW_MS = 60_000;
 
   const KROKI_RENDERABLE = new Set(['mermaid', 'graphviz', 'd2', 'plantuml', 'vega', 'flowchart']);
   const renderedHashes = new Set<string>();
@@ -148,12 +131,6 @@
   onMount(() => {
     sessionId = generateSessionId();
     persistSessionId(sessionId);
-
-    const restored = loadConversation(sessionId) as Message[] | null;
-    if (restored && restored.length > 0) {
-      messages = restored;
-    }
-
     runStaleCheck();
     setupCleanupCallbacks(sessionId);
     pollCredits();
@@ -191,20 +168,7 @@
     }
   });
 
-  let persistDebounce: ReturnType<typeof setTimeout> | null = null;
-  $effect(() => {
-    messages; sessionId;
-    if (!sessionId) return;
-    if (persistDebounce) clearTimeout(persistDebounce);
-    persistDebounce = setTimeout(() => {
-      saveConversation(sessionId, messages);
-    }, 2000);
-  });
-
   function newChat() {
-    safeAbort();
-    clearConversation();
-    documentTopics = '';
     clearAllData(sessionId);
     sessionId = generateSessionId();
     persistSessionId(sessionId);
@@ -217,9 +181,6 @@
   }
 
   function clearChat() {
-    safeAbort();
-    clearConversation();
-    documentTopics = '';
     clearAllData(sessionId);
     messages = [{ role: 'assistant', content: 'Chat cleared. My memory has been wiped. What would you like to work on?' }];
     rag = clearRagState();
@@ -230,7 +191,6 @@
 
   function removeFile() {
     rag = clearRagState();
-    documentTopics = '';
     if (fileInput) fileInput.value = '';
   }
 
@@ -266,24 +226,6 @@
     } else {
       messages = [...messages, { role: 'assistant', content: result.message }];
     }
-
-    try {
-      const vectors = await import('../lib/rag-db').then(m => m.getStoredVectors(sessionId));
-      if (vectors.length >= 3) {
-        const firstChunks = vectors.slice(0, 3).map(v => v.text);
-        const topicsRes = await fetch('/api/summarize', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages: firstChunks.map(t => ({ role: 'user', content: t })), mode: 'topics' }),
-        });
-        if (topicsRes.ok) {
-          const topicsData = await topicsRes.json();
-          if (topicsData.summary) {
-            documentTopics = topicsData.summary.replace(/\n+/g, ', ').trim();
-          }
-        }
-      }
-    } catch {}
 
     isUploading = false;
   }
@@ -347,103 +289,33 @@
   }
 
   async function sendMessage() {
-    if (!inputMessage.trim()) return;
-
-    if (chatState !== 'idle') {
-      if (messageQueue.length < MAX_QUEUE) {
-        messageQueue.push({ content: inputMessage.trim(), timestamp: Date.now() });
-        inputMessage = '';
-        messages = [...messages, { role: 'assistant', content: `Message queued (${messageQueue.length}/${MAX_QUEUE}). We will process after the current response.` }];
-      }
-      return;
-    }
-
+    if (!inputMessage.trim() || isLoading) return;
     messages = [...messages, { role: 'user', content: inputMessage.trim() }];
     inputMessage = '';
     await doSend();
-
-    while (messageQueue.length > 0 && chatState === 'idle') {
-      const next = messageQueue.shift()!;
-      messages = [...messages, { role: 'user', content: next.content }];
-      await doSend();
-    }
-  }
-
-  function safeAbort() {
-    if (chatState === 'idle') return;
-    chatState = 'aborting';
-    abortController?.abort();
-    abortController = null;
-    for (const p of pendingResolutions) p.cancel();
-    pendingResolutions.clear();
-    if (checkpointTimer) { clearInterval(checkpointTimer); checkpointTimer = null; }
-      if (timeoutTimer1) { clearTimeout(timeoutTimer1); timeoutTimer1 = null; }
-      if (timeoutTimer2) { clearTimeout(timeoutTimer2); timeoutTimer2 = null; }
-      if (timeoutTimer3) { clearTimeout(timeoutTimer3); timeoutTimer3 = null; }
-    isStreaming = false;
-    isLoading = false;
-    requestAnimationFrame(() => { chatState = 'idle'; });
   }
 
   function stopStreaming() {
-    safeAbort();
-  }
-
-  function isTopicShift(newQuery: string, lastQuery: string): boolean {
-    const lastWords = new Set(lastQuery.toLowerCase().split(/\s+/).filter(w => w.length > 3));
-    const newWords = newQuery.toLowerCase().split(/\s+/).filter(w => w.length > 3 && !lastWords.has(w));
-    return newWords.length / Math.max(newQuery.split(/\s+/).length, 1) > 0.7;
-  }
-
-  function handleSSEDrop(msgIdx: number): boolean {
-    const now = Date.now();
-    if (now - sseDropWindow > SSE_DROP_WINDOW_MS) { sseDropCount = 0; sseDropWindow = now; }
-    sseDropCount++;
-    if (sseDropCount >= SSE_MAX_DROPS) {
-      messages = [...messages, { role: 'assistant', content: '*Connection unstable. Please wait a moment.*' }];
-      chatState = 'idle'; isLoading = false;
-      setTimeout(() => { sseDropCount = 0; }, 10_000);
-      return false;
+    if (abortController) {
+      abortController.abort();
+      abortController = null;
+      isLoading = false;
+      isStreaming = false;
     }
-    return true;
   }
 
   async function doSend() {
-    safeAbort();
-    chatState = 'loading';
     isLoading = true;
     abortController = new AbortController();
-    if (messageQueue.length > 0) messageQueue = [];
 
     let messagesToSend = [...messages];
     let sourcesFromHeaders: { title: string; url: string }[] = [];
     let msgSearchTier: 'none' | 'basic' | 'enhanced' = 'none';
 
-    const lastUserMsgQ = [...messagesToSend].reverse().find((m: any) => m.role === 'user');
-    const prevUserMsgQ = [...messagesToSend].reverse().slice(1).find((m: any) => m.role === 'user');
-    if (lastUserMsgQ && prevUserMsgQ && isTopicShift(lastUserMsgQ.content, prevUserMsgQ.content)) {
-      messagesToSend = [messagesToSend[0], ...messagesToSend.slice(-2)];
-    }
-
     const idempotencyKey = crypto.randomUUID();
 
     const totalEst = messagesToSend.reduce((s, m) => s + estimateTokens(m.content || ''), 0);
-    if (totalEst > 5000) {
-      messages = [...messages, { role: 'assistant', content: 'This conversation is getting long. Consider starting a new chat for optimal performance.' }];
-      const lastUser = [...messagesToSend].reverse().find((m: any) => m.role === 'user');
-      const summaryMsg = messagesToSend.length > 8
-        ? await (async () => {
-            try {
-              const res = await fetch('/api/summarize', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: messagesToSend.slice(1, -8) }) });
-              if (res.ok) { const d = await res.json(); return d.summary || ''; }
-            } catch {}
-            return '';
-          })()
-        : '';
-      messagesToSend = summaryMsg
-        ? [messagesToSend[0], { role: 'system', content: `Previous conversation summary: ${summaryMsg}` }, ...messagesToSend.slice(-8)]
-        : [messagesToSend[0], ...messagesToSend.slice(-4)];
-    } else if (totalEst > 3000) {
+    if (totalEst > 4000) {
       const oldest = messagesToSend.slice(1, -3);
       if (oldest.length > 0) {
         try {
@@ -463,15 +335,7 @@
       }
     }
 
-    let msgIdx = -1;
     try {
-      if (documentTopics) {
-        messagesToSend = [
-          { role: 'system', content: `DOCUMENT CONTEXT — Key topics: ${documentTopics}` },
-          ...messagesToSend,
-        ];
-      }
-
       const hasDocument = rag.uploadStatus === 'done';
 
       if (hasDocument) {
@@ -545,7 +409,6 @@
       }
 
       isStreaming = true;
-      chatState = 'streaming';
 
       const stream = response.body;
       if (!stream) throw new Error('No response stream received');
@@ -554,36 +417,7 @@
       const decoder = new TextDecoder();
 
       messages = [...messages, { role: 'assistant', content: '', provider: providerName, sources: sourcesFromHeaders, searchTier: msgSearchTier }];
-      msgIdx = messages.length - 1;
-
-      checkpointContent = '';
-      checkpointTimer = setInterval(() => {
-        if (chatState === 'streaming' && messages[msgIdx]?.content) {
-          checkpointContent = messages[msgIdx].content;
-          saveConversation(sessionId, messages);
-        }
-      }, 500);
-      timeoutTimer1 = setTimeout(() => {
-        if (chatState === 'loading' || chatState === 'streaming') {
-          messages[msgIdx] = { ...messages[msgIdx], content: (checkpointContent || messages[msgIdx].content) + '\n\n*Still thinking... The provider may be slow.*' };
-        }
-      }, 10_000);
-      timeoutTimer2 = setTimeout(() => {
-        if (chatState === 'loading' || chatState === 'streaming') {
-          messages[msgIdx] = { ...messages[msgIdx], content: (checkpointContent || messages[msgIdx].content).replace('\n\n*Still thinking... The provider may be slow.*', '') + '\n\n*Taking longer than usual. Trying backup provider...*' };
-        }
-      }, 20_000);
-      timeoutTimer3 = setTimeout(() => {
-        if (chatState === 'loading' || chatState === 'streaming') {
-          messages[msgIdx] = { ...messages[msgIdx], content: (checkpointContent || messages[msgIdx].content) + '\n\n*Response timed out. Retrying with fallback provider...*' };
-          const savedMsgIdx = msgIdx;
-          safeAbort();
-          requestAnimationFrame(() => {
-            messages = [...messages.slice(0, savedMsgIdx)];
-            doSend();
-          });
-        }
-      }, 30_000);
+      const msgIdx = messages.length - 1;
 
       const batcher = new TokenBatcher((batch) => {
         messages[msgIdx] = { ...messages[msgIdx], content: messages[msgIdx].content + batch };
@@ -671,19 +505,20 @@
       if (messages[msgIdx].content) {
         try {
           const result = detectAllArtifacts(messages[msgIdx].content, []);
-          const resolvePromises: Promise<void>[] = [];
-          for (const fa of result.artifacts) {
-            if (KROKI_RENDERABLE.has(fa.type) && alreadyResolved.has(fa.title || `${fa.type} Diagram`)) continue;
-            resolvePromises.push(
-              (async () => {
-                await resolveArtifact(fa, msgIdx);
-              })()
-            );
-          }
-          await Promise.all(resolvePromises);
-          messages = messages.map((m, i) => i === msgIdx ? { ...m, content: result.cleanText } : m);
+        const resolvePromises: Promise<void>[] = [];
+        for (const fa of result.artifacts) {
+          if (!fa.type || !fa.code) continue;
+          if (KROKI_RENDERABLE.has(fa.type) && alreadyResolved.has(fa.title || `${fa.type} Diagram`)) continue;
+          resolvePromises.push(
+            (async () => {
+              await resolveArtifact(fa, msgIdx);
+            })()
+          );
+        }
+        await Promise.all(resolvePromises);
+        messages = messages.map((m, i) => i === msgIdx ? { ...m, content: result.cleanText } : m);
         } catch (e) {
-          console.error('[Artifact] Post-stream detection failed:', e);
+          console.error('[Artifact] detection failed:', e);
         }
       }
 
@@ -712,20 +547,9 @@
       await updateActivity(sessionId);
     } catch (error: any) {
       if (error.name === 'AbortError') return;
-      if (handleSSEDrop(msgIdx)) {
-        console.error('[Chat]', error);
-        if (checkpointContent && !abortController?.signal.aborted) {
-          messages[msgIdx] = { ...messages[msgIdx], content: checkpointContent + '\n\n*[Connection interrupted. Send again to continue.]*' };
-        } else {
-          messages = [...messages, { role: 'assistant', content: `Connection Error: ${error.message}` }];
-        }
-      }
+      console.error('[Chat]', error);
+      messages = [...messages, { role: 'assistant', content: `Connection Error: ${error.message}` }];
     } finally {
-      if (checkpointTimer) { clearInterval(checkpointTimer); checkpointTimer = null; }
-    if (timeoutTimer1) { clearTimeout(timeoutTimer1); timeoutTimer1 = null; }
-    if (timeoutTimer2) { clearTimeout(timeoutTimer2); timeoutTimer2 = null; }
-    if (timeoutTimer3) { clearTimeout(timeoutTimer3); timeoutTimer3 = null; }
-      chatState = 'idle';
       isLoading = false;
       isStreaming = false;
       abortController = null;
@@ -798,7 +622,7 @@
             {#if msg.empty}
               <div class="text-[#71717a] italic text-sm">No response received.</div>
             {:else}
-              <div class="ai-content whitespace-pre-wrap">{@html formatMarkdown(stripDisclaimers(msg.content), msg.sources, isStreaming)}</div>
+              <div class="ai-content whitespace-pre-wrap">{@html formatMarkdown(stripDisclaimers(msg.content), msg.sources)}</div>
             {/if}
             {#if !isStreaming && msg.content && !msg.empty}
               <div class="flex items-center gap-2 mt-1.5 opacity-100 md:opacity-0 md:hover:opacity-100 transition-opacity duration-150">
@@ -924,7 +748,7 @@
   </div>
 
   {#if artState.splitArtifact}
-    {@const active = getActiveArtifact(artState.splitArtifact!)}
+    {@const active = getActiveArtifact(artState.splitArtifact)}
     <ArtifactOverlay
       svg={active.artifact.type === 'svg' ? active.artifact.code : ''}
       type={active.artifact.type}
@@ -937,9 +761,9 @@
         <div class="flex items-center gap-3 min-w-0">
           {#if artState.splitArtifact.artifacts.length > 1}
             <div class="flex items-center gap-1">
-              <button onclick={() => { artState.splitArtifact!.activeIdx = prevArtifact(artState.splitArtifact!); }} class="text-[11px] px-1.5 py-0.5 rounded text-stone-400 hover:text-white transition-colors">◂</button>
-              <span class="text-[10px] text-stone-400 font-medium tabular-nums">{artState.splitArtifact!.activeIdx + 1}/{artState.splitArtifact!.artifacts.length}</span>
-              <button onclick={() => { artState.splitArtifact!.activeIdx = nextArtifact(artState.splitArtifact!); }} class="text-[11px] px-1.5 py-0.5 rounded text-stone-400 hover:text-white transition-colors">▸</button>
+              <button onclick={() => { artState.splitArtifact.activeIdx = prevArtifact(artState.splitArtifact); }} class="text-[11px] px-1.5 py-0.5 rounded text-stone-400 hover:text-white transition-colors">◂</button>
+              <span class="text-[10px] text-stone-400 font-medium tabular-nums">{artState.splitArtifact.activeIdx + 1}/{artState.splitArtifact.artifacts.length}</span>
+              <button onclick={() => { artState.splitArtifact.activeIdx = nextArtifact(artState.splitArtifact); }} class="text-[11px] px-1.5 py-0.5 rounded text-stone-400 hover:text-white transition-colors">▸</button>
             </div>
             <div class="w-px h-4 bg-stone-600"></div>
           {/if}
@@ -955,12 +779,12 @@
           </button>
         </div>
       </div>
-      {#if artState.splitArtifact!.artifacts.length > 1}
+      {#if artState.splitArtifact.artifacts.length > 1}
         <div class="flex gap-2 overflow-x-auto px-3 py-2 bg-stone-100 border-b border-stone-200 shrink-0">
-          {#each artState.splitArtifact!.artifacts as item, idx}
-            <button onclick={() => { artState.splitArtifact!.activeIdx = idx; }}
+          {#each artState.splitArtifact.artifacts as item, idx}
+            <button onclick={() => { artState.splitArtifact.activeIdx = idx; }}
               class="shrink-0 w-20 rounded-lg overflow-hidden border-2 transition-all duration-150
-                {idx === artState.splitArtifact!.activeIdx ? 'border-amber-400 shadow-md scale-105' : 'border-transparent hover:border-stone-300 hover:shadow-sm'}">
+                {idx === artState.splitArtifact.activeIdx ? 'border-amber-400 shadow-md scale-105' : 'border-transparent hover:border-stone-300 hover:shadow-sm'}">
               {#if item.artifact.type === 'svg'}
                 <div class="w-full h-12 bg-white overflow-hidden">{@html item.artifact.code}</div>
               {:else}

@@ -4,79 +4,7 @@ interface RawArtifact {
   type: ArtifactType;
   title: string;
   code: string;
-  confidence: 'tag' | 'fence' | 'heuristic' | 'stray';
-}
-
-const STRAY_DIAGRAM_STARTS = /\b(graph\s+(TB|TD|BT|RL|LR)|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|flowchart\s+(TB|TD|BT|RL|LR)|gitgraph|mindmap|timeline|quadrantChart|block\-beta|requirementDiagram|C4Context|C4Container)\b/i;
-
-function scanStrayDiagramBlock(text: string, startIdx: number): { code: string; type: ArtifactType; end: number } | null {
-  const rest = text.slice(startIdx);
-  const lines = rest.split('\n');
-  const block: string[] = [];
-  let i = 0;
-  for (const line of lines) {
-    if (line.trim() === '' && i > 1) break;
-    if (i > 0 && /^(Here|This |The |Let me|I've |Above|Now you|You can|Would |Feel|Note|If you|For more|Check|See |Can I|Hope|Great|Below|Try|Copy|Paste|Run |The above)/i.test(line.trim())) break;
-    block.push(line);
-    i++;
-  }
-  const code = block.join('\n').trim();
-  if (code.length < 20) return null;
-  
-  let type: ArtifactType;
-  if (/@startuml/i.test(code)) type = 'plantuml';
-  else if (/\b(?:digraph|graph)\s+\w+\s*\{/.test(code)) type = 'graphviz';
-  else if (/\b(?:shape|style|label|direction):/.test(code) || /(?:->|<->|--)/.test(code)) type = 'd2';
-  else type = 'mermaid';
-  
-  return { code, type, end: startIdx + code.length };
-}
-
-export function detectStrayDiagrams(text: string): { artifacts: RawArtifact[]; cleanText: string } {
-  const found: RawArtifact[] = [];
-  let clean = text;
-  
-  const plantUmlRe = /@startuml\s*\n([\s\S]*?)@enduml/gi;
-  let umlMatch;
-  while ((umlMatch = plantUmlRe.exec(clean)) !== null) {
-    const code = umlMatch[0];
-    if (code.length > 20) {
-      found.push({ type: 'plantuml', title: 'PlantUML Diagram', code, confidence: 'stray' });
-      clean = clean.replace(umlMatch[0], '');
-    }
-  }
-  
-  const dotRe = /(?:digraph|graph)\s+\w+\s*\{[\s\S]+?\}/gi;
-  let dotMatch;
-  while ((dotMatch = dotRe.exec(clean)) !== null) {
-    const code = dotMatch[0];
-    if (code.length > 30 && !found.some(f => f.code === code)) {
-      found.push({ type: 'graphviz', title: 'Graphviz Diagram', code, confidence: 'stray' });
-      clean = clean.replace(dotMatch[0], '');
-    }
-  }
-  
-  let searchIdx = 0;
-  while (searchIdx < clean.length) {
-    const slice = clean.slice(searchIdx);
-    const m = STRAY_DIAGRAM_STARTS.exec(slice);
-    if (!m) break;
-    const localIdx = m.index;
-    const prevChar = localIdx > 0 ? slice[localIdx - 1] : '\n';
-    if (prevChar !== '\n' && prevChar !== '\r' && prevChar !== undefined && localIdx !== 0) {
-      searchIdx += localIdx + m[0].length;
-      continue;
-    }
-    const block = scanStrayDiagramBlock(clean, searchIdx + localIdx);
-    if (block && !found.some(f => f.code === block.code)) {
-      found.push({ type: block.type, title: `${block.type.charAt(0).toUpperCase() + block.type.slice(1)} Diagram`, code: block.code, confidence: 'stray' });
-      clean = clean.slice(0, searchIdx + localIdx) + clean.slice(block.end);
-    } else {
-      searchIdx++;
-    }
-  }
-  
-  return { artifacts: found, cleanText: clean };
+  confidence: 'tag' | 'fence' | 'heuristic';
 }
 
 export function detectAllArtifacts(text: string, streamArtifacts: Artifact[]): { artifacts: Artifact[]; cleanText: string } {
@@ -125,16 +53,9 @@ export function detectAllArtifacts(text: string, streamArtifacts: Artifact[]): {
 
   clean = clean.replace(/<[\/]?\w*rtifact[^>]*>/gi, '');
 
-  const strayResult = detectStrayDiagrams(clean);
-  for (const sa of strayResult.artifacts) {
-    if (!found.some(f => f.type === sa.type && f.code === sa.code)) {
-      found.push(sa);
-    }
-  }
-  clean = strayResult.cleanText;
-
   if (streamArtifacts.length > 0) {
     for (const sa of streamArtifacts) {
+      if (!sa?.id || !sa?.type || !sa?.code) continue;
       if (!streamIds.has(sa.id)) continue;
       found.unshift({ type: sa.type, title: sa.title || '', code: sa.code, confidence: 'tag' });
     }
@@ -143,6 +64,7 @@ export function detectAllArtifacts(text: string, streamArtifacts: Artifact[]): {
   const seen = new Set<string>();
   const artifacts: Artifact[] = [];
   for (const f of found) {
+    if (!f.type || !f.code) continue;
     if (!validateArtifact(f.type, f.code)) continue;
     const key = `${f.type}:${f.code.slice(0, 80)}`;
     if (seen.has(key)) continue;
@@ -193,7 +115,7 @@ function detectLang(code: string): string {
 }
 
 function validateArtifact(type: ArtifactType, code: string): boolean {
-  if (!code || code.trim().length < 5) return false;
+  if (!type || !code || code.trim().length < 5) return false;
   switch (type) {
     case 'mermaid':
       return /(graph\s+(TB|TD|BT|RL|LR)|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|flowchart|gitgraph|mindmap|timeline|quadrantChart|block-beta|requirementDiagram|C4Context|C4Container)/i.test(code);
