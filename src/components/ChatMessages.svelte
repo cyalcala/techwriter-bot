@@ -19,14 +19,13 @@
     onCancelEdit: () => void;
     copiedMessageIdx: number | null;
     chatPath: string | null;
-    chatContainer: HTMLElement | null;
   }
 
   let {
     messages, queue, isStreaming, activeMessageIdx,
     onChipClick, onCopyMessage, onRetryMessage, onEditMessage,
     editingMessageIdx, editText, onEditTextChange, onSaveEdit, onCancelEdit,
-    copiedMessageIdx, chatPath, chatContainer,
+    copiedMessageIdx, chatPath,
   }: Props = $props();
 
   let artifactEntries = $state<ArtifactEntry[]>([]);
@@ -58,7 +57,7 @@
               {/if}
             </div>
           {/if}
-          {#if msg.sources?.length > 0 && !isStreaming}
+          {#if msg.sources && msg.sources.length > 0 && !isStreaming}
             <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
               {#if msg.searchTier && msg.searchTier !== 'none'}
                 <span class="text-[11px] font-medium text-black/60">{msg.searchTier === 'enhanced' ? 'Enhanced' : 'Live'}</span>

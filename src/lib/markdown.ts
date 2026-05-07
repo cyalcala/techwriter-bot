@@ -5,10 +5,10 @@ const DIAGRAM_LANGS = new Set(['mermaid', 'graphviz', 'dot', 'd2', 'plantuml', '
 
 const renderer = new marked.Renderer();
 const origCode = renderer.code.bind(renderer);
-renderer.code = function(token: { text: string; lang?: string }) {
+renderer.code = function(token: { text: string; lang?: string; escaped?: boolean }) {
   const lang = (token.lang || '').toLowerCase();
   if (DIAGRAM_LANGS.has(lang)) return '';
-  return origCode(token);
+  return origCode({ text: token.text, lang: token.lang, escaped: token.escaped } as any);
 };
 
 marked.setOptions({ renderer, breaks: true, gfm: true });
@@ -44,5 +44,8 @@ export function formatMarkdown(text: string | null | undefined, sources?: { titl
   }
 
   const html = marked.parse(formatted) as string;
-  return DOMPurify.sanitize(html, { ALLOWED_TAGS: ['h1','h2','h3','h4','h5','h6','p','br','strong','em','code','pre','a','ul','ol','li','blockquote','table','thead','tbody','tr','th','td','hr','sup','sub','img','span','div','del','input'], ALLOWED_ATTR: ['href','target','rel','title','class','style','src','alt','width','height','checked','type','id'] });
+  if (typeof DOMPurify?.sanitize === 'function') {
+    return DOMPurify.sanitize(html, { ALLOWED_TAGS: ['h1','h2','h3','h4','h5','h6','p','br','strong','em','code','pre','a','ul','ol','li','blockquote','table','thead','tbody','tr','th','td','hr','sup','sub','img','span','div','del','input'], ALLOWED_ATTR: ['href','target','rel','title','class','style','src','alt','width','height','checked','type','id'] });
+  }
+  return html;
 }

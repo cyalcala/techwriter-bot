@@ -14,7 +14,7 @@
     ragUploadedFileName?: string;
     ragUploadStatus?: string;
     ragDegraded?: boolean;
-    ragUploadProgress?: { done: number; total: number };
+    ragUploadProgress?: { done: number; total: number } | null;
     onRemoveFile: () => void;
     tokenDisplay: { in: number; cached?: boolean } | null;
     chatPath: string | null;
