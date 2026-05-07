@@ -15,19 +15,31 @@ export function detectAllArtifacts(text: string, streamArtifacts: Artifact[]): {
   const found: RawArtifact[] = [];
   let clean = text;
 
-  const tagRe = /<\w*rtifact\s+type="(\w+)"(?:\s+placement="(\w+)")?(?:\s+title="([^"]*)")?(?:\s+language="([^"]*)")?\s*>([\s\S]*?)<\/\w*rtifact\s*>/gi;
-  let tagMatch: RegExpExecArray | null;
-  while ((tagMatch = tagRe.exec(text)) !== null) {
-    const type = normalizeType(tagMatch[1]);
-    const title = tagMatch[3] || `${type} Diagram`;
-    const code = tagMatch[5].trim();
+  let searchFrom = 0;
+  while (true) {
+    const openStart = clean.indexOf('<artifact', searchFrom);
+    if (openStart === -1) break;
+    const openEnd = clean.indexOf('>', openStart);
+    if (openEnd === -1) break;
+    const openTag = clean.slice(openStart, openEnd + 1);
+    const typeMatch = openTag.match(/\btype\s*=\s*"(\w+)"/i);
+    const titleMatch = openTag.match(/\btitle\s*=\s*"([^"]*)"/i);
+    const type = typeMatch ? normalizeType(typeMatch[1]) : null;
+    const title = titleMatch ? titleMatch[1] : null;
+    const closeTag = `</artifact>`;
+    const closeIdx = clean.indexOf(closeTag, openEnd);
+    if (closeIdx === -1) { searchFrom = openEnd + 1; continue; }
+    const code = clean.slice(openEnd + 1, closeIdx).trim();
     if (type && code) {
-      found.push({ type, title, code, confidence: 'tag' });
-      clean = clean.replace(tagMatch[0], '');
+      found.push({ type, title: title || `${type} Diagram`, code, confidence: 'tag' });
+      clean = clean.slice(0, openStart) + clean.slice(closeIdx + closeTag.length);
+      searchFrom = openStart;
+    } else {
+      searchFrom = openEnd + 1;
     }
   }
 
-  const streamIds = new Set(streamArtifacts.map(a => a.id));
+  const streamIds = new Set(streamArtifacts.map(a => a?.id).filter(Boolean));
   const fenceRe = /```(\w[\w-]*)?\n([\s\S]*?)```/g;
   let fenceMatch: RegExpExecArray | null;
   while ((fenceMatch = fenceRe.exec(clean)) !== null) {
@@ -51,7 +63,7 @@ export function detectAllArtifacts(text: string, streamArtifacts: Artifact[]): {
     }
   }
 
-  clean = clean.replace(/<[\/]?\w*rtifact[^>]*>/gi, '');
+  clean = clean.replace(/<\/?artifact[^>]*>/gi, '');
 
   if (streamArtifacts.length > 0) {
     for (const sa of streamArtifacts) {
