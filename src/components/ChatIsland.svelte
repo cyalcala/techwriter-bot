@@ -49,6 +49,19 @@
   let tokenDisplay = $state<{ in: number; graph: number; cached?: boolean } | null>(null);
   let isMobile = $state(false);
 
+  type ChatState = 'idle' | 'loading' | 'streaming' | 'aborting';
+  let chatState: ChatState = $state('idle');
+  let pendingResolutions = new Set<{ cancel: () => void }>();
+  let messageQueue: Array<{ content: string; timestamp: number }> = [];
+  let checkpointContent = '';
+  let checkpointTimer: ReturnType<typeof setInterval> | null = null;
+  let timeoutTimer: ReturnType<typeof setTimeout> | null = null;
+  let sseDropCount = 0;
+  let sseDropWindow = 0;
+  const MAX_QUEUE = 3;
+  const SSE_MAX_DROPS = 3;
+  const SSE_DROP_WINDOW_MS = 60_000;
+
   const KROKI_RENDERABLE = new Set(['mermaid', 'graphviz', 'd2', 'plantuml', 'vega', 'flowchart']);
   const renderedHashes = new Set<string>();
 
@@ -289,28 +302,81 @@
   }
 
   async function sendMessage() {
-    if (!inputMessage.trim() || isLoading) return;
+    if (!inputMessage.trim()) return;
+
+    if (chatState !== 'idle') {
+      if (messageQueue.length < MAX_QUEUE) {
+        messageQueue.push({ content: inputMessage.trim(), timestamp: Date.now() });
+        inputMessage = '';
+        messages = [...messages, { role: 'assistant', content: `Message queued (${messageQueue.length}/${MAX_QUEUE}). We will process after the current response.` }];
+      }
+      return;
+    }
+
     messages = [...messages, { role: 'user', content: inputMessage.trim() }];
     inputMessage = '';
     await doSend();
-  }
 
-  function stopStreaming() {
-    if (abortController) {
-      abortController.abort();
-      abortController = null;
-      isLoading = false;
-      isStreaming = false;
+    while (messageQueue.length > 0 && chatState === 'idle') {
+      const next = messageQueue.shift()!;
+      messages = [...messages, { role: 'user', content: next.content }];
+      await doSend();
     }
   }
 
+  function safeAbort() {
+    if (chatState === 'idle') return;
+    chatState = 'aborting';
+    abortController?.abort();
+    abortController = null;
+    for (const p of pendingResolutions) p.cancel();
+    pendingResolutions.clear();
+    if (checkpointTimer) { clearInterval(checkpointTimer); checkpointTimer = null; }
+    if (timeoutTimer) { clearTimeout(timeoutTimer); timeoutTimer = null; }
+    isStreaming = false;
+    isLoading = false;
+    requestAnimationFrame(() => { chatState = 'idle'; });
+  }
+
+  function stopStreaming() {
+    safeAbort();
+  }
+
+  function isTopicShift(newQuery: string, lastQuery: string): boolean {
+    const lastWords = new Set(lastQuery.toLowerCase().split(/\s+/).filter(w => w.length > 3));
+    const newWords = newQuery.toLowerCase().split(/\s+/).filter(w => w.length > 3 && !lastWords.has(w));
+    return newWords.length / Math.max(newQuery.split(/\s+/).length, 1) > 0.7;
+  }
+
+  function handleSSEDrop(msgIdx: number): boolean {
+    const now = Date.now();
+    if (now - sseDropWindow > SSE_DROP_WINDOW_MS) { sseDropCount = 0; sseDropWindow = now; }
+    sseDropCount++;
+    if (sseDropCount >= SSE_MAX_DROPS) {
+      messages = [...messages, { role: 'assistant', content: '*Connection unstable. Please wait a moment.*' }];
+      chatState = 'idle'; isLoading = false;
+      setTimeout(() => { sseDropCount = 0; }, 10_000);
+      return false;
+    }
+    return true;
+  }
+
   async function doSend() {
+    safeAbort();
+    chatState = 'loading';
     isLoading = true;
     abortController = new AbortController();
+    if (messageQueue.length > 0) messageQueue = [];
 
     let messagesToSend = [...messages];
     let sourcesFromHeaders: { title: string; url: string }[] = [];
     let msgSearchTier: 'none' | 'basic' | 'enhanced' = 'none';
+
+    const lastUserMsgQ = [...messagesToSend].reverse().find((m: any) => m.role === 'user');
+    const prevUserMsgQ = [...messagesToSend].reverse().slice(1).find((m: any) => m.role === 'user');
+    if (lastUserMsgQ && prevUserMsgQ && isTopicShift(lastUserMsgQ.content, prevUserMsgQ.content)) {
+      messagesToSend = [messagesToSend[0], ...messagesToSend.slice(-2)];
+    }
 
     const idempotencyKey = crypto.randomUUID();
 
@@ -409,6 +475,7 @@
       }
 
       isStreaming = true;
+      chatState = 'streaming';
 
       const stream = response.body;
       if (!stream) throw new Error('No response stream received');
@@ -418,6 +485,18 @@
 
       messages = [...messages, { role: 'assistant', content: '', provider: providerName, sources: sourcesFromHeaders, searchTier: msgSearchTier }];
       const msgIdx = messages.length - 1;
+
+      checkpointContent = '';
+      checkpointTimer = setInterval(() => {
+        if (chatState === 'streaming' && messages[msgIdx]?.content) {
+          checkpointContent = messages[msgIdx].content;
+        }
+      }, 500);
+      timeoutTimer = setTimeout(() => {
+        if (chatState === 'loading' || chatState === 'streaming') {
+          messages[msgIdx] = { ...messages[msgIdx], content: (checkpointContent || messages[msgIdx].content) + '\n\n*Still thinking... The provider may be slow.*' };
+        }
+      }, 15_000);
 
       const batcher = new TokenBatcher((batch) => {
         messages[msgIdx] = { ...messages[msgIdx], content: messages[msgIdx].content + batch };
@@ -540,9 +619,18 @@
       await updateActivity(sessionId);
     } catch (error: any) {
       if (error.name === 'AbortError') return;
-      console.error('[Chat]', error);
-      messages = [...messages, { role: 'assistant', content: `Connection Error: ${error.message}` }];
+      if (handleSSEDrop(msgIdx)) {
+        console.error('[Chat]', error);
+        if (checkpointContent && !abortController?.signal.aborted) {
+          messages[msgIdx] = { ...messages[msgIdx], content: checkpointContent + '\n\n*[Connection interrupted. Send again to continue.]*' };
+        } else {
+          messages = [...messages, { role: 'assistant', content: `Connection Error: ${error.message}` }];
+        }
+      }
     } finally {
+      if (checkpointTimer) { clearInterval(checkpointTimer); checkpointTimer = null; }
+      if (timeoutTimer) { clearTimeout(timeoutTimer); timeoutTimer = null; }
+      chatState = 'idle';
       isLoading = false;
       isStreaming = false;
       abortController = null;
