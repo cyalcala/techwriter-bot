@@ -49,6 +49,28 @@ except Exception as e:
 
 print(f'Graph: {graph.number_of_nodes()} nodes, {graph.number_of_edges()} edges')
 
+print('Computing community summaries...')
+try:
+    degree = dict(graph.degree())
+    community_nodes = {}
+    for node_id, data in graph.nodes(data=True):
+        comm = data.get('community', 0)
+        if comm not in community_nodes:
+            community_nodes[comm] = []
+        community_nodes[comm].append((node_id, data))
+    
+    community_summaries = {}
+    for comm, nodes in community_nodes.items():
+        top = sorted(nodes, key=lambda n: degree.get(n[0], 0), reverse=True)[:4]
+        labels = [n[1].get('label', n[0]) for n in top]
+        summary = f'Community {comm}: {\", \".join(labels)}'
+        community_summaries[str(comm)] = summary
+    
+    graph.graph['community_summaries'] = community_summaries
+    print(f'Computed summaries for {len(community_summaries)} communities')
+except Exception as e:
+    print(f'Community summaries skipped: {e}')
+
 import networkx as nx
 data = nx.node_link_data(graph)
 Path('graphify-out').mkdir(parents=True, exist_ok=True)

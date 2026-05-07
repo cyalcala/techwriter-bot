@@ -22,6 +22,7 @@ export interface GraphData {
   nodes: GraphNode[];
   links: GraphLink[];
   hyperedges?: any[];
+  communitySummaries?: Record<string, string>;
 }
 
 export interface GraphContext {
@@ -86,7 +87,13 @@ export async function ensureGraph(kv: any): Promise<{ available: boolean; versio
 
       const decompressed = await decompress(new Uint8Array(compressed).buffer);
       const text = new TextDecoder().decode(new Uint8Array(decompressed));
-      cachedData = JSON.parse(text);
+      const raw = JSON.parse(text);
+      cachedData = {
+        nodes: raw.nodes || [],
+        links: raw.links || [],
+        hyperedges: raw.hyperedges,
+        communitySummaries: raw.graph?.community_summaries || raw.community_summaries || raw.communitySummaries,
+      };
       cachedVersion = version;
     } catch {
       cachedData = null;
@@ -128,9 +135,17 @@ function nodeRelevanceScore(node: GraphNode, termScores: Map<string, number>): n
   return score;
 }
 
+const MAX_GRAPH_TOKENS_DEFAULT = 1200;
+
 export function queryGraph(question: string, maxTokens: number = MAX_GRAPH_TOKENS_DEFAULT): GraphContext {
   if (!cachedData) {
     return { context: '', nodeCount: 0, tokenCount: 0, available: false };
+  }
+
+  const words = question.trim().split(/\s+/).filter(w => w.length > 1);
+  if (words.length < 5) {
+    const topGods = getGodNodes(5);
+    return buildCommunityContext(topGods, maxTokens, cachedData.communitySummaries);
   }
 
   const nodeMap = new Map<string, GraphNode>();
@@ -179,16 +194,43 @@ export function queryGraph(question: string, maxTokens: number = MAX_GRAPH_TOKEN
   godNodes.sort((a, b) => b.degree - a.degree);
   const godSet = new Set(godNodes.slice(0, 15).map(g => g.id));
 
+  const communitySummaries = cachedData.communitySummaries;
+  let allowedCommunities: Set<number> | null = null;
+
+  if (communitySummaries && Object.keys(communitySummaries).length > 0 && words.length >= 3) {
+    allowedCommunities = new Set();
+    const queryLower = question.toLowerCase();
+    const queryTerms = words.map(w => w.toLowerCase());
+    const nodeCommIndex = new Map<string, number>();
+    for (const n of cachedData.nodes) {
+      if (n.community != null) nodeCommIndex.set(n.id, n.community);
+    }
+
+    for (const [commStr, summary] of Object.entries(communitySummaries)) {
+      const summaryLower = summary.toLowerCase();
+      let matches = queryTerms.some(t => summaryLower.includes(t));
+      if (!matches) {
+        const commNum = parseInt(commStr);
+        const commNodes = cachedData.nodes.filter(n => n.community === commNum);
+        matches = commNodes.some(n => queryTerms.some(t => n.label.toLowerCase().includes(t) || n.norm_label?.toLowerCase().includes(t)));
+      }
+      if (matches) allowedCommunities!.add(parseInt(commStr));
+    }
+  }
+
   const termScores = tokenizeAndScore(question);
   const scored = cachedData.nodes
-    .filter(n => directHits.has(n.id) || nodeRelevanceScore(n, termScores) > 0)
+    .filter(n => {
+      if (!allowedCommunities) return directHits.has(n.id) || nodeRelevanceScore(n, termScores) > 0;
+      return n.community != null && allowedCommunities.has(n.community) && (directHits.has(n.id) || nodeRelevanceScore(n, termScores) > 0);
+    })
     .map(n => ({ node: n, score: (directHits.has(n.id) ? 10 : 0) + nodeRelevanceScore(n, termScores) + (godSet.has(n.id) ? 3 : 0) }));
   scored.sort((a, b) => b.score - a.score);
 
   const relevantNodes = scored.slice(0, 12);
   if (relevantNodes.length === 0) {
     const topGods = godNodes.slice(0, 5).map(g => nodeMap.get(g.id)).filter(Boolean) as GraphNode[];
-    return buildContextFromNodes(topGods, maxTokens, cachedData.nodes.length);
+    return buildCommunityContext(topGods, maxTokens, communitySummaries);
   }
 
   const selected = relevantNodes.map(r => r.node);
@@ -209,10 +251,56 @@ export function queryGraph(question: string, maxTokens: number = MAX_GRAPH_TOKEN
     if (selected.length >= 20) break;
   }
 
-  return buildContextFromNodes(selected, maxTokens, cachedData.nodes.length);
+  return communitySummaries && Object.keys(communitySummaries).length > 0
+    ? buildCommunityContext(selected, maxTokens, communitySummaries)
+    : buildContextFromNodes(selected, maxTokens, cachedData.nodes.length);
 }
 
-const MAX_GRAPH_TOKENS_DEFAULT = 1200;
+function buildCommunityContext(nodes: GraphNode[], maxTokens: number, communitySummaries?: Record<string, string>): GraphContext {
+  if (!communitySummaries || Object.keys(communitySummaries).length === 0) {
+    return buildContextFromNodes(nodes, maxTokens, nodes.length);
+  }
+
+  const commGroups = new Map<number, GraphNode[]>();
+  for (const n of nodes) {
+    const comm = n.community ?? -1;
+    if (!commGroups.has(comm)) commGroups.set(comm, []);
+    commGroups.get(comm)!.push(n);
+  }
+
+  const parts: string[] = [];
+  let tokenCount = 0;
+  let included = 0;
+
+  for (const [comm, commNodes] of commGroups) {
+    const summary = communitySummaries[String(comm)];
+    if (summary) {
+      const t = Math.ceil(summary.length / 4);
+      if (tokenCount + t > maxTokens) break;
+      parts.push(summary);
+      tokenCount += t;
+      included += commNodes.length;
+    } else {
+      for (const node of commNodes) {
+        const rel = node.source_file
+          ? `${node.label} (${node.file_type || 'concept'}, ${node.source_file}${node.source_location ? `:${node.source_location}` : ''})`
+          : `${node.label} (${node.file_type || 'concept'})`;
+        const t = Math.ceil(rel.length / 4);
+        if (tokenCount + t > maxTokens) break;
+        parts.push(rel);
+        tokenCount += t;
+        included++;
+      }
+    }
+  }
+
+  return {
+    context: parts.length > 0 ? `CODEBASE CONTEXT (${included} nodes across ${commGroups.size} components):\n${parts.join('\n')}` : '',
+    nodeCount: included,
+    tokenCount,
+    available: parts.length > 0,
+  };
+}
 
 function buildContextFromNodes(nodes: GraphNode[], maxTokens: number, totalNodes: number): GraphContext {
   const parts: string[] = [];

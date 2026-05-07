@@ -9,9 +9,10 @@
   import ArtifactPanel from './ArtifactPanel.svelte';
   import ArtifactOverlay from './ArtifactOverlay.svelte';
   import { preloadPopular } from '../lib/renderer-loader';
-  import { createArtifactState, openSplitArtifacts, closeSplitArtifact, fixArtifactError, nextArtifact, prevArtifact, getActiveArtifact, type SplitTab, type SplitArtifact } from '../lib/artifact-state';
+  import { createArtifactState, openSplitArtifacts, closeSplitArtifact, fixArtifactError, nextArtifact, prevArtifact, getActiveArtifact, safeSetSplit, type SplitTab, type SplitArtifact } from '../lib/artifact-state';
   import { stripDisclaimers, formatMarkdown } from '../lib/markdown';
   import { estimateTokens } from '../lib/token-counter';
+  import { saveConversation, loadConversation, clearConversation } from '../lib/session-persist';
 
   interface Message {
     role: 'user' | 'assistant' | 'system';
@@ -48,6 +49,7 @@
   let chatPath = $state<string | null>(null);
   let tokenDisplay = $state<{ in: number; graph: number; cached?: boolean } | null>(null);
   let isMobile = $state(false);
+  let documentTopics = $state('');
 
   type ChatState = 'idle' | 'loading' | 'streaming' | 'aborting';
   let chatState: ChatState = $state('idle');
@@ -55,7 +57,9 @@
   let messageQueue: Array<{ content: string; timestamp: number }> = [];
   let checkpointContent = '';
   let checkpointTimer: ReturnType<typeof setInterval> | null = null;
-  let timeoutTimer: ReturnType<typeof setTimeout> | null = null;
+  let timeoutTimer1: ReturnType<typeof setTimeout> | null = null;
+  let timeoutTimer2: ReturnType<typeof setTimeout> | null = null;
+  let timeoutTimer3: ReturnType<typeof setTimeout> | null = null;
   let sseDropCount = 0;
   let sseDropWindow = 0;
   const MAX_QUEUE = 3;
@@ -64,6 +68,31 @@
 
   const KROKI_RENDERABLE = new Set(['mermaid', 'graphviz', 'd2', 'plantuml', 'vega', 'flowchart']);
   const renderedHashes = new Set<string>();
+
+  const krokiPool = { active: 0, queue: [] as Array<() => void> };
+
+  function withKrokiLimit<T>(fn: () => Promise<T>): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      const run = async () => {
+        krokiPool.active++;
+        try {
+          resolve(await fn());
+        } catch (e) {
+          reject(e);
+        } finally {
+          krokiPool.active--;
+          const next = krokiPool.queue.shift();
+          if (next) next();
+        }
+      };
+
+      if (krokiPool.active >= 2) {
+        krokiPool.queue.push(run);
+      } else {
+        run();
+      }
+    });
+  }
 
   async function resolveArtifact(artifact: Artifact, msgIdx: number) {
     const codeFingerprint = `${artifact.type}:${artifact.code.slice(0, 200)}:${artifact.code.length}`;
@@ -144,6 +173,12 @@
   onMount(() => {
     sessionId = generateSessionId();
     persistSessionId(sessionId);
+
+    const restored = loadConversation(sessionId) as Message[] | null;
+    if (restored && restored.length > 0) {
+      messages = restored;
+    }
+
     runStaleCheck();
     setupCleanupCallbacks(sessionId);
     pollCredits();
@@ -181,7 +216,20 @@
     }
   });
 
+  let persistDebounce: ReturnType<typeof setTimeout> | null = null;
+  $effect(() => {
+    messages; sessionId;
+    if (!sessionId) return;
+    if (persistDebounce) clearTimeout(persistDebounce);
+    persistDebounce = setTimeout(() => {
+      saveConversation(sessionId, messages);
+    }, 2000);
+  });
+
   function newChat() {
+    safeAbort();
+    clearConversation();
+    documentTopics = '';
     clearAllData(sessionId);
     sessionId = generateSessionId();
     persistSessionId(sessionId);
@@ -194,6 +242,9 @@
   }
 
   function clearChat() {
+    safeAbort();
+    clearConversation();
+    documentTopics = '';
     clearAllData(sessionId);
     messages = [{ role: 'assistant', content: 'Chat cleared. My memory has been wiped. What would you like to work on?' }];
     rag = clearRagState();
@@ -204,6 +255,7 @@
 
   function removeFile() {
     rag = clearRagState();
+    documentTopics = '';
     if (fileInput) fileInput.value = '';
   }
 
@@ -239,6 +291,24 @@
     } else {
       messages = [...messages, { role: 'assistant', content: result.message }];
     }
+
+    try {
+      const vectors = await import('../lib/rag-db').then(m => m.getStoredVectors(sessionId));
+      if (vectors.length >= 3) {
+        const firstChunks = vectors.slice(0, 3).map(v => v.text);
+        const topicsRes = await fetch('/api/summarize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: firstChunks.map(t => ({ role: 'user', content: t })), mode: 'topics' }),
+        });
+        if (topicsRes.ok) {
+          const topicsData = await topicsRes.json();
+          if (topicsData.summary) {
+            documentTopics = topicsData.summary.replace(/\n+/g, ', ').trim();
+          }
+        }
+      }
+    } catch {}
 
     isUploading = false;
   }
@@ -292,7 +362,7 @@
 
   function handleGlobalKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape') {
-      if (artState.splitArtifact) { const r = closeSplitArtifact(); artState.splitArtifact = r.split; artState.artifactError = r.error; return; }
+      if (artState.splitArtifact) { const r = closeSplitArtifact(); safeSetSplit(artState, r.split); artState.artifactError = r.error; return; }
       if (editingMessageIdx !== null) { cancelEdit(); return; }
     }
     if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
@@ -332,7 +402,9 @@
     for (const p of pendingResolutions) p.cancel();
     pendingResolutions.clear();
     if (checkpointTimer) { clearInterval(checkpointTimer); checkpointTimer = null; }
-    if (timeoutTimer) { clearTimeout(timeoutTimer); timeoutTimer = null; }
+      if (timeoutTimer1) { clearTimeout(timeoutTimer1); timeoutTimer1 = null; }
+      if (timeoutTimer2) { clearTimeout(timeoutTimer2); timeoutTimer2 = null; }
+      if (timeoutTimer3) { clearTimeout(timeoutTimer3); timeoutTimer3 = null; }
     isStreaming = false;
     isLoading = false;
     requestAnimationFrame(() => { chatState = 'idle'; });
@@ -381,7 +453,22 @@
     const idempotencyKey = crypto.randomUUID();
 
     const totalEst = messagesToSend.reduce((s, m) => s + estimateTokens(m.content || ''), 0);
-    if (totalEst > 4000) {
+    if (totalEst > 5000) {
+      messages = [...messages, { role: 'assistant', content: 'This conversation is getting long. Consider starting a new chat for optimal performance.' }];
+      const lastUser = [...messagesToSend].reverse().find((m: any) => m.role === 'user');
+      const summaryMsg = messagesToSend.length > 8
+        ? await (async () => {
+            try {
+              const res = await fetch('/api/summarize', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: messagesToSend.slice(1, -8) }) });
+              if (res.ok) { const d = await res.json(); return d.summary || ''; }
+            } catch {}
+            return '';
+          })()
+        : '';
+      messagesToSend = summaryMsg
+        ? [messagesToSend[0], { role: 'system', content: `Previous conversation summary: ${summaryMsg}` }, ...messagesToSend.slice(-8)]
+        : [messagesToSend[0], ...messagesToSend.slice(-4)];
+    } else if (totalEst > 3000) {
       const oldest = messagesToSend.slice(1, -3);
       if (oldest.length > 0) {
         try {
@@ -401,7 +488,15 @@
       }
     }
 
+    let msgIdx = -1;
     try {
+      if (documentTopics) {
+        messagesToSend = [
+          { role: 'system', content: `DOCUMENT CONTEXT — Key topics: ${documentTopics}` },
+          ...messagesToSend,
+        ];
+      }
+
       const hasDocument = rag.uploadStatus === 'done';
 
       if (hasDocument) {
@@ -484,19 +579,36 @@
       const decoder = new TextDecoder();
 
       messages = [...messages, { role: 'assistant', content: '', provider: providerName, sources: sourcesFromHeaders, searchTier: msgSearchTier }];
-      const msgIdx = messages.length - 1;
+      msgIdx = messages.length - 1;
 
       checkpointContent = '';
       checkpointTimer = setInterval(() => {
         if (chatState === 'streaming' && messages[msgIdx]?.content) {
           checkpointContent = messages[msgIdx].content;
+          saveConversation(sessionId, messages);
         }
       }, 500);
-      timeoutTimer = setTimeout(() => {
+      timeoutTimer1 = setTimeout(() => {
         if (chatState === 'loading' || chatState === 'streaming') {
           messages[msgIdx] = { ...messages[msgIdx], content: (checkpointContent || messages[msgIdx].content) + '\n\n*Still thinking... The provider may be slow.*' };
         }
-      }, 15_000);
+      }, 10_000);
+      timeoutTimer2 = setTimeout(() => {
+        if (chatState === 'loading' || chatState === 'streaming') {
+          messages[msgIdx] = { ...messages[msgIdx], content: (checkpointContent || messages[msgIdx].content).replace('\n\n*Still thinking... The provider may be slow.*', '') + '\n\n*Taking longer than usual. Trying backup provider...*' };
+        }
+      }, 20_000);
+      timeoutTimer3 = setTimeout(() => {
+        if (chatState === 'loading' || chatState === 'streaming') {
+          messages[msgIdx] = { ...messages[msgIdx], content: (checkpointContent || messages[msgIdx].content) + '\n\n*Response timed out. Retrying with fallback provider...*' };
+          const savedMsgIdx = msgIdx;
+          safeAbort();
+          requestAnimationFrame(() => {
+            messages = [...messages.slice(0, savedMsgIdx)];
+            doSend();
+          });
+        }
+      }, 30_000);
 
       const batcher = new TokenBatcher((batch) => {
         messages[msgIdx] = { ...messages[msgIdx], content: messages[msgIdx].content + batch };
@@ -582,14 +694,20 @@
       const alreadyResolved = new Set(existingArtifacts.filter(a => a.artifact.type === 'svg').map(a => a.artifact.title));
 
       if (messages[msgIdx].content) {
-        const result = detectAllArtifacts(messages[msgIdx].content, existingArtifacts);
+        const result = detectAllArtifacts(messages[msgIdx].content, existingArtifacts.map(a => a.artifact));
         const resolvePromises: Promise<void>[] = [];
         for (const fa of result.artifacts) {
           if (KROKI_RENDERABLE.has(fa.type) && alreadyResolved.has(fa.title || `${fa.type} Diagram`)) continue;
+          const token = { cancel: () => {} };
+          pendingResolutions.add(token);
           resolvePromises.push(
-            (async () => {
-              await resolveArtifact(fa, msgIdx);
-            })()
+            withKrokiLimit(async () => {
+              try {
+                await resolveArtifact(fa, msgIdx);
+              } finally {
+                pendingResolutions.delete(token);
+              }
+            })
           );
         }
         await Promise.all(resolvePromises);
@@ -600,11 +718,11 @@
       if (msgArtifacts.length > 0) {
         const { split, tab } = openSplitArtifacts(msgIdx, msgArtifacts);
         if (isMobile) {
-          artState.splitArtifact = split;
+          safeSetSplit(artState, split);
           artState.splitTab = tab;
         } else {
           setTimeout(() => {
-            artState.splitArtifact = split;
+            safeSetSplit(artState, split);
             artState.splitTab = tab;
           }, 400);
         }
@@ -629,7 +747,9 @@
       }
     } finally {
       if (checkpointTimer) { clearInterval(checkpointTimer); checkpointTimer = null; }
-      if (timeoutTimer) { clearTimeout(timeoutTimer); timeoutTimer = null; }
+    if (timeoutTimer1) { clearTimeout(timeoutTimer1); timeoutTimer1 = null; }
+    if (timeoutTimer2) { clearTimeout(timeoutTimer2); timeoutTimer2 = null; }
+    if (timeoutTimer3) { clearTimeout(timeoutTimer3); timeoutTimer3 = null; }
       chatState = 'idle';
       isLoading = false;
       isStreaming = false;
@@ -750,7 +870,7 @@
       {#if !isStreaming && !artState.splitArtifact}
         {#each artState.artifacts.filter(a => a.messageIdx === i) as { artifact }}
           <div class="flex justify-start w-full">
-            <button onclick={() => { const msgArts = artState.artifacts.filter(a => a.messageIdx === i); const { split, tab } = openSplitArtifacts(i, msgArts); artState.splitArtifact = split; artState.splitTab = tab; }} class="w-full max-w-md text-left px-4 py-2.5 rounded-xl bg-[#f1ede4]/60 hover:bg-[#e8e4db] border border-[#d6d0c4] transition-all group">
+            <button onclick={() => { const msgArts = artState.artifacts.filter(a => a.messageIdx === i); const { split, tab } = openSplitArtifacts(i, msgArts); safeSetSplit(artState, split); artState.splitTab = tab; }} class="w-full max-w-md text-left px-4 py-2.5 rounded-xl bg-[#f1ede4]/60 hover:bg-[#e8e4db] border border-[#d6d0c4] transition-all group">
               <div class="flex items-center gap-2">
                 {#if artifact.type === 'svg'}
                   <div class="w-6 h-6 rounded overflow-hidden shrink-0 bg-white">{@html artifact.code}</div>
@@ -829,12 +949,12 @@
   </div>
 
   {#if artState.splitArtifact}
-    {@const active = getActiveArtifact(artState.splitArtifact)}
+    {@const active = getActiveArtifact(artState.splitArtifact!)}
     <ArtifactOverlay
       svg={active.artifact.type === 'svg' ? active.artifact.code : ''}
       type={active.artifact.type}
       title={active.artifact.title || 'Diagram'}
-      onclose={() => { const r = closeSplitArtifact(); artState.splitArtifact = r.split; artState.artifactError = r.error; }}
+      onclose={() => { const r = closeSplitArtifact(); safeSetSplit(artState, r.split); artState.artifactError = r.error; }}
     />
     <div class="hidden md:block w-1.5 bg-stone-300 hover:bg-amber-400 cursor-col-resize shrink-0 transition-colors z-20" role="separator"></div>
     <div class="hidden md:flex flex-col w-[50%] min-w-[360px] bg-[#faf7f2] overflow-hidden shadow-2xl z-10" style="resize: horizontal;">
@@ -842,9 +962,9 @@
         <div class="flex items-center gap-3 min-w-0">
           {#if artState.splitArtifact.artifacts.length > 1}
             <div class="flex items-center gap-1">
-              <button onclick={() => { artState.splitArtifact.activeIdx = prevArtifact(artState.splitArtifact); }} class="text-[11px] px-1.5 py-0.5 rounded text-stone-400 hover:text-white transition-colors">◂</button>
-              <span class="text-[10px] text-stone-400 font-medium tabular-nums">{artState.splitArtifact.activeIdx + 1}/{artState.splitArtifact.artifacts.length}</span>
-              <button onclick={() => { artState.splitArtifact.activeIdx = nextArtifact(artState.splitArtifact); }} class="text-[11px] px-1.5 py-0.5 rounded text-stone-400 hover:text-white transition-colors">▸</button>
+              <button onclick={() => { artState.splitArtifact!.activeIdx = prevArtifact(artState.splitArtifact!); }} class="text-[11px] px-1.5 py-0.5 rounded text-stone-400 hover:text-white transition-colors">◂</button>
+              <span class="text-[10px] text-stone-400 font-medium tabular-nums">{artState.splitArtifact!.activeIdx + 1}/{artState.splitArtifact!.artifacts.length}</span>
+              <button onclick={() => { artState.splitArtifact!.activeIdx = nextArtifact(artState.splitArtifact!); }} class="text-[11px] px-1.5 py-0.5 rounded text-stone-400 hover:text-white transition-colors">▸</button>
             </div>
             <div class="w-px h-4 bg-stone-600"></div>
           {/if}
@@ -855,17 +975,17 @@
           <button onclick={() => artState.splitTab = 'code'} class="text-[10px] px-2.5 py-1 rounded-md {artState.splitTab === 'code' ? 'bg-white/20 text-white font-bold' : 'text-stone-400 hover:text-white'}">Code</button>
           <button onclick={() => artState.splitTab = 'preview'} class="text-[10px] px-2.5 py-1 rounded-md {artState.splitTab === 'preview' ? 'bg-white/20 text-white font-bold' : 'text-stone-400 hover:text-white'}">Preview</button>
           <button onclick={async () => { try { await navigator.clipboard.writeText(active.artifact.code); } catch {} }} class="text-[10px] px-2 py-1 rounded-md text-stone-400 hover:text-white hover:bg-white/10 transition-all">Copy</button>
-          <button onclick={() => { const r = closeSplitArtifact(); artState.splitArtifact = r.split; artState.artifactError = r.error; }} class="text-[10px] px-2 py-1 rounded-md text-stone-400 hover:text-white hover:bg-white/10 transition-all" title="Close (Esc)">
+          <button onclick={() => { const r = closeSplitArtifact(); safeSetSplit(artState, r.split); artState.artifactError = r.error; }} class="text-[10px] px-2 py-1 rounded-md text-stone-400 hover:text-white hover:bg-white/10 transition-all" title="Close (Esc)">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </div>
       </div>
-      {#if artState.splitArtifact.artifacts.length > 1}
+      {#if artState.splitArtifact!.artifacts.length > 1}
         <div class="flex gap-2 overflow-x-auto px-3 py-2 bg-stone-100 border-b border-stone-200 shrink-0">
-          {#each artState.splitArtifact.artifacts as item, idx}
-            <button onclick={() => { artState.splitArtifact.activeIdx = idx; }}
+          {#each artState.splitArtifact!.artifacts as item, idx}
+            <button onclick={() => { artState.splitArtifact!.activeIdx = idx; }}
               class="shrink-0 w-20 rounded-lg overflow-hidden border-2 transition-all duration-150
-                {idx === artState.splitArtifact.activeIdx ? 'border-amber-400 shadow-md scale-105' : 'border-transparent hover:border-stone-300 hover:shadow-sm'}">
+                {idx === artState.splitArtifact!.activeIdx ? 'border-amber-400 shadow-md scale-105' : 'border-transparent hover:border-stone-300 hover:shadow-sm'}">
               {#if item.artifact.type === 'svg'}
                 <div class="w-full h-12 bg-white overflow-hidden">{@html item.artifact.code}</div>
               {:else}

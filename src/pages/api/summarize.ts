@@ -29,9 +29,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return new Response(JSON.stringify({ summary: dialogue.slice(0, 300) }), { headers: { 'Content-Type': 'application/json' } });
     }
 
+    const mode = body.mode || 'summary';
+    const systemPrompt = mode === 'topics'
+      ? 'Extract exactly 5-10 key topics, concepts, terms, and entities from this document. Output as a comma-separated list. Be specific: proper nouns, technical terms, domain concepts. No sentences, just the list.'
+      : 'Summarize this conversation into 3-5 concise bullet points. Preserve all key facts, decisions, code snippets, and topics discussed. Be brief but complete.';
+
     const result: any = await env.AI.run('@cf/meta/llama-3.2-1b-instruct', {
       messages: [
-        { role: 'system', content: 'Summarize this conversation into 3-5 concise bullet points. Preserve all key facts, decisions, code snippets, and topics discussed. Be brief but complete.' },
+        { role: 'system', content: systemPrompt },
         { role: 'user', content: dialogue.slice(0, 4000) },
       ],
       max_tokens: 200,
