@@ -68,6 +68,19 @@
   let activeArtifactEntry = $state<ArtifactEntry | null>(null);
   let artifactError = $state<string | null>(null);
 
+  $effect(() => {
+    return artifactQueue.subscribe(() => {
+      if (activeArtifactEntry) {
+        const updated = artifactQueue.entries.find(
+          e => e.messageIdx === activeArtifactEntry.messageIdx && e.artifact.type === 'svg'
+        );
+        if (updated) {
+          activeArtifactEntry = updated;
+        }
+      }
+    });
+  });
+
   async function resolveArtifact(art: Artifact, msgIdx: number) {
     let code = art.code;
     if (code.startsWith('```')) {
@@ -96,10 +109,16 @@
         const data = await res.json();
         if (data.svg) {
           artifactQueue.replace(msgIdx, pendingId, { ...cleanArt, code: data.svg, type: 'svg' as any, title, placement: 'inline' });
+          const updated = artifactQueue.entries.find(e => e.messageIdx === msgIdx && e.artifact.type === 'svg');
+          if (updated && activeArtifactEntry?.artifact.id === pendingId) {
+            activeArtifactEntry = updated;
+          }
           saveArtifactQueue(sessionId, artifactQueue.entries);
         }
       }
-    } catch {}
+    } catch (e) {
+      console.error('[Kroki] Render failed:', e);
+    }
   }
 
   function fixArtifactErr() {

@@ -110,7 +110,11 @@
         {#if svg}
           <iframe title={title} srcdoc={getZoomableDoc(svg)} sandbox="allow-scripts" class="w-full h-full border-none" />
         {:else if code}
-          <pre class="p-4 text-sm font-mono text-stone-700 whitespace-pre-wrap break-words">{code}</pre>
+          <div class="flex flex-col items-center justify-center h-full gap-3 p-6">
+            <div class="w-8 h-8 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
+            <p class="text-sm text-stone-500 text-center max-w-xs">Rendering diagram...<br /><span class="text-[11px] text-stone-400">This should take a few seconds</span></p>
+            <pre class="text-xs font-mono text-stone-600 whitespace-pre-wrap break-words mt-2 max-h-48 overflow-y-auto bg-stone-100 rounded-lg p-3 border border-stone-200 w-full">{code}</pre>
+          </div>
         {/if}
       </div>
     </div>
