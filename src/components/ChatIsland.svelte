@@ -77,6 +77,10 @@
         code = code.slice(firstNewline + 1, lastBacktick).trim();
       }
     }
+    if (art.type === 'mermaid') {
+      code = code.replace(/\/>/g, '/&#62;');
+      code = code.replace(/&(?!amp;|lt;|gt;|quot;|#39;|#x27;|#62;)/g, '&amp;');
+    }
     const cleanArt = { ...art, code };
     const codeFingerprint = `${cleanArt.type}:${code.slice(0, 200)}:${code.length}`;
     if (renderedHashes.has(codeFingerprint)) return;
