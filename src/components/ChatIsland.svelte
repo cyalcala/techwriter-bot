@@ -669,18 +669,22 @@
       const alreadyResolved = new Set(existingArtifacts.filter(a => a.artifact.type === 'svg').map(a => a.artifact.title));
 
       if (messages[msgIdx].content) {
-        const result = detectAllArtifacts(messages[msgIdx].content, []);
-        const resolvePromises: Promise<void>[] = [];
-        for (const fa of result.artifacts) {
-          if (KROKI_RENDERABLE.has(fa.type) && alreadyResolved.has(fa.title || `${fa.type} Diagram`)) continue;
-          resolvePromises.push(
-            (async () => {
-              await resolveArtifact(fa, msgIdx);
-            })()
-          );
+        try {
+          const result = detectAllArtifacts(messages[msgIdx].content, []);
+          const resolvePromises: Promise<void>[] = [];
+          for (const fa of result.artifacts) {
+            if (KROKI_RENDERABLE.has(fa.type) && alreadyResolved.has(fa.title || `${fa.type} Diagram`)) continue;
+            resolvePromises.push(
+              (async () => {
+                await resolveArtifact(fa, msgIdx);
+              })()
+            );
+          }
+          await Promise.all(resolvePromises);
+          messages = messages.map((m, i) => i === msgIdx ? { ...m, content: result.cleanText } : m);
+        } catch (e) {
+          console.error('[Artifact] Post-stream detection failed:', e);
         }
-        await Promise.all(resolvePromises);
-        messages[msgIdx] = { ...messages[msgIdx], content: result.cleanText };
       }
 
       const msgArtifacts = artState.artifacts.filter(a => a.messageIdx === msgIdx);
@@ -697,8 +701,10 @@
         }
       }
 
+      await new Promise<void>(r => requestAnimationFrame(() => r()));
+
       if (!messages[msgIdx].content) {
-        messages[msgIdx] = { ...messages[msgIdx], content: '', empty: true, sources: sourcesFromHeaders };
+        messages = messages.map((m, i) => i === msgIdx ? { ...m, content: '', empty: true, sources: sourcesFromHeaders } : m);
       }
 
       pollCredits();
