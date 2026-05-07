@@ -580,6 +580,9 @@
         <a href="https://www.linkedin.com/in/cyrusalcala/" target="_blank" rel="noopener" class="hidden sm:flex items-center gap-1 text-[10px] md:text-[11px] text-stone-400 hover:text-stone-600 transition-colors font-medium">
           <span>Made with</span><span class="text-red-400 text-[10px]">&#10084;&#65039;</span><span>by</span><span class="border-b border-stone-300/50 hover:border-stone-400 transition-all">Cy Alcala</span>
         </a>
+        <a href="https://www.linkedin.com/in/cyrusalcala/" target="_blank" rel="noopener" class="sm:hidden flex items-center gap-0.5 text-[10px] text-stone-400 font-medium shrink-0">
+          <span class="text-red-400 text-[9px]">&#10084;</span><span class="border-b border-stone-300/50">Cy Alcala</span>
+        </a>
       </div>
       <div class="flex items-center gap-0.5 shrink-0">
         <button onclick={clearChat} class="text-[10px] md:text-xs text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 px-2 md:px-3 py-1 md:py-1.5 rounded-lg transition-all flex items-center gap-1" title="Clear">
