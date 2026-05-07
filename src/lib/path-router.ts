@@ -56,8 +56,10 @@ const GEN_ARTIFACT_TRIGGER = /(generate|create|make|build|draw|write|design|craf
 const QUICK_ARTIFACT_HINT = /^(diagram|chart|graph|uml|mermaid|graphviz|d2|plantuml|flowchart|mindmap|markmap|sequence|gantt|pie|bar|org)\b/i;
 const FORMAT_CHOICE = /^[123]$|^(mermaid|graphviz|d2|plantuml|flowchart|markmap|vega|katex|code|react|webcontainer)$/i;
 const LAST_AI_SUGGESTED = /\b(Mermaid|Graphviz|D2|PlantUML|Flowchart|Markmap|Vega|KaTeX)\b.*\bbest for\b/i;
+const CODE_EXPLICIT_REQUEST = /\b(write|show|give me|need|want|create|generate|build)\s+(a|the|some|me\s+)?\s*(python|javascript|typescript|js|ts|code|script|function|class|program|app|component)\b/i;
 
 export function isArtifactGenerationRequest(query: string, messages?: any[]): boolean {
+  if (CODE_EXPLICIT_REQUEST.test(query)) return false;
   if (GEN_ARTIFACT_TRIGGER.test(query)) return true;
 
   const trimmed = query.trim();

@@ -703,7 +703,7 @@
             {#if msg.empty}
               <div class="text-[#71717a] italic text-sm">No response received.</div>
             {:else}
-              <div class="ai-content whitespace-pre-wrap">{@html formatMarkdown(stripDisclaimers(msg.content), msg.sources)}</div>
+              <div class="ai-content whitespace-pre-wrap">{@html formatMarkdown(stripDisclaimers(msg.content), msg.sources, isStreaming)}</div>
             {/if}
             {#if !isStreaming && msg.content && !msg.empty}
               <div class="flex items-center gap-2 mt-1.5 opacity-100 md:opacity-0 md:hover:opacity-100 transition-opacity duration-150">
