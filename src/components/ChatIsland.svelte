@@ -69,24 +69,33 @@
   let artifactError = $state<string | null>(null);
 
   async function resolveArtifact(art: Artifact, msgIdx: number) {
-    const codeFingerprint = `${art.type}:${art.code.slice(0, 200)}:${art.code.length}`;
+    let code = art.code;
+    if (code.startsWith('```')) {
+      const firstNewline = code.indexOf('\n');
+      const lastBacktick = code.lastIndexOf('```');
+      if (firstNewline !== -1 && lastBacktick > firstNewline) {
+        code = code.slice(firstNewline + 1, lastBacktick).trim();
+      }
+    }
+    const cleanArt = { ...art, code };
+    const codeFingerprint = `${cleanArt.type}:${code.slice(0, 200)}:${code.length}`;
     if (renderedHashes.has(codeFingerprint)) return;
     renderedHashes.add(codeFingerprint);
-    const title = art.title || extractArtifactTitle(art.code, art.type);
-    const entry: ArtifactEntry = { messageIdx: msgIdx, artifact: { ...art, title } };
+    const title = cleanArt.title || extractArtifactTitle(code, cleanArt.type);
+    const entry: ArtifactEntry = { messageIdx: msgIdx, artifact: { ...cleanArt, title } };
     artifactQueue.push(entry);
-    if (!KROKI_RENDERABLE.has(art.type)) return;
+    if (!KROKI_RENDERABLE.has(cleanArt.type)) return;
     const pendingId = entry.artifact.id;
     try {
       const res = await fetch('/api/render-artifact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: art.type, code: art.code }),
+        body: JSON.stringify({ type: cleanArt.type, code }),
       });
       if (res.ok) {
         const data = await res.json();
         if (data.svg) {
-          artifactQueue.replace(msgIdx, pendingId, { ...art, code: data.svg, type: 'svg' as any, title, placement: 'inline' });
+          artifactQueue.replace(msgIdx, pendingId, { ...cleanArt, code: data.svg, type: 'svg' as any, title, placement: 'inline' });
           saveArtifactQueue(sessionId, artifactQueue.entries);
         }
       }

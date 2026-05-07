@@ -60,6 +60,7 @@
       svg={currentEntry?.artifact.type === 'svg' ? currentEntry.artifact.code : ''}
       type={currentEntry?.artifact.type || 'diagram'}
       title={currentEntry?.artifact.title || 'Artifact'}
+      code={currentEntry?.artifact.type !== 'svg' ? currentEntry?.artifact.code || '' : ''}
       onclose={onclose}
     />
   {:else}
