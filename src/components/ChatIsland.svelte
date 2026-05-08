@@ -79,7 +79,12 @@
     }
     if (art.type === 'mermaid') {
       code = code.replace(/\/>/g, '/');
+      code = code.replace(/\|>/g, '|');
       code = code.replace(/&(?!amp;|lt;|gt;|quot;|#39;|#x27;)/g, '&amp;');
+      code = code.replace(/\n{3,}/g, '\n\n');
+    }
+    if (art.type === 'graphviz') {
+      code = code.replace(/\/>/g, '/');
     }
     const cleanArt = { ...art, code };
     const codeFingerprint = `${cleanArt.type}:${code.slice(0, 200)}:${code.length}`;

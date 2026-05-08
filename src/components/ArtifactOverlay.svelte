@@ -37,7 +37,7 @@
   });
 
   function getZoomableDoc(svgContent: string): string {
-    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes"><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#faf7f2;padding:8px;overflow:auto;-webkit-overflow-scrolling:touch}svg{display:block;margin:0 auto;height:auto}</style></head><body>${svgContent}</body></html>`;
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes"><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#faf7f2;padding:4px;overflow:auto;-webkit-overflow-scrolling:touch;min-height:100dvh}svg{width:100%!important;height:auto!important;max-width:none!important;display:block;margin:0 auto}</style></head><body>${svgContent}</body></html>`;
   }
 
   function closeOverlay() {

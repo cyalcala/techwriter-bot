@@ -12,7 +12,7 @@ var code = ${JSON.stringify(code)};
 var el = document.getElementById('md');
 el.textContent = code;
 el.className = 'mermaid';
-mermaid.initialize({startOnLoad:false,theme:'neutral',securityLevel:'loose',flowchart:{htmlLabels:true}});
+mermaid.initialize({startOnLoad:false,theme:'neutral',securityLevel:'loose'});
 (function renderMermaid(){
   mermaid.run({nodes:[el]}).then(function(){
     setTimeout(function(){
