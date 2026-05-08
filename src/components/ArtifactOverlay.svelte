@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { getDiagramRenderDoc } from '../lib/diagram-renderer';
 
   interface Props {
     svg: string;
@@ -14,6 +15,7 @@
   let visible = $state(false);
   let copied = $state(false);
   let hasContent = $derived(!!svg || !!code);
+  let renderDoc = $derived(!svg && code ? getDiagramRenderDoc(type, code) : '');
 
   $effect(() => {
     if (hasContent) {
@@ -111,6 +113,8 @@
           {#key svg}
             <iframe title={title} srcdoc={getZoomableDoc(svg)} sandbox="allow-scripts" class="w-full h-full border-none" />
           {/key}
+        {:else if renderDoc}
+          <iframe title={title} srcdoc={renderDoc} sandbox="allow-scripts" class="w-full h-full border-none" />
         {:else if code}
           <pre class="p-4 text-xs font-mono text-stone-700 whitespace-pre-wrap break-words">{code}</pre>
         {/if}
