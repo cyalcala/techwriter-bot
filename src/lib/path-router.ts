@@ -52,8 +52,8 @@ export function determineChatPath(
   return { path: 'balanced', skipSearch: true, includeGraph: true, includeRAG: true, reason: 'default_balanced' };
 }
 
-const GEN_ARTIFACT_TRIGGER = /(generate|create|make|build|draw|write|design|craft|show|visualize|render|display|give me|i need|i want)\b.*?\b(diagram|chart|graph|drawing|visualization|plot|flowchart|mind\s?map|org\s?chart|architecture|uml|equation|formula|component|app|wireframe|code|mermaid|graphviz|d2|plantuml|katex|vega|markmap|webcontainer|sequence|class\s?diagram|er\s?diagram|pie\s?chart|bar\s?chart|gantt|svg|html|css|website|page)/i;
-const QUICK_ARTIFACT_HINT = /^(diagram|chart|graph|uml|mermaid|graphviz|d2|plantuml|flowchart|mindmap|markmap|sequence|gantt|pie|bar|org)\b/i;
+const GEN_ARTIFACT_TRIGGER = /(generate|create|make|build|draw|write|design|craft|show|visualize|render|display|give me|i need|i want)\b.*?\b(diagram|chart|graph|drawing|visualization|plot|flowchart|mind\s?map|org\s?chart|architecture|uml|equation|formula|component|app|wireframe|code|mermaid|graphviz|d2|plantuml|katex|vega|markmap|webcontainer|sequence|class\s?diagram|er\s?diagram|pie\s?chart|bar\s?chart|gantt|svg|html|css|website|page|infographic|visual\s?summary)/i;
+const QUICK_ARTIFACT_HINT = /^(diagram|chart|graph|uml|mermaid|graphviz|d2|plantuml|flowchart|mindmap|markmap|sequence|gantt|pie|bar|org|infographic)\b/i;
 const FORMAT_CHOICE = /^[123]$|^(mermaid|graphviz|d2|plantuml|flowchart|markmap|vega|katex|code|react|webcontainer)$/i;
 const LAST_AI_SUGGESTED = /\b(Mermaid|Graphviz|D2|PlantUML|Flowchart|Markmap|Vega|KaTeX)\b.*\bbest for\b/i;
 const CODE_EXPLICIT_REQUEST = /\b(write|show|give me|need|want|create|generate|build)\s+(a|the|some|me\s+)?\s*(python|javascript|typescript|js|ts|code|script|function|class|program|app|component)\b/i;
