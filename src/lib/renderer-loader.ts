@@ -165,9 +165,14 @@ export function renderMermaidArtifact(code: string): string {
         await renderServerSvgInto(el, 'mermaid', code, 'Mermaid');
         return;
       }
-      await mm.initialize({ startOnLoad: false, securityLevel: 'loose', theme: 'default' });
+      await mm.initialize({ startOnLoad: false, securityLevel: 'loose', theme: 'default', themeCSS: '.label{color:#1e293b!important} .nodeLabel{color:#1e293b!important} .edgeLabel{color:#475569!important} text{fill:#1e293b!important}' });
       const { svg } = await mm.render(`${id}-s`, sanitized);
-      el.innerHTML = sanitizeSvg(svg);
+      const hasContent = /<text[^>]*>[A-Za-z0-9]/.test(svg);
+      if (!hasContent) {
+        el.innerHTML = renderError('Mermaid', 'Rendered diagram appears empty. The code may have nodes without labels.', code);
+      } else {
+        el.innerHTML = sanitizeSvg(svg);
+      }
     } catch (e) {
       el.innerHTML = renderError('Mermaid', String(e), code);
     }
@@ -365,6 +370,12 @@ function sanitizeMermaid(code: string): string {
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<\/?p>/gi, '')
     .replace(/<\/?div>/gi, '\n')
+    .replace(/<\/?b>/gi, '')
+    .replace(/<\/?i>/gi, '')
+    .replace(/<\/?strong>/gi, '')
+    .replace(/<\/?em>/gi, '')
+    .replace(/<span[^>]*>/gi, '')
+    .replace(/<\/span>/gi, '')
     .replace(/&nbsp;/gi, ' ');
 }
 
