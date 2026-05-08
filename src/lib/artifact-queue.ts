@@ -5,7 +5,7 @@ export interface ArtifactEntry {
   messageIdx: number;
   artifact: Artifact;
   ts: number;
-  status: ArtifactStatus;
+  status?: ArtifactStatus;
   error?: string;
 }
 

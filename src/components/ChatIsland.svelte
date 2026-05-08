@@ -60,6 +60,7 @@
   const MAX_QUEUE = 3;
   const SSE_MAX_DROPS = 3;
   const SSE_DROP_WINDOW_MS = 60_000;
+
   const KROKI_RENDERABLE = new Set(['mermaid', 'graphviz', 'd2', 'plantuml', 'vega', 'flowchart']);
   const renderedHashes = new Set<string>();
 
@@ -90,17 +91,12 @@
     if (renderedHashes.has(codeFingerprint)) return;
     renderedHashes.add(codeFingerprint);
     const title = cleanArt.title || extractArtifactTitle(code, cleanArt.type);
-    const entry: ArtifactEntry = {
-      messageIdx: msgIdx,
-      artifact: { ...cleanArt, title },
-      ts: Date.now(),
-      status: KROKI_RENDERABLE.has(cleanArt.type) ? 'generating' : 'ready',
-    };
+    const entry: ArtifactEntry = { messageIdx: msgIdx, artifact: { ...cleanArt, title }, ts: Date.now() };
     artifactQueue.push(entry);
     if (!KROKI_RENDERABLE.has(cleanArt.type)) return;
     const pendingId = entry.artifact.id;
 
-    async function tryKroki(attempt: number): Promise<{ ok: boolean; error?: string }> {
+    async function tryKroki(attempt: number): Promise<boolean> {
       try {
         const ctrl = new AbortController();
         const timer = setTimeout(() => ctrl.abort(), 10_000);
@@ -114,40 +110,25 @@
         if (res.ok) {
           const data = await res.json();
           if (data.svg) {
-            const updated = artifactQueue.replace(
-              msgIdx,
-              pendingId,
-              { ...cleanArt, code: data.svg, type: 'svg' as any, title, placement: 'inline' },
-              { status: 'ready', error: undefined },
-            );
+            artifactQueue.replace(msgIdx, pendingId, { ...cleanArt, code: data.svg, type: 'svg' as any, title, placement: 'inline' });
+            const updated = artifactQueue.entries.find(e => e.messageIdx === msgIdx && e.artifact.type === 'svg');
             if (updated && activeArtifactEntry?.artifact.id === pendingId) {
               activeArtifactEntry = updated;
             }
             saveArtifactQueue(sessionId, artifactQueue.entries);
-            return { ok: true };
+            return true;
           }
         }
-        const data = await res.json().catch(() => null);
-        return { ok: false, error: data?.message || data?.error || `Server renderer returned ${res.status}` };
       } catch (e) {
         console.error('[Kroki] Attempt', attempt, 'failed:', (e as Error).message);
-        return { ok: false, error: (e as Error).message };
       }
+      return false;
     }
 
-    let result = await tryKroki(1);
-    if (!result.ok) {
+    const ok = await tryKroki(1);
+    if (!ok) {
       await new Promise(r => setTimeout(r, 2000));
-      result = await tryKroki(2);
-    }
-    if (!result.ok) {
-      const updated = artifactQueue.replace(
-        msgIdx,
-        pendingId,
-        { ...cleanArt, title, placement: 'inline' },
-        { status: 'ready', error: result.error ? `Server renderer unavailable: ${result.error}` : 'Server renderer unavailable; using client preview.' },
-      );
-      if (updated && activeArtifactEntry?.artifact.id === pendingId) activeArtifactEntry = updated;
+      await tryKroki(2);
     }
   }
 
@@ -200,10 +181,6 @@
     preloadPopular();
     window.addEventListener('message', (e) => {
       if (e.data?.type === 'ARTIFACT_ERROR') artifactError = e.data.error;
-      if (e.data?.source === 'artifact' && e.data?.action === 'error') artifactError = String(e.data.payload || 'Artifact render failed');
-      if (e.data?.source === 'artifact' && e.data?.action === 'copy' && typeof e.data.payload === 'string') {
-        navigator.clipboard?.writeText(e.data.payload).catch(() => {});
-      }
     });
     isOnline = navigator.onLine;
     window.addEventListener('online', () => { isOnline = true; });
@@ -533,15 +510,15 @@
       {
         const existing = artifactQueue.forMessage(msgIdx);
         const alreadyResolved = new Set(existing.filter(e => e.artifact.type === 'svg').map(e => e.artifact.title));
-        const result = detectAllArtifacts(messages[msgIdx].content, []);
-        const resolvePromises: Promise<void>[] = [];
-        for (const fa of result.artifacts) {
-          if (!fa.type || !fa.code) continue;
-          if (KROKI_RENDERABLE.has(fa.type) && alreadyResolved.has(fa.title || `${fa.type} Diagram`)) continue;
-          resolvePromises.push((async () => { await resolveArtifact(fa, msgIdx); })());
-        }
-        await Promise.all(resolvePromises);
         if (messages[msgIdx].content) {
+          const result = detectAllArtifacts(messages[msgIdx].content, []);
+          const resolvePromises: Promise<void>[] = [];
+          for (const fa of result.artifacts) {
+            if (!fa.type || !fa.code) continue;
+            if (KROKI_RENDERABLE.has(fa.type) && alreadyResolved.has(fa.title || `${fa.type} Diagram`)) continue;
+            resolvePromises.push((async () => { await resolveArtifact(fa, msgIdx); })());
+          }
+          await Promise.all(resolvePromises);
           messages = messages.map((m, i) => i === msgIdx ? { ...m, content: result.cleanText } : m);
         }
 
@@ -552,8 +529,7 @@
 
         await new Promise<void>(r => requestAnimationFrame(() => r()));
 
-        const hasArtifacts = artifactQueue.entries.some(e => e.messageIdx === msgIdx);
-        if (!messages[msgIdx].content && !hasArtifacts) {
+        if (!messages[msgIdx].content) {
           messages = messages.map((m, i) => i === msgIdx ? { ...m, content: '', empty: true, sources: sourcesFromHeaders } : m);
         }
       }
@@ -708,7 +684,6 @@
     {isMobile}
     activeEntry={activeArtifactEntry}
     onclose={closeSplit}
-    onselect={handleChipClick}
     onFixArtifact={(code: string, err: string) => { artifactError = err; fixArtifactErr(); }}
     {artifactError}
   />
