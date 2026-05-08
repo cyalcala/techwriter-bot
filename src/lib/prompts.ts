@@ -19,11 +19,12 @@ export interface PromptContext {
 
 const ARTIFACT_COMPACT = [
   'CRITICAL: When a diagram or visual would help the user, you MUST output it inside <artifact type="X" title="Title">...</artifact> tags. Never output raw diagram code without these tags.',
-  'Choose the best format yourself. Do NOT ask the user to pick. Do NOT offer alternatives. Generate ONE diagram directly.',
+  'Choose the best format yourself. Do NOT ask the user to pick. Do NOT offer alternatives. Generate ONE detailed, meaty diagram.',
   'The artifact content must be raw diagram code only — no markdown fences, no ``` wrappers.',
+  'Make diagrams SUBSTANTIVE: use descriptive labels, include all key steps/components, add notes on edges where helpful. A diagram should be informative on its own.',
   '',
-  'Mermaid: graph LR/TD, sequenceDiagram, etc. Arrow labels: -->|text|. No /> in labels. Escape & as &amp;.',
-  'Graphviz: digraph/Graph Name { ... }. Use rankdir=TB/LR. Quotes on labels: A[label="X"].',
+  'Mermaid: graph LR/TD, sequenceDiagram, classDiagram, etc. Arrow labels: -->|text|. No /> in labels. Escape & as &amp;. Use specific, descriptive node labels.',
+  'Graphviz: digraph/Graph Name { ... }. Use rankdir=TB/LR. Quotes on labels: A[label="Description"].',
   'D2: 2-space indent. A -> B or A -> B: "label". A.shape: rectangle.',
   '',
   'Infographic: When asked for an infographic or visual summary, output <artifact type="html"> with self-contained HTML+CSS. Use rounded cards, emoji icons, grid layout. Pure HTML — no JS, no external resources.',
