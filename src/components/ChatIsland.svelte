@@ -90,36 +90,40 @@
     artifactQueue.push(entry);
     if (!KROKI_RENDERABLE.has(cleanArt.type)) return;
     const pendingId = entry.artifact.id;
-    try {
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 12_000);
-      const res = await fetch('/api/render-artifact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: cleanArt.type, code }),
-        signal: ctrl.signal,
-      });
-      clearTimeout(timer);
-      if (res.ok) {
-        const data = await res.json();
-        if (data.svg) {
-          console.log('[Kroki] SVG received, length:', data.svg.length);
-          artifactQueue.replace(msgIdx, pendingId, { ...cleanArt, code: data.svg, type: 'svg' as any, title, placement: 'inline' });
-          const updated = artifactQueue.entries.find(e => e.messageIdx === msgIdx && e.artifact.type === 'svg');
-          console.log('[Kroki] Updated entry found:', !!updated, 'activeMatch:', activeArtifactEntry?.artifact.id === pendingId);
-          if (updated && activeArtifactEntry?.artifact.id === pendingId) {
-            activeArtifactEntry = updated;
-            console.log('[Kroki] activeArtifactEntry updated to SVG');
+
+    async function tryKroki(attempt: number): Promise<boolean> {
+      try {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 10_000);
+        const res = await fetch('/api/render-artifact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: cleanArt.type, code }),
+          signal: ctrl.signal,
+        });
+        clearTimeout(timer);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.svg) {
+            artifactQueue.replace(msgIdx, pendingId, { ...cleanArt, code: data.svg, type: 'svg' as any, title, placement: 'inline' });
+            const updated = artifactQueue.entries.find(e => e.messageIdx === msgIdx && e.artifact.type === 'svg');
+            if (updated && activeArtifactEntry?.artifact.id === pendingId) {
+              activeArtifactEntry = updated;
+            }
+            saveArtifactQueue(sessionId, artifactQueue.entries);
+            return true;
           }
-          saveArtifactQueue(sessionId, artifactQueue.entries);
-        } else {
-          console.log('[Kroki] No SVG in response:', data);
         }
-      } else {
-        console.log('[Kroki] Server error:', res.status);
+      } catch (e) {
+        console.error('[Kroki] Attempt', attempt, 'failed:', (e as Error).message);
       }
-    } catch (e) {
-      console.error('[Kroki] Render failed:', e);
+      return false;
+    }
+
+    const ok = await tryKroki(1);
+    if (!ok) {
+      await new Promise(r => setTimeout(r, 2000));
+      await tryKroki(2);
     }
   }
 
