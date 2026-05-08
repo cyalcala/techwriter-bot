@@ -364,20 +364,8 @@ function sanitizeMermaid(code: string): string {
   return code
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<\/?p>/gi, '')
-    .replace(/<\/?b>/gi, '')
-    .replace(/<\/?i>/gi, '')
-    .replace(/<\/?strong>/gi, '')
-    .replace(/<\/?em>/gi, '')
-    .replace(/<span[^>]*>/gi, '')
-    .replace(/<\/span>/gi, '')
-    .replace(/<div[^>]*>/gi, '')
-    .replace(/<\/div>/gi, '\n')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/->>/g, '-->')
-    .replace(/-\|>/g, '-->')
-    .replace(/(\w+)\|(\w+)/g, '$1/$2')
-    .replace(/\|>/g, '/>')
-    .replace(/\[([^\]]*)\|([^\]]*)\]/g, '[$1/$2]');
+    .replace(/<\/?div>/gi, '\n')
+    .replace(/&nbsp;/gi, ' ');
 }
 
 function detectLanguage(code: string): string {
