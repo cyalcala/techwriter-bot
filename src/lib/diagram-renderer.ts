@@ -13,12 +13,19 @@ var el = document.getElementById('md');
 el.textContent = code;
 el.className = 'mermaid';
 mermaid.initialize({startOnLoad:false,theme:'neutral',securityLevel:'loose',flowchart:{htmlLabels:true}});
-mermaid.run({nodes:[el]}).then(function(){
-  var s = document.querySelector('svg');
-  if(!s){
-    document.body.innerHTML = '<div class="err"><b>💣</b>Could not render diagram.</div>'+'${codeBlock.replace(/'/g, "\\'").replace(/`/g, '\\`').replace(/\\/g, '\\\\').replace(/\n/g, '\\n')}';
-  }
-});
+(function renderMermaid(){
+  mermaid.run({nodes:[el]}).then(function(){
+    setTimeout(function(){
+      var s = document.querySelector('svg');
+      var errEl = document.querySelector('[id*="error"], [class*="error"], text[id*="error"]');
+      if(!s || errEl || (s && s.textContent && s.textContent.indexOf('Syntax error')!==-1)){
+        document.body.innerHTML = '<div class="err"><b>⚠️</b>Could not render this diagram.</div>'+'${codeBlock.replace(/'/g, "\\'").replace(/`/g, '\\`').replace(/\\/g, '\\\\').replace(/\n/g, '\\n')}';
+      }
+    }, 1000);
+  }).catch(function(e){
+    document.body.innerHTML = '<div class="err"><b>⚠️</b>Mermaid error: '+e.message.replace(/</g,'&lt;').slice(0,200)+'</div>'+'${codeBlock.replace(/'/g, "\\'").replace(/`/g, '\\`').replace(/\\/g, '\\\\').replace(/\n/g, '\\n')}';
+  });
+})();
 <\/script></body></html>`;
 
     case 'graphviz':
