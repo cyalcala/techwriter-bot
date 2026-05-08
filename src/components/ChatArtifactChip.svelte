@@ -10,6 +10,9 @@
 
   let { entry, active = false, onclick }: Props = $props();
 
+  const KROKI_TYPES = new Set(['mermaid', 'graphviz', 'd2', 'plantuml', 'flowchart']);
+  let isGenerating = $derived(KROKI_TYPES.has(entry.artifact.type) && entry.artifact.type !== 'svg' && (Date.now() - entry.ts) < 15_000);
+
   const typeColors: Record<string, string> = {
     mermaid: 'bg-cyan-600 text-white', graphviz: 'bg-purple-600 text-white',
     d2: 'bg-blue-600 text-white', plantuml: 'bg-orange-600 text-white',
@@ -22,13 +25,8 @@
   };
 
   let longPressTimer: ReturnType<typeof setTimeout> | null = null;
-
-  function startLongPress() {
-    longPressTimer = setTimeout(() => {}, 500);
-  }
-  function cancelLongPress() {
-    if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
-  }
+  function startLongPress() { longPressTimer = setTimeout(() => {}, 500); }
+  function cancelLongPress() { if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; } }
 </script>
 
 <button
@@ -37,7 +35,7 @@
   onpointerup={cancelLongPress}
   onpointerleave={cancelLongPress}
   class="w-full text-left px-4 py-3 rounded-2xl border transition-all duration-150
-    {active ? 'border-amber-400 bg-amber-50/60 shadow-md scale-[1.01]' : 'border-stone-200/50 bg-white/60 hover:bg-white hover:border-stone-300 hover:shadow-sm hover:scale-[1.005]'}"
+    {active ? 'border-amber-400 bg-amber-50/60 shadow-md scale-[1.01]' : isGenerating ? 'border-amber-200/60 bg-amber-50/30 animate-pulse' : 'border-stone-200/50 bg-white/60 hover:bg-white hover:border-stone-300 hover:shadow-sm hover:scale-[1.005]'}"
   aria-label="View artifact: {entry.artifact.title || entry.artifact.type}"
   role="article"
 >
@@ -46,6 +44,10 @@
       {#if entry.artifact.type === 'svg' && entry.artifact.code}
         <div class="w-10 h-10 rounded-lg overflow-hidden bg-white border border-stone-100 shadow-sm">
           {@html entry.artifact.code}
+        </div>
+      {:else if isGenerating}
+        <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-amber-100">
+          <div class="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
         </div>
       {:else}
         <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg text-[9px] uppercase tracking-widest font-bold {typeColors[entry.artifact.type] || 'bg-stone-500 text-white'}">
@@ -62,8 +64,12 @@
         {/if}
       </div>
       <div class="flex items-center gap-2 mt-0.5">
-        <span class="text-[10px] text-stone-400">{timeAgo(Date.now())}</span>
-        <span class="text-[10px] text-stone-300">· {entry.artifact.type}</span>
+        {#if isGenerating}
+          <span class="text-[10px] text-amber-500 font-medium">Creating visual...</span>
+        {:else}
+          <span class="text-[10px] text-stone-400">{timeAgo(Date.now())}</span>
+          <span class="text-[10px] text-stone-300">· {entry.artifact.type}</span>
+        {/if}
       </div>
     </div>
 

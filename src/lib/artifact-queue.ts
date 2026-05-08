@@ -3,6 +3,7 @@ import type { Artifact } from './stream-parser';
 export interface ArtifactEntry {
   messageIdx: number;
   artifact: Artifact;
+  ts: number;
 }
 
 type Subscriber = (entries: ArtifactEntry[]) => void;

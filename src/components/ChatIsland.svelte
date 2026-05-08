@@ -86,7 +86,7 @@
     if (renderedHashes.has(codeFingerprint)) return;
     renderedHashes.add(codeFingerprint);
     const title = cleanArt.title || extractArtifactTitle(code, cleanArt.type);
-    const entry: ArtifactEntry = { messageIdx: msgIdx, artifact: { ...cleanArt, title } };
+    const entry: ArtifactEntry = { messageIdx: msgIdx, artifact: { ...cleanArt, title }, ts: Date.now() };
     artifactQueue.push(entry);
     if (!KROKI_RENDERABLE.has(cleanArt.type)) return;
     const pendingId = entry.artifact.id;
