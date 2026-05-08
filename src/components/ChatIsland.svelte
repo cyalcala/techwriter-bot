@@ -533,15 +533,15 @@
       {
         const existing = artifactQueue.forMessage(msgIdx);
         const alreadyResolved = new Set(existing.filter(e => e.artifact.type === 'svg').map(e => e.artifact.title));
+        const result = detectAllArtifacts(messages[msgIdx].content, []);
+        const resolvePromises: Promise<void>[] = [];
+        for (const fa of result.artifacts) {
+          if (!fa.type || !fa.code) continue;
+          if (KROKI_RENDERABLE.has(fa.type) && alreadyResolved.has(fa.title || `${fa.type} Diagram`)) continue;
+          resolvePromises.push((async () => { await resolveArtifact(fa, msgIdx); })());
+        }
+        await Promise.all(resolvePromises);
         if (messages[msgIdx].content) {
-          const result = detectAllArtifacts(messages[msgIdx].content, []);
-          const resolvePromises: Promise<void>[] = [];
-          for (const fa of result.artifacts) {
-            if (!fa.type || !fa.code) continue;
-            if (KROKI_RENDERABLE.has(fa.type) && alreadyResolved.has(fa.title || `${fa.type} Diagram`)) continue;
-            resolvePromises.push((async () => { await resolveArtifact(fa, msgIdx); })());
-          }
-          await Promise.all(resolvePromises);
           messages = messages.map((m, i) => i === msgIdx ? { ...m, content: result.cleanText } : m);
         }
 
