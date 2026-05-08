@@ -550,8 +550,12 @@
 
         await new Promise<void>(r => requestAnimationFrame(() => r()));
 
-        if (!messages[msgIdx].content && msgArtifacts.length === 0) {
-          messages = messages.map((m, i) => i === msgIdx ? { ...m, content: '', empty: true, sources: sourcesFromHeaders } : m);
+        if (!messages[msgIdx].content) {
+          if (msgArtifacts.length > 0) {
+            messages = messages.map((m, i) => i === msgIdx ? { ...m, content: ' ', sources: sourcesFromHeaders } : m);
+          } else {
+            messages = messages.map((m, i) => i === msgIdx ? { ...m, content: '', empty: true, sources: sourcesFromHeaders } : m);
+          }
         }
       }
 
