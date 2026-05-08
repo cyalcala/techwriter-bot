@@ -23,7 +23,7 @@ const ARTIFACT_COMPACT = [
   'The artifact content must be raw diagram code only — no markdown fences, no ``` wrappers.',
   'Make diagrams SUBSTANTIVE: use descriptive labels, include all key steps/components, add notes on edges where helpful. A diagram should be informative on its own.',
   '',
-  'Mermaid: graph LR/TD, sequenceDiagram, classDiagram, etc. Arrow labels: -->|text|. No /> in labels. Escape & as &amp;. Use specific, descriptive node labels. For flowcharts: only use nodes, arrows, and subgraphs. For sequence diagrams: use participant, ->, ->>, note, activate/deactivate. Do NOT mix syntax types.',
+  'Mermaid: graph LR/TD, sequenceDiagram, classDiagram, etc. Arrow labels: -->|text|. No /> in labels. Escape & as &amp;. Use specific, descriptive node labels. For flowcharts: ONLY use nodes, arrows, and subgraphs. NEVER use "note", "participant", "activate" or "deactivate" in a graph/flowchart. These are ONLY for sequenceDiagram.',
   'Graphviz: digraph/Graph Name { ... }. Use rankdir=TB/LR. Quotes on labels: A[label="Description"].',
   'D2: 2-space indent. A -> B or A -> B: "label". A.shape: rectangle.',
   '',
