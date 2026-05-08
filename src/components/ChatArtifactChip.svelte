@@ -11,7 +11,7 @@
   let { entry, active = false, onclick }: Props = $props();
 
   const KROKI_TYPES = new Set(['mermaid', 'graphviz', 'd2', 'plantuml', 'flowchart']);
-  let isGenerating = $derived(KROKI_TYPES.has(entry.artifact.type) && entry.artifact.type !== 'svg' && (Date.now() - entry.ts) < 15_000);
+  let isGenerating = $derived(!active && KROKI_TYPES.has(entry.artifact.type) && entry.artifact.type !== 'svg' && (Date.now() - entry.ts) < 15_000);
 
   const typeColors: Record<string, string> = {
     mermaid: 'bg-cyan-600 text-white', graphviz: 'bg-purple-600 text-white',
