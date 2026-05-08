@@ -11,7 +11,7 @@
   import { estimateTokens } from '../lib/token-counter';
   import { saveConversation, loadConversation, clearConversation, saveArtifactQueue } from '../lib/session-persist';
   import { createArtifactQueue, type ArtifactEntry } from '../lib/artifact-queue';
-  import { extractArtifactTitle, generateArtifactId } from '../lib/artifact-lifecycle';
+  import { extractArtifactTitle } from '../lib/artifact-lifecycle';
   import ChatMessages from './ChatMessages.svelte';
   import ChatInput from './ChatInput.svelte';
   import ArtifactSplitView from './ArtifactSplitView.svelte';
@@ -60,8 +60,9 @@
   const MAX_QUEUE = 3;
   const SSE_MAX_DROPS = 3;
   const SSE_DROP_WINDOW_MS = 60_000;
-
   const KROKI_RENDERABLE = new Set(['mermaid', 'graphviz', 'd2', 'plantuml', 'vega', 'flowchart']);
+  const renderedHashes = new Set<string>();
+
   const artifactQueue = createArtifactQueue();
   let activeArtifactEntry = $state<ArtifactEntry | null>(null);
   let artifactError = $state<string | null>(null);
@@ -84,9 +85,10 @@
     if (art.type === 'graphviz') {
       code = code.replace(/\/>/g, '/');
     }
-    const stableId = generateArtifactId(art.type, code);
-    if (artifactQueue.entries.some(e => e.messageIdx === msgIdx && e.artifact.id === stableId)) return;
-    const cleanArt = { ...art, id: stableId, code };
+    const cleanArt = { ...art, code };
+    const codeFingerprint = `${cleanArt.type}:${code.slice(0, 200)}:${code.length}`;
+    if (renderedHashes.has(codeFingerprint)) return;
+    renderedHashes.add(codeFingerprint);
     const title = cleanArt.title || extractArtifactTitle(code, cleanArt.type);
     const entry: ArtifactEntry = {
       messageIdx: msgIdx,
