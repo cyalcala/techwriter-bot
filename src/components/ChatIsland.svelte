@@ -81,9 +81,12 @@
       code = code.replace(/\/>/g, '/');
       code = code.replace(/\|>/g, '|');
       code = code.replace(/&(?!amp;|lt;|gt;|quot;|#39;|#x27;)/g, '&amp;');
+      code = code.replace(/;\s*\n?/g, '\n');
       code = code.replace(/\n{3,}/g, '\n\n');
       if (/^\s*graph\b/m.test(code)) {
         code = code.replace(/^\s*note\s+(?:right\s+of|left\s+of|over)\s+\w+\s*:.*$/gm, '');
+        const parts = code.split(/\n(?=\s*graph\b)/i);
+        if (parts.length > 1) code = parts[0].trim();
       }
     }
     if (art.type === 'graphviz') {
