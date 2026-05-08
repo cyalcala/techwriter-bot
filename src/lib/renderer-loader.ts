@@ -165,9 +165,9 @@ export function renderMermaidArtifact(code: string): string {
         await renderServerSvgInto(el, 'mermaid', code, 'Mermaid');
         return;
       }
-      await mm.initialize({ startOnLoad: false, securityLevel: 'loose', theme: 'default', themeCSS: '.label{color:#1e293b!important} .nodeLabel{color:#1e293b!important} .edgeLabel{color:#475569!important} text{fill:#1e293b!important}' });
+      await mm.initialize({ startOnLoad: false, securityLevel: 'loose', theme: 'default', themeCSS: '.label{fill:#1e293b!important} .nodeLabel{fill:#1e293b!important} .edgeLabel{fill:#475569!important} text{fill:#1e293b!important} tspan{fill:#1e293b!important}' });
       const { svg } = await mm.render(`${id}-s`, sanitized);
-      const hasContent = /<text[^>]*>[A-Za-z0-9]/.test(svg);
+      const hasContent = svg.includes('<text') || svg.includes('<tspan') || svg.includes('<foreignObject');
       if (!hasContent) {
         el.innerHTML = renderError('Mermaid', 'Rendered diagram appears empty. The code may have nodes without labels.', code);
       } else {
