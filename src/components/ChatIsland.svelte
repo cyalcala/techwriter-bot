@@ -550,12 +550,9 @@
 
         await new Promise<void>(r => requestAnimationFrame(() => r()));
 
-        if (!messages[msgIdx].content) {
-          if (msgArtifacts.length > 0) {
-            messages = messages.map((m, i) => i === msgIdx ? { ...m, content: ' ', sources: sourcesFromHeaders } : m);
-          } else {
-            messages = messages.map((m, i) => i === msgIdx ? { ...m, content: '', empty: true, sources: sourcesFromHeaders } : m);
-          }
+        const hasArtifacts = artifactQueue.entries.some(e => e.messageIdx === msgIdx);
+        if (!messages[msgIdx].content && !hasArtifacts) {
+          messages = messages.map((m, i) => i === msgIdx ? { ...m, content: '', empty: true, sources: sourcesFromHeaders } : m);
         }
       }
 
