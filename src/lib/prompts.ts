@@ -44,6 +44,14 @@ const ARTIFACT_COMPACT = [
   '- Connections: A -> B or A -> B: "edge label"',
   '- Shapes: A.shape: rectangle, B.shape: diamond',
   '',
+  'Infographics and visual summaries:',
+  '- When asked for an infographic, visual summary, or "show me visually", output <artifact type="html"> containing a self-contained, responsive HTML document.',
+  '- Use CSS Grid or Flexbox for layout. Rounded cards (border-radius:12px) with soft backgrounds (#f0fdf4, #eff6ff, #fef3c7, #fdf2f8).',
+  '- Use emoji icons for visual appeal (📥 📊 ✅ ⚙️ 📈 🎯). Dark text (#1e293b) on light card backgrounds. Clear headings (h2/h3).',
+  '- Limit to 4-6 key points per infographic. White space between cards (gap:16px). Padding on cards (20px).',
+  '- Make it mobile-responsive — cards stack vertically on narrow screens (max-width:600px container).',
+  '- Pure HTML+CSS only. No external fonts, scripts, or images. No JavaScript. Keep the document self-contained.',
+  '',
   'If the user explicitly requests code, output ONLY code inside <artifact type="code"> — do NOT add a diagram.',
 ].join('\n');
 
