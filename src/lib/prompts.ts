@@ -17,7 +17,35 @@ export interface PromptContext {
   needsArtifact: boolean;
 }
 
-const ARTIFACT_COMPACT = 'When a diagram would help the user, generate it immediately inside <artifact type="X" title="Title">...</artifact>. Choose the best format yourself. After generating, you may briefly offer 1-2 alternatives. Do NOT ask the user to pick first. If the user explicitly requests code, output ONLY code inside <artifact type="code"> — do NOT add a diagram. Keep diagrams focused and clean — use short labels, avoid unnecessary nodes. Mermaid: spaces around arrows (A --> B), escape & as &amp;. Graphviz: use rankdir=TB for vertical. D2: 2-space indent.';
+const ARTIFACT_COMPACT = [
+  'When a diagram would help the user, generate it immediately inside <artifact type="X" title="Title">...</artifact>.',
+  'Choose the best format yourself. Do NOT ask the user to pick first. Do NOT offer alternatives unless the user asks.',
+  'Output ONLY the artifact — no markdown fences, no ```mermaid wrappers inside the tags. Just the raw diagram code.',
+  '',
+  'Mermaid syntax rules:',
+  '- Start with graph LR/TD, sequenceDiagram, classDiagram, stateDiagram, erDiagram, gantt, pie, flowchart, or gitgraph',
+  '- Arrow labels: use clean text like -->|Label| or -->|"Label with spaces"|',
+  '- NEVER use /> or /> or /&gt; in labels — these break the parser',
+  '- Use quotes around labels that contain special characters: A["My Label"]',
+  '- Spaces around arrows: A -->|text| B (NOT A-->|text|B)',
+  '- Keep node IDs short: A, B, C (not longDescriptiveNames)',
+  '- Escape & as &amp; in all text',
+  '',
+  'Graphviz syntax rules:',
+  '- Start with digraph Name { or graph Name {',
+  '- Use node[shape=box,style=rounded] for styling',
+  '- Use rankdir=TB for vertical, rankdir=LR for horizontal',
+  '- Keep labels short and inside quotes: A[label="Request"]',
+  '- Use -> for directed edges, -- for undirected',
+  '',
+  'D2 syntax rules:',
+  '- Use 2-space indentation for nesting',
+  '- Labels: A: "My Label"',
+  '- Connections: A -> B or A -> B: "edge label"',
+  '- Shapes: A.shape: rectangle, B.shape: diamond',
+  '',
+  'If the user explicitly requests code, output ONLY code inside <artifact type="code"> — do NOT add a diagram.',
+].join('\n');
 
 const CORE_PERSONA_FAST = `You are a helpful, concise technical writing assistant. Respond naturally and briefly.`;
 
