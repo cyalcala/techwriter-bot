@@ -7,6 +7,7 @@
     messages: { role: string; content: string; provider?: string; sources?: { title: string; url: string }[]; searchTier?: string; empty?: boolean }[];
     queue: ArtifactQueue;
     isStreaming: boolean;
+    isLoading: boolean;
     activeMessageIdx: number | null;
     onChipClick: (entry: ArtifactEntry) => void;
     onCopyMessage: (idx: number) => void;
@@ -22,7 +23,7 @@
   }
 
   let {
-    messages, queue, isStreaming, activeMessageIdx,
+    messages, queue, isStreaming, isLoading, activeMessageIdx,
     onChipClick, onCopyMessage, onRetryMessage, onEditMessage,
     editingMessageIdx, editText, onEditTextChange, onSaveEdit, onCancelEdit,
     copiedMessageIdx, chatPath,
@@ -104,4 +105,20 @@
       {/each}
     {/if}
   {/each}
+
+  {#if isLoading && !isStreaming}
+    <div class="flex justify-start w-full">
+      <div class="w-full max-w-md px-4 py-3 rounded-2xl border border-amber-200/60 bg-amber-50/30 transition-all">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-amber-100">
+            <div class="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+          <div class="flex-1 min-w-0">
+            <span class="text-[13px] font-semibold text-stone-600">Thinking...</span>
+            <div class="text-[10px] text-stone-400 mt-0.5">Analyzing your request</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  {/if}
 </div>

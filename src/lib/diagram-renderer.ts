@@ -27,7 +27,7 @@ mermaid.run({nodes:[el]}).then(function(){
 <\/script></body></html>`;
 
     case 'graphviz':
-      return `${base}<script src="https://cdn.jsdelivr.net/npm/@viz-js/viz@3.6.4/lib/viz-standalone.js"><\/script></head><body><div id="out"></div><script>
+      return `${base}<script src="https://cdn.jsdelivr.net/npm/@viz-js/viz@3/dist/viz-global.js"><\/script></head><body><div id="out"></div><script>
 (async function(){
   try{
     var dotSrc = ${JSON.stringify(code)};

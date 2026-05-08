@@ -633,6 +633,7 @@
       messages={messages}
       queue={artifactQueue}
       isStreaming={isStreaming}
+      isLoading={isLoading}
       activeMessageIdx={activeArtifactEntry?.messageIdx ?? null}
       onChipClick={handleChipClick}
       onCopyMessage={copyMessage}
@@ -646,15 +647,6 @@
       {copiedMessageIdx}
       {chatPath}
     />
-
-    {#if isLoading && !isStreaming}
-      <div class="flex justify-start px-4 md:px-8 max-w-3xl mx-auto w-full">
-        <div class="bg-white border border-[#e5e1d8] text-[#8c8576] px-6 py-4 rounded-full shadow-sm animate-pulse text-sm flex items-center gap-2">
-          <div class="w-1.5 h-1.5 rounded-full bg-[#d6d0c4] animate-bounce"></div>
-          {chatPath === 'fast' ? 'Thinking...' : chatPath === 'balanced' ? 'Gathering knowledge...' : 'Searching web &amp; gathering thoughts...'}
-        </div>
-      </div>
-    {/if}
 
     <input type="file" bind:this={fileInput} onchange={onFileSelected} class="hidden" accept=".txt,.md,.json,.csv" />
 
