@@ -2,45 +2,85 @@ import type { ArtifactType } from './stream-parser';
 
 const loadedScripts = new Set<string>();
 const loadedStyles = new Set<string>();
+const loadingScripts = new Map<string, Promise<void>>();
+const loadingStyles = new Map<string, Promise<void>>();
+const LOAD_TIMEOUT_MS = 12_000;
 
 function loadScript(src: string): Promise<void> {
   if (loadedScripts.has(src)) return Promise.resolve();
-  return new Promise((resolve, reject) => {
+  const pending = loadingScripts.get(src);
+  if (pending) return pending;
+  const promise = new Promise<void>((resolve, reject) => {
     const script = document.createElement('script');
+    const timer = setTimeout(() => {
+      loadingScripts.delete(src);
+      script.remove();
+      reject(new Error(`Timed out loading ${src}`));
+    }, LOAD_TIMEOUT_MS);
+    script.async = true;
+    script.crossOrigin = 'anonymous';
+    script.referrerPolicy = 'no-referrer';
     script.src = src;
-    script.onload = () => { loadedScripts.add(src); resolve(); };
-    script.onerror = () => { loadedScripts.delete(src); reject(new Error(`Failed to load ${src}`)); };
+    script.onload = () => {
+      clearTimeout(timer);
+      loadedScripts.add(src);
+      loadingScripts.delete(src);
+      resolve();
+    };
+    script.onerror = () => {
+      clearTimeout(timer);
+      loadedScripts.delete(src);
+      loadingScripts.delete(src);
+      script.remove();
+      reject(new Error(`Failed to load ${src}`));
+    };
     document.head.appendChild(script);
   });
+  loadingScripts.set(src, promise);
+  return promise;
 }
 
 function loadStyle(href: string): Promise<void> {
   if (loadedStyles.has(href)) return Promise.resolve();
-  return new Promise((resolve, reject) => {
+  const pending = loadingStyles.get(href);
+  if (pending) return pending;
+  const promise = new Promise<void>((resolve, reject) => {
     const link = document.createElement('link');
+    const timer = setTimeout(() => {
+      loadingStyles.delete(href);
+      link.remove();
+      reject(new Error(`Timed out loading ${href}`));
+    }, LOAD_TIMEOUT_MS);
     link.rel = 'stylesheet';
     link.href = href;
-    link.onload = () => { loadedStyles.add(href); resolve(); };
-    link.onerror = reject;
+    link.onload = () => {
+      clearTimeout(timer);
+      loadedStyles.add(href);
+      loadingStyles.delete(href);
+      resolve();
+    };
+    link.onerror = () => {
+      clearTimeout(timer);
+      loadingStyles.delete(href);
+      link.remove();
+      reject(new Error(`Failed to load ${href}`));
+    };
     document.head.appendChild(link);
   });
+  loadingStyles.set(href, promise);
+  return promise;
 }
 
 export function preloadPopular(): void {
-  Promise.all([
-    loadScript('https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js'),
-    loadStyle('https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css'),
-    loadScript('https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js'),
-    loadStyle('https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css'),
-    loadScript('https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js'),
-    loadScript('https://cdn.jsdelivr.net/npm/@terrastruct/d2-js@0.6.3/dist/d2-js.umd.min.js'),
-    loadScript('https://cdn.jsdelivr.net/npm/@hpcc-js/wasm@2.15.3/dist/graphviz.umd.min.js'),
-    loadScript('https://cdn.jsdelivr.net/npm/vega@5.25.0/build/vega.min.js'),
-    loadScript('https://cdn.jsdelivr.net/npm/vega-lite@5.16.3/build/vega-lite.min.js'),
-    loadScript('https://cdn.jsdelivr.net/npm/vega-embed@6.24.0/build/vega-embed.min.js'),
-    loadScript('https://cdn.jsdelivr.net/npm/markmap-autoloader@0.17.0/dist/index.js'),
-    loadScript('https://cdn.jsdelivr.net/npm/flowchart.js@1.18.0/release/flowchart.min.js'),
-  ]).catch(() => {});
+  if (typeof window === 'undefined') return;
+  const schedule = window.requestIdleCallback || ((cb: IdleRequestCallback) => window.setTimeout(() => cb({ didTimeout: false, timeRemaining: () => 0 } as IdleDeadline), 1500));
+  schedule(() => {
+    Promise.allSettled([
+      loadStyle('https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css'),
+      loadScript('https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js'),
+      loadScript('https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js'),
+    ]).catch(() => {});
+  });
 }
 
 export async function loadRenderer(type: ArtifactType): Promise<void> {
@@ -89,6 +129,8 @@ export async function loadRenderer(type: ArtifactType): Promise<void> {
     case 'webcontainer':
       await loadScript('https://cdn.jsdelivr.net/npm/@webcontainer/api@1.3.0-internal.8/dist/webcontainer.api.min.js');
       return;
+    default:
+      throw new Error(`Unsupported artifact type: ${type}`);
   }
 }
 
@@ -96,20 +138,8 @@ function domReady(fn: () => void): void {
   requestAnimationFrame(() => requestAnimationFrame(fn));
 }
 
-function renderSafely<T>(
-  fn: () => T,
-  fallbackCode: string,
-  errorPrefix: string,
-): T | string {
-  try {
-    return fn();
-  } catch (e) {
-    return `<div class="text-red-500 text-xs p-3 bg-red-50 rounded-lg border border-red-200"><strong>${errorPrefix}:</strong><br/><code class="text-[11px] whitespace-pre-wrap break-all">${escapeHtml(String(e))}</code><pre class="mt-2 p-2 bg-gray-100 rounded text-[11px] overflow-x-auto whitespace-pre-wrap hidden">${escapeHtml(fallbackCode)}</pre></div>`;
-  }
-}
-
 export function renderCodeArtifact(code: string, language?: string): string {
-  const lang = language || detectLanguage(code);
+  const lang = safeClassName(language || detectLanguage(code));
   if (window.Prism) {
     const highlighted = window.Prism.highlight(code, window.Prism.languages[lang] || window.Prism.languages.plaintext, lang);
     return `<pre class="language-${lang}" style="margin:0;font-size:13px;line-height:1.5"><code class="language-${lang}">${highlighted}</code></pre>`;
@@ -117,8 +147,11 @@ export function renderCodeArtifact(code: string, language?: string): string {
   return `<pre style="margin:0;background:#1e1e1e;color:#d4d4d4;padding:16px;overflow-x:auto;font-size:13px;line-height:1.5"><code>${escapeHtml(code)}</code></pre>`;
 }
 
-export function renderHtmlArtifact(code: string): string { return sanitizeHtml(code); }
-export function renderSvgArtifact(code: string): string { return code; }
+export function renderHtmlArtifact(code: string): string {
+  const doc = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{margin:0;min-height:100%;font-family:system-ui,sans-serif;color:#1c1917;background:#fff}body{padding:16px;overflow:auto}img,svg,video,canvas{max-width:100%;height:auto}pre,code{white-space:pre-wrap;word-break:break-word}</style></head><body>${sanitizeHtml(code)}</body></html>`;
+  return `<iframe title="HTML artifact preview" sandbox="" srcdoc="${escapeAttr(doc)}" class="artifact-frame artifact-frame-html"></iframe>`;
+}
+export function renderSvgArtifact(code: string): string { return `<div class="artifact-svg-host">${sanitizeSvg(code)}</div>`; }
 
 export function renderMermaidArtifact(code: string): string {
   const sanitized = sanitizeMermaid(code);
@@ -129,12 +162,12 @@ export function renderMermaidArtifact(code: string): string {
     try {
       const mm = window.mermaid || (window as any).mermaid;
       if (!mm) {
-        el.innerHTML = renderError('Mermaid', 'Renderer not loaded. Try refreshing.', code);
+        await renderServerSvgInto(el, 'mermaid', code, 'Mermaid');
         return;
       }
       await mm.initialize({ startOnLoad: false, securityLevel: 'loose', theme: 'default' });
       const { svg } = await mm.render(`${id}-s`, sanitized);
-      el.innerHTML = svg;
+      el.innerHTML = sanitizeSvg(svg);
     } catch (e) {
       el.innerHTML = renderError('Mermaid', String(e), code);
     }
@@ -149,6 +182,7 @@ export function renderKatexArtifact(code: string): string {
     if (!el) return;
     try {
       if (window.katex) window.katex.render(code, el, { throwOnError: false, displayMode: true });
+      else el.innerHTML = renderError('KaTeX', 'Renderer not loaded.', code);
     } catch (e) {
       el.innerHTML = renderError('KaTeX', String(e), code);
     }
@@ -161,16 +195,20 @@ export function renderMarkmapArtifact(code: string): string {
   domReady(() => {
     const el = document.getElementById(id);
     if (!el) return;
-    const mm = (window as any).markmap;
-    if (mm?.Markmap) {
-      const t = new mm.Transformer();
-      const { root } = t.transform(code);
-      const svgEl = document.createElement('div');
-      el.innerHTML = '';
-      el.appendChild(svgEl);
-      mm.Markmap.create(svgEl, undefined, root);
-    } else {
-      el.innerHTML = `<div class="text-xs text-[#8c8576]">Mind map renderer not loaded.</div>`;
+    try {
+      const mm = (window as any).markmap;
+      if (mm?.Markmap && mm?.Transformer) {
+        const t = new mm.Transformer();
+        const { root } = t.transform(code);
+        const svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        el.innerHTML = '';
+        el.appendChild(svgEl);
+        mm.Markmap.create(svgEl, undefined, root);
+      } else {
+        el.innerHTML = renderError('Markmap', 'Renderer not loaded.', code);
+      }
+    } catch (e) {
+      el.innerHTML = renderError('Markmap', String(e), code);
     }
   });
   return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm" style="min-height:300px">Rendering mind map...</div>`;
@@ -182,10 +220,17 @@ export function renderD2Artifact(code: string): string {
     const el = document.getElementById(id);
     if (!el) return;
     try {
-      if ((window as any).d2) {
-        const result = await (window as any).d2.compile(code, { layout: 'dagre' });
-        el.innerHTML = result.svg || '';
+      const D2 = (window as any).D2 || (window as any).d2?.D2;
+      if (D2) {
+        const svg = await new D2().render(code);
+        el.innerHTML = sanitizeSvg(svg);
         el.className = 'flex justify-center overflow-x-auto';
+      } else if ((window as any).d2?.compile) {
+        const result = await (window as any).d2.compile(code, { layout: 'dagre' });
+        el.innerHTML = sanitizeSvg(result.svg || '');
+        el.className = 'flex justify-center overflow-x-auto';
+      } else {
+        await renderServerSvgInto(el, 'd2', code, 'D2');
       }
     } catch (e) {
       el.innerHTML = renderError('D2', String(e), code);
@@ -200,9 +245,8 @@ export function renderVegaArtifact(code: string): string {
     const el = document.getElementById(id);
     if (!el) return;
     try {
-      if ((window as any).vegaEmbed) {
-        await (window as any).vegaEmbed(`#${id}`, JSON.parse(code), { actions: true });
-      }
+      if ((window as any).vegaEmbed) await (window as any).vegaEmbed(`#${id}`, JSON.parse(code), { actions: true, renderer: 'svg' });
+      else await renderServerSvgInto(el, 'vega', code, 'Vega');
     } catch (e) {
       if (el) el.innerHTML = renderError('Vega', String(e), code);
     }
@@ -217,7 +261,10 @@ export function renderGraphvizArtifact(code: string): string {
     if (!el) return;
     try {
       const gv = (window as any).graphviz;
-      if (gv) el.innerHTML = await gv.layout(code, 'svg', 'dot');
+      const hpcc = (window as any).hpccWasm;
+      if (gv?.layout) el.innerHTML = sanitizeSvg(await gv.layout(code, 'svg', 'dot'));
+      else if (hpcc?.graphviz?.layout) el.innerHTML = sanitizeSvg(await hpcc.graphviz.layout(code, 'svg', 'dot'));
+      else await renderServerSvgInto(el, 'graphviz', code, 'Graphviz');
     } catch (e) {
       if (el) el.innerHTML = renderError('Graphviz', String(e), code);
     }
@@ -226,13 +273,13 @@ export function renderGraphvizArtifact(code: string): string {
 }
 
 export function renderPlantUMLArtifact(code: string): string {
-  const encoded = encodePlantUML(code);
   const id = `puml-${rand()}`;
-  return `<div class="flex justify-center p-2" id="${id}"><img src="https://www.plantuml.com/plantuml/svg/~1${encoded}" alt="PlantUML diagram" style="max-width:100%;min-height:100px" onerror="this.style.display='none';document.getElementById('${id}-fallback').style.display='block';" onload="this.style.opacity='1';" /><div id="${id}-fallback" style="display:none;padding:12px;text-align:center"><div class="text-xs text-stone-500 mb-2">PlantUML render failed</div><pre class="text-[11px] text-stone-700 bg-stone-100 p-3 rounded-lg overflow-x-auto text-left max-h-[300px] overflow-y-auto">${escapeHtml(code)}</pre><button class="mt-2 text-[10px] px-3 py-1 bg-stone-200 hover:bg-stone-300 rounded-md transition-all" onclick="navigator.clipboard.writeText(this.parentElement.querySelector('pre').textContent)">Copy Code</button></div></div>`;
-}
-
-function encodePlantUML(code: string): string {
-  return btoa(code).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  domReady(async () => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    await renderServerSvgInto(el, 'plantuml', code, 'PlantUML');
+  });
+  return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm" style="min-height:200px">Rendering PlantUML...</div>`;
 }
 
 export function renderFlowchartArtifact(code: string): string {
@@ -245,6 +292,8 @@ export function renderFlowchartArtifact(code: string): string {
         const diagram = (window as any).flowchart.parse(code);
         el.innerHTML = '';
         diagram.drawSVG(id);
+      } else {
+        el.innerHTML = renderError('Flowchart', 'Renderer not loaded.', code);
       }
     } catch (e) {
       if (el) el.innerHTML = renderError('Flowchart', String(e), code);
@@ -254,7 +303,7 @@ export function renderFlowchartArtifact(code: string): string {
 }
 
 export function renderReactArtifact(code: string): string {
-  return `<iframe sandbox="allow-scripts" srcdoc="${getReactHtml(encodeURIComponent(code))}" style="width:100%;min-height:300px;border:1px solid #e5e1d8;border-radius:12px;overflow:hidden"></iframe>`;
+  return `<iframe title="React artifact preview" sandbox="allow-scripts" srcdoc="${escapeAttr(getReactHtml(code))}" class="artifact-frame artifact-frame-react"></iframe>`;
 }
 
 export function renderWebContainerArtifact(code: string): string {
@@ -262,7 +311,7 @@ export function renderWebContainerArtifact(code: string): string {
   try {
     const parsed = JSON.parse(code);
     if (!parsed.files) throw new Error('Missing files object');
-    loadWebContainer(id, parsed);
+    domReady(() => { loadWebContainer(id, parsed); });
   } catch (e) {
     setTimeout(() => {
       const el = document.getElementById(id);
@@ -274,7 +323,7 @@ export function renderWebContainerArtifact(code: string): string {
 
 async function loadWebContainer(id: string, project: { files: Record<string, { contents?: string } | string>; title?: string }) {
   try {
-    const { WebContainer } = (window as any).webcontainer || {};
+    const WebContainer = (window as any).WebContainer || (window as any).webcontainer?.WebContainer;
     if (!WebContainer) {
       const el = document.getElementById(id);
       if (el) el.innerHTML = '<pre class="text-red-500 text-xs p-4">WebContainer not loaded. Refresh and try again.</pre>';
@@ -306,9 +355,9 @@ async function loadWebContainer(id: string, project: { files: Record<string, { c
   }
 }
 
-function getReactHtml(encoded: string): string {
-  const d = decodeURIComponent(encoded);
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"><\/script><script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"><\/script><script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script><style>body{font-family:system-ui,sans-serif;margin:16px;background:#fff;color:#1a1a1a}</style></head><body><div id="root"></div><script>window.__HOST_API=Object.freeze({dispatch:function(a,p){window.parent.postMessage({source:'artifact',action:a,payload:p},'*');},copy:function(t){window.parent.postMessage({source:'artifact',action:'copy',payload:t},'*');},error:function(e){window.parent.postMessage({source:'artifact',action:'error',payload:e},'*');}});</script><script type="text/babel" data-type="module">${d}\nconst container=document.getElementById('root');if(typeof App!=='undefined'){try{ReactDOM.createRoot(container).render(React.createElement(App));}catch(e){window.__HOST_API.error(e.message||String(e));}}<\/script></body></html>`;
+function getReactHtml(code: string): string {
+  const safeCode = code.replace(/<\/script/gi, '<\\/script');
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"><\/script><script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"><\/script><script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script><style>html,body,#root{min-height:100%;margin:0}body{font-family:system-ui,sans-serif;background:#fff;color:#1a1a1a;padding:16px;overflow:auto}*{box-sizing:border-box}img,svg,canvas,video{max-width:100%;height:auto}</style></head><body><div id="root"></div><script>window.__HOST_API=Object.freeze({dispatch:function(a,p){window.parent.postMessage({source:'artifact',action:a,payload:p},'*');},copy:function(t){window.parent.postMessage({source:'artifact',action:'copy',payload:t},'*');},error:function(e){window.parent.postMessage({source:'artifact',action:'error',payload:e},'*');}});window.addEventListener('error',function(e){window.__HOST_API.error(e.message||String(e.error||e));});</script><script type="text/babel" data-type="module">${safeCode}\nconst container=document.getElementById('root');if(typeof App!=='undefined'){try{ReactDOM.createRoot(container).render(React.createElement(App));}catch(e){window.__HOST_API.error(e.message||String(e));container.innerHTML='<pre style="color:#b91c1c;white-space:pre-wrap">'+String(e.message||e).replace(/[<>&]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;'}[c]})+'</pre>';}}else{container.innerHTML='<pre style="color:#92400e;white-space:pre-wrap">React artifact must export or define an App component.</pre>';}<\/script></body></html>`;
 }
 
 function sanitizeMermaid(code: string): string {
@@ -338,8 +387,43 @@ function detectLanguage(code: string): string {
   return 'plaintext';
 }
 
+async function renderServerSvgInto(el: HTMLElement, type: ArtifactType, code: string, label: string): Promise<void> {
+  try {
+    const res = await fetch('/api/render-artifact', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, code }),
+    });
+    const data = await res.json().catch(() => null);
+    if (res.ok && data?.svg) {
+      el.innerHTML = sanitizeSvg(data.svg);
+      el.className = 'artifact-server-svg flex justify-center overflow-auto';
+      return;
+    }
+    el.innerHTML = renderError(label, data?.message || data?.error || `Renderer returned ${res.status}`, code);
+  } catch (e) {
+    el.innerHTML = renderError(label, String(e), code);
+  }
+}
+
 function escapeHtml(s: string): string { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
-function sanitizeHtml(html: string): string { return html.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/on\w+\s*=\s*"[^"]*"/gi, '').replace(/on\w+\s*=\s*'[^']*'/gi, ''); }
+function escapeAttr(s: string): string { return escapeHtml(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+function sanitizeHtml(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<(iframe|object|embed|form|meta|link|base)[\s\S]*?<\/\1>/gi, '')
+    .replace(/<(iframe|object|embed|form|meta|link|base)\b[^>]*\/?>/gi, '')
+    .replace(/\son[\w:-]+\s*=\s*"[^"]*"/gi, '')
+    .replace(/\son[\w:-]+\s*=\s*'[^']*'/gi, '')
+    .replace(/\son[\w:-]+\s*=\s*[^\s>]+/gi, '')
+    .replace(/\s(href|src|xlink:href)\s*=\s*(['"])\s*javascript:[\s\S]*?\2/gi, '');
+}
+function sanitizeSvg(svg: string): string {
+  return sanitizeHtml(svg)
+    .replace(/<foreignObject[\s\S]*?<\/foreignObject>/gi, '')
+    .replace(/\s(href|src|xlink:href)\s*=\s*(['"])\s*data:text\/html[\s\S]*?\2/gi, '');
+}
+function safeClassName(value: string): string { return value.replace(/[^\w-]/g, '') || 'plaintext'; }
 function rand(): string { return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`; }
 function renderError(type: string, message: string, code: string): string {
   return `<div class="text-red-500 text-xs p-3 bg-red-50 rounded-lg border border-red-200"><strong>${type} error:</strong><br/><code class="text-[11px] whitespace-pre-wrap break-all">${escapeHtml(message)}</code><button class="mt-2 px-2 py-1 text-[10px] bg-red-100 hover:bg-red-200 rounded border border-red-300" onclick="this.nextElementSibling.classList.toggle('hidden')">Show raw</button><pre class="hidden mt-2 p-2 bg-gray-100 rounded text-[11px] overflow-x-auto whitespace-pre-wrap">${escapeHtml(code)}</pre></div>`;

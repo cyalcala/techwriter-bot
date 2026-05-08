@@ -1,9 +1,9 @@
 import type { Artifact, ArtifactType } from './stream-parser';
 
-export type ArtifactStatus = 'generating' | 'ready' | 'updating';
+export type ArtifactStatus = 'generating' | 'ready' | 'updating' | 'error';
 
 export function generateArtifactId(type: ArtifactType, code: string): string {
-  const hash = simpleHash(type + code.slice(0, 200));
+  const hash = simpleHash(`${type}:${code}`);
   return `${type}-${hash}`;
 }
 
@@ -20,7 +20,7 @@ export function extractArtifactTitle(code: string, type: ArtifactType): string {
   }
   if (type === 'd2') {
     const m = code.match(/\b(title\s*:\s*)(.+)/i);
-    if (m) return m[1] + m[2].trim();
+    if (m) return m[2].trim().slice(0, 60);
   }
   if (type === 'plantuml') {
     const m = code.match(/\btitle\s+(.+)/i);
@@ -46,9 +46,10 @@ export function timeAgo(ts: number): string {
 }
 
 function simpleHash(str: string): string {
-  let h = 0;
+  let h = 2166136261;
   for (let i = 0; i < str.length; i++) {
-    h = ((h << 5) - h + str.charCodeAt(i)) | 0;
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
   }
-  return Math.abs(h).toString(36);
+  return (h >>> 0).toString(36);
 }

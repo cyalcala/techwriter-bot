@@ -11,7 +11,7 @@
   import { estimateTokens } from '../lib/token-counter';
   import { saveConversation, loadConversation, clearConversation, saveArtifactQueue } from '../lib/session-persist';
   import { createArtifactQueue, type ArtifactEntry } from '../lib/artifact-queue';
-  import { extractArtifactTitle } from '../lib/artifact-lifecycle';
+  import { extractArtifactTitle, generateArtifactId } from '../lib/artifact-lifecycle';
   import ChatMessages from './ChatMessages.svelte';
   import ChatInput from './ChatInput.svelte';
   import ArtifactSplitView from './ArtifactSplitView.svelte';
@@ -62,8 +62,6 @@
   const SSE_DROP_WINDOW_MS = 60_000;
 
   const KROKI_RENDERABLE = new Set(['mermaid', 'graphviz', 'd2', 'plantuml', 'vega', 'flowchart']);
-  const renderedHashes = new Set<string>();
-
   const artifactQueue = createArtifactQueue();
   let activeArtifactEntry = $state<ArtifactEntry | null>(null);
   let artifactError = $state<string | null>(null);
@@ -86,17 +84,21 @@
     if (art.type === 'graphviz') {
       code = code.replace(/\/>/g, '/');
     }
-    const cleanArt = { ...art, code };
-    const codeFingerprint = `${cleanArt.type}:${code.slice(0, 200)}:${code.length}`;
-    if (renderedHashes.has(codeFingerprint)) return;
-    renderedHashes.add(codeFingerprint);
+    const stableId = generateArtifactId(art.type, code);
+    if (artifactQueue.entries.some(e => e.messageIdx === msgIdx && e.artifact.id === stableId)) return;
+    const cleanArt = { ...art, id: stableId, code };
     const title = cleanArt.title || extractArtifactTitle(code, cleanArt.type);
-    const entry: ArtifactEntry = { messageIdx: msgIdx, artifact: { ...cleanArt, title }, ts: Date.now() };
+    const entry: ArtifactEntry = {
+      messageIdx: msgIdx,
+      artifact: { ...cleanArt, title },
+      ts: Date.now(),
+      status: KROKI_RENDERABLE.has(cleanArt.type) ? 'generating' : 'ready',
+    };
     artifactQueue.push(entry);
     if (!KROKI_RENDERABLE.has(cleanArt.type)) return;
     const pendingId = entry.artifact.id;
 
-    async function tryKroki(attempt: number): Promise<boolean> {
+    async function tryKroki(attempt: number): Promise<{ ok: boolean; error?: string }> {
       try {
         const ctrl = new AbortController();
         const timer = setTimeout(() => ctrl.abort(), 10_000);
@@ -110,25 +112,40 @@
         if (res.ok) {
           const data = await res.json();
           if (data.svg) {
-            artifactQueue.replace(msgIdx, pendingId, { ...cleanArt, code: data.svg, type: 'svg' as any, title, placement: 'inline' });
-            const updated = artifactQueue.entries.find(e => e.messageIdx === msgIdx && e.artifact.type === 'svg');
+            const updated = artifactQueue.replace(
+              msgIdx,
+              pendingId,
+              { ...cleanArt, code: data.svg, type: 'svg' as any, title, placement: 'inline' },
+              { status: 'ready', error: undefined },
+            );
             if (updated && activeArtifactEntry?.artifact.id === pendingId) {
               activeArtifactEntry = updated;
             }
             saveArtifactQueue(sessionId, artifactQueue.entries);
-            return true;
+            return { ok: true };
           }
         }
+        const data = await res.json().catch(() => null);
+        return { ok: false, error: data?.message || data?.error || `Server renderer returned ${res.status}` };
       } catch (e) {
         console.error('[Kroki] Attempt', attempt, 'failed:', (e as Error).message);
+        return { ok: false, error: (e as Error).message };
       }
-      return false;
     }
 
-    const ok = await tryKroki(1);
-    if (!ok) {
+    let result = await tryKroki(1);
+    if (!result.ok) {
       await new Promise(r => setTimeout(r, 2000));
-      await tryKroki(2);
+      result = await tryKroki(2);
+    }
+    if (!result.ok) {
+      const updated = artifactQueue.replace(
+        msgIdx,
+        pendingId,
+        { ...cleanArt, title, placement: 'inline' },
+        { status: 'ready', error: result.error ? `Server renderer unavailable: ${result.error}` : 'Server renderer unavailable; using client preview.' },
+      );
+      if (updated && activeArtifactEntry?.artifact.id === pendingId) activeArtifactEntry = updated;
     }
   }
 
@@ -181,6 +198,10 @@
     preloadPopular();
     window.addEventListener('message', (e) => {
       if (e.data?.type === 'ARTIFACT_ERROR') artifactError = e.data.error;
+      if (e.data?.source === 'artifact' && e.data?.action === 'error') artifactError = String(e.data.payload || 'Artifact render failed');
+      if (e.data?.source === 'artifact' && e.data?.action === 'copy' && typeof e.data.payload === 'string') {
+        navigator.clipboard?.writeText(e.data.payload).catch(() => {});
+      }
     });
     isOnline = navigator.onLine;
     window.addEventListener('online', () => { isOnline = true; });
@@ -684,6 +705,7 @@
     {isMobile}
     activeEntry={activeArtifactEntry}
     onclose={closeSplit}
+    onselect={handleChipClick}
     onFixArtifact={(code: string, err: string) => { artifactError = err; fixArtifactErr(); }}
     {artifactError}
   />

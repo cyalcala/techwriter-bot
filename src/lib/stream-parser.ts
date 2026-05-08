@@ -1,3 +1,6 @@
+import { detectCodeLanguage, getDefaultArtifactTitle, normalizeArtifactType, stripOuterFence } from './artifact-types';
+import { generateArtifactId } from './artifact-lifecycle';
+
 export type ArtifactType = 'code' | 'html' | 'svg' | 'mermaid' | 'react' | 'katex' | 'markmap' | 'd2' | 'vega' | 'graphviz' | 'plantuml' | 'flowchart' | 'webcontainer';
 export type ArtifactPlacement = 'inline' | 'side' | 'modal';
 
@@ -12,17 +15,17 @@ export interface Artifact {
 
 type ParserState = 'normal' | 'in_artifact_body';
 
-const ARTIFACT_OPEN_RE = /<\w*rtifact\s+type="(\w+)"(?:\s+placement="(\w+)")?(?:\s+title="([^"]*)")?(?:\s+language="([^"]*)")?\s*\/?>/i;
-const ARTIFACT_CLOSE_RE = /<\/\w*rtifact\s*>/i;
+const ARTIFACT_OPEN_PREFIX = '<artifact';
+const ARTIFACT_CLOSE_RE = /<\/artifact\s*>/i;
+const ATTR_RE = /([\w:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g;
 
 export class ArtifactStreamParser {
   private state: ParserState = 'normal';
+  private pending = '';
   private artifactBuf = '';
-  private mainBuf = '';
   private currentArtifact: Partial<Artifact> = {};
   private onArtifactComplete: (artifact: Artifact) => void;
   private onMainText: (text: string) => void;
-  private artifactCounter = 0;
 
   constructor(
     onArtifactComplete: (artifact: Artifact) => void,
@@ -33,52 +36,72 @@ export class ArtifactStreamParser {
   }
 
   feed(tokens: string) {
-    let remaining = tokens;
-    while (remaining.length > 0) {
+    this.pending += tokens;
+    this.drain(false);
+  }
+
+  private drain(flush: boolean) {
+    while (this.pending.length > 0) {
       if (this.state === 'normal') {
-        const openIdx = remaining.indexOf('<artifact');
+        const lower = this.pending.toLowerCase();
+        const openIdx = lower.indexOf(ARTIFACT_OPEN_PREFIX);
         if (openIdx === -1) {
-          this.emitMain(remaining);
-          remaining = '';
+          const keep = flush ? 0 : trailingArtifactPrefixLength(lower);
+          const emit = this.pending.slice(0, this.pending.length - keep);
+          if (emit) this.emitMain(emit);
+          this.pending = this.pending.slice(this.pending.length - keep);
           break;
         }
 
         if (openIdx > 0) {
-          this.emitMain(remaining.slice(0, openIdx));
+          this.emitMain(this.pending.slice(0, openIdx));
+          this.pending = this.pending.slice(openIdx);
         }
 
-        const closeIdx = remaining.indexOf('>', openIdx);
-        if (closeIdx === -1) {
-          this.emitMain(remaining);
-          remaining = '';
+        const tagEnd = this.pending.indexOf('>');
+        if (tagEnd === -1) {
+          if (flush) {
+            this.emitMain(this.pending);
+            this.pending = '';
+          }
           break;
         }
 
-        const tagStr = remaining.slice(openIdx, closeIdx + 1);
-        const match = tagStr.match(ARTIFACT_OPEN_RE);
-        if (match) {
-          const artifactType = match[1] as ArtifactType;
+        const tagStr = this.pending.slice(0, tagEnd + 1);
+        const attrs = parseAttributes(tagStr);
+        const artifactType = normalizeArtifactType(attrs.type);
+        if (artifactType) {
+          const language = attrs.language || undefined;
+          const placement = normalizePlacement(attrs.placement);
           this.currentArtifact = {
             type: artifactType,
-            placement: (match[2] || 'inline') as ArtifactPlacement,
-            title: match[3] || (artifactType === 'code' ? 'Code' : `${artifactType.charAt(0).toUpperCase() + artifactType.slice(1)} Diagram`),
-            language: match[4] || undefined,
+            placement,
+            title: attrs.title || getDefaultArtifactTitle(artifactType, language),
+            language,
           };
           this.artifactBuf = '';
           this.state = 'in_artifact_body';
-          remaining = remaining.slice(closeIdx + 1);
+          this.pending = this.pending.slice(tagEnd + 1);
         } else {
           this.emitMain(tagStr);
-          remaining = remaining.slice(closeIdx + 1);
+          this.pending = this.pending.slice(tagEnd + 1);
         }
       } else {
-        const closeIdx = remaining.indexOf('</artifact>');
+        const closeIdx = this.pending.search(ARTIFACT_CLOSE_RE);
         if (closeIdx === -1) {
-          this.artifactBuf += remaining;
-          remaining = '';
+          if (flush) {
+            this.artifactBuf += this.pending;
+            this.pending = '';
+            this.emitArtifact();
+            this.state = 'normal';
+            continue;
+          }
+          this.artifactBuf += this.pending;
+          this.pending = '';
         } else {
-          this.artifactBuf += remaining.slice(0, closeIdx);
-          remaining = remaining.slice(closeIdx + 11);
+          const closeMatch = this.pending.slice(closeIdx).match(ARTIFACT_CLOSE_RE);
+          this.artifactBuf += this.pending.slice(0, closeIdx);
+          this.pending = this.pending.slice(closeIdx + (closeMatch?.[0].length || 0));
           this.emitArtifact();
           this.state = 'normal';
         }
@@ -93,55 +116,38 @@ export class ArtifactStreamParser {
   }
 
   private emitArtifact() {
-    let code = this.artifactBuf;
+    const type = this.currentArtifact.type || 'code';
+    const stripped = stripOuterFence(this.artifactBuf);
+    const language = stripped.language || this.currentArtifact.language || (type === 'code' ? detectCodeLanguage(stripped.code) : undefined);
     const artifact: Artifact = {
-      id: `artifact-${Date.now()}-${this.artifactCounter++}`,
-      type: this.currentArtifact.type || 'code',
-      title: this.currentArtifact.title || 'Artifact',
+      id: generateArtifactId(type, stripped.code),
+      type,
+      title: this.currentArtifact.title || getDefaultArtifactTitle(type, language),
       placement: this.currentArtifact.placement || 'inline',
-      code,
+      code: stripped.code,
+      language,
     };
-
-    const langMatch = code.match(/^```(\w+)\n/);
-    if (langMatch) {
-      artifact.language = langMatch[1];
-      artifact.code = code.slice(langMatch[0].length).replace(/\n```\s*$/, '');
-    }
-
-    if (artifact.type === 'code') {
-      const fenceMatch = code.match(/```(\w+)\n([\s\S]*?)```/);
-      if (fenceMatch) {
-        artifact.language = fenceMatch[1];
-        artifact.code = fenceMatch[2].trim();
-      }
-    }
 
     this.onArtifactComplete(artifact);
   }
 
   flush() {
-    if (this.state === 'in_artifact_body' && this.artifactBuf.trim().length > 0) {
-      this.emitArtifact();
-    }
-    this.emitMain(this.mainBuf);
+    this.drain(true);
     this.state = 'normal';
+    this.pending = '';
     this.artifactBuf = '';
-    this.mainBuf = '';
     this.currentArtifact = {};
   }
 
   reset() {
     this.state = 'normal';
+    this.pending = '';
     this.artifactBuf = '';
-    this.mainBuf = '';
     this.currentArtifact = {};
   }
 
-  feedChunk(chunk: string, onText: (text: string) => void) {
-    this.mainBuf += chunk;
+  feedChunk(chunk: string, _onText: (text: string) => void) {
     this.feed(chunk);
-    this.emitMain(this.mainBuf);
-    this.mainBuf = '';
   }
 }
 
@@ -157,16 +163,11 @@ export function detectCodeFenceFallback(text: string): Artifact[] {
     let type: ArtifactType = 'code';
     let title = lang ? `${lang.toUpperCase()} Code` : 'Code Block';
 
-    if (lang === 'html' || lang === 'htm') { type = 'html'; title = 'HTML'; }
-    else if (lang === 'svg') { type = 'svg'; title = 'SVG'; }
-    else if (lang === 'mermaid') { type = 'mermaid'; title = 'Mermaid Diagram'; }
-    else if (lang === 'jsx' || lang === 'tsx' || lang === 'react') { type = 'react'; title = 'React Component'; }
-    else if (lang === 'graphviz' || lang === 'dot') { type = 'graphviz'; title = 'Graphviz Diagram'; }
-    else if (lang === 'd2') { type = 'd2'; title = 'D2 Diagram'; }
-    else if (lang === 'plantuml' || lang === 'puml') { type = 'plantuml'; title = 'PlantUML Diagram'; }
-    else if (lang === 'katex' || lang === 'latex' || lang === 'tex') { type = 'katex'; title = 'Math Formula'; }
-    else if (lang === 'vega' || lang === 'vega-lite' || lang === 'json') { type = 'vega'; title = 'Vega Chart'; }
-    else if (lang === 'flowchart') { type = 'flowchart'; title = 'Flowchart'; }
+    const normalizedType = normalizeArtifactType(lang, code);
+    if (normalizedType) {
+      type = normalizedType;
+      title = getDefaultArtifactTitle(normalizedType, lang);
+    }
 
     artifacts.push({
       id: `fallback-${Date.now()}-${count++}`,
@@ -194,4 +195,26 @@ export function detectCodeFenceFallback(text: string): Artifact[] {
   }
 
   return artifacts;
+}
+
+function parseAttributes(tag: string): Record<string, string> {
+  const attrs: Record<string, string> = {};
+  ATTR_RE.lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = ATTR_RE.exec(tag)) !== null) {
+    attrs[match[1].toLowerCase()] = match[2] ?? match[3] ?? match[4] ?? '';
+  }
+  return attrs;
+}
+
+function normalizePlacement(raw: string | undefined): ArtifactPlacement {
+  return raw === 'side' || raw === 'modal' || raw === 'inline' ? raw : 'inline';
+}
+
+function trailingArtifactPrefixLength(value: string): number {
+  const max = Math.min(value.length, ARTIFACT_OPEN_PREFIX.length - 1);
+  for (let len = max; len > 0; len--) {
+    if (ARTIFACT_OPEN_PREFIX.startsWith(value.slice(-len))) return len;
+  }
+  return 0;
 }

@@ -44,7 +44,8 @@ export async function renderViaKroki(type: string, code: string, kv: any): Promi
       return { error: errText.slice(0, 300) };
     }
 
-    const svg = await res.text();
+    const svg = sanitizeSvg(await res.text());
+    if (!/<svg\b/i.test(svg)) return { error: 'Renderer did not return SVG.' };
     if (kv) {
       kv.put(cacheKey, svg, { expirationTtl: CACHE_TTL_SECONDS }).catch(() => {});
     }
@@ -52,4 +53,14 @@ export async function renderViaKroki(type: string, code: string, kv: any): Promi
   } catch (e: any) {
     return { error: `Kroki unavailable: ${e.message?.slice(0, 100)}` };
   }
+}
+
+function sanitizeSvg(svg: string): string {
+  return svg
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<foreignObject[\s\S]*?<\/foreignObject>/gi, '')
+    .replace(/\son[\w:-]+\s*=\s*"[^"]*"/gi, '')
+    .replace(/\son[\w:-]+\s*=\s*'[^']*'/gi, '')
+    .replace(/\son[\w:-]+\s*=\s*[^\s>]+/gi, '')
+    .replace(/\s(href|src|xlink:href)\s*=\s*(['"])\s*javascript:[\s\S]*?\2/gi, '');
 }

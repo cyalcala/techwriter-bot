@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { getDiagramRenderDoc } from '../lib/diagram-renderer';
+  import ArtifactPanel from './ArtifactPanel.svelte';
+  import type { Artifact, ArtifactType } from '../lib/stream-parser';
 
   interface Props {
     svg: string;
@@ -15,7 +16,13 @@
   let visible = $state(false);
   let copied = $state(false);
   let hasContent = $derived(!!svg || !!code);
-  let renderDoc = $derived(!svg && code ? getDiagramRenderDoc(type, code) : '');
+  let overlayArtifact = $derived<Artifact | null>(hasContent ? {
+    id: `overlay-${type}-${(svg || code).length}`,
+    type: (svg ? 'svg' : type || 'code') as ArtifactType,
+    title: title || 'Artifact',
+    placement: 'modal',
+    code: svg || code,
+  } : null);
 
   $effect(() => {
     if (hasContent) {
@@ -35,10 +42,6 @@
     window.addEventListener('popstate', handlePopstate);
     return () => window.removeEventListener('popstate', handlePopstate);
   });
-
-  function getZoomableDoc(svgContent: string): string {
-    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes"><style>*{margin:0;padding:0;box-sizing:border-box}body{background:#faf7f2;padding:4px;overflow:auto;-webkit-overflow-scrolling:touch;min-height:100dvh}svg{width:100%!important;height:auto!important;max-width:none!important;display:block;margin:0 auto}</style></head><body>${svgContent}</body></html>`;
-  }
 
   function closeOverlay() {
     visible = false;
@@ -76,19 +79,21 @@
   <div
     class="fixed inset-0 z-[100] flex flex-col transition-all duration-300 {visible ? 'opacity-100' : 'opacity-0 pointer-events-none'}"
     role="dialog"
+    aria-modal="true"
     aria-label="Artifact viewer"
+    tabindex="-1"
     onclick={closeOverlay}
     onkeydown={(e) => e.key === 'Escape' && closeOverlay()}
   >
     <div class="absolute inset-0 bg-stone-900/90 backdrop-blur-sm"></div>
     <div
-      class="relative flex flex-col flex-1 m-2 rounded-2xl bg-stone-800 overflow-hidden transition-transform duration-300 {visible ? 'translate-y-0' : 'translate-y-8'}"
+      class="relative flex flex-col flex-1 m-2 rounded-lg bg-stone-800 overflow-hidden transition-transform duration-300 {visible ? 'translate-y-0' : 'translate-y-8'}"
       onclick={(e) => e.stopPropagation()}
       onkeydown={(e) => e.stopPropagation()}
     >
       <div class="flex items-center justify-between px-4 py-3 bg-stone-800/90 shrink-0 border-b border-stone-700">
         <button onclick={closeOverlay} class="flex items-center gap-1.5 text-stone-300 hover:text-white transition-colors" aria-label="Back to chat">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7 7"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
           <span class="text-sm font-medium">Chat</span>
         </button>
         <div class="flex items-center gap-2">
@@ -108,15 +113,11 @@
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
         </button>
       </div>
-      <div class="flex-1 bg-[#faf7f2] overflow-auto relative">
-        {#if svg}
-          {#key svg}
-            <iframe title={title} srcdoc={getZoomableDoc(svg)} sandbox="allow-scripts allow-same-origin" class="absolute inset-0 w-full h-full border-none" />
+      <div class="flex-1 bg-[#faf7f2] overflow-auto relative p-2">
+        {#if overlayArtifact}
+          {#key overlayArtifact.id}
+            <ArtifactPanel artifact={overlayArtifact} progressive={false} />
           {/key}
-        {:else if renderDoc}
-          <iframe title={title} srcdoc={renderDoc} sandbox="allow-scripts allow-same-origin" class="absolute inset-0 w-full h-full border-none" />
-        {:else if code}
-          <pre class="p-4 text-xs font-mono text-stone-700 whitespace-pre-wrap break-words">{code}</pre>
         {/if}
       </div>
     </div>

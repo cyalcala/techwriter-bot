@@ -5,7 +5,7 @@ import svelte from '@astrojs/svelte';
 import tailwindcss from '@tailwindcss/vite';
 import cloudflare from '@astrojs/cloudflare';
 
-function envDefine(key) {
+function envDefine(/** @type {string} */ key) {
   const val = process.env[key];
   return val ? JSON.stringify(val) : 'undefined';
 }

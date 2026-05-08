@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { ArtifactEntry } from '../lib/artifact-queue';
   import { timeAgo } from '../lib/artifact-lifecycle';
+  import { renderSvgArtifact } from '../lib/renderer-loader';
 
   interface Props {
     entry: ArtifactEntry;
@@ -10,8 +11,9 @@
 
   let { entry, active = false, onclick }: Props = $props();
 
-  const KROKI_TYPES = new Set(['mermaid', 'graphviz', 'd2', 'plantuml', 'flowchart']);
-  let isGenerating = $derived(!active && KROKI_TYPES.has(entry.artifact.type) && entry.artifact.type !== 'svg' && (Date.now() - entry.ts) < 15_000);
+  let isGenerating = $derived(entry.status === 'generating' || entry.status === 'updating');
+  let hasError = $derived(entry.status === 'error' || !!entry.error);
+  let svgPreview = $derived(entry.artifact.type === 'svg' && entry.artifact.code ? renderSvgArtifact(entry.artifact.code) : '');
 
   const typeColors: Record<string, string> = {
     mermaid: 'bg-cyan-600 text-white', graphviz: 'bg-purple-600 text-white',
@@ -35,15 +37,15 @@
   onpointerup={cancelLongPress}
   onpointerleave={cancelLongPress}
   class="w-full text-left px-4 py-3 rounded-2xl border transition-all duration-150
-    {active ? 'border-amber-400 bg-amber-50/60 shadow-md scale-[1.01]' : isGenerating ? 'border-amber-200/60 bg-amber-50/30 animate-pulse' : 'border-stone-200/50 bg-white/60 hover:bg-white hover:border-stone-300 hover:shadow-sm hover:scale-[1.005]'}"
+    {active ? 'border-amber-400 bg-amber-50/60 shadow-md scale-[1.01]' : hasError ? 'border-red-200 bg-red-50/50' : isGenerating ? 'border-amber-200/60 bg-amber-50/30 animate-pulse' : 'border-stone-200/50 bg-white/60 hover:bg-white hover:border-stone-300 hover:shadow-sm hover:scale-[1.005]'}"
   aria-label="View artifact: {entry.artifact.title || entry.artifact.type}"
-  role="article"
+  aria-busy={isGenerating}
 >
   <div class="flex items-center gap-3">
     <div class="shrink-0">
-      {#if entry.artifact.type === 'svg' && entry.artifact.code}
+      {#if svgPreview}
         <div class="w-10 h-10 rounded-lg overflow-hidden bg-white border border-stone-100 shadow-sm">
-          {@html entry.artifact.code}
+          {@html svgPreview}
         </div>
       {:else if isGenerating}
         <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-amber-100">
@@ -66,9 +68,11 @@
       <div class="flex items-center gap-2 mt-0.5">
         {#if isGenerating}
           <span class="text-[10px] text-amber-500 font-medium">Creating visual...</span>
+        {:else if hasError}
+          <span class="text-[10px] text-red-500 font-medium truncate">{entry.error || 'Render issue'}</span>
         {:else}
-          <span class="text-[10px] text-stone-400">{timeAgo(Date.now())}</span>
-          <span class="text-[10px] text-stone-300">· {entry.artifact.type}</span>
+          <span class="text-[10px] text-stone-400">{timeAgo(entry.ts)}</span>
+          <span class="text-[10px] text-stone-300">- {entry.artifact.type}</span>
         {/if}
       </div>
     </div>

@@ -18,7 +18,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
       return new Response(JSON.stringify({ error: 'invalid', message: 'type and code required' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
 
-    const { type, code } = body;
+    const type = String(body.type || '').toLowerCase();
+    const code = String(body.code || '');
+    if (code.length > 200_000) {
+      return new Response(JSON.stringify({ error: 'too_large', message: 'Artifact source is too large to render safely.' }), { status: 413, headers: { 'Content-Type': 'application/json' } });
+    }
     if (!KROKI_RENDERABLE.has(type)) {
       return new Response(JSON.stringify({ error: 'unsupported_type', message: `${type} is not server-renderable` }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
@@ -27,7 +31,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (result.svg) {
       return new Response(JSON.stringify({ svg: result.svg, cached: result.cached }), { headers: { 'Content-Type': 'application/json' } });
     }
-    return new Response(JSON.stringify({ error: result.error || 'render_failed' }), { status: 502, headers: { 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ error: 'render_failed', message: result.error || 'Renderer returned no SVG.' }), { status: 502, headers: { 'Content-Type': 'application/json' } });
   } catch (e: any) {
     return new Response(JSON.stringify({ error: 'server_error', message: e.message?.slice(0, 200) }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }

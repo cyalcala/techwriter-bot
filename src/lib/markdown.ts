@@ -1,7 +1,30 @@
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 
-const DIAGRAM_LANGS = new Set(['mermaid', 'graphviz', 'dot', 'd2', 'plantuml', 'puml', 'flowchart', 'markmap', 'vega', 'vega-lite', 'katex', 'webcontainer', 'block', 'actdiag', 'blockdiag', 'nwdiag', 'packetdiag', 'rackdiag', 'seqdiag', 'svgbob', 'umlet', 'wavedrom']);
+const DIAGRAM_LANGS = new Set([
+  'html',
+  'htm',
+  'svg',
+  'mermaid',
+  'mmd',
+  'graphviz',
+  'dot',
+  'd2',
+  'plantuml',
+  'puml',
+  'flowchart',
+  'markmap',
+  'markdown',
+  'md',
+  'vega',
+  'vega-lite',
+  'vegalite',
+  'katex',
+  'latex',
+  'tex',
+  'webcontainer',
+  'webcontainers',
+]);
 
 const renderer = new marked.Renderer();
 const origCode = renderer.code.bind(renderer);

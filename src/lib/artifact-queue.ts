@@ -1,9 +1,12 @@
 import type { Artifact } from './stream-parser';
+import type { ArtifactStatus } from './artifact-lifecycle';
 
 export interface ArtifactEntry {
   messageIdx: number;
   artifact: Artifact;
   ts: number;
+  status: ArtifactStatus;
+  error?: string;
 }
 
 type Subscriber = (entries: ArtifactEntry[]) => void;
@@ -13,7 +16,10 @@ export function createArtifactQueue() {
   let subscribers: Subscriber[] = [];
 
   function push(entry: ArtifactEntry) {
-    entries = [...entries, entry];
+    const idx = entries.findIndex(e => e.messageIdx === entry.messageIdx && e.artifact.id === entry.artifact.id);
+    entries = idx === -1
+      ? [...entries, entry]
+      : entries.map((existing, i) => i === idx ? { ...existing, ...entry, ts: existing.ts } : existing);
     for (const sub of subscribers) sub(entries);
   }
 
@@ -22,13 +28,26 @@ export function createArtifactQueue() {
     for (const sub of subscribers) sub(entries);
   }
 
-  function replace(messageIdx: number, artifactId: string, replacement: Artifact) {
+  function replace(
+    messageIdx: number,
+    artifactId: string,
+    replacement: Artifact,
+    meta: Partial<Pick<ArtifactEntry, 'status' | 'error' | 'ts'>> = {},
+  ): ArtifactEntry | null {
+    let updated: ArtifactEntry | null = null;
     entries = entries.map(e =>
       e.messageIdx === messageIdx && e.artifact.id === artifactId
-        ? { messageIdx, artifact: replacement }
+        ? (updated = {
+            ...e,
+            ...meta,
+            messageIdx,
+            artifact: replacement,
+            ts: meta.ts ?? e.ts,
+          })
         : e
     );
     for (const sub of subscribers) sub(entries);
+    return updated;
   }
 
   function forMessage(messageIdx: number): ArtifactEntry[] {
