@@ -17,17 +17,27 @@ mermaid.run({nodes:[el]}).then(function(){
   var s = document.querySelector('svg');
   if(!s){
     document.body.innerHTML = '<div class="err"><b>💣</b>Could not render diagram.</div>'+'${codeBlock.replace(/'/g, "\\'").replace(/`/g, '\\`').replace(/\\/g, '\\\\').replace(/\n/g, '\\n')}';
+  } else {
+    s.style.width = '100%';
+    s.style.height = 'auto';
+    s.style.maxWidth = 'none';
+    s.setAttribute('width', '100%');
   }
 });
 <\/script></body></html>`;
 
     case 'graphviz':
-      return `${base}<script src="https://cdn.jsdelivr.net/npm/@hpcc-js/wasm@2/dist/index.umd.min.js"><\/script></head><body><div id="out"></div><script>
+      return `${base}<script src="https://cdn.jsdelivr.net/npm/@viz-js/viz@3.6.4/lib/viz-standalone.js"><\/script></head><body><div id="out"></div><script>
 (async function(){
   try{
     var dotSrc = ${JSON.stringify(code)};
-    var gv = await window["@hpcc-js/wasm"].Graphviz.load();
-    document.getElementById('out').innerHTML = gv.dot(dotSrc);
+    var viz = await Viz.instance();
+    var svgEl = viz.renderSVGElement(dotSrc);
+    svgEl.style.width = '100%';
+    svgEl.style.height = 'auto';
+    svgEl.style.maxWidth = 'none';
+    svgEl.setAttribute('width', '100%');
+    document.getElementById('out').appendChild(svgEl);
   }catch(e){
     document.getElementById('out').innerHTML = '<div class="err"><b>🔧</b>Graphviz render failed</div>'+'${codeBlock.replace(/'/g, "\\'").replace(/`/g, '\\`').replace(/\\/g, '\\\\').replace(/\n/g, '\\n')}';
   }
@@ -40,8 +50,10 @@ mermaid.run({nodes:[el]}).then(function(){
   try{
     var d2code = ${JSON.stringify(code)};
     var d2inst = new D2();
-    var svg = await d2inst.render(d2code);
-    document.getElementById('out').innerHTML = svg;
+    var svgStr = await d2inst.render(d2code);
+    document.getElementById('out').innerHTML = svgStr;
+    var s = document.querySelector('svg');
+    if(s){ s.style.width='100%'; s.style.height='auto'; s.style.maxWidth='none'; s.setAttribute('width','100%'); }
   }catch(e){
     document.getElementById('out').innerHTML = '<div class="err"><b>🔧</b>D2 render failed</div>'+'${codeBlock.replace(/'/g, "\\'").replace(/`/g, '\\`').replace(/\\/g, '\\\\').replace(/\n/g, '\\n')}';
   }
