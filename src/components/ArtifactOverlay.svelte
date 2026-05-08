@@ -108,13 +108,13 @@
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
         </button>
       </div>
-      <div class="flex-1 bg-[#faf7f2] overflow-auto">
+      <div class="flex-1 bg-[#faf7f2] overflow-auto relative">
         {#if svg}
           {#key svg}
-            <iframe title={title} srcdoc={getZoomableDoc(svg)} sandbox="allow-scripts" class="w-full h-full border-none" />
+            <iframe title={title} srcdoc={getZoomableDoc(svg)} sandbox="allow-scripts allow-same-origin" class="absolute inset-0 w-full h-full border-none" />
           {/key}
         {:else if renderDoc}
-          <iframe title={title} srcdoc={renderDoc} sandbox="allow-scripts" class="w-full h-full border-none" />
+          <iframe title={title} srcdoc={renderDoc} sandbox="allow-scripts allow-same-origin" class="absolute inset-0 w-full h-full border-none" />
         {:else if code}
           <pre class="p-4 text-xs font-mono text-stone-700 whitespace-pre-wrap break-words">{code}</pre>
         {/if}
