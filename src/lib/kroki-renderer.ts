@@ -1,5 +1,5 @@
 const KROKI_BASE = 'https://kroki.io';
-const KROKI_TIMEOUT_MS = 8000;
+const KROKI_TIMEOUT_MS = 20_000;
 const CACHE_TTL_SECONDS = 86400;
 
 const TYPE_MAP: Record<string, string> = {

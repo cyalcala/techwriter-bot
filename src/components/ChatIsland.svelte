@@ -105,7 +105,7 @@
     async function tryKroki(attempt: number): Promise<boolean> {
       try {
         const ctrl = new AbortController();
-        const timer = setTimeout(() => ctrl.abort(), 10_000);
+        const timer = setTimeout(() => ctrl.abort(), 25_000);
         const res = await fetch('/api/render-artifact', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

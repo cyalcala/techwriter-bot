@@ -339,7 +339,8 @@ async function renderServerSvgInto(el: HTMLElement, type: ArtifactType, code: st
     });
     const data = await res.json().catch(() => null);
     if (res.ok && data?.svg) {
-      el.innerHTML = data.svg;
+      el.innerHTML = sanitizeSvg(data.svg);
+      el.className = 'artifact-server-svg flex justify-center overflow-auto';
       return;
     }
     el.innerHTML = renderError(label, data?.message || data?.error || `Renderer returned ${res.status}`, code);
