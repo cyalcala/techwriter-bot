@@ -154,33 +154,13 @@ export function renderHtmlArtifact(code: string): string {
 export function renderSvgArtifact(code: string): string { return `<div class="artifact-svg-host">${sanitizeSvg(code)}</div>`; }
 
 export function renderMermaidArtifact(code: string): string {
-  const sanitized = sanitizeMermaid(code);
   const id = `mer-${rand()}`;
   domReady(async () => {
     const el = document.getElementById(id);
     if (!el) return;
-    try {
-      const mm = window.mermaid || (window as any).mermaid;
-      if (!mm) {
-        await renderServerSvgInto(el, 'mermaid', code, 'Mermaid');
-        return;
-      }
-      await mm.initialize({ startOnLoad: false, securityLevel: 'loose', theme: 'default' });
-      const { svg } = await mm.render(`${id}-s`, sanitized);
-      const hasContent = svg.includes('<text') || svg.includes('<tspan') || svg.includes('<foreignObject');
-      if (!hasContent) {
-        el.innerHTML = renderError('Mermaid', 'Rendered diagram appears empty. The code may have nodes without labels.', code);
-      } else {
-        el.innerHTML = sanitizeSvg(svg);
-        const styleEl = document.createElement('style');
-        styleEl.textContent = 'svg .label,svg text,svg tspan,svg .nodeLabel,svg .edgeLabel,svg .messageText{fill:#1e293b!important;stroke:none!important}';
-        el.prepend(styleEl);
-      }
-    } catch (e) {
-      el.innerHTML = renderError('Mermaid', String(e), code);
-    }
+    await renderServerSvgInto(el, 'mermaid', code, 'Mermaid');
   });
-  return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm">Rendering diagram...</div>`;
+  return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm">Rendering diagram via server...</div>`;
 }
 
 export function renderKatexArtifact(code: string): string {
@@ -227,24 +207,9 @@ export function renderD2Artifact(code: string): string {
   domReady(async () => {
     const el = document.getElementById(id);
     if (!el) return;
-    try {
-      const D2 = (window as any).D2 || (window as any).d2?.D2;
-      if (D2) {
-        const svg = await new D2().render(code);
-        el.innerHTML = sanitizeSvg(svg);
-        el.className = 'flex justify-center overflow-x-auto';
-      } else if ((window as any).d2?.compile) {
-        const result = await (window as any).d2.compile(code, { layout: 'dagre' });
-        el.innerHTML = sanitizeSvg(result.svg || '');
-        el.className = 'flex justify-center overflow-x-auto';
-      } else {
-        await renderServerSvgInto(el, 'd2', code, 'D2');
-      }
-    } catch (e) {
-      el.innerHTML = renderError('D2', String(e), code);
-    }
+    await renderServerSvgInto(el, 'd2', code, 'D2');
   });
-  return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm">Rendering D2 diagram...</div>`;
+  return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm">Rendering via server...</div>`;
 }
 
 export function renderVegaArtifact(code: string): string {
@@ -267,17 +232,9 @@ export function renderGraphvizArtifact(code: string): string {
   domReady(async () => {
     const el = document.getElementById(id);
     if (!el) return;
-    try {
-      const gv = (window as any).graphviz;
-      const hpcc = (window as any).hpccWasm;
-      if (gv?.layout) el.innerHTML = sanitizeSvg(await gv.layout(code, 'svg', 'dot'));
-      else if (hpcc?.graphviz?.layout) el.innerHTML = sanitizeSvg(await hpcc.graphviz.layout(code, 'svg', 'dot'));
-      else await renderServerSvgInto(el, 'graphviz', code, 'Graphviz');
-    } catch (e) {
-      if (el) el.innerHTML = renderError('Graphviz', String(e), code);
-    }
+    await renderServerSvgInto(el, 'graphviz', code, 'Graphviz');
   });
-  return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm" style="min-height:200px">Rendering Graphviz...</div>`;
+  return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm">Rendering via server...</div>`;
 }
 
 export function renderPlantUMLArtifact(code: string): string {
@@ -291,23 +248,7 @@ export function renderPlantUMLArtifact(code: string): string {
 }
 
 export function renderFlowchartArtifact(code: string): string {
-  const id = `fc-${rand()}`;
-  domReady(() => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    try {
-      if ((window as any).flowchart) {
-        const diagram = (window as any).flowchart.parse(code);
-        el.innerHTML = '';
-        diagram.drawSVG(id);
-      } else {
-        el.innerHTML = renderError('Flowchart', 'Renderer not loaded.', code);
-      }
-    } catch (e) {
-      if (el) el.innerHTML = renderError('Flowchart', String(e), code);
-    }
-  });
-  return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm">Rendering flowchart...</div>`;
+  return renderMermaidArtifact(code);
 }
 
 export function renderReactArtifact(code: string): string {
