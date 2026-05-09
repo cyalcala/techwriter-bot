@@ -6,7 +6,7 @@
 [![Astro](https://img.shields.io/badge/Astro-6.1-ff5d01?style=flat-square&logo=astro)](https://astro.build)
 [![Svelte](https://img.shields.io/badge/Svelte-5-ff3e00?style=flat-square&logo=svelte)](https://svelte.dev)
 
-**[Live Demo](https://techwriter-bot.pages.dev)** · **[Documentation](#features)** · **[Deployment](#getting-started)**
+**[Live Demo](https://tw-bot.pages.dev)** · **[Documentation](#features)** · **[Deployment](#getting-started)**
 
 ---
 
