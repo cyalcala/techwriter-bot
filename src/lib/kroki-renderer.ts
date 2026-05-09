@@ -32,12 +32,15 @@ export async function renderViaKroki(type: string, code: string, kv: any): Promi
   }
 
   try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), KROKI_TIMEOUT_MS);
     const res = await fetch(`${KROKI_BASE}/${krokiType}/svg`, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
       body: code,
-      signal: AbortSignal.timeout(KROKI_TIMEOUT_MS),
+      signal: ctrl.signal,
     });
+    clearTimeout(timer);
 
     if (!res.ok) {
       const errText = await res.text().catch(() => 'unknown');
