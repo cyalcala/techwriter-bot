@@ -154,13 +154,25 @@ export function renderHtmlArtifact(code: string): string {
 export function renderSvgArtifact(code: string): string { return `<div class="artifact-svg-host">${sanitizeSvg(code)}</div>`; }
 
 export function renderMermaidArtifact(code: string): string {
+  const sanitized = sanitizeMermaid(code);
   const id = `mer-${rand()}`;
   domReady(async () => {
     const el = document.getElementById(id);
     if (!el) return;
+    const mm = window.mermaid || (window as any).mermaid;
+    if (mm) {
+      try {
+        mm.initialize({ startOnLoad: false, securityLevel: 'loose', theme: 'base', themeVariables: { primaryColor: '#f1f5f9', primaryTextColor: '#1e293b', primaryBorderColor: '#475569', lineColor: '#475569', secondaryColor: '#f8fafc', tertiaryColor: '#f1f5f9' } });
+        const { svg } = await mm.render(`${id}-s`, sanitized);
+        if (svg && svg.includes('<text')) {
+          el.innerHTML = sanitizeSvg(svg);
+          return;
+        }
+      } catch (e) { /* fall through to Kroki */ }
+    }
     await renderServerSvgInto(el, 'mermaid', code, 'Mermaid');
   });
-  return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm">Rendering diagram via server...</div>`;
+  return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm">Rendering diagram...</div>`;
 }
 
 export function renderKatexArtifact(code: string): string {
