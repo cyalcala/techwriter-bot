@@ -61,9 +61,8 @@
   const SSE_MAX_DROPS = 3;
   const SSE_DROP_WINDOW_MS = 60_000;
 
-  const KROKI_RENDERABLE = new Set(['mermaid', 'graphviz', 'd2', 'plantuml', 'vega', 'flowchart']);
+  const KROKI_SERVER_ONLY = new Set(['d2', 'graphviz', 'plantuml']);
   const renderedHashes = new Set<string>();
-  const autoRetriedArtifacts = new Set<string>();
 
   const artifactQueue = createArtifactQueue();
   let activeArtifactEntry = $state<ArtifactEntry | null>(null);
@@ -93,59 +92,44 @@
     const title = cleanArt.title || extractArtifactTitle(code, cleanArt.type);
     const entry: ArtifactEntry = { messageIdx: msgIdx, artifact: { ...cleanArt, title }, ts: Date.now() };
     artifactQueue.push(entry);
-    if (!KROKI_RENDERABLE.has(cleanArt.type)) return;
+    // Only use Kroki for types that have NO client-side renderer
+  const KROKI_SERVER_ONLY = new Set(['d2', 'graphviz', 'plantuml']);
+  if (!KROKI_SERVER_ONLY.has(cleanArt.type)) return;
     const pendingId = entry.artifact.id;
 
-    async function tryKroki(attempt: number): Promise<'success' | 'retry' | 'abort'> {
-      try {
-        const ctrl = new AbortController();
-        const timer = setTimeout(() => ctrl.abort(), 25_000);
-        const res = await fetch('/api/render-artifact', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ type: cleanArt.type, code }),
-          signal: ctrl.signal,
-        });
-        clearTimeout(timer);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.svg) {
-            artifactQueue.replace(msgIdx, pendingId, { ...cleanArt, code: data.svg, type: 'svg' as any, title, placement: 'inline' });
-            const updated = artifactQueue.entries.find(e => e.messageIdx === msgIdx && e.artifact.type === 'svg');
-            if (updated && activeArtifactEntry?.artifact.id === pendingId) {
-              activeArtifactEntry = updated;
-            }
-            saveArtifactQueue(sessionId, artifactQueue.entries);
-            return 'success';
-          }
-        } else if (res.status === 400) {
-          const errData = await res.json().catch(() => ({}));
-          const errMsg = errData.message || errData.error || 'Syntax Error';
-          if (!autoRetriedArtifacts.has(pendingId)) {
-            autoRetriedArtifacts.add(pendingId);
-            const prompt = `The diagram "${title}" failed to render due to a syntax error:\n\nError: ${errMsg}\n\nPlease analyze the error and provide the strictly corrected diagram code block. Do not use invalid syntax like 'note' inside flowcharts.`;
-            setTimeout(() => {
-              messages = [...messages, { role: 'system', content: `*System detected a diagram syntax error in ${title}. Auto-correcting...*` }];
-              if (chatState === 'idle') {
-                messages = [...messages, { role: 'user', content: prompt }];
-                doSend();
-              } else {
-                messageQueue.push({ content: prompt, timestamp: Date.now() });
-              }
-            }, 100);
-          }
-          return 'abort';
-        }
-      } catch (e) {
-        console.error('[Kroki] Attempt', attempt, 'failed:', (e as Error).message);
-      }
-      return 'retry';
-    }
+    // One-shot server render — no retry cascade, no auto AI re-prompt
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 15_000);
+      const res = await fetch('/api/render-artifact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: cleanArt.type, code }),
+        signal: ctrl.signal,
+      });
+      clearTimeout(timer);
 
-    const krokiResult = await tryKroki(1);
-    if (krokiResult === 'retry') {
-      await new Promise(r => setTimeout(r, 2000));
-      await tryKroki(2);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.svg) {
+          artifactQueue.replace(msgIdx, pendingId, { ...cleanArt, code: data.svg, type: 'svg' as any, title, placement: 'inline' });
+          const updated = artifactQueue.entries.find(e => e.messageIdx === msgIdx && e.artifact.type === 'svg');
+          if (updated && activeArtifactEntry?.artifact.id === pendingId) {
+            activeArtifactEntry = updated;
+          }
+          saveArtifactQueue(sessionId, artifactQueue.entries);
+          return;
+        }
+      }
+
+      // On any error (400 syntax, 502 server, etc.) — store error on entry, don't auto-retry
+      const errData = await res.json().catch(() => ({}));
+      const errMsg = errData.message || errData.error || `Server returned ${res.status}`;
+      artifactQueue.replace(msgIdx, pendingId, { ...cleanArt, title }, { error: errMsg, status: 'error' });
+      // Keep the raw diagram code visible — user can click "Fix with AI" manually
+    } catch (e) {
+      const errMsg = (e as Error).name === 'AbortError' ? 'Render timed out (15s)' : (e as Error).message;
+      artifactQueue.replace(msgIdx, pendingId, { ...cleanArt, title }, { error: errMsg, status: 'error' });
     }
   }
 
@@ -527,7 +511,8 @@
           const resolvePromises: Promise<void>[] = [];
           for (const fa of result.artifacts) {
             if (!fa.type || !fa.code) continue;
-            if (KROKI_RENDERABLE.has(fa.type) && alreadyResolved.has(fa.title || `${fa.type} Diagram`)) continue;
+            // Only Kroki-render types without client-side renderers (already filtered in resolveArtifact)
+            if (alreadyResolved.has(fa.title || `${fa.type} Diagram`)) continue;
             resolvePromises.push((async () => { await resolveArtifact(fa, msgIdx); })());
           }
           await Promise.all(resolvePromises);

@@ -18,7 +18,7 @@
   let hasContent = $derived(!!svg || !!code);
   let overlayArtifact = $derived<Artifact | null>(hasContent ? {
     id: `overlay-${type}-${(svg || code).length}`,
-    type: (svg ? 'svg' : type || 'code') as ArtifactType,
+    type: (type || (svg ? 'svg' : 'code')) as ArtifactType,
     title: title || 'Artifact',
     placement: 'modal',
     code: svg || code,

@@ -274,8 +274,11 @@ export const POST: APIRoute = async (ctx) => {
 
     const needsArtifact = isArtifactGenerationRequest(query, messages);
 
+    // For artifact requests: route as 'fast' for minimal latency but bump max tokens to 2048
+    const effectivePath = needsArtifact ? 'fast' : pathCtx.path;
+
     const promptCtx: PromptContext = {
-      path: pathCtx.path,
+      path: effectivePath,
       graphContext: graphContextStr || undefined,
       documentContext: documentContextStr || undefined,
       searchResult,
@@ -288,7 +291,7 @@ export const POST: APIRoute = async (ctx) => {
       try { await env.SESSION.put(`reputation:${ip}`, serializeReputation(rep), { expirationTtl: 7200 }); } catch {}
     }
 
-    if (!isWithinBudget(messages, 2048, 4096)) {
+    if (!isWithinBudget(messages, needsArtifact ? 2048 : 2048, 4096)) {
       const trimmed = messages.slice(-12);
       if (!isWithinBudget(trimmed, 2048, 4096)) {
         return new Response(JSON.stringify({ error: 'token_budget_exceeded', message: 'Conversation too long. Start a new chat.' }), { status: 413, headers: { 'Content-Type': 'application/json' } });
@@ -298,26 +301,31 @@ export const POST: APIRoute = async (ctx) => {
 
     const tier = isDev ? 'premium' : rep.tier;
     let pool = isDev
-      ? (pathCtx.path === 'fast' ? ['groq-fast'] : ['groq-fast', 'gemini-flash'])
+      ? (effectivePath === 'fast' ? ['groq-fast'] : ['groq-fast', 'gemini-flash'])
       : getTierProviderPool(tier).pool;
 
     if (needsArtifact) {
-      pool = ['groq-fast', 'gemini-flash', 'cerebras-llama', 'cloudflare-llama'];
-    } else if (pathCtx.path === 'fast') {
+      // Keep session affinity for artifacts — lock to the session provider, don't cycle
+      pool = isDev ? ['groq-fast'] : getTierProviderPool(tier).pool;
+    } else if (effectivePath === 'fast') {
       pool = ['groq-fast', 'cerebras-llama', 'gemini-flash', 'cloudflare-llama'];
     }
+
+    const forceSticky = needsArtifact;
 
     const meta: ResponseMetadata = {
       provider: null,
       searchTier: searchResult.searchTier,
       searchRemaining: searchResult.enhancedRemaining != null ? String(searchResult.enhancedRemaining) : (isDev ? 'unlimited' : '0'),
       tier: isDev ? 'dev' : tier,
-      chatPath: pathCtx.path,
+      chatPath: effectivePath,
     };
 
     const response = await routeChat(
-      pathCtx.path === 'fast' ? 'chat-fast' : body.intent || 'chat-fast',
-      messages, locals, env, sessionId, searchResult.sources, meta, pool, pathCtx.path,
+      effectivePath === 'fast' ? 'chat-fast' : body.intent || 'chat-fast',
+      messages, locals, env, sessionId, searchResult.sources, meta, pool, effectivePath,
+      forceSticky,
+      needsArtifact ? 2048 : undefined,
     );
 
     const systemPrompt = messages.find((m: any) => m.role === 'system');

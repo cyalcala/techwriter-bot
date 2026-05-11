@@ -134,6 +134,13 @@ export async function loadRenderer(type: ArtifactType): Promise<void> {
   }
 }
 
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`Render timed out after ${Math.round(ms / 1000)}s`)), ms)),
+  ]);
+}
+
 function domReady(fn: () => void): void {
   requestAnimationFrame(() => requestAnimationFrame(fn));
 }
@@ -160,19 +167,26 @@ export function renderMermaidArtifact(code: string): string {
     const el = document.getElementById(id);
     if (!el) return;
     const mm = window.mermaid || (window as any).mermaid;
-    if (mm) {
-      try {
-        mm.initialize({ startOnLoad: false, securityLevel: 'loose', theme: 'base', themeVariables: { primaryColor: '#f1f5f9', primaryTextColor: '#1e293b', primaryBorderColor: '#475569', lineColor: '#475569', secondaryColor: '#f8fafc', tertiaryColor: '#f1f5f9' } });
-        const { svg } = await mm.render(`${id}-s`, sanitized);
-        if (svg && svg.includes('<text')) {
-          el.innerHTML = sanitizeSvg(svg);
-          return;
-        }
-      } catch (e) { /* fall through to Kroki */ }
+    if (!mm) {
+      el.innerHTML = renderError('Mermaid', 'Mermaid library failed to load. Please refresh.', code);
+      return;
     }
-    await renderServerSvgInto(el, 'mermaid', code, 'Mermaid');
+    try {
+      mm.initialize({ startOnLoad: false, securityLevel: 'loose', theme: 'base', themeVariables: { primaryColor: '#f1f5f9', primaryTextColor: '#1e293b', primaryBorderColor: '#475569', lineColor: '#475569', secondaryColor: '#f8fafc', tertiaryColor: '#f1f5f9' } });
+      const renderPromise = mm.render(`${id}-s`, sanitized);
+      const timeoutPromise = new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Mermaid render timed out after 5s')), 5000));
+      const { svg } = await Promise.race([renderPromise, timeoutPromise]);
+      if (svg && /<svg\b/i.test(svg)) {
+        el.innerHTML = sanitizeSvg(svg);
+        el.className = 'artifact-server-svg flex justify-center overflow-auto';
+      } else {
+        el.innerHTML = renderError('Mermaid', 'Render produced no valid SVG output.', code);
+      }
+    } catch (e: any) {
+      el.innerHTML = renderError('Mermaid', e.message || String(e), code);
+    }
   });
-  return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm">Rendering diagram...</div>`;
+  return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm"><div class="inline-block w-5 h-5 border-2 border-stone-300 border-t-amber-500 rounded-full animate-spin mb-2"></div><br/>Rendering diagram...</div>`;
 }
 
 export function renderKatexArtifact(code: string): string {
@@ -181,12 +195,22 @@ export function renderKatexArtifact(code: string): string {
     const el = document.getElementById(id);
     if (!el) return;
     try {
-      if (window.katex) window.katex.render(code, el, { throwOnError: false, displayMode: true });
-      else el.innerHTML = renderError('KaTeX', 'Renderer not loaded.', code);
+      if (window.katex) {
+        window.katex.render(code, el, { throwOnError: false, displayMode: true });
+      } else {
+        el.innerHTML = renderError('KaTeX', 'Renderer not loaded. Please refresh.', code);
+      }
     } catch (e) {
       el.innerHTML = renderError('KaTeX', String(e), code);
     }
   });
+  // Timeout guard: if not rendered after 5s, show error
+  setTimeout(() => {
+    const el = document.getElementById(id);
+    if (el && el.textContent?.includes('Rendering math')) {
+      el.innerHTML = renderError('KaTeX', 'Renderer took too long. Please refresh.', code);
+    }
+  }, 5_000);
   return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm">Rendering math...</div>`;
 }
 
@@ -201,17 +225,24 @@ export function renderMarkmapArtifact(code: string): string {
         const t = new mm.Transformer();
         const { root } = t.transform(code);
         const svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svgEl.setAttribute('style', 'width:100%;min-height:300px');
         el.innerHTML = '';
         el.appendChild(svgEl);
         mm.Markmap.create(svgEl, undefined, root);
       } else {
-        el.innerHTML = renderError('Markmap', 'Renderer not loaded.', code);
+        el.innerHTML = renderError('Markmap', 'Renderer not loaded. Please refresh.', code);
       }
     } catch (e) {
       el.innerHTML = renderError('Markmap', String(e), code);
     }
   });
-  return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm" style="min-height:300px">Rendering mind map...</div>`;
+  setTimeout(() => {
+    const el = document.getElementById(id);
+    if (el && el.textContent?.includes('Rendering mind map')) {
+      el.innerHTML = renderError('Markmap', 'Renderer took too long. Please refresh.', code);
+    }
+  }, 8_000);
+  return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm" style="min-height:300px"><div class="inline-block w-5 h-5 border-2 border-stone-300 border-t-pink-500 rounded-full animate-spin mb-2"></div><br/>Rendering mind map...</div>`;
 }
 
 export function renderD2Artifact(code: string): string {
@@ -219,9 +250,13 @@ export function renderD2Artifact(code: string): string {
   domReady(async () => {
     const el = document.getElementById(id);
     if (!el) return;
-    await renderServerSvgInto(el, 'd2', code, 'D2');
+    try {
+      await withTimeout(renderServerSvgInto(el, 'd2', code, 'D2'), 15_000);
+    } catch (e: any) {
+      el.innerHTML = renderError('D2', e.message || 'Server render timed out', code);
+    }
   });
-  return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm">Rendering via server...</div>`;
+  return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm"><div class="inline-block w-5 h-5 border-2 border-stone-300 border-t-emerald-500 rounded-full animate-spin mb-2"></div><br/>Rendering D2 diagram...</div>`;
 }
 
 export function renderVegaArtifact(code: string): string {
@@ -230,13 +265,19 @@ export function renderVegaArtifact(code: string): string {
     const el = document.getElementById(id);
     if (!el) return;
     try {
-      if ((window as any).vegaEmbed) await (window as any).vegaEmbed(`#${id}`, JSON.parse(code), { actions: true, renderer: 'svg' });
-      else await renderServerSvgInto(el, 'vega', code, 'Vega');
-    } catch (e) {
-      if (el) el.innerHTML = renderError('Vega', String(e), code);
+      // Validate JSON first before attempting render
+      let spec: any;
+      try { spec = JSON.parse(code); } catch { el.innerHTML = renderError('Vega', 'Invalid JSON in Vega specification.', code); return; }
+      if ((window as any).vegaEmbed) {
+        await withTimeout((window as any).vegaEmbed(`#${id}`, spec, { actions: true, renderer: 'svg' }), 10_000);
+      } else {
+        await withTimeout(renderServerSvgInto(el, 'vega', code, 'Vega'), 15_000);
+      }
+    } catch (e: any) {
+      if (el) el.innerHTML = renderError('Vega', e.message || String(e), code);
     }
   });
-  return `<div id="${id}" class="p-4" style="min-height:200px"></div>`;
+  return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm" style="min-height:200px"><div class="inline-block w-5 h-5 border-2 border-stone-300 border-t-teal-500 rounded-full animate-spin mb-2"></div><br/>Rendering chart...</div>`;
 }
 
 export function renderGraphvizArtifact(code: string): string {
@@ -244,9 +285,13 @@ export function renderGraphvizArtifact(code: string): string {
   domReady(async () => {
     const el = document.getElementById(id);
     if (!el) return;
-    await renderServerSvgInto(el, 'graphviz', code, 'Graphviz');
+    try {
+      await withTimeout(renderServerSvgInto(el, 'graphviz', code, 'Graphviz'), 15_000);
+    } catch (e: any) {
+      el.innerHTML = renderError('Graphviz', e.message || 'Server render timed out', code);
+    }
   });
-  return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm">Rendering via server...</div>`;
+  return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm"><div class="inline-block w-5 h-5 border-2 border-stone-300 border-t-purple-500 rounded-full animate-spin mb-2"></div><br/>Rendering Graphviz diagram...</div>`;
 }
 
 export function renderPlantUMLArtifact(code: string): string {
@@ -254,13 +299,33 @@ export function renderPlantUMLArtifact(code: string): string {
   domReady(async () => {
     const el = document.getElementById(id);
     if (!el) return;
-    await renderServerSvgInto(el, 'plantuml', code, 'PlantUML');
+    try {
+      await withTimeout(renderServerSvgInto(el, 'plantuml', code, 'PlantUML'), 15_000);
+    } catch (e: any) {
+      el.innerHTML = renderError('PlantUML', e.message || 'Server render timed out', code);
+    }
   });
-  return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm" style="min-height:200px">Rendering PlantUML...</div>`;
+  return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm" style="min-height:200px"><div class="inline-block w-5 h-5 border-2 border-stone-300 border-t-orange-500 rounded-full animate-spin mb-2"></div><br/>Rendering PlantUML...</div>`;
 }
 
 export function renderFlowchartArtifact(code: string): string {
-  return renderMermaidArtifact(code);
+  // flowchart.js syntax uses => and -> operators; Mermaid uses graph/flowchart keyword
+  // If code looks like Mermaid flowchart syntax, delegate to Mermaid; otherwise use server render
+  if (/^\s*(graph|flowchart)\b/im.test(code)) {
+    return renderMermaidArtifact(code);
+  }
+  // For flowchart.js syntax, render via Kroki server
+  const id = `fc-${rand()}`;
+  domReady(async () => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    try {
+      await withTimeout(renderServerSvgInto(el, 'flowchart', code, 'Flowchart'), 15_000);
+    } catch (e: any) {
+      el.innerHTML = renderError('Flowchart', e.message || 'Server render timed out', code);
+    }
+  });
+  return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm"><div class="inline-block w-5 h-5 border-2 border-stone-300 border-t-blue-500 rounded-full animate-spin mb-2"></div><br/>Rendering flowchart...</div>`;
 }
 
 export function renderReactArtifact(code: string): string {

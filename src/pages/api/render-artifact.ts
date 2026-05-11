@@ -29,7 +29,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const result = await renderViaKroki(type, code, env.SESSION);
     if (result.svg) {
-      return new Response(JSON.stringify({ svg: result.svg, cached: result.cached }), { headers: { 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ svg: result.svg, cached: result.cached }), {
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': result.cached ? 'public, max-age=86400' : 'public, max-age=3600',
+        },
+      });
     }
     const statusCode = result.status === 400 ? 400 : 502;
     return new Response(JSON.stringify({ error: 'render_failed', message: result.error || 'Renderer returned no SVG.', status: statusCode }), { status: statusCode, headers: { 'Content-Type': 'application/json' } });

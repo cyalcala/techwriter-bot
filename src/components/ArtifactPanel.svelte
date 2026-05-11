@@ -54,9 +54,17 @@
     collapsed = false;
     progressiveCode = a.code;
 
-    loadRenderer(a.type).catch((error) => {
-      loadError = error instanceof Error ? error.message : String(error);
-    }).then(() => {
+    // Timeout guard: if renderer takes >15s, show error
+    const renderTimeout = setTimeout(() => {
+      if (!isLoaded) {
+        loadError = 'Renderer took too long to load. Please refresh the page.';
+        renderedHtml = renderPanelError(a.type, loadError, a.code);
+        isLoaded = true;
+      }
+    }, 15_000);
+
+    loadRenderer(a.type).then(() => {
+      clearTimeout(renderTimeout);
       try {
         switch (a.type) {
           case 'code': renderedHtml = renderCodeArtifact(a.code, a.language); break;
@@ -78,6 +86,11 @@
         loadError = error instanceof Error ? error.message : String(error);
         renderedHtml = renderPanelError(a.type, loadError, a.code);
       }
+      isLoaded = true;
+    }).catch((error) => {
+      clearTimeout(renderTimeout);
+      loadError = error instanceof Error ? error.message : String(error);
+      renderedHtml = renderPanelError(a.type, loadError, a.code);
       isLoaded = true;
     });
   });

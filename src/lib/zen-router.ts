@@ -196,6 +196,8 @@ export async function routeChat(
   metadata?: ResponseMetadata,
   allowedProviders?: string[],
   chatPath: 'fast' | 'balanced' | 'heavy' = 'balanced',
+  forceSticky: boolean = false,
+  maxTokensOverride?: number,
 ) {
   const role: ProviderRole = classifyQuery(messages, intent);
   let candidates = getProvidersForRole(role);
@@ -207,6 +209,7 @@ export async function routeChat(
   const unlimitedProviders = new Set(['gemini-flash', 'nvidia-fast', 'cloudflare-llama']);
 
   const getMaxTokens = (provider: Provider): number => {
+    if (maxTokensOverride) return maxTokensOverride;
     if (chatPath === 'fast') return 1024;
     if (unlimitedProviders.has(provider.id)) return 4096;
     return 2048;
@@ -223,37 +226,58 @@ export async function routeChat(
   for (const p of candidates) { if (!added.has(p.id)) { ordered.push(p); added.add(p.id); } }
 
   const attempt = async (): Promise<Response> => {
-    for (const provider of ordered) {
-      if (provider.id !== ordered[0]?.id && isCircuitOpen(provider.id)) continue;
-
-      const apiKey = getApiKey(provider, env);
-      if (!apiKey && provider.name !== 'cloudflare') { recordFail(provider.id, 401, 'no key'); continue; }
-
-      const start = Date.now();
-      try {
-        const maxTimeout = chatPath === 'fast' ? 12_000 : undefined;
-        const res = await callProvider(provider, messages, env, getMaxTokens(provider), maxTimeout);
-        const latency = Date.now() - start;
-
-        if (res.ok) {
-          recordSuccess(provider.id);
-          if (session) { session.lockedProviderId = provider.id; session.turnCount = (session.turnCount || 0) + 1; }
-          if (metadata) metadata.provider = provider.id;
-          return new Response(res.body, { status: res.status, headers: makeHeaders(provider, latency, sources, metadata) });
-        }
-
-        recordFail(provider.id, res.status);
-        console.log(JSON.stringify({ event: 'provider_fail', provider: provider.id, status: res.status, latency }));
-      } catch (e: any) {
-        recordFail(provider.id, 0, e.message || e.name);
-        console.log(JSON.stringify({ event: 'provider_err', provider: provider.id, error: e.message?.slice(0, 100) }));
+    // When forceSticky is true (artifact requests), lock to session provider and NEVER switch
+    if (forceSticky && session?.lockedProviderId) {
+      const locked = ordered.find(p => p.id === session!.lockedProviderId);
+      if (!locked) {
+        const fallback = ordered[0];
+        if (fallback) return trySingleProvider(fallback);
+        return new Response(JSON.stringify({ error: 'all_providers_exhausted', message: 'No provider available.', retryAfter: 5 }), { status: 503, headers: { 'Content-Type': 'application/json', 'Retry-After': '5' } });
       }
+      // Bypass circuit for forceSticky — session-locked provider always gets a chance
+      return trySingleProvider(locked, true);
+    }
+
+    for (const provider of ordered) {
+      const isSessionLocked = forceSticky && session?.lockedProviderId === provider.id;
+      if (!isSessionLocked && provider.id !== ordered[0]?.id && isCircuitOpen(provider.id)) continue;
+
+      const result = await trySingleProvider(provider, isSessionLocked);
+      if (result) return result;
     }
 
     return new Response(JSON.stringify({ error: 'all_providers_exhausted', message: 'All AI providers are currently unavailable. Please try again in a moment.', retryAfter: 10, debug: { tried: ordered.map(p => p.id), circuits: [...circuits.entries()].map(([k,v]) => ({id:k, failures:v.failures.length, ejected:v.ejectedUntil > Date.now()})) } }), {
       status: 503, headers: { 'Content-Type': 'application/json', 'Retry-After': '10' },
     });
   };
+
+  async function trySingleProvider(provider: Provider, skipCircuit: boolean = false): Promise<Response | null> {
+    if (!skipCircuit && isCircuitOpen(provider.id)) return null;
+
+    const apiKey = getApiKey(provider, env);
+    if (!apiKey && provider.name !== 'cloudflare') { recordFail(provider.id, 401, 'no key'); return null; }
+
+    const start = Date.now();
+    try {
+      const maxTimeout = chatPath === 'fast' ? 15_000 : undefined;
+      const res = await callProvider(provider, messages, env, getMaxTokens(provider), maxTimeout);
+      const latency = Date.now() - start;
+
+      if (res.ok) {
+        recordSuccess(provider.id);
+        if (session) { session.lockedProviderId = provider.id; session.turnCount = (session.turnCount || 0) + 1; }
+        if (metadata) metadata.provider = provider.id;
+        return new Response(res.body, { status: res.status, headers: makeHeaders(provider, latency, sources, metadata) });
+      }
+
+      recordFail(provider.id, res.status);
+      console.log(JSON.stringify({ event: 'provider_fail', provider: provider.id, status: res.status, latency }));
+    } catch (e: any) {
+      recordFail(provider.id, 0, e.message || e.name);
+      console.log(JSON.stringify({ event: 'provider_err', provider: provider.id, error: e.message?.slice(0, 100) }));
+    }
+    return null;
+  }
 
   const globalTimeout = PATH_TIMEOUTS[chatPath] || 25_000;
   const retryDelays = chatPath === 'fast' ? [] : [2000, 5000, 10000];
