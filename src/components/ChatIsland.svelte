@@ -77,6 +77,14 @@
         code = code.slice(firstNewline + 1, lastBacktick).trim();
       }
     }
+    if (art.type === 'mermaid') {
+      if (/^\s*(graph|flowchart)\b/im.test(code)) {
+        code = code.replace(/^\s*note\s+(?:right\s+of|left\s+of|over)\s+.*$/gim, '');
+        const parts = code.split(/\n(?=\s*(graph|flowchart)\b)/i);
+        if (parts.length > 1) code = parts[0].trim();
+      }
+    }
+
     const cleanArt = { ...art, code };
     const codeFingerprint = `${cleanArt.type}:${code.slice(0, 200)}:${code.length}`;
     if (renderedHashes.has(codeFingerprint)) return;
@@ -87,7 +95,7 @@
     if (!KROKI_RENDERABLE.has(cleanArt.type)) return;
     const pendingId = entry.artifact.id;
 
-    async function tryKroki(attempt: number): Promise<boolean> {
+    async function tryKroki(attempt: number): Promise<'success' | 'retry' | 'abort'> {
       try {
         const ctrl = new AbortController();
         const timer = setTimeout(() => ctrl.abort(), 25_000);
@@ -107,17 +115,19 @@
               activeArtifactEntry = updated;
             }
             saveArtifactQueue(sessionId, artifactQueue.entries);
-            return true;
+            return 'success';
           }
+        } else if (res.status === 400) {
+          return 'abort';
         }
       } catch (e) {
         console.error('[Kroki] Attempt', attempt, 'failed:', (e as Error).message);
       }
-      return false;
+      return 'retry';
     }
 
-    const ok = await tryKroki(1);
-    if (!ok) {
+    const krokiResult = await tryKroki(1);
+    if (krokiResult === 'retry') {
       await new Promise(r => setTimeout(r, 2000));
       await tryKroki(2);
     }

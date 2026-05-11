@@ -31,7 +31,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     if (result.svg) {
       return new Response(JSON.stringify({ svg: result.svg, cached: result.cached }), { headers: { 'Content-Type': 'application/json' } });
     }
-    return new Response(JSON.stringify({ error: 'render_failed', message: result.error || 'Renderer returned no SVG.' }), { status: 502, headers: { 'Content-Type': 'application/json' } });
+    const statusCode = result.status === 400 ? 400 : 502;
+    return new Response(JSON.stringify({ error: 'render_failed', message: result.error || 'Renderer returned no SVG.', status: statusCode }), { status: statusCode, headers: { 'Content-Type': 'application/json' } });
   } catch (e: any) {
     return new Response(JSON.stringify({ error: 'server_error', message: e.message?.slice(0, 200) }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }

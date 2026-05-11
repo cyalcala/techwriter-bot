@@ -19,7 +19,7 @@ async function sha256(text: string): Promise<string> {
   return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-export async function renderViaKroki(type: string, code: string, kv: any): Promise<{ svg?: string; error?: string; cached?: boolean }> {
+export async function renderViaKroki(type: string, code: string, kv: any): Promise<{ svg?: string; error?: string; cached?: boolean; status?: number }> {
   const krokiType = TYPE_MAP[type] || type;
   const hash = await sha256(krokiType + code);
   const cacheKey = `kroki:${hash.slice(0, 20)}`;
@@ -44,7 +44,7 @@ export async function renderViaKroki(type: string, code: string, kv: any): Promi
 
     if (!res.ok) {
       const errText = await res.text().catch(() => 'unknown');
-      return { error: errText.slice(0, 300) };
+      return { error: errText.slice(0, 300), status: res.status };
     }
 
     const svg = sanitizeSvg(await res.text());
