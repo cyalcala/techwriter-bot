@@ -63,6 +63,7 @@
 
   const KROKI_RENDERABLE = new Set(['mermaid', 'graphviz', 'd2', 'plantuml', 'vega', 'flowchart']);
   const renderedHashes = new Set<string>();
+  const autoRetriedArtifacts = new Set<string>();
 
   const artifactQueue = createArtifactQueue();
   let activeArtifactEntry = $state<ArtifactEntry | null>(null);
@@ -118,6 +119,21 @@
             return 'success';
           }
         } else if (res.status === 400) {
+          const errData = await res.json().catch(() => ({}));
+          const errMsg = errData.message || errData.error || 'Syntax Error';
+          if (!autoRetriedArtifacts.has(pendingId)) {
+            autoRetriedArtifacts.add(pendingId);
+            const prompt = `The diagram "${title}" failed to render due to a syntax error:\n\nError: ${errMsg}\n\nPlease analyze the error and provide the strictly corrected diagram code block. Do not use invalid syntax like 'note' inside flowcharts.`;
+            setTimeout(() => {
+              messages = [...messages, { role: 'system', content: `*System detected a diagram syntax error in ${title}. Auto-correcting...*` }];
+              if (chatState === 'idle') {
+                messages = [...messages, { role: 'user', content: prompt }];
+                doSend();
+              } else {
+                messageQueue.push({ content: prompt, timestamp: Date.now() });
+              }
+            }, 100);
+          }
           return 'abort';
         }
       } catch (e) {
@@ -333,11 +349,6 @@
     messages = [...messages, { role: 'user', content: inputMessage.trim() }];
     inputMessage = '';
     await doSend();
-    while (messageQueue.length > 0 && chatState === 'idle') {
-      const next = messageQueue.shift()!;
-      messages = [...messages, { role: 'user', content: next.content }];
-      await doSend();
-    }
   }
 
   async function doSend() {
@@ -558,6 +569,16 @@
       isLoading = false;
       isStreaming = false;
       abortController = null;
+
+      if (messageQueue.length > 0) {
+        setTimeout(() => {
+          if (chatState === 'idle' && messageQueue.length > 0) {
+            const next = messageQueue.shift()!;
+            messages = [...messages, { role: 'user', content: next.content }];
+            doSend();
+          }
+        }, 100);
+      }
     }
   }
 
