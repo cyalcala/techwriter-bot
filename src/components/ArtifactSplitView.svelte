@@ -55,15 +55,13 @@
   <div aria-live="polite" class="sr-only">Artifact panel open. {msgEntries.length} artifact{msgEntries.length !== 1 ? 's' : ''} available. Current: {currentEntry?.artifact.title || 'Untitled'}.</div>
 
   {#if isMobile}
-    {#key overlayKey}
-      <ArtifactOverlay
-        svg={currentEntry?.artifact.type === 'svg' ? currentEntry.artifact.code : ''}
-        type={currentEntry?.artifact.type || 'diagram'}
-        title={currentEntry?.artifact.title || 'Artifact'}
-        code={currentEntry?.artifact.type !== 'svg' ? currentEntry?.artifact.code || '' : ''}
-        onclose={onclose}
-      />
-    {/key}
+    <ArtifactOverlay
+      svg={currentEntry?.artifact.type === 'svg' ? currentEntry.artifact.code : ''}
+      type={currentEntry?.artifact.type || 'diagram'}
+      title={currentEntry?.artifact.title || 'Artifact'}
+      code={currentEntry?.artifact.type !== 'svg' ? currentEntry?.artifact.code || '' : ''}
+      onclose={onclose}
+    />
   {:else}
     <div class="hidden md:block w-1.5 bg-stone-300 hover:bg-amber-400 cursor-col-resize shrink-0 transition-colors z-20" role="separator" aria-label="Resize panel"></div>
     <div class="hidden md:flex flex-col w-[50%] min-w-[360px] bg-[#faf7f2] overflow-hidden shadow-2xl z-10" style="resize: horizontal;">

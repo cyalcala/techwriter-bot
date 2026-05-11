@@ -375,7 +375,6 @@ function sanitizeHtml(html: string): string {
 }
 function sanitizeSvg(svg: string): string {
   return sanitizeHtml(svg)
-    .replace(/<foreignObject[\s\S]*?<\/foreignObject>/gi, '')
     .replace(/\s(href|src|xlink:href)\s*=\s*(['"])\s*data:text\/html[\s\S]*?\2/gi, '');
 }
 function safeClassName(value: string): string { return value.replace(/[^\w-]/g, '') || 'plaintext'; }
