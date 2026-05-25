@@ -1,7 +1,4 @@
-const DB_NAME = 'techwriter-rag';
-const DB_VERSION = 2;
-const VECTOR_STORE = 'vectors';
-const META_STORE = 'meta';
+const LEGACY_DB_NAME = 'techwriter-rag';
 
 export interface ChunkVector {
   id: string;
@@ -11,99 +8,46 @@ export interface ChunkVector {
   timestamp: number;
 }
 
-interface SessionMeta {
-  sessionId: string;
-  lastActivity: number;
-}
+const vectorsBySession = new Map<string, ChunkVector[]>();
+const activityBySession = new Map<string, number>();
+let legacyCleanupStarted = false;
 
-function openDB(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, DB_VERSION);
-    req.onupgradeneeded = () => {
-      const db = req.result;
-      if (!db.objectStoreNames.contains(VECTOR_STORE)) {
-        const store = db.createObjectStore(VECTOR_STORE, { keyPath: 'id' });
-        store.createIndex('sessionId', 'sessionId', { unique: false });
-      } else {
-        const tx = req.transaction;
-        const store = tx?.objectStore(VECTOR_STORE);
-        if (store && !store.indexNames.contains('sessionId')) {
-          store.createIndex('sessionId', 'sessionId', { unique: false });
-        }
-      }
-      if (!db.objectStoreNames.contains(META_STORE)) {
-        db.createObjectStore(META_STORE, { keyPath: 'sessionId' });
-      }
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-export async function getStoredVectors(sessionId: string): Promise<ChunkVector[]> {
+function clearLegacyIndexedDb(): void {
+  if (legacyCleanupStarted) return;
+  legacyCleanupStarted = true;
   try {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(VECTOR_STORE, 'readonly');
-      const store = tx.objectStore(VECTOR_STORE);
-      if (store.indexNames.contains('sessionId')) {
-        const index = store.index('sessionId');
-        const req = index.getAll(sessionId);
-        req.onsuccess = () => resolve(req.result || []);
-        req.onerror = () => reject(req.error);
-      } else {
-        const req = store.getAll();
-        req.onsuccess = () => {
-          const all = req.result || [];
-          resolve(all.filter(v => v.sessionId === sessionId));
-        };
-        req.onerror = () => reject(req.error);
-      }
-    });
-  } catch {
-    return [];
-  }
-}
-
-export async function storeVectors(sessionId: string, chunks: { text: string; vector: number[] }[]): Promise<void> {
-  try {
-    const db = await openDB();
-    const tx = db.transaction([VECTOR_STORE, META_STORE], 'readwrite');
-    const vStore = tx.objectStore(VECTOR_STORE);
-    const mStore = tx.objectStore(META_STORE);
-
-    for (const chunk of chunks) {
-      const id = `${sessionId}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-      vStore.put({
-        id,
-        sessionId,
-        text: chunk.text,
-        vector: chunk.vector,
-        timestamp: Date.now(),
-      });
-    }
-
-    mStore.put({ sessionId, lastActivity: Date.now() });
-
-    return new Promise((resolve, reject) => {
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
-  } catch {
-    // IndexedDB unavailable — graceful degradation
-  }
-}
-
-export async function updateActivity(sessionId: string): Promise<void> {
-  try {
-    const db = await openDB();
-    const tx = db.transaction(META_STORE, 'readwrite');
-    tx.objectStore(META_STORE).put({ sessionId, lastActivity: Date.now() });
+    if (typeof indexedDB !== 'undefined') indexedDB.deleteDatabase(LEGACY_DB_NAME);
   } catch {}
 }
 
+export async function getStoredVectors(sessionId: string): Promise<ChunkVector[]> {
+  clearLegacyIndexedDb();
+  return [...(vectorsBySession.get(sessionId) || [])];
+}
+
+export async function storeVectors(sessionId: string, chunks: { text: string; vector: number[] }[]): Promise<void> {
+  clearLegacyIndexedDb();
+  const timestamp = Date.now();
+  const existing = vectorsBySession.get(sessionId) || [];
+  const next = chunks.map((chunk, index) => ({
+    id: `${sessionId}_${timestamp}_${index}`,
+    sessionId,
+    text: chunk.text,
+    vector: chunk.vector,
+    timestamp,
+  }));
+  vectorsBySession.set(sessionId, [...existing, ...next]);
+  activityBySession.set(sessionId, timestamp);
+}
+
+export async function updateActivity(sessionId: string): Promise<void> {
+  if (vectorsBySession.has(sessionId)) activityBySession.set(sessionId, Date.now());
+}
+
 export function cosineSimilarity(a: number[], b: number[]): number {
-  let dot = 0, magA = 0, magB = 0;
+  let dot = 0;
+  let magA = 0;
+  let magB = 0;
   for (let i = 0; i < a.length; i++) {
     dot += a[i] * b[i];
     magA += a[i] * a[i];
@@ -115,105 +59,25 @@ export function cosineSimilarity(a: number[], b: number[]): number {
 
 export async function searchSimilarChunks(sessionId: string, queryVector: number[], topK: number = 3): Promise<ChunkVector[]> {
   const vectors = await getStoredVectors(sessionId);
-  if (vectors.length === 0) return [];
-
-  const scored = vectors.map(v => ({
-    ...v,
-    score: cosineSimilarity(queryVector, v.vector),
-  }));
-
-  scored.sort((a, b) => b.score - a.score);
-  return scored.slice(0, topK).filter(v => v.score > 0.3);
+  return vectors
+    .map(vector => ({ ...vector, score: cosineSimilarity(queryVector, vector.vector) }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, topK)
+    .filter(vector => vector.score > 0.3);
 }
 
 export async function clearSessionVectors(sessionId: string): Promise<void> {
-  try {
-    const db = await openDB();
-    const tx = db.transaction([VECTOR_STORE, META_STORE], 'readwrite');
-    const vStore = tx.objectStore(VECTOR_STORE);
-    const mStore = tx.objectStore(META_STORE);
-
-    const all = await new Promise<ChunkVector[]>((resolve, reject) => {
-      const req = vStore.getAll();
-      req.onsuccess = () => resolve(req.result || []);
-      req.onerror = () => reject(req.error);
-    });
-
-    for (const v of all) {
-      if (v.sessionId === sessionId) vStore.delete(v.id);
-    }
-    mStore.delete(sessionId);
-
-    return new Promise((resolve) => {
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => resolve();
-    });
-  } catch {}
-}
-
-export async function storeVectorsKV(sessionId: string, chunks: { text: string; vector: number[] }[], kv: any): Promise<void> {
-  if (!kv) return;
-  try {
-    const vectors = chunks.map(c => ({
-      text: c.text.slice(0, 2000),
-      vector: c.vector.slice(0, 384),
-      timestamp: Date.now(),
-    }));
-    await kv.put(`rag:${sessionId}`, JSON.stringify(vectors), { expirationTtl: 86400 });
-  } catch {}
-}
-
-export async function getStoredVectorsKV(sessionId: string, kv: any): Promise<ChunkVector[]> {
-  if (!kv) return [];
-  try {
-    const raw = await kv.get(`rag:${sessionId}`);
-    if (!raw) return [];
-    const vectors: { text: string; vector: number[]; timestamp: number }[] = typeof raw === 'string' ? JSON.parse(raw) : raw;
-    return vectors.map((v, i) => ({
-      id: `kv-${sessionId}-${i}`,
-      sessionId,
-      text: v.text,
-      vector: v.vector,
-      timestamp: v.timestamp || Date.now(),
-    }));
-  } catch {
-    return [];
-  }
+  vectorsBySession.delete(sessionId);
+  activityBySession.delete(sessionId);
 }
 
 export async function purgeStaleData(maxHours: number = 2): Promise<void> {
-  try {
-    const db = await openDB();
-    const tx = db.transaction([VECTOR_STORE, META_STORE], 'readwrite');
-    const vStore = tx.objectStore(VECTOR_STORE);
-    const mStore = tx.objectStore(META_STORE);
-
-    const metas = await new Promise<SessionMeta[]>((resolve, reject) => {
-      const req = mStore.getAll();
-      req.onsuccess = () => resolve(req.result || []);
-      req.onerror = () => reject(req.error);
-    }).catch(() => [] as SessionMeta[]);
-
-    const cutoff = Date.now() - maxHours * 3600000;
-
-    for (const meta of metas) {
-      if (meta.lastActivity < cutoff) {
-        const all = await new Promise<ChunkVector[]>((resolve, reject) => {
-          const req = vStore.getAll();
-          req.onsuccess = () => resolve(req.result || []);
-          req.onerror = () => reject(req.error);
-        }).catch(() => [] as ChunkVector[]);
-
-        for (const v of all) {
-          if (v.sessionId === meta.sessionId) vStore.delete(v.id);
-        }
-        mStore.delete(meta.sessionId);
-      }
+  clearLegacyIndexedDb();
+  const cutoff = Date.now() - maxHours * 3_600_000;
+  for (const [sessionId, lastActivity] of activityBySession) {
+    if (lastActivity < cutoff) {
+      vectorsBySession.delete(sessionId);
+      activityBySession.delete(sessionId);
     }
-
-    return new Promise((resolve) => {
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => resolve();
-    });
-  } catch {}
+  }
 }

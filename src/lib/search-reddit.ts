@@ -53,7 +53,7 @@ export async function searchReddit(query: string): Promise<SearchSource | null> 
       provider: 'reddit',
     };
   } catch (e: any) {
-    console.log(JSON.stringify({ event: 'reddit_error', message: e.message?.slice(0, 200), query: query.slice(0, 80) }));
+    console.log(JSON.stringify({ event: 'reddit_error', message: e.message?.slice(0, 200) }));
     return null;
   }
 }

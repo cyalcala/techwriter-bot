@@ -1,5 +1,5 @@
 import { embedChunks, chunkText, validateDocument, type EmbedProgress } from './embed-pipeline';
-import { storeVectors, getStoredVectors, updateActivity, cosineSimilarity } from './rag-db';
+import { storeVectors, getStoredVectors } from './rag-db';
 import { searchInWorker } from './sim-search';
 
 export type UploadState = 'idle' | 'uploading' | 'done' | 'error';

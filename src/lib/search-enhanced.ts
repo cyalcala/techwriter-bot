@@ -53,7 +53,7 @@ export async function searchTavily(query: string, apiKey: string): Promise<Enhan
       provider: 'tavily',
     };
   } catch (e: any) {
-    console.log(JSON.stringify({ event: 'tavily_error', message: e.message?.slice(0, 200), query: query.slice(0, 80) }));
+    console.log(JSON.stringify({ event: 'tavily_error', message: e.message?.slice(0, 200) }));
     return null;
   }
 }
@@ -98,7 +98,7 @@ export async function searchExa(query: string, apiKey: string): Promise<Enhanced
       provider: 'exa',
     };
   } catch (e: any) {
-    console.log(JSON.stringify({ event: 'exa_error', message: e.message?.slice(0, 200), query: query.slice(0, 80) }));
+    console.log(JSON.stringify({ event: 'exa_error', message: e.message?.slice(0, 200) }));
     return null;
   }
 }

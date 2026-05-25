@@ -1,36 +1,36 @@
 import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
+import { apiError, createRequestId, jsonResponse } from '../../lib/api-response';
 
 export const GET: APIRoute = async () => {
+  const requestId = createRequestId();
   try {
     const ai = (env as any).AI;
     
     if (!ai) {
-      return new Response(JSON.stringify({ 
-        error: 'AI binding not found',
-        envKeys: Object.keys(env)
-      }, null, 2), { 
+      return apiError({
+        requestId,
         status: 500,
-        headers: { 'Content-Type': 'application/json' }
+        code: 'AI_BINDING_MISSING',
+        message: 'AI binding not found.',
+        retryable: true,
       });
     }
 
     const result = await ai.run('@cf/baai/bge-small-en-v1.5', { text: ['test'] });
 
-    return new Response(JSON.stringify({ 
+    return jsonResponse({
       success: true, 
       embeddingLength: result?.data?.[0]?.length,
       envKeys: Object.keys(env)
-    }, null, 2), {
-      headers: { 'Content-Type': 'application/json' }
-    });
+    }, { requestId });
   } catch (err: any) {
-    return new Response(JSON.stringify({ 
-      error: err.message, 
-      stack: err.stack?.split('\n').slice(0, 5)
-    }, null, 2), { 
+    return apiError({
+      requestId,
       status: 500,
-      headers: { 'Content-Type': 'application/json' }
+      code: 'AI_DEBUG_FAILED',
+      message: err.message || 'AI debug check failed.',
+      retryable: true,
     });
   }
 };

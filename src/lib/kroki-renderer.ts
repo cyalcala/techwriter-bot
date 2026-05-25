@@ -1,6 +1,5 @@
 const KROKI_BASE = 'https://kroki.io';
 const KROKI_TIMEOUT_MS = 10_000;
-const CACHE_TTL_SECONDS = 86400;
 
 const TYPE_MAP: Record<string, string> = {
   mermaid: 'mermaid',
@@ -14,22 +13,8 @@ const TYPE_MAP: Record<string, string> = {
 export const KROKI_RENDERABLE = new Set(['mermaid', 'graphviz', 'd2', 'plantuml', 'vega', 'flowchart']);
 export const CLIENT_ONLY_TYPES = new Set(['code', 'html', 'svg', 'react', 'katex', 'markmap', 'webcontainer']);
 
-async function sha256(text: string): Promise<string> {
-  const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
-  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-export async function renderViaKroki(type: string, code: string, kv: any): Promise<{ svg?: string; error?: string; cached?: boolean; status?: number }> {
+export async function renderViaKroki(type: string, code: string): Promise<{ svg?: string; error?: string; cached?: boolean; status?: number }> {
   const krokiType = TYPE_MAP[type] || type;
-  const hash = await sha256(krokiType + code);
-  const cacheKey = `kroki:${hash.slice(0, 20)}`;
-
-  if (kv) {
-    try {
-      const cached = await kv.get(cacheKey);
-      if (cached) return { svg: cached, cached: true };
-    } catch {}
-  }
 
   const tryOnce = async (): Promise<{ svg?: string; error?: string; cached?: boolean; status?: number; retryable?: boolean }> => {
     try {
@@ -51,9 +36,6 @@ export async function renderViaKroki(type: string, code: string, kv: any): Promi
 
       const svg = sanitizeSvg(await res.text());
       if (!/<svg\b/i.test(svg)) return { error: 'Renderer did not return SVG.', retryable: false };
-      if (kv) {
-        kv.put(cacheKey, svg, { expirationTtl: CACHE_TTL_SECONDS }).catch(() => {});
-      }
       return { svg };
     } catch (e: any) {
       const isTimeout = e.name === 'AbortError';

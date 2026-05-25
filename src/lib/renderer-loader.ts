@@ -5,6 +5,8 @@ const loadedStyles = new Set<string>();
 const loadingScripts = new Map<string, Promise<void>>();
 const loadingStyles = new Map<string, Promise<void>>();
 const LOAD_TIMEOUT_MS = 12_000;
+const WEB_CONTAINER_MODULE_URL = 'https://cdn.jsdelivr.net/npm/@webcontainer/api@1.6.4/+esm';
+let loadingWebContainerModule: Promise<void> | null = null;
 
 function loadScript(src: string): Promise<void> {
   if (loadedScripts.has(src)) return Promise.resolve();
@@ -71,6 +73,21 @@ function loadStyle(href: string): Promise<void> {
   return promise;
 }
 
+function loadWebContainerModule(): Promise<void> {
+  if ((window as any).WebContainer) return Promise.resolve();
+  if (loadingWebContainerModule) return loadingWebContainerModule;
+  loadingWebContainerModule = import(/* @vite-ignore */ WEB_CONTAINER_MODULE_URL)
+    .then((module) => {
+      if (!module.WebContainer) throw new Error('WebContainer module did not expose WebContainer.');
+      (window as any).WebContainer = module.WebContainer;
+    })
+    .catch((error) => {
+      loadingWebContainerModule = null;
+      throw error;
+    });
+  return loadingWebContainerModule;
+}
+
 export function preloadPopular(): void {
   if (typeof window === 'undefined') return;
   const schedule = window.requestIdleCallback || ((cb: IdleRequestCallback) => window.setTimeout(() => cb({ didTimeout: false, timeRemaining: () => 0 } as IdleDeadline), 1500));
@@ -127,7 +144,7 @@ export async function loadRenderer(type: ArtifactType): Promise<void> {
     case 'react':
       return;
     case 'webcontainer':
-      await loadScript('https://cdn.jsdelivr.net/npm/@webcontainer/api@1.3.0-internal.8/dist/webcontainer.api.min.js');
+      await loadWebContainerModule();
       return;
     default:
       throw new Error(`Unsupported artifact type: ${type}`);
@@ -156,7 +173,7 @@ export function renderCodeArtifact(code: string, language?: string): string {
 
 export function renderHtmlArtifact(code: string): string {
   const doc = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{margin:0;min-height:100%;font-family:system-ui,sans-serif;color:#1c1917;background:#fff}body{padding:16px;overflow:auto}img,svg,video,canvas{max-width:100%;height:auto}pre,code{white-space:pre-wrap;word-break:break-word}</style></head><body>${sanitizeHtml(code)}</body></html>`;
-  return `<iframe title="HTML artifact preview" sandbox="" srcdoc="${escapeAttr(doc)}" class="artifact-frame artifact-frame-html"></iframe>`;
+  return `<iframe title="HTML artifact preview" sandbox="" referrerpolicy="no-referrer" srcdoc="${escapeAttr(doc)}" class="artifact-frame artifact-frame-html"></iframe>`;
 }
 export function renderSvgArtifact(code: string): string { return `<div class="artifact-svg-host">${sanitizeSvg(code)}</div>`; }
 
@@ -329,7 +346,7 @@ export function renderFlowchartArtifact(code: string): string {
 }
 
 export function renderReactArtifact(code: string): string {
-  return `<iframe title="React artifact preview" sandbox="allow-scripts" srcdoc="${escapeAttr(getReactHtml(code))}" class="artifact-frame artifact-frame-react"></iframe>`;
+  return `<iframe title="React artifact preview" sandbox="allow-scripts" referrerpolicy="no-referrer" srcdoc="${escapeAttr(getReactHtml(code))}" class="artifact-frame artifact-frame-react"></iframe>`;
 }
 
 export function renderWebContainerArtifact(code: string): string {
@@ -355,7 +372,7 @@ async function loadWebContainer(id: string, project: { files: Record<string, { c
       if (el) el.innerHTML = '<pre class="text-red-500 text-xs p-4">WebContainer not loaded. Refresh and try again.</pre>';
       return;
     }
-    const instance = await WebContainer.boot();
+    const instance = await WebContainer.boot({ coep: 'credentialless' });
     const files: Record<string, { file: { contents: string } }> = {};
     for (const [path, content] of Object.entries(project.files)) {
       const text = typeof content === 'string' ? content : (content.contents || '');
@@ -369,7 +386,7 @@ async function loadWebContainer(id: string, project: { files: Record<string, { c
     const dev = await instance.spawn('npx', ['vite', '--port', '5173', '--host', '0.0.0.0']);
     instance.on('server-ready', (_port: number, url: string) => {
       const el = document.getElementById(id);
-      if (el) el.innerHTML = `<iframe src="${url}" style="width:100%;min-height:500px;border:none;border-radius:8px"></iframe>`;
+      if (el) el.innerHTML = `<iframe src="${url}" sandbox="allow-scripts allow-forms allow-popups allow-modals allow-downloads" referrerpolicy="no-referrer" style="width:100%;min-height:500px;border:none;border-radius:8px"></iframe>`;
     });
 
     dev.output.pipeTo(new WritableStream({

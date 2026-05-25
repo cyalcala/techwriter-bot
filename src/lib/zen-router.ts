@@ -1,4 +1,6 @@
 import { ZEN_REGISTRY, classifyQuery, getProvidersForRole, type Provider, type ProviderRole } from './providers';
+import { kvKey } from './kv-prefix';
+import { startCleanupInterval } from './runtime-interval';
 
 const FAIL_WINDOW_MS = 60_000;
 const FAIL_THRESHOLD = 3;
@@ -30,10 +32,20 @@ export interface ResponseMetadata {
   searchRemaining: string;
   tier: string;
   chatPath?: 'fast' | 'balanced' | 'heavy';
+  failoverEvents?: FailoverEvent[];
+}
+
+export interface FailoverEvent {
+  timestamp: string;
+  provider: string;
+  reason: string;
+  status?: number;
+  chatPath?: 'fast' | 'balanced' | 'heavy';
 }
 
 const circuits = new Map<string, CircuitState>();
 const sessions = new Map<string, SessionState>();
+const failoverEvents: FailoverEvent[] = [];
 const SESSION_TTL = 30 * 60_000;
 
 const PATH_TIMEOUTS: Record<string, number> = {
@@ -43,7 +55,7 @@ const PATH_TIMEOUTS: Record<string, number> = {
 };
 
 if (typeof setInterval !== 'undefined') {
-  setInterval(() => {
+  startCleanupInterval(() => {
     const now = Date.now();
     for (const [k, s] of sessions) { if (now - s.createdAt > SESSION_TTL) sessions.delete(k); }
     for (const [k, c] of circuits) { if (c.failures.length === 0 && c.ejectedUntil < now && c.requests === 0) circuits.delete(k); }
@@ -58,13 +70,14 @@ function getCircuit(id: string): CircuitState {
 }
 
 let circuitKV: any = null;
-export function initCircuitKV(kv: any) { circuitKV = kv; }
+let circuitEnv: Record<string, unknown> = {};
+export function initCircuitKV(kv: any, env: Record<string, unknown> = {}) { circuitKV = kv; circuitEnv = env; }
 
 async function persistCircuit(id: string) {
   if (!circuitKV) return;
   try {
     const c = circuits.get(id);
-    if (c) await circuitKV.put(`circuit:${id}`, JSON.stringify(c), { expirationTtl: 3600 });
+    if (c) await circuitKV.put(kvKey(circuitEnv, `circuit:${id}`), JSON.stringify(c), { expirationTtl: 3600 });
   } catch {}
 }
 
@@ -94,6 +107,27 @@ function recordSuccess(id: string) {
   c.permanent = false;
   c.requests++;
   persistCircuit(id);
+}
+
+function recordFailoverEvent(
+  provider: Provider,
+  reason: string,
+  status: number | undefined,
+  chatPath: 'fast' | 'balanced' | 'heavy',
+  metadata?: ResponseMetadata,
+) {
+  const event: FailoverEvent = {
+    timestamp: new Date().toISOString(),
+    provider: provider.id,
+    reason,
+    chatPath,
+  };
+  if (status != null) event.status = status;
+
+  failoverEvents.unshift(event);
+  if (failoverEvents.length > 20) failoverEvents.length = 20;
+  if (metadata) metadata.failoverEvents = [...(metadata.failoverEvents || []), event];
+  console.log(JSON.stringify({ event: 'provider_failover', ...event }));
 }
 
 function getApiKey(provider: Provider, env: any): string | undefined {
@@ -185,8 +219,42 @@ function makeHeaders(provider: Provider, latency: number, sources?: any[], metad
   h.set('x-latency-ms', String(latency));
   h.set('Content-Type', 'text/event-stream');
   if (sources?.length) h.set('x-sources', JSON.stringify(sources));
-  if (metadata) { h.set('x-search-tier', metadata.searchTier); h.set('x-search-remaining', metadata.searchRemaining); h.set('x-tier', metadata.tier); if (metadata.chatPath) h.set('x-chat-path', metadata.chatPath); }
+  if (metadata) {
+    h.set('x-search-tier', metadata.searchTier);
+    h.set('x-search-remaining', metadata.searchRemaining);
+    h.set('x-tier', metadata.tier);
+    if (metadata.chatPath) h.set('x-chat-path', metadata.chatPath);
+    if (metadata.failoverEvents?.length) h.set('x-failover-events', JSON.stringify(metadata.failoverEvents.slice(-3)));
+  }
   return h;
+}
+
+function unavailableResponse(metadata?: ResponseMetadata, tried: string[] = []): Response {
+  const headers = new Headers({ 'Content-Type': 'application/json', 'Retry-After': '10' });
+  if (metadata?.failoverEvents?.length) headers.set('x-failover-events', JSON.stringify(metadata.failoverEvents.slice(-3)));
+  return new Response(JSON.stringify({
+    error: 'All AI providers are currently unavailable. Please try again in a moment.',
+    code: 'AI_PROVIDERS_UNAVAILABLE',
+    retryable: true,
+    retryAfter: 10,
+    debug: {
+      tried,
+      circuits: [...circuits.entries()].map(([id, state]) => ({
+        id,
+        failures: state.failures.length,
+        ejected: state.ejectedUntil > Date.now(),
+      })),
+    },
+  }), { status: 503, headers });
+}
+
+function timeoutResponse(): Response {
+  return new Response(JSON.stringify({
+    error: 'Request timed out. Please try again.',
+    code: 'AI_PROVIDER_TIMEOUT',
+    retryable: true,
+    retryAfter: 5,
+  }), { status: 503, headers: { 'Content-Type': 'application/json', 'Retry-After': '5' } });
 }
 
 export async function routeChat(
@@ -232,7 +300,7 @@ export async function routeChat(
       if (!locked) {
         const fallback = ordered[0];
         if (fallback) return trySingleProvider(fallback);
-        return new Response(JSON.stringify({ error: 'all_providers_exhausted', message: 'No provider available.', retryAfter: 5 }), { status: 503, headers: { 'Content-Type': 'application/json', 'Retry-After': '5' } });
+        return unavailableResponse(metadata, ordered.map(p => p.id));
       }
       // Bypass circuit for forceSticky — session-locked provider always gets a chance
       return trySingleProvider(locked, true);
@@ -246,16 +314,18 @@ export async function routeChat(
       if (result) return result;
     }
 
-    return new Response(JSON.stringify({ error: 'all_providers_exhausted', message: 'All AI providers are currently unavailable. Please try again in a moment.', retryAfter: 10, debug: { tried: ordered.map(p => p.id), circuits: [...circuits.entries()].map(([k,v]) => ({id:k, failures:v.failures.length, ejected:v.ejectedUntil > Date.now()})) } }), {
-      status: 503, headers: { 'Content-Type': 'application/json', 'Retry-After': '10' },
-    });
+    return unavailableResponse(metadata, ordered.map(p => p.id));
   };
 
   async function trySingleProvider(provider: Provider, skipCircuit: boolean = false): Promise<Response | null> {
     if (!skipCircuit && isCircuitOpen(provider.id)) return null;
 
     const apiKey = getApiKey(provider, env);
-    if (!apiKey && provider.name !== 'cloudflare') { recordFail(provider.id, 401, 'no key'); return null; }
+    if (!apiKey && provider.name !== 'cloudflare') {
+      recordFail(provider.id, 401, 'no key');
+      recordFailoverEvent(provider, 'missing_api_key', 401, chatPath, metadata);
+      return null;
+    }
 
     const start = Date.now();
     try {
@@ -271,9 +341,11 @@ export async function routeChat(
       }
 
       recordFail(provider.id, res.status);
+      recordFailoverEvent(provider, `provider_http_${res.status}`, res.status, chatPath, metadata);
       console.log(JSON.stringify({ event: 'provider_fail', provider: provider.id, status: res.status, latency }));
     } catch (e: any) {
       recordFail(provider.id, 0, e.message || e.name);
+      recordFailoverEvent(provider, 'provider_error', 0, chatPath, metadata);
       console.log(JSON.stringify({ event: 'provider_err', provider: provider.id, error: e.message?.slice(0, 100) }));
     }
     return null;
@@ -302,7 +374,7 @@ export async function routeChat(
     return lastResult || attempt();
   };
 
-  return Promise.race([attemptWithRetry(), new Promise<Response>(r => setTimeout(() => r(new Response(JSON.stringify({ message: 'Request timed out. Please try again.', retryAfter: 5 }), { status: 503, headers: { 'Content-Type': 'application/json', 'Retry-After': '5' } })), globalTimeout))]);
+  return Promise.race([attemptWithRetry(), new Promise<Response>(r => setTimeout(() => r(timeoutResponse()), globalTimeout))]);
 }
 
 export function getCircuitDiagnostics() {
@@ -310,4 +382,8 @@ export function getCircuitDiagnostics() {
     ejected: v.ejectedUntil > Date.now(), permanent: v.permanent, failures: v.failures.length,
     errors: v.totalErrors, requests: v.requests, lastStatus: v.lastStatus, lastError: v.lastError,
   }]));
+}
+
+export function getRecentFailoverEvents(limit: number = 5): FailoverEvent[] {
+  return failoverEvents.slice(0, limit);
 }

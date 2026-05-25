@@ -3,6 +3,8 @@ const DEFAULT_ORIGINS = [
   'https://techwriter-bot.pages.dev',
   'http://localhost:4321',
   'http://localhost:3000',
+  'http://127.0.0.1:4321',
+  'http://127.0.0.1:3000',
 ];
 
 export function checkCSRF(request: Request, allowed?: string[]): boolean {
@@ -11,7 +13,7 @@ export function checkCSRF(request: Request, allowed?: string[]): boolean {
   const referer = request.headers.get('referer');
   if (!origin && !referer) return true;
   const ok = (url: string) => {
-    try { const p = new URL(url); return origins.some(a => `${p.protocol}//${p.host}`.startsWith(a) || a.startsWith(`${p.protocol}//${p.host}`)); }
+    try { return origins.includes(new URL(url).origin); }
     catch { return false; }
   };
   if (origin && !ok(origin)) return false;

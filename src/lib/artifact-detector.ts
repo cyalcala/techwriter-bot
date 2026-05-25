@@ -50,6 +50,7 @@ export function detectAllArtifacts(text: string, streamArtifacts: Artifact[]): {
       const title = lang ? `${lang.toUpperCase()} Diagram` : 'Code Block';
       found.push({ type, title, code, confidence: 'fence' });
       clean = clean.replace(fenceMatch[0], '');
+      fenceRe.lastIndex = 0;
     }
   }
 
@@ -96,6 +97,7 @@ export function detectAllArtifacts(text: string, streamArtifacts: Artifact[]): {
 
 function langToType(lang: string): ArtifactType | null {
   switch (lang) {
+    case 'code': return 'code';
     case 'html': case 'htm': return 'html';
     case 'svg': return 'svg';
     case 'mermaid': return 'mermaid';

@@ -39,7 +39,7 @@
 - Modify: `src/lib/kroki-renderer.ts`
 - Modify: `src/pages/api/render-artifact.ts`
 
-- [ ] **Step 1: Write failing retention tests**
+- [x] **Step 1: Write failing retention tests**
 
 Create tests asserting in-memory RAG behavior and source-level storage invariants:
 
@@ -78,13 +78,13 @@ state = updateReputation(state, 'dup_query', { message: 'my sensitive prompt' })
 expect(serializeReputation(state)).not.toContain('my sensitive prompt');
 ```
 
-- [ ] **Step 2: Run tests and observe the expected failures**
+- [x] **Step 2: Run tests and observe the expected failures**
 
 Run: `npm test -- src/tests/privacy-first.test.ts src/tests/critical.test.ts`
 
 Expected: failures identify current `localStorage`, IndexedDB, Cloudflare KV, response cache, artifact cache, and serialized raw-query behavior.
 
-- [ ] **Step 3: Replace durable browser content storage with active-session memory**
+- [x] **Step 3: Replace durable browser content storage with active-session memory**
 
 Implement memory-backed document vector functions in `src/lib/rag-db.ts`:
 
@@ -113,7 +113,7 @@ export async function clearSessionVectors(sessionId: string): Promise<void> {
 
 Make `session-persist.ts` clear only the legacy key, and make `cleanup.ts` remove legacy local keys plus the legacy IndexedDB database when the page loads/clears. Remove imports and calls for saving/restoring conversations, artifacts, session identifiers, and `/api/rag-store` from `ChatIsland.svelte`.
 
-- [ ] **Step 4: Remove server-side durable content paths**
+- [x] **Step 4: Remove server-side durable content paths**
 
 In `src/pages/api/chat.ts`, remove query-cache imports, query cache lookup, stale answer fallback, response-body cache collection, and KV RAG retrieval. The already-generated in-browser document context remains part of the active request:
 
@@ -148,7 +148,7 @@ Remove durable result caching and query-text logs from search modules. Remove KV
 'Cache-Control': 'no-store, private',
 ```
 
-- [ ] **Step 5: Run retention tests and full test suite**
+- [x] **Step 5: Run retention tests and full test suite**
 
 Run: `npm test -- src/tests/privacy-first.test.ts src/tests/critical.test.ts`
 
@@ -164,7 +164,7 @@ Expected: full suite passes, updating obsolete cache-retention tests to assert t
 - Modify: `src/components/ChatInput.svelte`
 - Modify: `src/tests/privacy-first.test.ts`
 
-- [ ] **Step 1: Add failing UI-source assertions**
+- [x] **Step 1: Add failing UI-source assertions**
 
 Append to `privacy-first.test.ts`:
 
@@ -179,13 +179,13 @@ it('offers an expandable accessible privacy notice with accurate wording', () =>
 });
 ```
 
-- [ ] **Step 2: Run the UI test and observe failure**
+- [x] **Step 2: Run the UI test and observe failure**
 
 Run: `npm test -- src/tests/privacy-first.test.ts`
 
 Expected: failure because `privacyOpen` and the notice markup do not exist.
 
-- [ ] **Step 3: Implement inline disclosure**
+- [x] **Step 3: Implement inline disclosure**
 
 In `ChatInput.svelte`, add local state and Escape closing:
 
@@ -203,8 +203,12 @@ Add a disclosure panel before the footer metadata and a footer button:
 
 ```svelte
 <div id="privacy-notice" aria-hidden={!privacyOpen}
-  class="grid transition-[grid-template-rows,opacity,margin] duration-300 ease-out motion-reduce:duration-0 {privacyOpen ? 'grid-rows-[1fr] opacity-100 mt-3' : 'grid-rows-[0fr] opacity-0 mt-0 pointer-events-none'}">
-  <div class="overflow-hidden">
+  style:grid-template-rows={privacyOpen ? '1fr' : '0fr'}
+  style:opacity={privacyOpen ? '1' : '0'}
+  style:margin-top={privacyOpen ? '0.75rem' : '0'}
+  style:pointer-events={privacyOpen ? 'auto' : 'none'}
+  class="grid transition-[grid-template-rows,opacity,margin] duration-300 ease-out motion-reduce:duration-0">
+  <div class="min-h-0 overflow-hidden">
     <section class="rounded-xl border border-stone-200 bg-white/75 px-3.5 py-3 text-[11px] leading-relaxed text-stone-600" aria-label="Privacy Notice">
       <div class="flex justify-between gap-3">
         <strong class="text-stone-700">Privacy Notice</strong>
@@ -218,7 +222,7 @@ Add a disclosure panel before the footer metadata and a footer button:
 <button type="button" aria-expanded={privacyOpen} aria-controls="privacy-notice" onclick={() => privacyOpen = !privacyOpen}>Privacy</button>
 ```
 
-- [ ] **Step 4: Verify the UI test**
+- [x] **Step 4: Verify the UI test**
 
 Run: `npm test -- src/tests/privacy-first.test.ts`
 
@@ -230,7 +234,7 @@ Expected: targeted privacy tests pass.
 - Modify: `README.md`
 - Verify: `wrangler.json`, Cloudflare Pages deployment
 
-- [ ] **Step 1: Update public documentation**
+- [x] **Step 1: Update public documentation**
 
 Replace obsolete content-persistence claims with this product description:
 
@@ -243,7 +247,7 @@ Replace obsolete content-persistence claims with this product description:
 - Requested features may transmit necessary content to Cloudflare Workers AI, selected AI/search providers, or Kroki under their own terms.
 ```
 
-- [ ] **Step 2: Audit durable content writes**
+- [x] **Step 2: Audit durable content writes**
 
 Run:
 
@@ -253,23 +257,33 @@ rg -n "localStorage\.setItem|indexedDB\.open|rag:\$\{|qcache:|kroki:|searchCache
 
 Expected: no remaining durable storage of chat, uploaded content, generated answers, artifact output, or stored raw queries; any output is reviewed as non-content metadata or removed.
 
-- [ ] **Step 3: Verify and build**
+- [x] **Step 3: Verify and build**
 
 Run:
 
 ```powershell
 npm test
-npm run build
+npm run build:local
 npx wrangler --version
 ```
 
-Expected: tests and build exit with code `0`, Wrangler reports version `4.x`.
+Expected: tests and the Windows-compatible build command exit with code `0`, Wrangler reports version `4.x`.
 
-- [ ] **Step 4: Browser-check the interaction**
+- [x] **Step 4: Browser-check the interaction**
 
 Launch the local built/development site, open it through the in-app browser, click `Privacy`, confirm the notice is legible and toggles smoothly at desktop and mobile viewport widths, confirm Escape closes it, and inspect browser storage to ensure no chat/document content keys appear after interaction.
 
-- [ ] **Step 5: Remove feasible legacy KV content**
+Verification note (2026-05-25): local Astro ran at `http://127.0.0.1:4321/`.
+The privacy notice was checked at desktop and mobile widths, including Escape
+closing. Browser storage inspection showed no `localStorage` or
+`sessionStorage` items after an artifact chat. Local CSP testing exposed and
+fixed the Google Fonts policy omission and a loopback-origin CSRF rejection.
+HTML and React fixtures rendered without CSP errors. WebContainer now loads
+its published ESM API in a cross-origin isolated page without CSP errors; a
+full Vite preview remained pending because external package fetches failed
+intermittently during the timed check.
+
+- [x] **Step 5: Remove feasible legacy KV content**
 
 List existing production KV keys using the namespace configured in `wrangler.json`, then delete only known content prefixes from this application:
 
@@ -286,12 +300,14 @@ $contentKeys | ForEach-Object {
 
 Delete confirmed keys matching legacy RAG, query-response cache, search-result cache, or query-bearing reputation records. Do not delete app version, aggregate usage, enhanced-search budget, or circuit/provider health keys.
 
-- [ ] **Step 6: Deploy and verify live**
+Verification note: the remote KV inventory contained only `search:enhanced:total:*` aggregate counters, so no content-bearing legacy keys required deletion.
+
+- [x] **Step 6: Deploy and verify live**
 
 Run the existing Cloudflare Pages deployment flow:
 
 ```powershell
-npm run build
+npm run build:local
 node .\deploy-final.js
 ```
 

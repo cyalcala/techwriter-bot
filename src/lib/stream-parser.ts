@@ -14,6 +14,15 @@ type ParserState = 'normal' | 'in_artifact_body';
 
 const ARTIFACT_OPEN_RE = /<\w*rtifact\s+type="(\w+)"(?:\s+placement="(\w+)")?(?:\s+title="([^"]*)")?(?:\s+language="([^"]*)")?\s*\/?>/i;
 const ARTIFACT_CLOSE_RE = /<\/\w*rtifact\s*>/i;
+const ARTIFACT_OPEN = '<artifact';
+
+function trailingMarkerPrefixLength(text: string, marker: string): number {
+  const maxLength = Math.min(text.length, marker.length - 1);
+  for (let length = maxLength; length > 0; length -= 1) {
+    if (marker.startsWith(text.slice(-length))) return length;
+  }
+  return 0;
+}
 
 export class ArtifactStreamParser {
   private state: ParserState = 'normal';
@@ -33,12 +42,17 @@ export class ArtifactStreamParser {
   }
 
   feed(tokens: string) {
-    let remaining = tokens;
+    let remaining = this.state === 'normal' ? this.mainBuf + tokens : tokens;
+    if (this.state === 'normal') this.mainBuf = '';
+
     while (remaining.length > 0) {
       if (this.state === 'normal') {
-        const openIdx = remaining.indexOf('<artifact');
+        const openIdx = remaining.indexOf(ARTIFACT_OPEN);
         if (openIdx === -1) {
-          this.emitMain(remaining);
+          const pendingLength = trailingMarkerPrefixLength(remaining, ARTIFACT_OPEN);
+          const textEnd = remaining.length - pendingLength;
+          this.emitMain(remaining.slice(0, textEnd));
+          this.mainBuf = remaining.slice(textEnd);
           remaining = '';
           break;
         }
@@ -49,7 +63,7 @@ export class ArtifactStreamParser {
 
         const closeIdx = remaining.indexOf('>', openIdx);
         if (closeIdx === -1) {
-          this.emitMain(remaining);
+          this.mainBuf = remaining.slice(openIdx);
           remaining = '';
           break;
         }
@@ -138,10 +152,8 @@ export class ArtifactStreamParser {
   }
 
   feedChunk(chunk: string, onText: (text: string) => void) {
-    this.mainBuf += chunk;
+    void onText;
     this.feed(chunk);
-    this.emitMain(this.mainBuf);
-    this.mainBuf = '';
   }
 }
 

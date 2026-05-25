@@ -2,14 +2,14 @@
   import { onMount } from 'svelte';
   import { TokenBatcher } from '../lib/token-batcher';
   import { handleFileUpload, searchDocumentChunks, formatRagContext, clearRagState, createDefaultRagState, type RagState } from '../lib/rag-client';
-  import { updateActivity } from '../lib/rag-db';
-  import { setupCleanupCallbacks, runStaleCheck, clearAllData, persistSessionId, getStoredSessionId } from '../lib/cleanup';
+  import { getStoredVectors, updateActivity } from '../lib/rag-db';
+  import { setupCleanupCallbacks, runStaleCheck, clearAllData } from '../lib/cleanup';
   import { ArtifactStreamParser, type Artifact } from '../lib/stream-parser';
   import { detectAllArtifacts } from '../lib/artifact-detector';
   import { preloadPopular } from '../lib/renderer-loader';
   import { fixArtifactError } from '../lib/artifact-state';
   import { estimateTokens } from '../lib/token-counter';
-  import { saveConversation, loadConversation, clearConversation, saveArtifactQueue } from '../lib/session-persist';
+  import { clearConversation } from '../lib/session-persist';
   import { createArtifactQueue, type ArtifactEntry } from '../lib/artifact-queue';
   import { extractArtifactTitle } from '../lib/artifact-lifecycle';
   import ChatMessages from './ChatMessages.svelte';
@@ -23,6 +23,14 @@
     sources?: { title: string; url: string }[];
     searchTier?: 'none' | 'basic' | 'enhanced';
     empty?: boolean;
+  }
+
+  interface FailoverEvent {
+    timestamp: string;
+    provider: string;
+    reason: string;
+    status?: number;
+    chatPath?: string;
   }
 
   let messages = $state<Message[]>([{ role: 'assistant', content: "Hi! I'm Technical Writer. I help with writing, research, diagrams, and code. What can I create for you?" }]);
@@ -44,6 +52,7 @@
   let keyStatus = $state<{ groq: boolean; gemini: boolean; cerebras: boolean } | null>(null);
   let chatPath = $state<string | null>(null);
   let tokenDisplay = $state<{ in: number; graph: number; cached?: boolean } | null>(null);
+  let failoverEvents = $state<FailoverEvent[]>([]);
   let isMobile = $state(false);
   let documentTopics = $state('');
 
@@ -117,7 +126,6 @@
           if (updated && activeArtifactEntry?.artifact.id === pendingId) {
             activeArtifactEntry = updated;
           }
-          saveArtifactQueue(sessionId, artifactQueue.entries);
           return;
         }
       }
@@ -155,8 +163,6 @@
   }
 
   function generateSessionId() {
-    const stored = getStoredSessionId();
-    if (stored) return stored;
     try { return crypto.randomUUID(); } catch (e) { return Math.random().toString(36).substring(2) + Date.now().toString(36); }
   }
 
@@ -172,9 +178,6 @@
 
   onMount(() => {
     sessionId = generateSessionId();
-    persistSessionId(sessionId);
-    const restored = loadConversation(sessionId) as Message[] | null;
-    if (restored?.length) messages = restored;
     runStaleCheck();
     setupCleanupCallbacks(sessionId);
     pollCredits();
@@ -191,21 +194,12 @@
     window.addEventListener('resize', checkMobile);
   });
 
-  let persistDebounce: ReturnType<typeof setTimeout> | null = null;
-  $effect(() => {
-    messages; sessionId;
-    if (!sessionId) return;
-    if (persistDebounce) clearTimeout(persistDebounce);
-    persistDebounce = setTimeout(() => { saveConversation(sessionId, messages); }, 2000);
-  });
-
   function newChat() {
     safeAbort();
     clearConversation();
     documentTopics = '';
     clearAllData(sessionId);
     sessionId = generateSessionId();
-    persistSessionId(sessionId);
     messages = [{ role: 'assistant', content: 'Fresh session started. My memory is now clear. What would you like to work on?' }];
     rag = clearRagState();
     artifactQueue.clear();
@@ -243,13 +237,7 @@
       rag.ragDegraded = result.degraded;
       messages = [...messages, { role: 'assistant', content: result.message }];
       try {
-        const vectors = await import('../lib/rag-db').then(m => m.getStoredVectors(sessionId));
-        if (vectors.length > 0) {
-          await fetch('/api/rag-store', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId, chunks: vectors.map(v => ({ text: v.text, vector: v.vector })) }) });
-        }
-      } catch {}
-      try {
-        const vectors2 = await import('../lib/rag-db').then(m => m.getStoredVectors(sessionId));
+        const vectors2 = await getStoredVectors(sessionId);
         if (vectors2.length >= 3) {
           const firstChunks = vectors2.slice(0, 3).map(v => v.text);
           const topicsRes = await fetch('/api/summarize', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: firstChunks.map(t => ({ role: 'user', content: t })), mode: 'topics' }) });
@@ -318,6 +306,27 @@
       return false;
     }
     return true;
+  }
+
+  function mergeFailoverEvents(events: FailoverEvent[]) {
+    if (!events.length) return;
+    const merged = [...events, ...failoverEvents];
+    const seen = new Set<string>();
+    failoverEvents = merged.filter((event) => {
+      const key = `${event.timestamp}:${event.provider}:${event.reason}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }).slice(0, 5);
+  }
+
+  function captureFailoverHeader(headers: Headers) {
+    const raw = headers.get('x-failover-events');
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) mergeFailoverEvents(parsed);
+    } catch {}
   }
 
   async function sendMessage() {
@@ -393,9 +402,11 @@
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: messagesToSend, intent: isThinkingMode ? 'research' : 'chat-fast', sessionId, liveSearch: isLiveMode, hasDocument, idempotencyKey }),
+        body: JSON.stringify({ messages: messagesToSend, intent: isThinkingMode ? 'research' : 'chat-fast', sessionId, liveSearch: isLiveMode, idempotencyKey }),
         signal: abortController.signal,
       });
+
+      captureFailoverHeader(response.headers);
 
       if (!response.ok) {
         const errText = await response.text();
@@ -434,7 +445,6 @@
       checkpointTimer = setInterval(() => {
         if (chatState === 'streaming' && messages[msgIdx]?.content) {
           checkpointContent = messages[msgIdx].content;
-          saveConversation(sessionId, messages);
         }
       }, 500);
 
@@ -531,7 +541,6 @@
         }
       }
 
-      saveArtifactQueue(sessionId, artifactQueue.entries);
       pollCredits();
       if (enhancedCredits.remaining <= 0) isLiveMode = false;
       await updateActivity(sessionId);
@@ -681,6 +690,7 @@
       onRemoveFile={removeFile}
       {tokenDisplay}
       {chatPath}
+      {failoverEvents}
       panelOpen={!!activeArtifactEntry}
       {isMobile}
     />

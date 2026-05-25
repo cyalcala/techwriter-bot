@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { env as cfGlobalEnv } from 'cloudflare:workers';
+import { createRequestId, jsonResponse } from '../../lib/api-response';
 import { readEnvKeys, checkEnvKeys } from '../../lib/env-reader';
 import { getCircuitDiagnostics } from '../../lib/zen-router';
 import { searchDuckDuckGo, searchWikipedia } from '../../lib/search';
@@ -54,6 +55,7 @@ async function pingProvider(id: string, env: any): Promise<{ reachable: boolean;
 }
 
 export const GET: APIRoute = async ({ request, locals }) => {
+  const requestId = createRequestId();
   const env: any = {};
   try { if (cfGlobalEnv) Object.assign(env, cfGlobalEnv); } catch {}
   try { const r = (locals as any)?.runtime?.env; if (r) for (const [k, v] of Object.entries(r)) { if (v != null && !env[k]) env[k] = v; } } catch {}
@@ -80,7 +82,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
   const circuits = getCircuitDiagnostics();
   const workingProviders = Object.entries(providerResults).filter(([, v]: any) => v.reachable && v.status < 400).map(([k]) => k);
 
-  return new Response(JSON.stringify({
+  return jsonResponse({
     env: { keys_loaded: Object.values(keys).filter(Boolean).length, ai_binding: !!env.AI, kv_binding: !!env.SESSION },
     providers: providerResults,
     search: searchStatus,
@@ -92,5 +94,5 @@ export const GET: APIRoute = async ({ request, locals }) => {
       search_working: Object.values(searchStatus).some((s: any) => s.reachable),
     },
     clientIP: request.headers.get('cf-connecting-ip') || 'unknown',
-  }, null, 2), { headers: { 'Content-Type': 'application/json' } });
+  }, { requestId });
 };

@@ -19,7 +19,7 @@ export default defineConfig({
   adapter: cloudflare({
     imageService: 'passthrough',
     prerenderEnvironment: 'node',
-    remoteBindings: true,
+    remoteBindings: process.env.CLOUDFLARE_REMOTE_BINDINGS === 'true',
   }),
   integrations: [svelte()],
   vite: {
