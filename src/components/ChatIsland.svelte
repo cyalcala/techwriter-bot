@@ -12,6 +12,7 @@
   import { clearConversation } from '../lib/session-persist';
   import { createArtifactQueue, type ArtifactEntry } from '../lib/artifact-queue';
   import { extractArtifactTitle } from '../lib/artifact-lifecycle';
+  import { createLiveOutageState, hasVisibleLiveResponse, type LiveOutageState } from '../lib/session-continuity';
   import ChatMessages from './ChatMessages.svelte';
   import ChatInput from './ChatInput.svelte';
   import ArtifactSplitView from './ArtifactSplitView.svelte';
@@ -23,6 +24,7 @@
     sources?: { title: string; url: string }[];
     searchTier?: 'none' | 'basic' | 'enhanced';
     empty?: boolean;
+    liveResponse?: boolean;
   }
 
   interface FailoverEvent {
@@ -53,6 +55,7 @@
   let chatPath = $state<string | null>(null);
   let tokenDisplay = $state<{ in: number; graph: number; cached?: boolean } | null>(null);
   let failoverEvents = $state<FailoverEvent[]>([]);
+  let liveOutage = $state<LiveOutageState | null>(null);
   let isMobile = $state(false);
   let documentTopics = $state('');
 
@@ -205,6 +208,7 @@
     artifactQueue.clear();
     activeArtifactEntry = null;
     artifactError = null;
+    liveOutage = null;
     isLiveMode = false;
     chatPath = null;
     if (fileInput) fileInput.value = '';
@@ -220,6 +224,7 @@
     artifactQueue.clear();
     activeArtifactEntry = null;
     artifactError = null;
+    liveOutage = null;
     chatPath = null;
     if (fileInput) fileInput.value = '';
   }
@@ -346,6 +351,7 @@
 
   async function doSend() {
     safeAbort();
+    liveOutage = null;
     chatState = 'loading';
     isLoading = true;
     abortController = new AbortController();
@@ -410,8 +416,22 @@
 
       if (!response.ok) {
         const errText = await response.text();
-        let errMessage = errText;
-        try { errMessage = JSON.parse(errText).message || JSON.parse(errText).error || errText; } catch {}
+        let errorPayload: Record<string, unknown> | null = null;
+        try { errorPayload = JSON.parse(errText) as Record<string, unknown>; } catch {}
+        const outage = createLiveOutageState(
+          errorPayload,
+          hasVisibleLiveResponse(messages.map((message, index) => ({
+            liveResponse: message.liveResponse,
+            content: message.content,
+            empty: message.empty,
+            hasArtifact: artifactQueue.forMessage(index).length > 0,
+          }))),
+        );
+        if (outage) {
+          liveOutage = outage;
+          return;
+        }
+        const errMessage = String(errorPayload?.message || errorPayload?.error || errText);
         throw new Error(errMessage);
       }
 
@@ -438,7 +458,7 @@
       const reader = stream.getReader();
       const decoder = new TextDecoder();
 
-      messages = [...messages, { role: 'assistant', content: '', provider: providerName, sources: sourcesFromHeaders, searchTier: msgSearchTier }];
+      messages = [...messages, { role: 'assistant', content: '', provider: providerName, sources: sourcesFromHeaders, searchTier: msgSearchTier, liveResponse: true }];
       msgIdx = messages.length - 1;
 
       checkpointContent = '';
@@ -614,6 +634,18 @@
     {/if}
     {#if keyStatus && (!keyStatus.groq || !keyStatus.gemini || !keyStatus.cerebras)}
       <div class="bg-red-600/80 text-white text-center text-xs py-1.5 font-medium flex items-center justify-center gap-2"><span>Keys missing</span><span class="opacity-70">(using fallback)</span></div>
+    {/if}
+    {#if liveOutage}
+      <div role="status" aria-live="polite" class="bg-amber-50 border-b border-amber-200 px-3 py-2 text-xs text-amber-900 flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+        <span class="font-semibold">Live AI unavailable.</span>
+        {#if liveOutage.hasPriorResponse}
+          <span>Your last response remains visible in this open session only.</span>
+        {:else}
+          <span>No live response is available right now.</span>
+        {/if}
+        <span class="text-amber-700">Retry in about {liveOutage.retryAfterSeconds}s.</span>
+        <button type="button" onclick={regenerate} disabled={isLoading} class="ml-1 rounded-md border border-amber-300 bg-white px-2 py-1 font-medium text-amber-900 hover:bg-amber-100 disabled:opacity-50">Retry</button>
+      </div>
     {/if}
 
     <header class="px-3 md:px-6 py-2.5 bg-[#faf7f2]/90 backdrop-blur-xl border-b border-stone-200/60 flex justify-between items-center z-20">

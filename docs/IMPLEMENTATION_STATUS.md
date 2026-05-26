@@ -103,6 +103,11 @@ Documentation Tooling Agent direction.
   the chat footer without retaining generated response content.
 - Confirmed the all-providers-unavailable path returns the standardized
   retryable `AI_PROVIDERS_UNAVAILABLE` response without a durable answer cache.
+- Added open-session-only outage continuity in `src/components/ChatIsland.svelte`:
+  a live-unavailable status strip preserves already-visible page-memory output
+  and provides a user-initiated retry without storing response content.
+- Added `src/lib/session-continuity.ts` to classify that outage using only
+  response status metadata and visible-output booleans.
 - Added content-free hourly provider telemetry in `src/lib/provider-telemetry.ts`
   for path class, outcome, latency, status, and aggregate token budget only.
 - Prefixed aggregate token-usage KV buckets with `PROJECT_NAME` so operational
@@ -126,8 +131,7 @@ Documentation Tooling Agent direction.
   after adding the required sandbox capability; clean reruns still did not
   finish while remote StackBlitz control requests reported network changes.
 - Remaining Phase 1 work should focus on runtime/manual verification,
-  completion of the WebContainer runtime check, optional open-session-only
-  continuity during provider outages, and deeper deploy hardening.
+  completion of the WebContainer runtime check and deeper deploy hardening.
 
 ## Blockers And Notes
 
@@ -185,6 +189,15 @@ Latest incremental verification on 2026-05-26:
   generated cross-origin preview iframe. Targeted renderer tests pass with
   that token encoded in source; a clean end-to-end rerun remains pending due
   to remote `ERR_NETWORK_CHANGED` failures during WebContainer startup.
+- `npm.cmd test` passed after session-continuity wiring: 17 test files,
+  69 tests. The new coverage confirms provider exhaustion creates only
+  metadata/boolean continuity state and does not mislabel empty output as a
+  visible prior response.
+- The recorded `build:local` command passed after the continuity UI change,
+  with only the already-noted non-failing warnings.
+- A fresh manual UI exercise could not be completed because both the preferred
+  local browser connection and its Playwright fallback failed or stalled
+  before stable interaction; no browser success is claimed for this slice.
 
 ## Next Task
 
@@ -192,8 +205,6 @@ Continue Phase 1 with runtime verification and zero-downtime hardening:
 
 - Complete the WebContainer Vite preview runtime check once the external
   package-network path is stable.
-- Continue Zero-Downtime AI Pipeline work:
-  - Optional open-session-only continuity when all providers fail.
 - Continue with deeper privacy-compatible deploy/runtime hardening after the
   pending network-stable WebContainer end-to-end rerun.
 

@@ -48,4 +48,13 @@ describe('privacy-first content retention', () => {
     expect(input).toContain('durable application storage');
     expect(input).toMatch(/no online service\s+can promise absolute security/);
   });
+
+  it('offers open-session-only continuity during a live provider outage', () => {
+    const island = source('src/components/ChatIsland.svelte');
+
+    expect(island).toContain('createLiveOutageState');
+    expect(island).toContain('Live AI unavailable.');
+    expect(island).toContain('this open session only');
+    expect(island).toContain('onclick={regenerate}');
+  });
 });
