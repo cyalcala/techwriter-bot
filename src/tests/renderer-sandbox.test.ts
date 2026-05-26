@@ -8,7 +8,7 @@ describe('artifact iframe sandboxing', () => {
 
     expect(source).toContain('HTML artifact preview" sandbox=');
     expect(source).toContain('React artifact preview" sandbox=');
-    expect(source).toMatch(/<iframe src="\$\{url\}"[^>]*sandbox=/);
+    expect(source).toContain('sandbox="allow-scripts allow-forms allow-popups allow-modals allow-downloads allow-same-origin"');
   });
 
   it('loads the published WebContainer ESM entrypoint in credentialless isolation mode', () => {

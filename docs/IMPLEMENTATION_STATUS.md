@@ -96,6 +96,9 @@ Documentation Tooling Agent direction.
   permitting the `127.0.0.1` preview origin while rejecting prefix lookalikes.
 - Fixed WebContainer loading to use the published ESM module entrypoint and
   added the documented `credentialless` COOP/COEP isolation headers.
+- Fixed the generated cross-origin WebContainer preview iframe sandbox to allow
+  its own Service Worker context while HTML and React `srcdoc` previews remain
+  under their stricter sandbox policies.
 - Added timestamped provider failover events and surfaced recent failovers in
   the chat footer without retaining generated response content.
 - Confirmed the all-providers-unavailable path returns the standardized
@@ -115,9 +118,10 @@ Documentation Tooling Agent direction.
 - The `codex/privacy-first-disclosure` branch is backed up on GitHub through
   checkpoint `4163d77` and now contains a verified content-free telemetry
   follow-up slice.
-- WebContainer now enters an isolated boot path without CSP errors; a complete
-  Vite preview did not finish during local verification because its external
-  package fetches reported transient network failures.
+- WebContainer now enters an isolated boot path without CSP errors. A browser
+  diagnostic reproduced a blocked preview and rendered the synthetic Vite page
+  after adding the required sandbox capability; clean reruns still did not
+  finish while remote StackBlitz control requests reported network changes.
 - Remaining Phase 1 work should focus on runtime/manual verification,
   completion of the WebContainer runtime check, optional open-session-only
   continuity during provider outages, and deeper deploy hardening.
@@ -172,6 +176,12 @@ Latest incremental verification on 2026-05-26:
 - The privacy audit above again returned no durable content-write matches.
 - The recorded `build:local` command above passed after the telemetry wiring,
   with only the already-noted non-failing warnings.
+- WebContainer diagnostic verification reproduced the provider storage/service
+  worker blocker under the original preview sandbox and rendered
+  `WebContainer preview ready` when `allow-same-origin` was applied to that
+  generated cross-origin preview iframe. Targeted renderer tests pass with
+  that token encoded in source; a clean end-to-end rerun remains pending due
+  to remote `ERR_NETWORK_CHANGED` failures during WebContainer startup.
 
 ## Next Task
 

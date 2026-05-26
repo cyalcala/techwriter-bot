@@ -386,7 +386,7 @@ async function loadWebContainer(id: string, project: { files: Record<string, { c
     const dev = await instance.spawn('npx', ['vite', '--port', '5173', '--host', '0.0.0.0']);
     instance.on('server-ready', (_port: number, url: string) => {
       const el = document.getElementById(id);
-      if (el) el.innerHTML = `<iframe src="${url}" sandbox="allow-scripts allow-forms allow-popups allow-modals allow-downloads" referrerpolicy="no-referrer" style="width:100%;min-height:500px;border:none;border-radius:8px"></iframe>`;
+      if (el) el.innerHTML = `<iframe src="${url}" sandbox="allow-scripts allow-forms allow-popups allow-modals allow-downloads allow-same-origin" referrerpolicy="no-referrer" style="width:100%;min-height:500px;border:none;border-radius:8px"></iframe>`;
     });
 
     dev.output.pipeTo(new WritableStream({
