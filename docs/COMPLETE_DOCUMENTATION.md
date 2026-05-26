@@ -35,13 +35,13 @@ The application runs on Cloudflare Pages with server-side rendering via Astro, a
 │  ┌──────▼───────┐  ┌──────▼───────┐  ┌────────▼───────┐  │
 │  │  SESSION KV  │  │ Workers AI   │  │   Kroki.io     │  │
 │  │  (Rate limit,│  │  (Embeddings, │  │  (Diagram       │  │
-│  │  reputation, │  │   Chat LLM)  │  │   rendering)   │  │
-│  │  cache)      │  │              │  │                │  │
+│  │  health,     │  │   Chat LLM)  │  │   rendering)   │  │
+│  │  counters)   │  │              │  │                │  │
 │  └──────────────┘  └──────────────┘  └────────────────┘  │
 └─────────────────────────────────────────────────────────────┘
          │
     ┌────▼────────┐
-    │  Supabase   │  ← Optional: pgvector RAG persistence
+    │  Supabase   │  ← Deferred schema, not active Phase 1 storage
     │  (notes,    │
     │   entities, │
     │   links)    │
@@ -59,8 +59,8 @@ The application runs on Cloudflare Pages with server-side rendering via Astro, a
 | **Styling** | Tailwind CSS 4.2 | Utility-first design system |
 | **Runtime** | Cloudflare Pages | Edge hosting,Workers AI binding |
 | **AI Inference** | Workers AI + Multi-Provider | Chat completions, embeddings |
-| **Vector Store** | KV (session-scoped), IndexedDB (client) | RAG chunk storage |
-| **Database** | Supabase (optional) | pgvector persistent RAG |
+| **Document Context** | Active browser-session memory | Privacy-first retrieval context |
+| **Database** | Supabase schema (deferred) | Not used for Phase 1 content storage |
 | **Diagram** | Kroki.io + Client renderers | Mermaid, Graphviz, D2, PlantUML, Vega |
 | **Search** | DuckDuckGo, Wikipedia, Reddit, Tavily, Exa | Multi-tier live search |
 | **Security** | Cloudflare Turnstile, CSRF, bot detection | Abuse prevention |
@@ -119,15 +119,14 @@ The system generates structured visual artifacts from AI responses, including di
 - **Code** — Syntax-highlighted code blocks via Prism.js
 - **HTML** — Self-contained HTML/CSS snippets
 - **React** — Live React components in sandboxed iframes
-- **WebContainer** — Full Node.js development environments in the browser
 - **SVG** — Inline SVG graphics
 
 **Streaming Parser** — The `ArtifactStreamParser` class in `src/lib/stream-parser.ts` incrementally parses SSE tokens, detecting `<artifact type="..." title="...">` tags as they stream in. This means diagrams appear before the full response is complete.
 
 **Rendering Pipeline**:
 - Server-side via Kroki.io for Mermaid, Graphviz, D2, PlantUML, Vega, Flowchart
-- Client-side via preloaded libraries for KaTeX, Markmap, D2, Flowchart, React, WebContainer
-- Kroki results are cached in KV for 24 hours to avoid redundant rendering
+- Client-side via preloaded libraries for KaTeX, Markmap, D2, Flowchart, and React
+- Rendered artifact content is returned for the active request without durable application caching
 
 ### 4. Multi-Tier Live Search
 
@@ -142,7 +141,7 @@ Search is orchestrated in `src/lib/search.ts` with three tiers:
 - Relevance scoring against the original query
 - Deduplication by URL across all sources
 - Fallback to query expansion if zero results returned
-- Results cached in KV for 15 minutes
+- Results are used for the active request without durable content caching
 
 Sources are cited inline as `[1]`, `[2]`, etc. and rendered as clickable footnotes in the chat interface.
 
@@ -174,10 +173,9 @@ Users can upload documents (.txt, .md, .json, .csv up to 5MB) to get grounded an
 3. Automatic fallback to local Transformers.js (Xenova/bge-small-en-v1.5) if server fails
 4. Degraded mode tracked for transparency
 
-**Storage** — Vectors stored in:
-- IndexedDB on the client for immediate local similarity search
-- Cloudflare KV (24-hour TTL) for cross-session persistence
-- Optionally Supabase pgvector for multi-session enterprise RAG
+**Storage** — Privacy-first operation holds vectorized document context in active
+browser-session memory only. It does not persist uploaded document content to
+IndexedDB, Cloudflare KV, or Supabase.
 
 **Querying** (`src/lib/rag-client.ts`):
 1. User query is embedded via the same model
@@ -185,7 +183,7 @@ Users can upload documents (.txt, .md, .json, .csv up to 5MB) to get grounded an
 3. Top 3 chunks above 0.3 threshold returned as `[Point 1]`, `[Point 2]`, etc.
 4. Context appended to system prompt with document citation instructions
 
-**Supabase Schema** (`supabase/schema.sql`):
+**Deferred Supabase Schema** (`supabase/schema.sql`, not active in Phase 1 content storage):
 - `notes` table with 384-dimensional `vector` column (matching bge-small-en-v1.5)
 - `entities` table for preferred/avoid terminology (user-level)
 - `links` table for bi-directional wiki-style graph connections
@@ -246,9 +244,9 @@ The `token-counter.ts` (`src/lib/token-counter.ts`) enforces token budgets acros
 
 ### 10. Response Caching and Idempotency
 
-- **Query Cache** (`src/lib/query-cache.ts`) — SHA-256 normalized queries cached in KV for 15 minutes
-- **Idempotency Keys** — Clients can supply `idempotencyKey` to deduplicate identical requests within the TTL window
-- **Artifact Render Cache** — Kroki rendered SVGs cached in KV for 24 hours (hash-keyed)
+- **Query Cache** (`src/lib/query-cache.ts`) — disabled for durable response content under privacy-first behavior
+- **Response Replay** — durable content replay and client idempotency-key handling are disabled
+- **Artifact Rendering** — rendered SVG output is returned without durable application content caching
 
 ---
 
@@ -266,8 +264,7 @@ Primary chat endpoint. Handles the full pipeline: routing, search, graph, RAG, m
   "intent": "chat-fast|research|deep-reason",
   "liveSearch": boolean,
   "hasDocument": boolean,
-  "turnstileToken": "string",
-  "idempotencyKey": "string"
+  "turnstileToken": "string"
 }
 ```
 
@@ -279,7 +276,6 @@ Primary chat endpoint. Handles the full pipeline: routing, search, graph, RAG, m
 - `x-search-remaining` — Remaining enhanced search credits
 - `x-chat-path` — `fast`, `balanced`, or `heavy`
 - `x-token-usage` — JSON with input and graph token counts
-- `x-cached` — `true` if served from cache
 
 **Error Responses**: 429 (rate/daily limit), 403 (blocked/captcha), 413 (body/token budget exceeded), 503 (all providers failed)
 
@@ -310,7 +306,7 @@ Server-side diagram rendering via Kroki.io. Used as fallback when client-side re
 
 **Response**:
 ```json
-{ "svg": "<svg>...</svg>", "cached": true }
+{ "svg": "<svg>...</svg>" }
 ```
 
 ### POST `/api/summarize`
@@ -327,7 +323,8 @@ Summarizes conversation history for context compression or extracts topics from 
 
 ### POST `/api/rag-store`
 
-Stores document embedding vectors in KV for cross-session persistence.
+Disabled legacy persistence endpoint. Privacy-first operation returns a
+content-retention-disabled response rather than storing document embeddings.
 
 ### GET `/api/search-credits`
 
@@ -396,7 +393,7 @@ Environment variables (via `.env` or Cloudflare Pages settings):
 16. resolveArtifact() renders via Kroki (server) or client renderer
 17. ArtifactQueue manages multiple artifacts per message
 18. ChatMessages renders formatted markdown + citations + artifact chips
-19. saveConversation() persists to localStorage every 2 seconds
+19. Response remains in active page-session state; legacy durable browser storage is cleared
 20. pollCredits() refreshes enhanced search credit count
 ```
 
@@ -408,9 +405,13 @@ Environment variables (via `.env` or Cloudflare Pages settings):
 
 **Why Multi-Provider?** — No single provider offers guaranteed uptime, best latency for all query types, and free tier availability. The circuit breaker pattern ensures no single provider failure cascades, and session affinity reduces model inconsistency within a conversation.
 
-**Why KV + IndexedDB for RAG?** — Avoiding a required external database simplifies deployment. The combination of client-side IndexedDB (immediate, offline-capable) and KV sync (cross-session persistence) provides resilience. Supabase pgvector is an optional upgrade for multi-device or enterprise use cases.
+**Why active-session document context?** — Privacy-first operation avoids
+durable retention of uploaded content while still supporting grounded answers
+during the open page session.
 
-**Why Kroki.io?** — Server-side diagram rendering offloads heavy processing to an external service with built-in caching. This keeps the Cloudflare Pages worker lightweight and avoids bundling multiple diagram library WASM files.
+**Why Kroki.io?** — Server-side diagram rendering offloads heavy processing to
+an external service. The application returns sanitized output for the active
+request without storing rendered content in its own durable cache.
 
 **Why Token Budget at System Prompt Level?** — Instead of truncating conversation history, the budget is enforced at the context layer. This preserves conversation continuity while ensuring the model never receives a system prompt exceeding its context window tolerance. The layered priority system (date → persona → graph → document → search → artifact) ensures the most important context is always present.
 
@@ -439,7 +440,7 @@ npm run deploy:pages
 
 **Wrangler Configuration** (`wrangler.json`):
 - `ai` binding for Workers AI
-- `SESSION` KV namespace for rate limits, reputation, cache, RAG, graph
+- `SESSION` KV namespace for rate limits, reputation, health/version markers, and aggregate operational counters
 - Node.js compatibility flag enabled
 - Pages build output: `dist/client`
 
@@ -457,7 +458,7 @@ src/
 │       ├── embed.ts            # Embedding generation
 │       ├── render-artifact.ts   # Kroki rendering proxy
 │       ├── summarize.ts        # Conversation/document summarization
-│       ├── rag-store.ts        # KV vector storage
+│       ├── rag-store.ts        # Disabled legacy vector-persistence endpoint
 │       ├── search-credits.ts   # Credit balance endpoint
 │       ├── debug.ts            # System diagnostics
 │       └── debug-ai.ts         # AI provider diagnostics
@@ -478,7 +479,7 @@ src/
 │   ├── search-enhanced.ts      # Tavily + Exa integration
 │   ├── search-reddit.ts        # Reddit search
 │   ├── graph-query.ts          # Knowledge graph retrieval
-│   ├── rag-db.ts               # IndexedDB vector storage
+│   ├── rag-db.ts               # Legacy local vector-storage compatibility
 │   ├── rag-client.ts           # Document upload + chunk search
 │   ├── embed-pipeline.ts       # Embedding with local fallback
 │   ├── sim-search.ts           # Web Worker similarity search
@@ -491,8 +492,8 @@ src/
 │   ├── kroki-renderer.ts      # Server-side Kroki integration
 │   ├── reputation.ts           # User scoring + tier management
 │   ├── token-counter.ts        # Budget enforcement + usage logging
-│   ├── query-cache.ts          # Response caching
-│   ├── session-persist.ts     # localStorage conversation persistence
+│   ├── query-cache.ts          # Legacy response-cache compatibility, durable writes disabled
+│   ├── session-persist.ts     # Legacy browser-content cleanup
 │   ├── cleanup.ts             # Stale data purging
 │   ├── relevance.ts           # Query classification (greeting/inquiry/etc.)
 │   ├── markdown.ts            # Markdown → sanitized HTML

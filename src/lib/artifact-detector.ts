@@ -109,7 +109,7 @@ function langToType(lang: string): ArtifactType | null {
     case 'vega': case 'vega-lite': case 'json': return 'vega';
     case 'flowchart': return 'flowchart';
     case 'markmap': case 'md': return 'markmap';
-    case 'webcontainer': return 'webcontainer';
+    case 'webcontainer': case 'webcontainers': return 'code';
     case 'python': case 'javascript': case 'typescript': case 'js': case 'ts':
     case 'bash': case 'sh': case 'css': case 'sql': case 'go': case 'rust':
     case 'java': case 'cpp': case 'c': return 'code';
@@ -143,8 +143,6 @@ function validateArtifact(type: ArtifactType, code: string): boolean {
       return /[\\\^_{}]/.test(code) || /\\\w+/.test(code);
     case 'vega':
       try { JSON.parse(code); return true; } catch { return false; }
-    case 'webcontainer':
-      try { const p = JSON.parse(code); return !!p.files && Object.keys(p.files).length > 0; } catch { return false; }
     case 'flowchart':
       return /=>|->|:>/.test(code) && code.length > 30;
     case 'markmap':

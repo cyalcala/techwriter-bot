@@ -99,6 +99,9 @@ Documentation Tooling Agent direction.
 - Fixed the generated cross-origin WebContainer preview iframe sandbox to allow
   its own Service Worker context while HTML and React `srcdoc` previews remain
   under their stricter sandbox policies.
+- The user subsequently approved retiring the WebContainer artifact path:
+  legacy `webcontainer` output degrades to inert code and the application no
+  longer loads a third-party browser development runtime.
 - Added timestamped provider failover events and surfaced recent failovers in
   the chat footer without retaining generated response content.
 - Confirmed the all-providers-unavailable path returns the standardized
@@ -117,6 +120,9 @@ Documentation Tooling Agent direction.
   telemetry follows the same deployment isolation rule as other durable state.
 - Added `src/lib/app-version.ts` and `src/pages/api/version.ts` for KV `APP_VERSION` mismatch detection; current privacy-first work updates its recovery guidance to remove legacy content and retain only non-content operational state.
 - Included APP_VERSION status in `/api/health`; mismatches make health return unavailable.
+- Changed the Pages deployment workflow to keep provider/Turnstile secrets out
+  of build inputs and configure encrypted runtime `secret_text` values before
+  deployment, failing closed if Cloudflare rejects that configuration.
 - Pushed verified Phase 1 checkpoints to
   `origin/codex/privacy-first-disclosure`:
   - `4163d77` privacy-first foundation and disclosure delivery.
@@ -124,20 +130,20 @@ Documentation Tooling Agent direction.
   - `ffe8ce4` WebContainer preview Service Worker sandbox repair.
   - `cf081e5` open-session-only provider outage continuity.
   - `554ce8e` removal of invalid streamed-response replay idempotency.
+  - `c4bcd0f` encrypted runtime-secret deployment configuration.
 
 ## In Progress
 
 - Phase 1 foundations are partially implemented.
 - The `codex/privacy-first-disclosure` branch is backed up on GitHub through
-  checkpoint `554ce8e`, including verified content-free telemetry, the
-  WebContainer preview sandbox repair, open-session-only outage continuity,
-  and removal of invalid streamed-response replay idempotency.
-- WebContainer now enters an isolated boot path without CSP errors. A browser
-  diagnostic reproduced a blocked preview and rendered the synthetic Vite page
-  after adding the required sandbox capability; clean reruns still did not
-  finish while remote StackBlitz control requests reported network changes.
-- Remaining Phase 1 work should focus on runtime/manual verification,
-  completion of the WebContainer runtime check and deeper deploy hardening.
+  checkpoint `c4bcd0f`, including verified content-free telemetry,
+  open-session-only outage continuity, invalid replay removal, and
+  deployment-secret hardening.
+- WebContainer runtime verification is no longer a completion requirement. The
+  controlled-renderer checkpoint removes that external browser package runtime
+  from executable product paths and treats legacy output as inert code.
+- Remaining Phase 1 work should focus on final controlled-renderer and
+  deployment/runtime acceptance checks.
 
 ## Blockers And Notes
 
@@ -208,15 +214,30 @@ Latest incremental verification on 2026-05-26:
   lookup/write so duplicate attempts cannot receive an empty cached stream.
 - The expanded privacy/replay audit returned no production `idem:` or
   cached-body replay matches after removal.
+- `npm.cmd test` passed after the controlled-renderer retirement: 17 test
+  files, 73 tests. Coverage confirms legacy `webcontainer` artifacts and
+  standalone artifact URLs are normalized to inert `code` rendering.
+- The production-source runtime audit returned no executable WebContainer
+  loader or third-party app-runtime match; only compatibility aliases remain
+  to downgrade legacy output.
+- The expanded privacy/replay audit again returned no prohibited production
+  content-retention or replay matches.
+- The recorded `build:local` command passed after runtime retirement and
+  documentation correction, with only the already-noted non-failing warnings.
+- A bounded local dev-server attempt did not expose a reachable listener for
+  interactive browser verification, so no manual UI success is claimed for
+  this checkpoint.
 
 ## Next Task
 
-Continue Phase 1 with runtime verification and zero-downtime hardening:
+Continue Phase 1 with deployment acceptance and bounded tooling definition:
 
-- Complete the WebContainer Vite preview runtime check once the external
-  package-network path is stable.
-- Continue with deeper privacy-compatible deploy/runtime hardening after the
-  pending network-stable WebContainer end-to-end rerun.
+- Exercise preview/live deployment acceptance for `/api/health`, version
+  mismatch handling, provider failover, and all-providers-unavailable UI
+  continuity without content or secret leakage.
+- Define the first bounded Documentation Tooling Agent slice around controlled
+  document and repository tools, without autonomous execution or browser
+  package runtimes.
 
 ## Continue Prompt
 

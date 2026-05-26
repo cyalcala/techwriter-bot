@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Artifact, ArtifactType } from '../lib/stream-parser';
-  import { loadRenderer, renderCodeArtifact, renderHtmlArtifact, renderSvgArtifact, renderMermaidArtifact, renderReactArtifact, renderKatexArtifact, renderMarkmapArtifact, renderD2Artifact, renderVegaArtifact, renderGraphvizArtifact, renderPlantUMLArtifact, renderFlowchartArtifact, renderWebContainerArtifact } from '../lib/renderer-loader';
+  import { loadRenderer, renderCodeArtifact, renderHtmlArtifact, renderSvgArtifact, renderMermaidArtifact, renderReactArtifact, renderKatexArtifact, renderMarkmapArtifact, renderD2Artifact, renderVegaArtifact, renderGraphvizArtifact, renderPlantUMLArtifact, renderFlowchartArtifact } from '../lib/renderer-loader';
   import { PREVIEWABLE_ARTIFACT_TYPES } from '../lib/artifact-types';
 
   interface Props { artifact: Artifact; progressive?: boolean; }
@@ -40,7 +40,6 @@
     html: 'bg-rose-600 text-white',
     svg: 'bg-amber-600 text-white',
     react: 'bg-sky-600 text-white',
-    webcontainer: 'bg-violet-600 text-white',
   };
 
   const typeBadge = $derived(typeBadgeMap[artifact.type] || 'bg-gray-600 text-white');
@@ -79,7 +78,6 @@
           case 'graphviz': renderedHtml = renderGraphvizArtifact(a.code); break;
           case 'plantuml': renderedHtml = renderPlantUMLArtifact(a.code); break;
           case 'flowchart': renderedHtml = renderFlowchartArtifact(a.code); break;
-          case 'webcontainer': renderedHtml = renderWebContainerArtifact(a.code); break;
           default: renderedHtml = `<pre>${escapeHtml(a.code)}</pre>`;
         }
       } catch (error) {
@@ -113,7 +111,7 @@
       code: artifact.language === 'python' ? '.py' : artifact.language === 'javascript' ? '.js' : artifact.language ? `.${artifact.language.replace(/^\./, '')}` : '.txt',
       html: '.html', svg: '.svg', mermaid: '.mmd', react: '.jsx',
       katex: '.tex', markmap: '.md', d2: '.d2', vega: '.json',
-      graphviz: '.dot', plantuml: '.puml', flowchart: '.fc.js', webcontainer: '.json',
+      graphviz: '.dot', plantuml: '.puml', flowchart: '.fc.js',
     };
     const ext = extMap[artifact.type] || '.txt';
     const filename = (artifact.title || 'artifact').replace(/[^a-zA-Z0-9_-]/g, '_') + ext;

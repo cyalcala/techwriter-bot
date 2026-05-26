@@ -51,7 +51,7 @@ Generic AI tools produce Mermaid syntax that breaks, Graphviz that doesn't compi
 | Code | Syntax-highlighted blocks via Prism.js |
 | HTML | Self-contained HTML/CSS snippets |
 | React | Live React components in sandboxed iframes |
-| WebContainer | Full Node.js dev environments in-browser |
+| SVG | Inline graphics with sanitized rendering |
 
 When a diagram fails to render, the system surfaces the error and offers an AI-powered fix. No manual syntax debugging.
 

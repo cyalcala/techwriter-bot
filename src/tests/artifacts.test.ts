@@ -3,6 +3,8 @@ import { detectAllArtifacts } from '../lib/artifact-detector';
 import { createArtifactQueue } from '../lib/artifact-queue';
 import { extractArtifactTitle, generateArtifactId } from '../lib/artifact-lifecycle';
 import { ArtifactStreamParser, type Artifact, type ArtifactType } from '../lib/stream-parser';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 const taggedCases: Array<{ type: ArtifactType; code: string }> = [
   { type: 'code', code: 'const answer = 42;' },
@@ -20,7 +22,6 @@ const taggedCases: Array<{ type: ArtifactType; code: string }> = [
   { type: 'graphviz', code: 'digraph G { A -> B }' },
   { type: 'plantuml', code: '@startuml\nAlice -> Bob: Hello\n@enduml' },
   { type: 'flowchart', code: 'st=>start: Start\nop=>operation: Work\nst->op' },
-  { type: 'webcontainer', code: '{"files":{"package.json":{"contents":"{}"}}}' },
 ];
 
 describe('artifact detection', () => {
@@ -58,6 +59,16 @@ describe('artifact detection', () => {
     expect(result.artifacts).toEqual([]);
     expect(result.cleanText).toContain('```json');
   });
+
+  it('degrades legacy webcontainer artifacts to inert code', () => {
+    const result = detectAllArtifacts(
+      '<artifact type="webcontainer" title="Old app">{"files":{"package.json":{"contents":"{}"}}}</artifact>',
+      [],
+    );
+
+    expect(result.artifacts).toHaveLength(1);
+    expect(result.artifacts[0]).toMatchObject({ type: 'code', title: 'Old app' });
+  });
 });
 
 describe('artifact stream parser', () => {
@@ -88,9 +99,25 @@ describe('artifact stream parser', () => {
 
     expect(text).toEqual(['plain text']);
   });
+
+  it('streams legacy webcontainer output as inert code', () => {
+    const artifacts: Artifact[] = [];
+    const parser = new ArtifactStreamParser((artifact) => artifacts.push(artifact), () => {});
+
+    parser.feed('<artifact type="webcontainer" title="Old app">{"files":{"index.html":"hello"}}</artifact>');
+
+    expect(artifacts).toHaveLength(1);
+    expect(artifacts[0]).toMatchObject({ type: 'code', title: 'Old app' });
+  });
 });
 
 describe('artifact lifecycle and queue', () => {
+  it('normalizes standalone URL artifact types before rendering', () => {
+    const standalone = readFileSync(join(process.cwd(), 'src', 'components', 'ArtifactStandalone.svelte'), 'utf8');
+
+    expect(standalone).toContain("normalizeArtifactType(type, code) || 'code'");
+  });
+
   it('uses the full artifact body when generating stable ids', () => {
     const base = 'x'.repeat(220);
 

@@ -1,4 +1,4 @@
-export type ArtifactType = 'code' | 'html' | 'svg' | 'mermaid' | 'react' | 'katex' | 'markmap' | 'd2' | 'vega' | 'graphviz' | 'plantuml' | 'flowchart' | 'webcontainer';
+export type ArtifactType = 'code' | 'html' | 'svg' | 'mermaid' | 'react' | 'katex' | 'markmap' | 'd2' | 'vega' | 'graphviz' | 'plantuml' | 'flowchart';
 export type ArtifactPlacement = 'inline' | 'side' | 'modal';
 
 export interface Artifact {
@@ -15,6 +15,7 @@ type ParserState = 'normal' | 'in_artifact_body';
 const ARTIFACT_OPEN_RE = /<\w*rtifact\s+type="(\w+)"(?:\s+placement="(\w+)")?(?:\s+title="([^"]*)")?(?:\s+language="([^"]*)")?\s*\/?>/i;
 const ARTIFACT_CLOSE_RE = /<\/\w*rtifact\s*>/i;
 const ARTIFACT_OPEN = '<artifact';
+const INERT_LEGACY_TYPES = new Set(['webcontainer', 'webcontainers']);
 
 function trailingMarkerPrefixLength(text: string, marker: string): number {
   const maxLength = Math.min(text.length, marker.length - 1);
@@ -71,7 +72,8 @@ export class ArtifactStreamParser {
         const tagStr = remaining.slice(openIdx, closeIdx + 1);
         const match = tagStr.match(ARTIFACT_OPEN_RE);
         if (match) {
-          const artifactType = match[1] as ArtifactType;
+          const rawType = match[1].toLowerCase();
+          const artifactType = (INERT_LEGACY_TYPES.has(rawType) ? 'code' : rawType) as ArtifactType;
           this.currentArtifact = {
             type: artifactType,
             placement: (match[2] || 'inline') as ArtifactPlacement,

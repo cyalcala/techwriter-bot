@@ -5,8 +5,6 @@ const loadedStyles = new Set<string>();
 const loadingScripts = new Map<string, Promise<void>>();
 const loadingStyles = new Map<string, Promise<void>>();
 const LOAD_TIMEOUT_MS = 12_000;
-const WEB_CONTAINER_MODULE_URL = 'https://cdn.jsdelivr.net/npm/@webcontainer/api@1.6.4/+esm';
-let loadingWebContainerModule: Promise<void> | null = null;
 
 function loadScript(src: string): Promise<void> {
   if (loadedScripts.has(src)) return Promise.resolve();
@@ -73,21 +71,6 @@ function loadStyle(href: string): Promise<void> {
   return promise;
 }
 
-function loadWebContainerModule(): Promise<void> {
-  if ((window as any).WebContainer) return Promise.resolve();
-  if (loadingWebContainerModule) return loadingWebContainerModule;
-  loadingWebContainerModule = import(/* @vite-ignore */ WEB_CONTAINER_MODULE_URL)
-    .then((module) => {
-      if (!module.WebContainer) throw new Error('WebContainer module did not expose WebContainer.');
-      (window as any).WebContainer = module.WebContainer;
-    })
-    .catch((error) => {
-      loadingWebContainerModule = null;
-      throw error;
-    });
-  return loadingWebContainerModule;
-}
-
 export function preloadPopular(): void {
   if (typeof window === 'undefined') return;
   const schedule = window.requestIdleCallback || ((cb: IdleRequestCallback) => window.setTimeout(() => cb({ didTimeout: false, timeRemaining: () => 0 } as IdleDeadline), 1500));
@@ -142,9 +125,6 @@ export async function loadRenderer(type: ArtifactType): Promise<void> {
     case 'svg':
     case 'html':
     case 'react':
-      return;
-    case 'webcontainer':
-      await loadWebContainerModule();
       return;
     default:
       throw new Error(`Unsupported artifact type: ${type}`);
@@ -349,55 +329,6 @@ export function renderReactArtifact(code: string): string {
   return `<iframe title="React artifact preview" sandbox="allow-scripts" referrerpolicy="no-referrer" srcdoc="${escapeAttr(getReactHtml(code))}" class="artifact-frame artifact-frame-react"></iframe>`;
 }
 
-export function renderWebContainerArtifact(code: string): string {
-  const id = `wc-${rand()}`;
-  try {
-    const parsed = JSON.parse(code);
-    if (!parsed.files) throw new Error('Missing files object');
-    domReady(() => { loadWebContainer(id, parsed); });
-  } catch (e) {
-    setTimeout(() => {
-      const el = document.getElementById(id);
-      if (el) el.innerHTML = renderError('WebContainer', String(e), code);
-    }, 50);
-  }
-  return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm" style="min-height:400px">Booting development environment (~30s)...</div>`;
-}
-
-async function loadWebContainer(id: string, project: { files: Record<string, { contents?: string } | string>; title?: string }) {
-  try {
-    const WebContainer = (window as any).WebContainer || (window as any).webcontainer?.WebContainer;
-    if (!WebContainer) {
-      const el = document.getElementById(id);
-      if (el) el.innerHTML = '<pre class="text-red-500 text-xs p-4">WebContainer not loaded. Refresh and try again.</pre>';
-      return;
-    }
-    const instance = await WebContainer.boot({ coep: 'credentialless' });
-    const files: Record<string, { file: { contents: string } }> = {};
-    for (const [path, content] of Object.entries(project.files)) {
-      const text = typeof content === 'string' ? content : (content.contents || '');
-      files[path] = { file: { contents: text } };
-    }
-    await instance.mount(files);
-
-    const install = await instance.spawn('npm', ['install']);
-    await install.exit;
-
-    const dev = await instance.spawn('npx', ['vite', '--port', '5173', '--host', '0.0.0.0']);
-    instance.on('server-ready', (_port: number, url: string) => {
-      const el = document.getElementById(id);
-      if (el) el.innerHTML = `<iframe src="${url}" sandbox="allow-scripts allow-forms allow-popups allow-modals allow-downloads allow-same-origin" referrerpolicy="no-referrer" style="width:100%;min-height:500px;border:none;border-radius:8px"></iframe>`;
-    });
-
-    dev.output.pipeTo(new WritableStream({
-      write(data) { console.log('[WebContainer]', data); }
-    }));
-  } catch (e) {
-    const el = document.getElementById(id);
-    if (el) el.innerHTML = renderError('WebContainer', String(e), '');
-  }
-}
-
 function getReactHtml(code: string): string {
   const safeCode = code.replace(/<\/script/gi, '<\\/script');
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"><\/script><script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"><\/script><script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script><style>html,body,#root{min-height:100%;margin:0}body{font-family:system-ui,sans-serif;background:#fff;color:#1a1a1a;padding:16px;overflow:auto}*{box-sizing:border-box}img,svg,canvas,video{max-width:100%;height:auto}</style></head><body><div id="root"></div><script>window.__HOST_API=Object.freeze({dispatch:function(a,p){window.parent.postMessage({source:'artifact',action:a,payload:p},'*');},copy:function(t){window.parent.postMessage({source:'artifact',action:'copy',payload:t},'*');},error:function(e){window.parent.postMessage({source:'artifact',action:'error',payload:e},'*');}});window.addEventListener('error',function(e){window.__HOST_API.error(e.message||String(e.error||e));});</script><script type="text/babel" data-type="module">${safeCode}\nconst container=document.getElementById('root');if(typeof App!=='undefined'){try{ReactDOM.createRoot(container).render(React.createElement(App));}catch(e){window.__HOST_API.error(e.message||String(e));container.innerHTML='<pre style="color:#b91c1c;white-space:pre-wrap">'+String(e.message||e).replace(/[<>&]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;'}[c]})+'</pre>';}}else{container.innerHTML='<pre style="color:#92400e;white-space:pre-wrap">React artifact must export or define an App component.</pre>';}<\/script></body></html>`;
@@ -465,4 +396,4 @@ function renderError(type: string, message: string, code: string): string {
   return `<div class="text-red-500 text-xs p-3 bg-red-50 rounded-lg border border-red-200"><strong>${type} error:</strong><br/><code class="text-[11px] whitespace-pre-wrap break-all">${escapeHtml(message)}</code><button class="mt-2 px-2 py-1 text-[10px] bg-red-100 hover:bg-red-200 rounded border border-red-300" onclick="this.nextElementSibling.classList.toggle('hidden')">Show raw</button><pre class="hidden mt-2 p-2 bg-gray-100 rounded text-[11px] overflow-x-auto whitespace-pre-wrap">${escapeHtml(code)}</pre></div>`;
 }
 
-declare global { interface Window { Prism: any; mermaid: any; katex: any; flowchart: any; webcontainer: any; } }
+declare global { interface Window { Prism: any; mermaid: any; katex: any; flowchart: any; } }

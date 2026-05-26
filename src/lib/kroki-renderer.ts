@@ -11,7 +11,7 @@ const TYPE_MAP: Record<string, string> = {
 };
 
 export const KROKI_RENDERABLE = new Set(['mermaid', 'graphviz', 'd2', 'plantuml', 'vega', 'flowchart']);
-export const CLIENT_ONLY_TYPES = new Set(['code', 'html', 'svg', 'react', 'katex', 'markmap', 'webcontainer']);
+export const CLIENT_ONLY_TYPES = new Set(['code', 'html', 'svg', 'react', 'katex', 'markmap']);
 
 export async function renderViaKroki(type: string, code: string): Promise<{ svg?: string; error?: string; cached?: boolean; status?: number }> {
   const krokiType = TYPE_MAP[type] || type;

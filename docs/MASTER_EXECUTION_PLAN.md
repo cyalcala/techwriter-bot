@@ -20,6 +20,8 @@ explicit non-goals.
   application storage.
 - Product direction: evolve into a human-controlled Documentation Tooling
   Agent with bounded, user-invoked tools; do not build autonomous execution.
+- Runtime boundary: support controlled documentation renderers and explicit
+  tools; do not depend on arbitrary in-browser Node/package environments.
 
 ## Do Not Build
 
@@ -186,7 +188,7 @@ Deliver:
   - 500 requests per day per IP.
   - Env configurable.
 - CSP headers.
-- Sandboxed iframes for HTML, React, and WebContainer artifacts.
+- Sandboxed iframes for HTML and React artifacts.
 - Standard error shape:
 
 ```json

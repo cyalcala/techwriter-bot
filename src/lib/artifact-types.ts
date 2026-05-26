@@ -13,7 +13,6 @@ export const SUPPORTED_ARTIFACT_TYPES = [
   'graphviz',
   'plantuml',
   'flowchart',
-  'webcontainer',
 ] as const satisfies readonly ArtifactType[];
 
 export const PREVIEWABLE_ARTIFACT_TYPES = [
@@ -28,7 +27,6 @@ export const PREVIEWABLE_ARTIFACT_TYPES = [
   'graphviz',
   'plantuml',
   'flowchart',
-  'webcontainer',
 ] as const satisfies readonly ArtifactType[];
 
 const TYPE_ALIASES: Record<string, ArtifactType> = {
@@ -58,8 +56,6 @@ const TYPE_ALIASES: Record<string, ArtifactType> = {
   plantuml: 'plantuml',
   puml: 'plantuml',
   flowchart: 'flowchart',
-  webcontainer: 'webcontainer',
-  webcontainers: 'webcontainer',
 };
 
 const CODE_LANGS = new Set([
@@ -111,7 +107,6 @@ export function getDefaultArtifactTitle(type: ArtifactType, language?: string): 
   if (type === 'react') return 'React Component';
   if (type === 'katex') return 'Math Formula';
   if (type === 'vega') return 'Vega Chart';
-  if (type === 'webcontainer') return 'Web App';
   return `${type.charAt(0).toUpperCase() + type.slice(1)} Diagram`;
 }
 
@@ -148,8 +143,6 @@ export function validateArtifact(type: ArtifactType, rawCode: string): boolean {
       return /[\\^_{}=]/.test(code) || /\\\w+/.test(code);
     case 'vega':
       return looksLikeVegaSpec(code);
-    case 'webcontainer':
-      return looksLikeWebContainerProject(code);
     case 'flowchart':
       return /=>|->|:>/.test(code) && code.length > 20;
     case 'markmap':
@@ -183,15 +176,6 @@ export function looksLikeVegaSpec(code: string): boolean {
       parsed.spec ||
       (parsed.data && (parsed.scales || parsed.axes || parsed.marks)),
     );
-  } catch {
-    return false;
-  }
-}
-
-function looksLikeWebContainerProject(code: string): boolean {
-  try {
-    const parsed = JSON.parse(code);
-    return Boolean(parsed?.files && typeof parsed.files === 'object' && Object.keys(parsed.files).length > 0);
   } catch {
     return false;
   }

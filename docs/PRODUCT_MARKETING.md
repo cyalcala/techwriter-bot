@@ -20,9 +20,9 @@ Technical Writer Bot was architected from day one around the specific demands of
 
 ### Diagrams That Actually Work
 
-Generic AI tools produce Mermaid syntax that breaks, Graphviz that doesn't compile, or D2 code that renders as a blank screen. Technical Writer Bot handles the full diagram pipeline — from streaming detection of artifact tags as the AI generates them, through server-side rendering via Kroki.io with 24-hour caching, to client-side progressive enhancement using libraries like Mermaid.js, Graphviz WASM, D2, Vega-Embed, KaTeX, and Flowchart.js.
+Generic AI tools produce Mermaid syntax that breaks, Graphviz that doesn't compile, or D2 code that renders as a blank screen. Technical Writer Bot handles the full diagram pipeline - from streaming detection of artifact tags as the AI generates them, through on-demand server-side rendering via Kroki.io without durable application content caching, to client-side progressive enhancement using libraries like Mermaid.js, Graphviz WASM, D2, Vega-Embed, KaTeX, and Flowchart.js.
 
-The system currently supports **12 distinct artifact types**: Mermaid diagrams, Graphviz graphs, D2 diagrams, PlantUML, Vega statistical charts, KaTeX mathematical notation, Markmap mind maps, Flowchart.js flows, syntax-highlighted code blocks, self-contained HTML/CSS snippets, live React components in sandboxed iframes, and full WebContainer-based Node.js development environments running directly in the browser.
+The system currently supports **12 distinct artifact types**: Mermaid diagrams, Graphviz graphs, D2 diagrams, PlantUML, Vega statistical charts, KaTeX mathematical notation, Markmap mind maps, Flowchart.js flows, syntax-highlighted code blocks, self-contained HTML/CSS snippets, live React components in sandboxed iframes, and sanitized inline SVG graphics.
 
 When a diagram fails to render — which happens even with perfect code — the system surfaces the error and offers an AI-powered fix. You don't debug broken diagram syntax manually. The tool assists.
 
@@ -44,9 +44,9 @@ The graph supports up to 3 degrees of neighbor expansion, community-clustered su
 
 ### Document-Centric RAG
 
-Upload your existing documentation — text, Markdown, JSON, or CSV files up to 5MB — and ask questions that require understanding of your actual content. The system chunks your document, generates embeddings using Cloudflare Workers AI's bge-small-en-v1.5 model (with automatic fallback to a local Transformers.js pipeline if the server is unavailable), stores vectors in both IndexedDB for immediate client-side search and Cloudflare KV for cross-session persistence, and surfaces relevant excerpts with citation markers.
+Upload your existing documentation — text, Markdown, JSON, or CSV files up to 5MB — and ask questions that require understanding of your actual content. The system chunks your document, generates embeddings using Cloudflare Workers AI's bge-small-en-v1.5 model (with automatic fallback to a local Transformers.js pipeline if the server is unavailable), holds vectors for the active page session only, and surfaces relevant excerpts with citation markers.
 
-If you need enterprise-scale persistent RAG across multiple sessions and devices, an optional Supabase pgvector backend provides 384-dimensional vector storage with row-level security and session isolation.
+Privacy-first operation intentionally does not persist uploaded document content across sessions or devices.
 
 ### Multi-Provider Reliability
 
@@ -76,12 +76,12 @@ Not all users should have the same access. The reputation system tracks behavior
 
 Every system prompt is enforced to a hard 2048-token ceiling through a layered priority system: date and persona always appear, then graph context, document context, search results, and finally artifact generation instructions — each layer consuming only what remains. Long conversations are automatically summarized using a lightweight Llama 3.2-1b-instruct model when they approach token limits, preserving key facts while freeing context space.
 
-### Caching and Idempotency
+### Content Retention and Request Handling
 
-- Query responses cached in KV for 15 minutes (normalized SHA-256 key)
-- Rendered diagram SVGs cached for 24 hours
-- Client-side conversation persistence in localStorage (50-message window)
-- Idempotency key support for duplicate request elimination
+- Query responses are processed for the active request without durable content caching
+- Rendered diagram SVGs are returned without durable application content caching
+- Conversation and uploaded document context remain available only in the open page session
+- Limited operational metadata may be retained for rate limits, health, and aggregate provider reliability
 
 ---
 
@@ -101,13 +101,13 @@ Technical writing agencies face a unique problem: their writers need to rapidly 
 
 ## Why Enterprises Should Care
 
-For enterprises, Technical Writer Bot provides a self-hostable AI writing assistant that can run entirely within the Cloudflare edge network. No data leaves the edge unless you configure external search APIs. The Supabase RAG backend is optional, meaning you can run entirely on Cloudflare KV with no third-party database dependency.
+For enterprises, Technical Writer Bot provides a self-hostable AI writing assistant on Cloudflare Pages and Workers AI. Content needed for a requested operation may be transmitted to configured AI or search providers, or to Kroki when rendering a server-side diagram; the application does not durably retain that content in its own caches.
 
-**Compliance-friendly architecture.** All inference runs on Cloudflare Workers AI, which processes requests at the edge. The optional Supabase backend supports Row Level Security and session-scoped data isolation. Enhanced search API calls (Tavily, Exa) are the only external data flows, and those are user-initiated through explicit Live mode activation.
+**Compliance-friendly architecture.** Privacy-first operation keeps conversation and uploaded-document content out of durable application storage. Configured model providers process generated requests, Live mode can call Tavily or Exa, and server-side diagram rendering can call Kroki; each external service remains governed by its own terms.
 
 **Configurable provider policies.** Enterprise deployments can configure `DEV_IPS` for trusted internal IP ranges that bypass rate limits, set custom daily enhanced search limits, and configure the provider pool to prefer specific models for compliance requirements.
 
-**Token budget visibility.** Every response includes token usage counts, cached vs. fresh indicator, and which processing path was used (fast/balanced/heavy). Enterprise IT teams can monitor usage patterns through the debug endpoint.
+**Token budget visibility.** Every response includes token usage counts and which processing path was used (fast/balanced/heavy). Enterprise IT teams can monitor content-free operational usage patterns through diagnostics.
 
 ---
 
@@ -147,9 +147,9 @@ Technical Writer Bot was built to fill that gap: a production-ready, self-hostab
 | Capability | Generic AI Chat | Technical Writer Bot |
 |---|---|---|
 | **Diagram rendering** | Raw code only, breaks frequently | 12 types, server + client render pipeline, auto-fix |
-| **Live search** | Training data cutoff only | 3-tier search, source citations, 15-min cache |
+| **Live search** | Training data cutoff only | 3-tier search, source citations, no durable content cache |
 | **Codebase context** | None | Knowledge graph, 3-degree neighbor expansion |
-| **Document RAG** | None | Client + KV + optional Supabase pgvector |
+| **Document RAG** | None | Active-session document context only |
 | **Provider reliability** | Single provider, downtime expected | Circuit breaker across 6 providers, auto-failover |
 | **Access control** | None | 6-tier reputation system with rate limits |
 | **Security** | Basic | Turnstile, CSRF, bot detection, datacenter blocking |
