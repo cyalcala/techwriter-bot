@@ -8,7 +8,7 @@ import { updateReputation, getDefaultState, deserializeReputation, serializeRepu
 import { determineChatPath, isArtifactGenerationRequest } from '../../lib/path-router';
 import { ensureGraph, queryGraph, getGraphStats } from '../../lib/graph-query';
 import { logTokenUsage, estimateTokens, isWithinBudget, getTokenStats } from '../../lib/token-counter';
-import { apiError, createRequestId, jsonResponse, withRequestId } from '../../lib/api-response';
+import { apiError, createRequestId, jsonResponse } from '../../lib/api-response';
 import { getRequestLimits, sanitizeChatInput } from '../../lib/request-limits';
 import { kvKey } from '../../lib/kv-prefix';
 import { startCleanupInterval } from '../../lib/runtime-interval';
@@ -183,15 +183,6 @@ export const POST: APIRoute = async (ctx) => {
     const query = lastMsg?.content || '';
     const msgLen = query.length;
 
-    const idempotencyKey = body.idempotencyKey || '';
-    if (idempotencyKey && env.SESSION) {
-      const existing = await env.SESSION.get(kvKey(env, `idem:${idempotencyKey}`));
-      if (existing) {
-        const cached = JSON.parse(existing);
-        return new Response(cached.body || '{}', { status: cached.status || 200, headers: withRequestId(cached.headers || {}, rid) });
-      }
-    }
-
     if (!isDev) {
       rep = updateReputation(rep, 'dup_query', { message: query });
       rep = updateReputation(rep, 'natural_message', { message: query });
@@ -278,12 +269,6 @@ export const POST: APIRoute = async (ctx) => {
     );
 
     logTokenUsage(env.SESSION, env, meta.provider || 'unknown', inputTokens, 0).catch(() => {});
-
-    if (env.SESSION) {
-      if (idempotencyKey) {
-        env.SESSION.put(kvKey(env, `idem:${idempotencyKey}`), JSON.stringify({ status: 200, headers: { 'x-provider': meta.provider, 'x-search-tier': searchResult.searchTier, 'x-chat-path': pathCtx.path, 'Content-Type': 'text/event-stream' } }), { expirationTtl: 300 }).catch(() => {});
-      }
-    }
 
     const headers = new Headers(response.headers);
     headers.set('x-request-id', rid);

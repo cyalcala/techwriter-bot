@@ -108,6 +108,9 @@ Documentation Tooling Agent direction.
   and provides a user-initiated retry without storing response content.
 - Added `src/lib/session-continuity.ts` to classify that outage using only
   response status metadata and visible-output booleans.
+- Removed the obsolete durable idempotency replay path from chat. It could no
+  longer replay a response after privacy-first content caching was removed and
+  instead returned an empty pseudo-stream for duplicate keys.
 - Added content-free hourly provider telemetry in `src/lib/provider-telemetry.ts`
   for path class, outcome, latency, status, and aggregate token budget only.
 - Prefixed aggregate token-usage KV buckets with `PROJECT_NAME` so operational
@@ -119,13 +122,15 @@ Documentation Tooling Agent direction.
   - `4163d77` privacy-first foundation and disclosure delivery.
   - `ae260f1` content-free provider telemetry and token key isolation.
   - `ffe8ce4` WebContainer preview Service Worker sandbox repair.
+  - `cf081e5` open-session-only provider outage continuity.
 
 ## In Progress
 
 - Phase 1 foundations are partially implemented.
 - The `codex/privacy-first-disclosure` branch is backed up on GitHub through
-  checkpoint `ffe8ce4`, including verified content-free telemetry and the
-  WebContainer preview sandbox repair.
+  checkpoint `cf081e5`, including verified content-free telemetry, the
+  WebContainer preview sandbox repair, and open-session-only outage
+  continuity.
 - WebContainer now enters an isolated boot path without CSP errors. A browser
   diagnostic reproduced a blocked preview and rendered the synthetic Vite page
   after adding the required sandbox capability; clean reruns still did not
@@ -152,7 +157,7 @@ Latest integrated verification on 2026-05-25:
 - The privacy audit returned no durable content-write matches:
 
 ```powershell
-rg -n "localStorage\.setItem|indexedDB\.open|rag:\$\{|qcache:|kroki:|searchCache\.set|query:\s*query|from '../../lib/query-cache'|searchRagKV" src -g "!tests"
+rg -n "localStorage\.setItem|indexedDB\.open|rag:\$\{|qcache:|kroki:|idem:\$\{|cached\.body|idempotencyKey|searchCache\.set|query:\s*query|from '../../lib/query-cache'|searchRagKV" src -g "!tests"
 ```
 
 - Representative API checks returned `x-request-id` headers and structured
@@ -193,11 +198,15 @@ Latest incremental verification on 2026-05-26:
   69 tests. The new coverage confirms provider exhaustion creates only
   metadata/boolean continuity state and does not mislabel empty output as a
   visible prior response.
-- The recorded `build:local` command passed after the continuity UI change,
-  with only the already-noted non-failing warnings.
+- The recorded `build:local` command passed after the continuity UI and chat
+  replay-removal changes, with only the already-noted non-failing warnings.
 - A fresh manual UI exercise could not be completed because both the preferred
   local browser connection and its Playwright fallback failed or stalled
   before stable interaction; no browser success is claimed for this slice.
+- Privacy-first hardening removes the former `idempotencyKey` response-replay
+  lookup/write so duplicate attempts cannot receive an empty cached stream.
+- The expanded privacy/replay audit returned no production `idem:` or
+  cached-body replay matches after removal.
 
 ## Next Task
 

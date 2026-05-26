@@ -23,6 +23,9 @@ describe('privacy-first content retention', () => {
     expect(source('src/lib/rag-db.ts')).not.toContain('indexedDB.open');
     expect(source('src/pages/api/chat.ts')).not.toContain("from '../../lib/query-cache'");
     expect(source('src/pages/api/chat.ts')).not.toContain('searchRagKV');
+    expect(source('src/pages/api/chat.ts')).not.toContain('idempotencyKey');
+    expect(source('src/pages/api/chat.ts')).not.toContain('cached.body');
+    expect(source('src/components/ChatIsland.svelte')).not.toContain('idempotencyKey');
     expect(source('src/pages/api/rag-store.ts')).not.toContain('.put(');
     expect(source('src/lib/query-cache.ts')).not.toContain('.put(');
     expect(source('src/lib/search.ts')).not.toContain('.put(');

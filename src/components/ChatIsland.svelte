@@ -367,7 +367,6 @@
       messagesToSend = [messagesToSend[0], ...messagesToSend.slice(-2)];
     }
 
-    const idempotencyKey = crypto.randomUUID();
     const totalEst = messagesToSend.reduce((s, m) => s + estimateTokens(m.content || ''), 0);
 
     if (totalEst > 5000) {
@@ -408,7 +407,7 @@
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: messagesToSend, intent: isThinkingMode ? 'research' : 'chat-fast', sessionId, liveSearch: isLiveMode, idempotencyKey }),
+        body: JSON.stringify({ messages: messagesToSend, intent: isThinkingMode ? 'research' : 'chat-fast', sessionId, liveSearch: isLiveMode }),
         signal: abortController.signal,
       });
 
