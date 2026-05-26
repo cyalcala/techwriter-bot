@@ -131,14 +131,15 @@ Documentation Tooling Agent direction.
   - `cf081e5` open-session-only provider outage continuity.
   - `554ce8e` removal of invalid streamed-response replay idempotency.
   - `c4bcd0f` encrypted runtime-secret deployment configuration.
+  - `33b6f4b` retirement of the executable WebContainer artifact runtime.
 
 ## In Progress
 
 - Phase 1 foundations are partially implemented.
 - The `codex/privacy-first-disclosure` branch is backed up on GitHub through
-  checkpoint `c4bcd0f`, including verified content-free telemetry,
-  open-session-only outage continuity, invalid replay removal, and
-  deployment-secret hardening.
+  checkpoint `33b6f4b`, including verified content-free telemetry,
+  open-session-only outage continuity, invalid replay removal,
+  deployment-secret hardening, and controlled-renderer runtime retirement.
 - WebContainer runtime verification is no longer a completion requirement. The
   controlled-renderer checkpoint removes that external browser package runtime
   from executable product paths and treats legacy output as inert code.
