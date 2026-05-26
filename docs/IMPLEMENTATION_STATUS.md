@@ -123,14 +123,15 @@ Documentation Tooling Agent direction.
   - `ae260f1` content-free provider telemetry and token key isolation.
   - `ffe8ce4` WebContainer preview Service Worker sandbox repair.
   - `cf081e5` open-session-only provider outage continuity.
+  - `554ce8e` removal of invalid streamed-response replay idempotency.
 
 ## In Progress
 
 - Phase 1 foundations are partially implemented.
 - The `codex/privacy-first-disclosure` branch is backed up on GitHub through
-  checkpoint `cf081e5`, including verified content-free telemetry, the
-  WebContainer preview sandbox repair, and open-session-only outage
-  continuity.
+  checkpoint `554ce8e`, including verified content-free telemetry, the
+  WebContainer preview sandbox repair, open-session-only outage continuity,
+  and removal of invalid streamed-response replay idempotency.
 - WebContainer now enters an isolated boot path without CSP errors. A browser
   diagnostic reproduced a blocked preview and rendered the synthetic Vite page
   after adding the required sandbox capability; clean reruns still did not
