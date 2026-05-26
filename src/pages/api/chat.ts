@@ -102,7 +102,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
   const rid = createRequestId();
   const env = loadEnv(locals);
   const graphStats = getGraphStats();
-  const tokenStats = await getTokenStats(env.SESSION);
+  const tokenStats = await getTokenStats(env.SESSION, env);
   return jsonResponse({
     status: 'ok', circuits: getCircuitDiagnostics(),
     failoverEvents: getRecentFailoverEvents(),
@@ -257,6 +257,9 @@ export const POST: APIRoute = async (ctx) => {
     }
 
     const forceSticky = needsArtifact;
+    const systemPrompt = messages.find((m: any) => m.role === 'system');
+    const inputTokens = estimateTokens(systemPrompt?.content || '') + messages.slice(1).reduce((s: number, m: any) => s + estimateTokens(m.content || ''), 0);
+    const graphTokens = graphContextStr ? estimateTokens(graphContextStr) : 0;
 
     const meta: ResponseMetadata = {
       provider: null,
@@ -264,6 +267,7 @@ export const POST: APIRoute = async (ctx) => {
       searchRemaining: searchResult.enhancedRemaining != null ? String(searchResult.enhancedRemaining) : (isDev ? 'unlimited' : '0'),
       tier: isDev ? 'dev' : tier,
       chatPath: effectivePath,
+      inputTokens,
     };
 
     const response = await routeChat(
@@ -273,10 +277,7 @@ export const POST: APIRoute = async (ctx) => {
       needsArtifact ? 2048 : undefined,
     );
 
-    const systemPrompt = messages.find((m: any) => m.role === 'system');
-    const inputTokens = estimateTokens(systemPrompt?.content || '') + messages.slice(1).reduce((s: number, m: any) => s + estimateTokens(m.content || ''), 0);
-    const graphTokens = graphContextStr ? estimateTokens(graphContextStr) : 0;
-    logTokenUsage(env.SESSION, clientSessionId, meta.provider || 'unknown', inputTokens, 0).catch(() => {});
+    logTokenUsage(env.SESSION, env, meta.provider || 'unknown', inputTokens, 0).catch(() => {});
 
     if (env.SESSION) {
       if (idempotencyKey) {

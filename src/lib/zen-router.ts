@@ -1,5 +1,6 @@
 import { ZEN_REGISTRY, classifyQuery, getProvidersForRole, type Provider, type ProviderRole } from './providers';
 import { kvKey } from './kv-prefix';
+import { recordProviderTelemetry, type ProviderOutcome } from './provider-telemetry';
 import { startCleanupInterval } from './runtime-interval';
 
 const FAIL_WINDOW_MS = 60_000;
@@ -33,6 +34,7 @@ export interface ResponseMetadata {
   tier: string;
   chatPath?: 'fast' | 'balanced' | 'heavy';
   failoverEvents?: FailoverEvent[];
+  inputTokens?: number;
 }
 
 export interface FailoverEvent {
@@ -283,6 +285,25 @@ export async function routeChat(
     return 2048;
   };
 
+  const recordAttempt = (
+    provider: Provider,
+    outcome: ProviderOutcome,
+    latencyMs: number,
+    status: number,
+    requestedOutputTokens: number,
+  ) => {
+    recordProviderTelemetry(circuitKV, circuitEnv, {
+      provider: provider.id,
+      chatPath,
+      outcome,
+      latencyMs,
+      status,
+      inputTokens: metadata?.inputTokens || 0,
+      requestedOutputTokens,
+      freeTier: provider.freeTier,
+    }).catch(() => {});
+  };
+
   const ordered: Provider[] = [];
   const added = new Set<string>();
 
@@ -320,21 +341,24 @@ export async function routeChat(
   async function trySingleProvider(provider: Provider, skipCircuit: boolean = false): Promise<Response | null> {
     if (!skipCircuit && isCircuitOpen(provider.id)) return null;
 
+    const requestedOutputTokens = getMaxTokens(provider);
     const apiKey = getApiKey(provider, env);
     if (!apiKey && provider.name !== 'cloudflare') {
       recordFail(provider.id, 401, 'no key');
       recordFailoverEvent(provider, 'missing_api_key', 401, chatPath, metadata);
+      recordAttempt(provider, 'missing_api_key', 0, 401, requestedOutputTokens);
       return null;
     }
 
     const start = Date.now();
     try {
       const maxTimeout = chatPath === 'fast' ? 15_000 : undefined;
-      const res = await callProvider(provider, messages, env, getMaxTokens(provider), maxTimeout);
+      const res = await callProvider(provider, messages, env, requestedOutputTokens, maxTimeout);
       const latency = Date.now() - start;
 
       if (res.ok) {
         recordSuccess(provider.id);
+        recordAttempt(provider, 'success', latency, res.status, requestedOutputTokens);
         if (session) { session.lockedProviderId = provider.id; session.turnCount = (session.turnCount || 0) + 1; }
         if (metadata) metadata.provider = provider.id;
         return new Response(res.body, { status: res.status, headers: makeHeaders(provider, latency, sources, metadata) });
@@ -342,11 +366,14 @@ export async function routeChat(
 
       recordFail(provider.id, res.status);
       recordFailoverEvent(provider, `provider_http_${res.status}`, res.status, chatPath, metadata);
+      recordAttempt(provider, 'http_error', latency, res.status, requestedOutputTokens);
       console.log(JSON.stringify({ event: 'provider_fail', provider: provider.id, status: res.status, latency }));
     } catch (e: any) {
+      const latency = Date.now() - start;
       recordFail(provider.id, 0, e.message || e.name);
       recordFailoverEvent(provider, 'provider_error', 0, chatPath, metadata);
-      console.log(JSON.stringify({ event: 'provider_err', provider: provider.id, error: e.message?.slice(0, 100) }));
+      recordAttempt(provider, 'provider_error', latency, 0, requestedOutputTokens);
+      console.log(JSON.stringify({ event: 'provider_err', provider: provider.id, error: e.message?.slice(0, 100), latency }));
     }
     return null;
   }

@@ -1,3 +1,5 @@
+import { kvKey } from './kv-prefix';
+
 export const MAX_SYSTEM_PROMPT_TOKENS = 2048;
 export const MAX_TOTAL_REQUEST_TOKENS = 4096;
 export const CORE_PERSONA_TOKENS = 300;
@@ -53,7 +55,7 @@ export function enforceBudget(layers: { priority: number; content: string }[], m
 
 export async function logTokenUsage(
   kv: any,
-  sessionId: string,
+  env: Record<string, unknown>,
   provider: string,
   inputTokens: number,
   outputTokens: number,
@@ -61,7 +63,7 @@ export async function logTokenUsage(
   if (!kv) return;
   const today = new Date().toISOString().slice(0, 10);
   const hour = new Date().getHours().toString().padStart(2, '0');
-  const key = `tk:${today}:${hour}`;
+  const key = kvKey(env, `tk:${today}:${hour}`);
   try {
     const existing = await kv.get(key, 'json').catch(() => null) || { total: 0, providers: {} };
     existing.total += (inputTokens + outputTokens);
@@ -75,11 +77,11 @@ export interface TokenStats {
   hourly: { hour: string; total: number }[];
 }
 
-export async function getTokenStats(kv: any): Promise<TokenStats> {
+export async function getTokenStats(kv: any, env: Record<string, unknown> = {}): Promise<TokenStats> {
   if (!kv) return { today: { total: 0, providers: {} }, hourly: [] };
   try {
     const today = new Date().toISOString().slice(0, 10);
-    const prefix = `tk:${today}:`;
+    const prefix = kvKey(env, `tk:${today}:`);
     const list = await kv.list({ prefix });
     const stats: TokenStats = { today: { total: 0, providers: {} }, hourly: [] };
 

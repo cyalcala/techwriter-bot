@@ -98,21 +98,29 @@ Documentation Tooling Agent direction.
   added the documented `credentialless` COOP/COEP isolation headers.
 - Added timestamped provider failover events and surfaced recent failovers in
   the chat footer without retaining generated response content.
+- Confirmed the all-providers-unavailable path returns the standardized
+  retryable `AI_PROVIDERS_UNAVAILABLE` response without a durable answer cache.
+- Added content-free hourly provider telemetry in `src/lib/provider-telemetry.ts`
+  for path class, outcome, latency, status, and aggregate token budget only.
+- Prefixed aggregate token-usage KV buckets with `PROJECT_NAME` so operational
+  telemetry follows the same deployment isolation rule as other durable state.
 - Added `src/lib/app-version.ts` and `src/pages/api/version.ts` for KV `APP_VERSION` mismatch detection; current privacy-first work updates its recovery guidance to remove legacy content and retain only non-content operational state.
 - Included APP_VERSION status in `/api/health`; mismatches make health return unavailable.
+- Pushed verified Phase 1 checkpoint `4163d77` to
+  `origin/codex/privacy-first-disclosure`.
 
 ## In Progress
 
 - Phase 1 foundations are partially implemented.
-- The `codex/privacy-first-disclosure` branch contains privacy-first retention
-  and provider failover UI changes with fresh integrated verification complete,
-  pending a GitHub checkpoint push.
+- The `codex/privacy-first-disclosure` branch is backed up on GitHub through
+  checkpoint `4163d77` and now contains a verified content-free telemetry
+  follow-up slice.
 - WebContainer now enters an isolated boot path without CSP errors; a complete
   Vite preview did not finish during local verification because its external
   package fetches reported transient network failures.
 - Remaining Phase 1 work should focus on runtime/manual verification,
-  completion of the WebContainer runtime check, zero-downtime failover behavior,
-  non-content latency/cost telemetry, and deeper deploy hardening.
+  completion of the WebContainer runtime check, optional open-session-only
+  continuity during provider outages, and deeper deploy hardening.
 
 ## Blockers And Notes
 
@@ -157,6 +165,14 @@ subst T: C:\Users\admin\Desktop\techwriter-bot; Set-Location -LiteralPath 'T:\';
 
 - Build completed successfully with non-failing warnings noted above.
 
+Latest incremental verification on 2026-05-26:
+
+- `npm.cmd test` passed: 16 test files, 65 tests, including privacy-safe
+  provider telemetry and project-prefixed aggregate token usage.
+- The privacy audit above again returned no durable content-write matches.
+- The recorded `build:local` command above passed after the telemetry wiring,
+  with only the already-noted non-failing warnings.
+
 ## Next Task
 
 Continue Phase 1 with runtime verification and zero-downtime hardening:
@@ -164,10 +180,9 @@ Continue Phase 1 with runtime verification and zero-downtime hardening:
 - Complete the WebContainer Vite preview runtime check once the external
   package-network path is stable.
 - Continue Zero-Downtime AI Pipeline work:
-  - Retryable outage behavior and optional open-session-only continuity when all providers fail.
-  - Non-content cost/latency recording per provider/query class.
-- Push the verified privacy-first Phase 1 checkpoint to GitHub, then continue
-  with the next privacy-compatible reliability slice.
+  - Optional open-session-only continuity when all providers fail.
+- If the latest verified telemetry commit is not yet on GitHub, push it before
+  continuing with deeper privacy-compatible deploy/runtime hardening.
 
 ## Continue Prompt
 
