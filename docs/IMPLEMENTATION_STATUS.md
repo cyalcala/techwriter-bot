@@ -109,15 +109,18 @@ Documentation Tooling Agent direction.
   telemetry follows the same deployment isolation rule as other durable state.
 - Added `src/lib/app-version.ts` and `src/pages/api/version.ts` for KV `APP_VERSION` mismatch detection; current privacy-first work updates its recovery guidance to remove legacy content and retain only non-content operational state.
 - Included APP_VERSION status in `/api/health`; mismatches make health return unavailable.
-- Pushed verified Phase 1 checkpoint `4163d77` to
-  `origin/codex/privacy-first-disclosure`.
+- Pushed verified Phase 1 checkpoints to
+  `origin/codex/privacy-first-disclosure`:
+  - `4163d77` privacy-first foundation and disclosure delivery.
+  - `ae260f1` content-free provider telemetry and token key isolation.
+  - `ffe8ce4` WebContainer preview Service Worker sandbox repair.
 
 ## In Progress
 
 - Phase 1 foundations are partially implemented.
 - The `codex/privacy-first-disclosure` branch is backed up on GitHub through
-  checkpoint `4163d77` and now contains a verified content-free telemetry
-  follow-up slice.
+  checkpoint `ffe8ce4`, including verified content-free telemetry and the
+  WebContainer preview sandbox repair.
 - WebContainer now enters an isolated boot path without CSP errors. A browser
   diagnostic reproduced a blocked preview and rendered the synthetic Vite page
   after adding the required sandbox capability; clean reruns still did not
@@ -191,8 +194,8 @@ Continue Phase 1 with runtime verification and zero-downtime hardening:
   package-network path is stable.
 - Continue Zero-Downtime AI Pipeline work:
   - Optional open-session-only continuity when all providers fail.
-- If the latest verified telemetry commit is not yet on GitHub, push it before
-  continuing with deeper privacy-compatible deploy/runtime hardening.
+- Continue with deeper privacy-compatible deploy/runtime hardening after the
+  pending network-stable WebContainer end-to-end rerun.
 
 ## Continue Prompt
 
