@@ -48,47 +48,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Inject env vars into wrangler.json
-        run: |
-          node -e "
-          const fs = require('fs');
-          const cfg = JSON.parse(fs.readFileSync('wrangler.json','utf8'));
-          cfg.vars = {};
-          const keys = ['GROQ_API_KEY','CEREBRAS_API_KEY','GEMINI_API_KEY','NVIDIA_API_KEY','OPENROUTER_API_KEY','TAVILY_API_KEY','EXA_API_KEY','TURNSTILE_SECRET_KEY','DEV_IPS'];
-          for (const k of keys) { if (process.env[k]) cfg.vars[k] = process.env[k]; }
-          fs.writeFileSync('wrangler.json', JSON.stringify(cfg, null, 2));
-          console.log('Injected', Object.keys(cfg.vars).length, 'env vars into wrangler.json');
-          "
-
-      - name: Create .env from secrets
-        run: |
-          cat > .env << 'ENVEOF'
-          GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}
-          CEREBRAS_API_KEY=${{ secrets.CEREBRAS_API_KEY }}
-          GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
-          NVIDIA_API_KEY=${{ secrets.NVIDIA_API_KEY }}
-          OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}
-          TAVILY_API_KEY=${{ secrets.TAVILY_API_KEY }}
-          EXA_API_KEY=${{ secrets.EXA_API_KEY }}
-          TURNSTILE_SECRET_KEY=${{ secrets.TURNSTILE_SECRET_KEY }}
-          DEV_IPS=${{ secrets.DEV_IPS }}
-          ENVEOF
-          echo ".env created"
-
       - name: Build
         run: npm run build
-        env:
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
-          EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
-          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
-          DEV_IPS: ${{ secrets.DEV_IPS }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: Post-process build (copy worker/chunks/middleware)
         run: |
@@ -116,14 +77,7 @@ jobs:
           rm -f dist/wrangler.json dist/server/wrangler.json 2>/dev/null || true
           rm -f .wrangler/deploy/config.json 2>/dev/null || true
 
-      - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist/client --project-name tw-bot --branch main --commit-dirty=true
-
-      - name: Set environment variables via API
+      - name: Configure runtime secrets before deployment
         run: |
           node -e "
           const vars = {
@@ -139,7 +93,7 @@ jobs:
           };
           const body = JSON.stringify({
             deployment_configs: { production: { env_vars: Object.fromEntries(
-              Object.entries(vars).filter(([,v]) => v).map(([k,v]) => [k, {value: v}])
+              Object.entries(vars).filter(([,v]) => v).map(([k,v]) => [k, { type: 'secret_text', value: v }])
             )}}
           });
           const https = require('https');
@@ -148,7 +102,24 @@ jobs:
             path: '/client/v4/accounts/' + process.env.CLOUDFLARE_ACCOUNT_ID + '/pages/projects/tw-bot',
             method: 'PATCH',
             headers: { 'Authorization': 'Bearer ' + process.env.CLOUDFLARE_API_TOKEN, 'Content-Type': 'application/json' }
-          }, (res) => { let d=''; res.on('data',c=>d+=c); res.on('end',()=>console.log(d)); });
+          }, (res) => {
+            let data = '';
+            res.on('data', chunk => data += chunk);
+            res.on('end', () => {
+              let result = {};
+              try { result = JSON.parse(data); } catch {}
+              if (res.statusCode < 200 || res.statusCode >= 300 || result.success !== true) {
+                console.error('Failed to configure Cloudflare runtime secrets before deploy.');
+                process.exitCode = 1;
+                return;
+              }
+              console.log('Configured Cloudflare runtime secrets before deploy.');
+            });
+          });
+          req.on('error', () => {
+            console.error('Failed to configure Cloudflare runtime secrets before deploy.');
+            process.exitCode = 1;
+          });
           req.write(body); req.end();
           "
         env:
@@ -163,3 +134,10 @@ jobs:
           DEV_IPS: ${{ secrets.DEV_IPS }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist/client --project-name tw-bot --branch main --commit-dirty=true

@@ -60,4 +60,23 @@ describe('privacy-first content retention', () => {
     expect(island).toContain('this open session only');
     expect(island).toContain('onclick={regenerate}');
   });
+
+  it('keeps production integration secrets out of build artifacts', () => {
+    const workflow = source('.github/workflows/deploy.yml');
+    const buildStart = workflow.indexOf('      - name: Build');
+    const buildEnd = workflow.indexOf('\n      - name:', buildStart + 1);
+    const buildStep = workflow.slice(buildStart, buildEnd);
+    const runtimeSecretsStart = workflow.indexOf('      - name: Configure runtime secrets before deployment');
+    const deployStart = workflow.indexOf('      - name: Deploy to Cloudflare Pages');
+
+    expect(workflow).not.toContain('Inject env vars into wrangler.json');
+    expect(workflow).not.toContain('Create .env from secrets');
+    expect(buildStep).not.toContain('GROQ_API_KEY');
+    expect(buildStep).not.toContain('TURNSTILE_SECRET_KEY');
+    expect(runtimeSecretsStart).toBeGreaterThan(buildStart);
+    expect(runtimeSecretsStart).toBeLessThan(deployStart);
+    expect(workflow).toContain("{ type: 'secret_text', value: v }");
+    expect(workflow).not.toContain('console.log(d)');
+    expect(workflow).toContain('process.exitCode = 1');
+  });
 });
