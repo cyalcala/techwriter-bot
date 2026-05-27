@@ -136,6 +136,7 @@ Documentation Tooling Agent direction.
   - `554ce8e` removal of invalid streamed-response replay idempotency.
   - `c4bcd0f` encrypted runtime-secret deployment configuration.
   - `33b6f4b` retirement of the executable WebContainer artifact runtime.
+  - `aea2af7` removal of public diagnostics disclosure.
 
 ## In Progress
 
@@ -150,8 +151,12 @@ Documentation Tooling Agent direction.
 - The public `https://tw-bot.pages.dev` deployment still reflects the prior
   public-diagnostics response shape until this feature branch reaches an
   authorized preview or production deployment.
+- Defined the first bounded Documentation Tooling Agent slice in
+  `docs/superpowers/specs/2026-05-27-documentation-tooling-agent-foundation-design.md`:
+  explicit document review and read-only graph lookup only, with no autonomous
+  actions, arbitrary runtime, or durable user-content retention.
 - Remaining Phase 1 work should focus on deployed-endpoint confirmation and
-  the first bounded Documentation Tooling Agent specification.
+  reviewing/planning the bounded tooling implementation.
 
 ## Blockers And Notes
 
@@ -266,9 +271,10 @@ Continue Phase 1 with deployment acceptance and bounded tooling definition:
   then repeat public endpoint acceptance for sanitized `/api/health`, version
   mismatch handling, provider failover, and all-providers-unavailable UI
   continuity without content or secret leakage.
-- Define the first bounded Documentation Tooling Agent slice around controlled
-  document and repository tools, without autonomous execution or browser
-  package runtimes.
+- Review the recorded bounded Documentation Tooling Agent design, then write
+  its implementation plan before changing tool behavior; keep it limited to
+  controlled document and repository tools without autonomous execution or
+  browser package runtimes.
 
 ## Continue Prompt
 

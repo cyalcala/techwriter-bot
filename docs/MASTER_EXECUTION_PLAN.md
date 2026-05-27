@@ -22,6 +22,8 @@ explicit non-goals.
   Agent with bounded, user-invoked tools; do not build autonomous execution.
 - Runtime boundary: support controlled documentation renderers and explicit
   tools; do not depend on arbitrary in-browser Node/package environments.
+- First tooling design reference:
+  `docs/superpowers/specs/2026-05-27-documentation-tooling-agent-foundation-design.md`.
 
 ## Do Not Build
 
