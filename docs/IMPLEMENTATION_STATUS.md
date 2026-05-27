@@ -142,21 +142,32 @@ Documentation Tooling Agent direction.
   - `15271a3` deterministic document review engine.
   - `5a26ba1` explicit in-session document review UI and outage-resilient handoff.
   - `7d4a1ec` bounded read-only source reference lookup.
+  - `4a9bfbf` graph-query decompression repair and tracked graph refresh.
+  - `6fc6f28` bounded tooling verification/status checkpoint.
+  - `f0816c0` retirement of the vulnerable browser embedding fallback.
+  - `8b3a8fb` content-free public failure telemetry.
+  - `136be79` protected branch preview deployment path.
+  - `a657da1` preview graph and application-version publication.
+  - `7502833` Pages runtime version variable declaration.
+  - `031f9b9` authorized preview-origin CSRF allowance.
+  - `77c9102` Node 24 deployment action preparation.
+  - `2c30191` direct Wrangler CLI preview deployment without deprecated wrapper.
 
 ## In Progress
 
-- Phase 1 foundations are partially implemented.
+- Phase 1 preview acceptance is substantially complete; production promotion
+  and repeat production acceptance remain open.
 - The `codex/privacy-first-disclosure` branch is backed up on GitHub through
-  checkpoint `7d4a1ec`, including verified content-free telemetry,
-  open-session-only outage continuity, invalid replay removal,
-  deployment-secret hardening, controlled-renderer runtime retirement, public
-  diagnostic-surface hardening, and the first bounded documentation tools.
+  checkpoint `2c30191`, including the privacy hardening, bounded documentation
+  tools, authorized preview deployment, runtime graph/version publication, and
+  CI deployment maintenance described below.
 - WebContainer runtime verification is no longer a completion requirement. The
   controlled-renderer checkpoint removes that external browser package runtime
   from executable product paths and treats legacy output as inert code.
-- The public `https://tw-bot.pages.dev` deployment still reflects the prior
-  public-diagnostics response shape until this feature branch reaches an
-  authorized preview or production deployment.
+- The authorized preview alias
+  `https://codex-privacy-first-disclosu.tw-bot.pages.dev` serves the hardened
+  feature branch. The public production alias `https://tw-bot.pages.dev` has
+  not been promoted from this branch and must not be described as hardened yet.
 - Defined the first bounded Documentation Tooling Agent slice in
   `docs/superpowers/specs/2026-05-27-documentation-tooling-agent-foundation-design.md`:
   explicit document review and read-only graph lookup only, with no autonomous
@@ -165,11 +176,12 @@ Documentation Tooling Agent direction.
   `docs/superpowers/plans/2026-05-27-documentation-tooling-agent-foundation.md`:
   active-session deterministic document review and a bounded read-only
   `src/` reference lookup with no generic fallback output.
-- Refreshed tracked Graphify artifacts locally with `graphify update .` from
-  code at commit `4a9bfbfa`; publication to the deployed graph binding remains
-  part of authorized deployment acceptance.
-- Remaining Phase 1 work should focus on authorized deployed-endpoint
-  confirmation and publication/freshness acceptance for the configured graph.
+- Published a preview runtime graph through the authorized GitHub Actions path;
+  the latest accepted runtime extraction from `2c30191` contains 969 nodes and
+  1306 edges and is available only through the bounded `src/` lookup surface.
+- Remaining Phase 1 work should focus on reviewed production promotion and a
+  repeat acceptance pass on production, without reviving browser package
+  runtimes or extending the bounded tooling scope.
 
 ## Blockers And Notes
 
@@ -179,11 +191,16 @@ Documentation Tooling Agent direction.
 - There are unrelated/unmanaged untracked local artifacts in the workspace. Do not delete them unless the user explicitly asks.
 - A same-shell `subst T:` alias lets the build run.
 - Build requires `CLOUDFLARE_REMOTE_BINDINGS` to stay unset or `false` unless Wrangler is logged in.
-- Local Wrangler inspection on 2026-05-27 reported no authenticated Cloudflare
-  session, and the GitHub deploy workflow targets `main` only; do not claim
-  this feature branch has been preview-deployed.
+- Deployment is performed through GitHub Actions credentials. The protected
+  branch preview succeeded at immutable URL
+  `https://588c750b.tw-bot.pages.dev` and alias
+  `https://codex-privacy-first-disclosu.tw-bot.pages.dev`; this is not a
+  production promotion.
 - Local build currently emits non-failing Node `punycode`/`MaxListenersExceeded`
   warnings plus the Wrangler local-AI remote-usage warning.
+- Browser acceptance produced zero console errors and non-blocking unused/preload
+  warnings for optional renderer assets; those are performance follow-up work,
+  not a privacy or tooling blocker.
 
 ## Verification Log
 
@@ -301,23 +318,62 @@ Latest incremental verification on 2026-05-27:
 - The generated Graphify report disagrees between its summary and detailed
   community-count text; no community-count acceptance claim is made. No
   refreshed graph publication or deployed tool acceptance is claimed.
+- Removed the unused browser-side `@xenova/transformers` fallback rather than
+  leaving a third-party embedding runtime hidden behind an unavailable API;
+  failed embedding now degrades visibly while deterministic review remains
+  usable. `npm.cmd audit --omit=dev --audit-level=high` reports zero
+  vulnerabilities.
+- Removed raw caught/upstream failure strings and durable circuit `lastError`
+  storage from public failure diagnostics; content-free outcome/status
+  metadata remains available for reliability work.
+- Authorized GitHub preview deployment succeeded for the hardened branch. The
+  deployment writes the prefixed version marker and publishes a runtime graph
+  through remote KV; the accepted runtime graph extraction reports 969 nodes
+  and 1306 edges from 124 files.
+- Live acceptance on
+  `https://codex-privacy-first-disclosu.tw-bot.pages.dev` confirmed
+  `/api/health` returns only sanitized availability with five active providers
+  and matching `tw-bot:app:version`; disabled diagnostic routes return
+  `DIAGNOSTICS_DISABLED`; `GET /api/chat` returns `METHOD_NOT_ALLOWED`; and a
+  normal `POST /api/chat` streams successfully with request identification.
+- Live graph-tool acceptance confirmed `POST /api/tool-graph-lookup` is
+  `no-store, private`, bounds returned context below 4000 characters, exposes
+  only matching `src/` references, omits graph-version metadata, returns no
+  context on a miss, and rejects blank or GET requests with structured errors.
+- Live browser acceptance uploaded a Markdown sample, confirmed the reviewer
+  reports the expected heading-jump, terminology, and empty-link findings,
+  rendered 12 `ChatIsland` source references, and confirmed removing the file
+  dismisses tool context from the active UI state.
+- Provider failover and all-providers-unavailable open-session continuity are
+  covered by automated tests; the accepted preview was not intentionally
+  deprived of live provider credentials merely to inject a shared-deployment
+  outage.
+- Updated CI to supported Node 24 action majors and direct first-party
+  Wrangler CLI deployment. GitHub Actions run `26522527136` passed without
+  the earlier Node-action deprecation or unused-uv-cache annotations.
+- Refreshed tracked local Graphify artifacts after preview acceptance from
+  commit `2c301913`: 703 nodes and 1083 edges. The deployed bounded runtime
+  graph is produced by its separate CI pipeline and reports 969 nodes and
+  1306 edges.
+- Final local release gate for the CI maintenance slice passed:
+  `npm.cmd test` (23 test files, 99 tests), zero production dependency audit
+  findings, and the recorded `build:local` command.
 
 ## Next Task
 
-Continue Phase 1 with deployment acceptance for the hardened tooling branch:
+Continue Phase 1 with a reviewed production promotion of the accepted preview:
 
-- Deploy the hardened branch through an authorized preview or production path,
-  then repeat public endpoint acceptance for sanitized `/api/health`, version
-  mismatch handling, provider failover, and all-providers-unavailable UI
-  continuity without content or secret leakage.
-- Through an authorized deployment path, verify `Review Document` behavior and
-  `POST /api/tool-graph-lookup` response bounds, no-store headers, `src/`-only
-  results, unavailable-state handling, and absence of content or secret leakage.
-- Publish the refreshed graph artifacts through the approved deployment
-  process if the deployed graph should include the new tool paths, and
-  reconcile the generated community-count reporting discrepancy if community
-  counts are used for acceptance. Do not introduce autonomous execution or
-  browser package runtimes.
+- Review and merge/promote `codex/privacy-first-disclosure` to the production
+  deployment path, then repeat the sanitized health, disabled diagnostic,
+  streamed chat, version-marker, and bounded documentation-tool acceptance
+  probes on `https://tw-bot.pages.dev`.
+- Preserve automated provider-failover and all-providers-unavailable coverage;
+  add a safe fault-injection harness before intentionally disrupting configured
+  production or shared preview providers.
+- Treat renderer-asset preload console warnings and Graphify's inconsistent
+  community-count wording as non-blocking follow-up unless those values become
+  release criteria. Do not introduce autonomous execution or browser package
+  runtimes.
 
 ## Continue Prompt
 

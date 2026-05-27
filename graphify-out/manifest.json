@@ -120,8 +120,8 @@
     "hash": "dd3f23af9ac018a62f0590c0c39f7c51"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\lib\\csrf.ts": {
-    "mtime": 1779712018.602393,
-    "hash": "9a193bd553e00ece6d75d1ed10eb4f9c"
+    "mtime": 1779895679.6878889,
+    "hash": "4c92b96af698239dfa7bf18733c851f5"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\lib\\diagram-renderer.ts": {
     "mtime": 1778243027.5318575,
@@ -132,8 +132,8 @@
     "hash": "3a5803257dc3e40b127530b108cce670"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\lib\\embed-pipeline.ts": {
-    "mtime": 1777980283.9057596,
-    "hash": "bdb1473e78d118bfd9edb11947d8cd11"
+    "mtime": 1779893849.2339802,
+    "hash": "398546e66fe73725c3b0cde50e8d87d7"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\lib\\env-reader.ts": {
     "mtime": 1778678769.0644207,
@@ -180,8 +180,8 @@
     "hash": "07f88c901e989412431f9e595f865c4e"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\lib\\rag-client.ts": {
-    "mtime": 1779880194.1048143,
-    "hash": "61e5ccb45074d12c605f2d1678e33795"
+    "mtime": 1779893849.2359786,
+    "hash": "9cb9ad8f1919c16c5cf3122bc00887df"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\lib\\rag-db.ts": {
     "mtime": 1779706540.8227599,
@@ -212,16 +212,16 @@
     "hash": "30138ff9a4af2dc99aa5271f734a3305"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\lib\\search-enhanced.ts": {
-    "mtime": 1779706827.366933,
-    "hash": "aa8129dc7e886b559d7f133b011237cf"
+    "mtime": 1779894316.52591,
+    "hash": "0ecad524059a4b901bb9ffcf6873dc4f"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\lib\\search-reddit.ts": {
-    "mtime": 1779706827.3649344,
-    "hash": "434e963b8822c2eb4f94cf2af663e107"
+    "mtime": 1779894316.5299187,
+    "hash": "15c431de03c950560ae695d55a42b87e"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\lib\\search.ts": {
-    "mtime": 1779706827.362935,
-    "hash": "d9d12bf154c550b5e314c055096324e8"
+    "mtime": 1779894316.5249152,
+    "hash": "cbc3cc34d49e0c23dc2d1fc6d12ce2a7"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\lib\\security-headers.ts": {
     "mtime": 1779712716.0957031,
@@ -252,12 +252,12 @@
     "hash": "a9e4953919d84f35254edd77396b99e1"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\lib\\zen-router.ts": {
-    "mtime": 1779788364.3535793,
-    "hash": "d456a04cf464e6229963a92e4fe8b313"
+    "mtime": 1779894369.0087082,
+    "hash": "d7d42241d67c5210db9929815c6a81af"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\pages\\api\\chat.ts": {
-    "mtime": 1779875133.4609468,
-    "hash": "88fa9a70e0251ab3a854cce253810f0b"
+    "mtime": 1779894543.8093138,
+    "hash": "b5ef77880ee2a91babd5c30b52d18648"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\pages\\api\\debug-ai.ts": {
     "mtime": 1779875133.4739468,
@@ -268,8 +268,8 @@
     "hash": "9aa73202e710b538b201555c932c05f4"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\pages\\api\\embed.ts": {
-    "mtime": 1779712018.621641,
-    "hash": "28963e57358950384b55236b5731c1d7"
+    "mtime": 1779894316.5189111,
+    "hash": "855751df63c00dc5d5c59dda86c69e97"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\pages\\api\\health.ts": {
     "mtime": 1779875623.7983966,
@@ -280,16 +280,16 @@
     "hash": "03b5802dc7461bcb6e0ae4c63d6f27eb"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\pages\\api\\render-artifact.ts": {
-    "mtime": 1779706845.7294931,
-    "hash": "ef1f5df6fcff525f4458813843ec7fc3"
+    "mtime": 1779894543.8122973,
+    "hash": "16c2a6c78db2060b9c9e06dad1644948"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\pages\\api\\search-credits.ts": {
-    "mtime": 1778680181.067937,
-    "hash": "bb17b2b90787e4882a085c16b2939144"
+    "mtime": 1779894316.52291,
+    "hash": "d4462ad51fd042c843bd64ff94d1df9c"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\pages\\api\\summarize.ts": {
-    "mtime": 1778680218.2934842,
-    "hash": "2eb3dbc6e821f73b91ceec067f0ff414"
+    "mtime": 1779894316.5209153,
+    "hash": "c04dd7edd9c3c0ac454b3224abddbd94"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\pages\\api\\tool-graph-lookup.ts": {
     "mtime": 1779880768.181266,
@@ -316,8 +316,8 @@
     "hash": "95decc287b0937f78888b37b8bc555ba"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\tests\\critical.test.ts": {
-    "mtime": 1779712018.53348,
-    "hash": "2bccb858c77809da0d8f3d56b35a250b"
+    "mtime": 1779895662.551592,
+    "hash": "963b4ef9bde34f98319e85112771d50d"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\tests\\document-review.test.ts": {
     "mtime": 1779878345.0728292,
@@ -327,13 +327,17 @@
     "mtime": 1779880690.8801377,
     "hash": "728707d2f3a030ee2943c29bd0775bb3"
   },
+  "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\tests\\embed-pipeline-security.test.ts": {
+    "mtime": 1779893798.5528374,
+    "hash": "8c8d9b0248946b067fc3d05b6a7114cd"
+  },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\tests\\kv-prefix.test.ts": {
     "mtime": 1779713485.8130465,
     "hash": "8971bba5b9a3182ad2dd4a902895e997"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\tests\\privacy-first.test.ts": {
-    "mtime": 1779880690.8811374,
-    "hash": "adbf82a2602f5386cade7bd74748cf12"
+    "mtime": 1779897253.7283607,
+    "hash": "760ee16c3f4175d0cd0a26f3c7c20725"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\tests\\provider-health.test.ts": {
     "mtime": 1779874940.5417204,
@@ -344,8 +348,8 @@
     "hash": "b2ffab5123c203c87c11b5024a325fe6"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\tests\\public-diagnostics.test.ts": {
-    "mtime": 1779875589.7591965,
-    "hash": "68c87b13c5ba8356892a58ac06888666"
+    "mtime": 1779894518.4517472,
+    "hash": "106b76425d82f3fa67706687de0f59f0"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\tests\\query-cache.test.ts": {
     "mtime": 1779706450.261851,
@@ -412,12 +416,12 @@
     "hash": "4ef7ae84e0634f7253a951415a0c77c2"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\IMPLEMENTATION_STATUS.md": {
-    "mtime": 1779881467.952179,
-    "hash": "3e6528d845900695419df8917758b341"
+    "mtime": 1779897564.279534,
+    "hash": "086d071373eee0136a03c91305b4d42d"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\MASTER_EXECUTION_PLAN.md": {
-    "mtime": 1779881467.9511805,
-    "hash": "9ed072c37a18003ec37c5dd4720cece3"
+    "mtime": 1779897564.2735322,
+    "hash": "99f1e24999bc2883d9b1bbc70cde7c7e"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\PRODUCT_MARKETING.md": {
     "mtime": 1779875708.3053603,
