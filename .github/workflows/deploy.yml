@@ -5,6 +5,9 @@ on:
     branches: [main, codex/privacy-first-disclosure]
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   graphify:
     if: github.ref_name == 'main' || github.ref_name == 'codex/privacy-first-disclosure'
@@ -13,18 +16,12 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-
-      - name: Install Graphify
-        run: uv tool install graphifyy
 
       - name: Build knowledge graph
         run: bash scripts/graphify-ci.sh
@@ -38,10 +35,10 @@ jobs:
       contents: read
       deployments: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: 'npm'

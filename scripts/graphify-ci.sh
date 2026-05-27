@@ -2,7 +2,7 @@
 set -e
 
 echo "::group::Installing Graphify"
-pip install graphifyy -q 2>/dev/null || uv pip install graphifyy
+python3 -m pip install graphifyy -q
 echo "::endgroup::"
 
 echo "::group::Running extraction pipeline"

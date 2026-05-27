@@ -115,4 +115,18 @@ describe('privacy-first content retention', () => {
     expect(graphify).toContain('--binding=SESSION "graph:latest" --path=graphify-out/graph.json.gz --remote');
     expect(graphify).toContain('--binding=SESSION "graph:version" --path=/tmp/gv.txt --remote');
   });
+
+  it('runs deployment actions on the supported Node 24 transition path without redundant uv setup', () => {
+    const workflow = source('.github/workflows/deploy.yml');
+    const graphify = source('scripts/graphify-ci.sh');
+
+    expect(workflow).toContain('FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true');
+    expect(workflow).toContain('actions/checkout@v6');
+    expect(workflow).toContain('actions/setup-node@v6');
+    expect(workflow).toContain('actions/setup-python@v6');
+    expect(workflow).not.toContain('astral-sh/setup-uv');
+    expect(workflow).not.toContain('uv tool install graphifyy');
+    expect(graphify).toContain('python3 -m pip install graphifyy');
+    expect(graphify).not.toContain('uv pip install');
+  });
 });
