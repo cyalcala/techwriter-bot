@@ -273,10 +273,12 @@ Continue Phase 1 with deployment acceptance and bounded tooling review:
   then repeat public endpoint acceptance for sanitized `/api/health`, version
   mismatch handling, provider failover, and all-providers-unavailable UI
   continuity without content or secret leakage.
-- Review the recorded bounded Documentation Tooling Agent design, then write
-  its implementation plan before changing tool behavior; keep it limited to
-  controlled document and repository tools without autonomous execution or
-  browser package runtimes.
+- The bounded Documentation Tooling Agent design was approved on 2026-05-27.
+  Execute
+  `docs/superpowers/plans/2026-05-27-documentation-tooling-agent-foundation.md`,
+  beginning with the deterministic document-review engine and keeping it
+  limited to controlled document and repository tools without autonomous
+  execution or browser package runtimes.
 
 ## Continue Prompt
 
