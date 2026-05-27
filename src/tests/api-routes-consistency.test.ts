@@ -13,6 +13,7 @@ const apiFiles = [
   'health.ts',
   'summarize.ts',
   'version.ts',
+  'tool-graph-lookup.ts',
 ];
 
 describe('API route response consistency', () => {

@@ -37,6 +37,12 @@
     chatPath?: string;
   }
 
+  interface GraphLookupResult {
+    available: boolean;
+    context: string;
+    nodeCount: number;
+  }
+
   let messages = $state<Message[]>([{ role: 'assistant', content: "Hi! I'm Technical Writer. I help with writing, research, diagrams, and code. What can I create for you?" }]);
   let inputMessage = $state('');
   let isLoading = $state(false);
@@ -63,6 +69,9 @@
   let toolDocument = $state<{ name: string; text: string } | null>(null);
   let toolFindings = $state<DocumentFinding[]>([]);
   let toolReviewRun = $state(false);
+  let toolGraphResult = $state<GraphLookupResult | null>(null);
+  let toolGraphLoading = $state(false);
+  let toolGraphError = $state('');
 
   type ChatState = 'idle' | 'loading' | 'streaming' | 'aborting';
   let chatState: ChatState = $state('idle');
@@ -198,12 +207,46 @@
     toolDocument = null;
     toolFindings = [];
     toolReviewRun = false;
+    toolGraphResult = null;
+    toolGraphLoading = false;
+    toolGraphError = '';
   }
 
   function runDocumentReview(terminology: TerminologyRule[]) {
     if (!toolDocument) return;
     toolFindings = reviewDocument(toolDocument.text, terminology);
     toolReviewRun = true;
+  }
+
+  async function runGraphLookup(term: string) {
+    if (!term) return;
+    toolGraphLoading = true;
+    toolGraphError = '';
+
+    try {
+      const response = await fetch('/api/tool-graph-lookup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ term }),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        toolGraphResult = null;
+        toolGraphError = String(payload.error || 'Reference lookup is unavailable.');
+        return;
+      }
+
+      toolGraphResult = {
+        available: Boolean(payload.available),
+        context: String(payload.context || ''),
+        nodeCount: Number(payload.nodeCount || 0),
+      };
+    } catch {
+      toolGraphResult = null;
+      toolGraphError = 'Reference lookup is unavailable.';
+    } finally {
+      toolGraphLoading = false;
+    }
   }
 
   function newChat() {
@@ -725,6 +768,10 @@
         findings={toolFindings}
         hasRun={toolReviewRun}
         onReview={runDocumentReview}
+        graphResult={toolGraphResult}
+        graphLoading={toolGraphLoading}
+        graphError={toolGraphError}
+        onLookup={runGraphLookup}
         onClose={() => { toolsOpen = false; }}
       />
     {/if}

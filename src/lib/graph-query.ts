@@ -47,8 +47,8 @@ export function clearGraphCache(): void {
 async function decompress(buffer: ArrayBuffer): Promise<ArrayBuffer> {
   const ds = new DecompressionStream('gzip');
   const writer = ds.writable.getWriter();
-  writer.write(buffer);
-  writer.close();
+  await writer.write(new Uint8Array(buffer));
+  await writer.close();
   const reader = ds.readable.getReader();
   const chunks: Uint8Array[] = [];
   while (true) {
@@ -254,6 +254,40 @@ export function queryGraph(question: string, maxTokens: number = MAX_GRAPH_TOKEN
   return communitySummaries && Object.keys(communitySummaries).length > 0
     ? buildCommunityContext(selected, maxTokens, communitySummaries)
     : buildContextFromNodes(selected, maxTokens, cachedData.nodes.length);
+}
+
+export function queryGraphReferences(term: string, maxTokens: number = 500): GraphContext {
+  if (!cachedData) {
+    return { context: '', nodeCount: 0, tokenCount: 0, available: false };
+  }
+
+  const normalized = term.trim().toLowerCase();
+  const termScores = tokenizeAndScore(term);
+  if (!normalized || termScores.size === 0) {
+    return { context: '', nodeCount: 0, tokenCount: 0, available: true, version: cachedVersion ?? undefined };
+  }
+
+  const matchingNodes = cachedData.nodes
+    .filter((node) => node.source_file?.replace(/\\/g, '/').startsWith('src/'))
+    .map((node) => {
+      const searchable = `${node.label} ${node.norm_label || ''} ${node.id} ${node.source_file || ''}`.toLowerCase();
+      const exactBoost = searchable.includes(normalized) ? 8 : 0;
+      return { node, score: exactBoost + nodeRelevanceScore(node, termScores) };
+    })
+    .filter(({ score }) => score > 0)
+    .sort((left, right) => right.score - left.score || left.node.label.localeCompare(right.node.label))
+    .slice(0, 12)
+    .map(({ node }) => node);
+
+  if (matchingNodes.length === 0) {
+    return { context: '', nodeCount: 0, tokenCount: 0, available: true, version: cachedVersion ?? undefined };
+  }
+
+  return {
+    ...buildContextFromNodes(matchingNodes, maxTokens, cachedData.nodes.length),
+    available: true,
+    version: cachedVersion ?? undefined,
+  };
 }
 
 function buildCommunityContext(nodes: GraphNode[], maxTokens: number, communitySummaries?: Record<string, string>): GraphContext {

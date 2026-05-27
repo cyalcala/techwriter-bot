@@ -44,6 +44,7 @@ describe('privacy-first content retention', () => {
     const island = source('src/components/ChatIsland.svelte');
     const panel = source('src/components/DocumentToolsPanel.svelte');
     const ragClient = source('src/lib/rag-client.ts');
+    const graphTool = source('src/pages/api/tool-graph-lookup.ts');
 
     expect(island).toContain('toolDocument');
     expect(island).toContain('toolFindings');
@@ -52,6 +53,8 @@ describe('privacy-first content retention', () => {
     expect(panel).not.toContain('localStorage');
     expect(ragClient).not.toContain('localStorage');
     expect(ragClient).not.toContain('indexedDB');
+    expect(graphTool).not.toContain('.put(');
+    expect(graphTool).not.toContain('console.');
   });
 
   it('offers an expandable accessible privacy notice with accurate wording', () => {

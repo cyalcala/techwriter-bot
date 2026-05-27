@@ -36,6 +36,16 @@ describe('document review tool UI boundary', () => {
     expect(island).not.toContain('$effect(() => runDocumentReview');
   });
 
+  it('exposes bounded graph lookup as a separate explicit tool action', () => {
+    const panel = source('src/components/DocumentToolsPanel.svelte');
+    const island = source('src/components/ChatIsland.svelte');
+
+    expect(panel).toContain('Find Code References');
+    expect(panel).toContain('onLookup');
+    expect(island).toContain('runGraphLookup');
+    expect(island).toContain("fetch('/api/tool-graph-lookup'");
+  });
+
   it('clears document tool memory on remove, new chat, and clear chat paths', () => {
     const island = source('src/components/ChatIsland.svelte');
 
