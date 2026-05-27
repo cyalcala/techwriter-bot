@@ -46,12 +46,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
       message: result.error || 'Renderer returned no SVG.',
       retryable: statusCode >= 500,
     });
-  } catch (e: any) {
+  } catch {
     return apiError({
       requestId,
       status: 500,
       code: 'SERVER_ERROR',
-      message: e.message?.slice(0, 200) || 'Artifact render failed.',
+      message: 'Artifact render failed.',
       retryable: true,
     });
   }

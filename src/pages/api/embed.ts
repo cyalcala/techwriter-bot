@@ -132,13 +132,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
     }
 
     return jsonResponse({ vectors, errors }, { requestId });
-  } catch (error: any) {
-    console.log(JSON.stringify({ event: 'embed_failure', message: error.message?.slice(0, 200) }));
+  } catch {
+    console.log(JSON.stringify({ event: 'embed_failure' }));
     return apiError({
       requestId,
       status: 500,
       code: 'EMBEDDING_FAILED',
-      message: error.message || 'Embedding failed.',
+      message: 'Embedding failed.',
       retryable: true,
       retryAfter: 5,
     });

@@ -50,8 +50,8 @@ export const GET: APIRoute = async ({ request, locals }) => {
         } catch {}
       }
     }
-  } catch (e: any) {
-    console.log(JSON.stringify({ event: 'credits_error', message: e.message?.slice(0, 100) }));
+  } catch {
+    console.log(JSON.stringify({ event: 'credits_error' }));
   }
 
   let budgetExhausted = false;

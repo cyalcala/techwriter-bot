@@ -52,8 +52,8 @@ export async function searchReddit(query: string): Promise<SearchSource | null> 
       content: parts.join('\n\n'),
       provider: 'reddit',
     };
-  } catch (e: any) {
-    console.log(JSON.stringify({ event: 'reddit_error', message: e.message?.slice(0, 200) }));
+  } catch {
+    console.log(JSON.stringify({ event: 'reddit_error' }));
     return null;
   }
 }

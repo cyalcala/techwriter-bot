@@ -18,7 +18,6 @@ interface CircuitState {
   totalErrors: number;
   requests: number;
   lastStatus: number;
-  lastError: string;
 }
 
 interface SessionState {
@@ -66,7 +65,7 @@ if (typeof setInterval !== 'undefined') {
 
 function getCircuit(id: string): CircuitState {
   if (!circuits.has(id)) {
-    circuits.set(id, { failures: [], ejectedUntil: 0, permanent: false, totalErrors: 0, requests: 0, lastStatus: 0, lastError: '' });
+    circuits.set(id, { failures: [], ejectedUntil: 0, permanent: false, totalErrors: 0, requests: 0, lastStatus: 0 });
   }
   return circuits.get(id)!;
 }
@@ -92,11 +91,10 @@ function isCircuitOpen(id: string): boolean {
   return false;
 }
 
-function recordFail(id: string, status: number, err?: string) {
+function recordFail(id: string, status: number) {
   const c = getCircuit(id);
   c.totalErrors++;
   c.lastStatus = status;
-  if (err) c.lastError = err.slice(0, 120);
   if (PERMANENT.has(status)) { c.ejectedUntil = Date.now() + PERMANENT_EJECT_MS; c.permanent = true; persistCircuit(id); return; }
   c.failures.push(Date.now());
   persistCircuit(id);
@@ -193,7 +191,7 @@ function convertWorkersAIStream(raw: ReadableStream, provider: Provider, maxToke
           if (d === '[DONE]') { await writer.write(enc.encode('data: [DONE]\n\n')); continue; }
           try {
             const p = JSON.parse(d);
-            if (p.error) { await writer.write(enc.encode(`data: ${JSON.stringify({ error: { message: String(p.error), type: 'workers_ai_error' } })}\n\n`)); continue; }
+            if (p.error) { await writer.write(enc.encode(`data: ${JSON.stringify({ error: { message: 'Provider stream failed.', type: 'workers_ai_error' } })}\n\n`)); continue; }
             if (p.response) {
               await writer.write(enc.encode(`data: ${JSON.stringify({ id: `cf-${idx++}`, object: 'chat.completion.chunk', created: Math.floor(Date.now() / 1000), model: provider.model, choices: [{ index: 0, delta: { content: p.response }, finish_reason: null }] })}\n\n`));
             }
@@ -209,7 +207,7 @@ function convertWorkersAIStream(raw: ReadableStream, provider: Provider, maxToke
         await writer.write(enc.encode('data: [DONE]\n\n'));
       }
       reader.releaseLock();
-    } catch (e: any) { console.log(JSON.stringify({ event: 'workers_ai_stream_error', message: e.message?.slice(0, 200) })); }
+    } catch { console.log(JSON.stringify({ event: 'workers_ai_stream_error' })); }
     finally { try { await writer.close(); } catch {} }
   })();
   return new Response(readable, { status: 200, headers: { 'Content-Type': 'text/event-stream' } });
@@ -344,7 +342,7 @@ export async function routeChat(
     const requestedOutputTokens = getMaxTokens(provider);
     const apiKey = getApiKey(provider, env);
     if (!apiKey && provider.name !== 'cloudflare') {
-      recordFail(provider.id, 401, 'no key');
+      recordFail(provider.id, 401);
       recordFailoverEvent(provider, 'missing_api_key', 401, chatPath, metadata);
       recordAttempt(provider, 'missing_api_key', 0, 401, requestedOutputTokens);
       return null;
@@ -368,12 +366,12 @@ export async function routeChat(
       recordFailoverEvent(provider, `provider_http_${res.status}`, res.status, chatPath, metadata);
       recordAttempt(provider, 'http_error', latency, res.status, requestedOutputTokens);
       console.log(JSON.stringify({ event: 'provider_fail', provider: provider.id, status: res.status, latency }));
-    } catch (e: any) {
+    } catch {
       const latency = Date.now() - start;
-      recordFail(provider.id, 0, e.message || e.name);
+      recordFail(provider.id, 0);
       recordFailoverEvent(provider, 'provider_error', 0, chatPath, metadata);
       recordAttempt(provider, 'provider_error', latency, 0, requestedOutputTokens);
-      console.log(JSON.stringify({ event: 'provider_err', provider: provider.id, error: e.message?.slice(0, 100), latency }));
+      console.log(JSON.stringify({ event: 'provider_err', provider: provider.id, latency }));
     }
     return null;
   }
@@ -407,7 +405,7 @@ export async function routeChat(
 export function getCircuitDiagnostics() {
   return Object.fromEntries([...circuits.entries()].map(([k, v]) => [k, {
     ejected: v.ejectedUntil > Date.now(), permanent: v.permanent, failures: v.failures.length,
-    errors: v.totalErrors, requests: v.requests, lastStatus: v.lastStatus, lastError: v.lastError,
+    errors: v.totalErrors, requests: v.requests, lastStatus: v.lastStatus,
   }]));
 }
 

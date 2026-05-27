@@ -66,8 +66,8 @@ async function searchDuckDuckGo(query: string, _kv?: any): Promise<SearchSource 
     const content = parts.join('\n\n');
     const firstResultUrl = (data.Results?.[0] as any)?.FirstURL || data.AbstractURL || `https://duckduckgo.com/?q=${encodeURIComponent(query)}`;
     return { title: 'DuckDuckGo', url: firstResultUrl, content, provider: 'ddg' };
-  } catch (e: any) {
-    console.log(JSON.stringify({ event: 'ddg_error', message: e.message?.slice(0, 200) }));
+  } catch {
+    console.log(JSON.stringify({ event: 'ddg_error' }));
     return null;
   }
 }
@@ -91,8 +91,8 @@ async function searchWikipedia(query: string): Promise<SearchSource | null> {
       parts.push(`${page.title}: ${snippet}`);
     }
     return { title: `Wikipedia: ${query.slice(0, 50)}`, url: firstUrl, content: parts.join('\n\n'), provider: 'wikipedia' };
-  } catch (e: any) {
-    console.log(JSON.stringify({ event: 'wiki_error', message: e.message?.slice(0, 200) }));
+  } catch {
+    console.log(JSON.stringify({ event: 'wiki_error' }));
     return null;
   }
 }

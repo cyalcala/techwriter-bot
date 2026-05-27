@@ -52,8 +52,8 @@ export async function searchTavily(query: string, apiKey: string): Promise<Enhan
       content: parts.join('\n\n'),
       provider: 'tavily',
     };
-  } catch (e: any) {
-    console.log(JSON.stringify({ event: 'tavily_error', message: e.message?.slice(0, 200) }));
+  } catch {
+    console.log(JSON.stringify({ event: 'tavily_error' }));
     return null;
   }
 }
@@ -97,8 +97,8 @@ export async function searchExa(query: string, apiKey: string): Promise<Enhanced
       content: parts.join('\n'),
       provider: 'exa',
     };
-  } catch (e: any) {
-    console.log(JSON.stringify({ event: 'exa_error', message: e.message?.slice(0, 200) }));
+  } catch {
+    console.log(JSON.stringify({ event: 'exa_error' }));
     return null;
   }
 }
@@ -131,8 +131,8 @@ export async function incrementEnhancedBudget(
     const currentRaw = await kv.get(key);
     const current = parseInt(currentRaw || '0', 10);
     await kv.put(key, String(current + 1), { expirationTtl: 45 * 24 * 3600 });
-  } catch (e: any) {
-    console.log(JSON.stringify({ event: 'budget_increment_error', provider, message: e.message?.slice(0, 100) }));
+  } catch {
+    console.log(JSON.stringify({ event: 'budget_increment_error', provider }));
   }
 }
 

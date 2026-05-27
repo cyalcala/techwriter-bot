@@ -270,8 +270,8 @@ export const POST: APIRoute = async (ctx) => {
     if (graphContextStr) headers.set('x-graph-context', JSON.stringify({ available: true, tokens: graphTokens }));
 
     return new Response(response.body, { status: response.status, headers });
-  } catch (e: any) {
-    log('error', { message: e.message?.slice(0, 200) });
+  } catch {
+    log('error');
     return apiError({ requestId: rid, status: 500, code: 'SERVER_ERROR', message: 'Unexpected error. Please try again.', retryable: true, retryAfter: 5 });
   }
 };

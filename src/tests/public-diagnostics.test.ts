@@ -42,4 +42,33 @@ describe('public operational endpoints', () => {
       expect(route).not.toContain('pingProvider');
     }
   });
+
+  it('does not return or log raw upstream failure text from interactive routes', () => {
+    const embed = source('src/pages/api/embed.ts');
+    const summarize = source('src/pages/api/summarize.ts');
+    const chat = source('src/pages/api/chat.ts');
+    const renderArtifact = source('src/pages/api/render-artifact.ts');
+    const zenRouter = source('src/lib/zen-router.ts');
+
+    expect(embed).toContain("message: 'Embedding failed.'");
+    expect(embed).not.toContain('error.message');
+    expect(summarize).toContain("message: 'Summarization failed.'");
+    expect(summarize).not.toContain('e.message');
+    expect(chat).not.toMatch(/log\('error',\s*\{\s*message:/);
+    expect(renderArtifact).toContain("message: 'Artifact render failed.'");
+    expect(renderArtifact).not.toContain('e.message');
+    expect(zenRouter).not.toContain('String(p.error)');
+    expect(zenRouter).not.toContain('error: e.message');
+    expect(zenRouter).not.toContain('lastError');
+    expect(zenRouter).not.toContain('e.message || e.name');
+
+    for (const path of [
+      'src/pages/api/search-credits.ts',
+      'src/lib/search.ts',
+      'src/lib/search-enhanced.ts',
+      'src/lib/search-reddit.ts',
+    ]) {
+      expect(source(path)).not.toMatch(/message:\s*e\.message/);
+    }
+  });
 });

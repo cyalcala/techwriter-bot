@@ -47,12 +47,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
     const summary = result?.response || result?.choices?.[0]?.message?.content || dialogue.slice(0, 400);
     return jsonResponse({ summary }, { requestId });
-  } catch (e: any) {
+  } catch {
     return apiError({
       requestId,
       status: 500,
       code: 'SUMMARIZATION_FAILED',
-      message: e.message?.slice(0, 200) || 'Summarization failed.',
+      message: 'Summarization failed.',
       retryable: true,
     });
   }
