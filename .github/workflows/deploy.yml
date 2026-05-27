@@ -96,15 +96,10 @@ jobs:
             TURNSTILE_SECRET_KEY: process.env.TURNSTILE_SECRET_KEY,
             DEV_IPS: process.env.DEV_IPS,
           };
-          const publicVars = {
-            PROJECT_NAME: { type: 'plain_text', value: process.env.PROJECT_NAME },
-            APP_VERSION: { type: 'plain_text', value: process.env.APP_VERSION },
-          };
           const body = JSON.stringify({
-            deployment_configs: { [process.env.DEPLOYMENT_ENV]: { env_vars: {
-              ...publicVars,
-              ...Object.fromEntries(Object.entries(vars).filter(([,v]) => v).map(([k,v]) => [k, { type: 'secret_text', value: v }]))
-            }}}
+            deployment_configs: { [process.env.DEPLOYMENT_ENV]: { env_vars: Object.fromEntries(
+              Object.entries(vars).filter(([,v]) => v).map(([k,v]) => [k, { type: 'secret_text', value: v }])
+            )}}
           });
           const https = require('https');
           const req = https.request({
@@ -134,8 +129,6 @@ jobs:
           "
         env:
           DEPLOYMENT_ENV: ${{ github.ref_name == 'main' && 'production' || 'preview' }}
-          PROJECT_NAME: tw-bot
-          APP_VERSION: ${{ steps.app-version.outputs.value }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}

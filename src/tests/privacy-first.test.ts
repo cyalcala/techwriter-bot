@@ -100,13 +100,15 @@ describe('privacy-first content retention', () => {
   it('deploys the hardening branch through preview configuration with bounded operational publication', () => {
     const workflow = source('.github/workflows/deploy.yml');
     const graphify = source('scripts/graphify-ci.sh');
+    const wrangler = source('wrangler.json');
 
     expect(workflow).toContain('codex/privacy-first-disclosure');
     expect(workflow).toContain("if: github.ref_name == 'main' || github.ref_name == 'codex/privacy-first-disclosure'");
     expect(workflow).toContain("DEPLOYMENT_ENV: ${{ github.ref_name == 'main' && 'production' || 'preview' }}");
     expect(workflow).toContain('deployment_configs: { [process.env.DEPLOYMENT_ENV]: { env_vars:');
-    expect(workflow).toContain("PROJECT_NAME: { type: 'plain_text'");
-    expect(workflow).toContain("APP_VERSION: { type: 'plain_text'");
+    expect(workflow).not.toContain("PROJECT_NAME: { type: 'plain_text'");
+    expect(wrangler).toContain('"PROJECT_NAME": "tw-bot"');
+    expect(wrangler).toContain('"APP_VERSION": "0.0.1"');
     expect(workflow).toContain('Publish application version marker');
     expect(workflow).toContain('"tw-bot:app:version" "$APP_VERSION" --remote');
     expect(workflow).toContain('--branch ${{ github.ref_name }}');
