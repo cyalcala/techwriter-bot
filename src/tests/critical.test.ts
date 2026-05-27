@@ -23,6 +23,19 @@ describe('Security checks', () => {
     expect(checkCSRF(req)).toBe(true);
   });
 
+  it('CSRF allows the authorized hardening preview alias only by exact origin', async () => {
+    const { checkCSRF } = await import('../lib/csrf');
+    const preview = new Request('https://codex-privacy-first-disclosu.tw-bot.pages.dev/api/chat', {
+      headers: { origin: 'https://codex-privacy-first-disclosu.tw-bot.pages.dev' }
+    });
+    const lookalike = new Request('https://codex-privacy-first-disclosu.tw-bot.pages.dev.evil.test/api/chat', {
+      headers: { origin: 'https://codex-privacy-first-disclosu.tw-bot.pages.dev.evil.test' }
+    });
+
+    expect(checkCSRF(preview)).toBe(true);
+    expect(checkCSRF(lookalike)).toBe(false);
+  });
+
   it('CSRF allows localhost', async () => {
     const { checkCSRF } = await import('../lib/csrf');
     const req = new Request('http://localhost:4321/test', {

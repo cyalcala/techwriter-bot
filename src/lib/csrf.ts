@@ -1,6 +1,7 @@
 const DEFAULT_ORIGINS = [
   'https://tw-bot.pages.dev',
   'https://techwriter-bot.pages.dev',
+  'https://codex-privacy-first-disclosu.tw-bot.pages.dev',
   'http://localhost:4321',
   'http://localhost:3000',
   'http://127.0.0.1:4321',
