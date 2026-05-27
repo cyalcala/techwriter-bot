@@ -137,14 +137,16 @@ Documentation Tooling Agent direction.
   - `c4bcd0f` encrypted runtime-secret deployment configuration.
   - `33b6f4b` retirement of the executable WebContainer artifact runtime.
   - `aea2af7` removal of public diagnostics disclosure.
+  - `9695f84` bounded Documentation Tooling Agent design.
 
 ## In Progress
 
 - Phase 1 foundations are partially implemented.
 - The `codex/privacy-first-disclosure` branch is backed up on GitHub through
-  checkpoint `33b6f4b`, including verified content-free telemetry,
+  checkpoint `9695f84`, including verified content-free telemetry,
   open-session-only outage continuity, invalid replay removal,
-  deployment-secret hardening, and controlled-renderer runtime retirement.
+  deployment-secret hardening, controlled-renderer runtime retirement, public
+  diagnostic-surface hardening, and the bounded tooling design.
 - WebContainer runtime verification is no longer a completion requirement. The
   controlled-renderer checkpoint removes that external browser package runtime
   from executable product paths and treats legacy output as inert code.
@@ -265,7 +267,7 @@ Latest incremental verification on 2026-05-27:
 
 ## Next Task
 
-Continue Phase 1 with deployment acceptance and bounded tooling definition:
+Continue Phase 1 with deployment acceptance and bounded tooling review:
 
 - Deploy the hardened branch through an authorized preview or production path,
   then repeat public endpoint acceptance for sanitized `/api/health`, version
