@@ -40,6 +40,20 @@ describe('privacy-first content retention', () => {
     expect(source('src/lib/search-enhanced.ts')).not.toMatch(/query:\s*query/);
   });
 
+  it('keeps document tool source and findings out of durable application storage', () => {
+    const island = source('src/components/ChatIsland.svelte');
+    const panel = source('src/components/DocumentToolsPanel.svelte');
+    const ragClient = source('src/lib/rag-client.ts');
+
+    expect(island).toContain('toolDocument');
+    expect(island).toContain('toolFindings');
+    expect(island).not.toContain('localStorage.setItem');
+    expect(panel).not.toContain('fetch(');
+    expect(panel).not.toContain('localStorage');
+    expect(ragClient).not.toContain('localStorage');
+    expect(ragClient).not.toContain('indexedDB');
+  });
+
   it('offers an expandable accessible privacy notice with accurate wording', () => {
     const input = source('src/components/ChatInput.svelte');
 

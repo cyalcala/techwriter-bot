@@ -13,8 +13,10 @@
   import { createArtifactQueue, type ArtifactEntry } from '../lib/artifact-queue';
   import { extractArtifactTitle } from '../lib/artifact-lifecycle';
   import { createLiveOutageState, hasVisibleLiveResponse, type LiveOutageState } from '../lib/session-continuity';
+  import { reviewDocument, type DocumentFinding, type TerminologyRule } from '../lib/document-review';
   import ChatMessages from './ChatMessages.svelte';
   import ChatInput from './ChatInput.svelte';
+  import DocumentToolsPanel from './DocumentToolsPanel.svelte';
   import ArtifactSplitView from './ArtifactSplitView.svelte';
 
   interface Message {
@@ -57,6 +59,10 @@
   let liveOutage = $state<LiveOutageState | null>(null);
   let isMobile = $state(false);
   let documentTopics = $state('');
+  let toolsOpen = $state(false);
+  let toolDocument = $state<{ name: string; text: string } | null>(null);
+  let toolFindings = $state<DocumentFinding[]>([]);
+  let toolReviewRun = $state(false);
 
   type ChatState = 'idle' | 'loading' | 'streaming' | 'aborting';
   let chatState: ChatState = $state('idle');
@@ -187,6 +193,19 @@
     window.addEventListener('resize', checkMobile);
   });
 
+  function clearDocumentToolState() {
+    toolsOpen = false;
+    toolDocument = null;
+    toolFindings = [];
+    toolReviewRun = false;
+  }
+
+  function runDocumentReview(terminology: TerminologyRule[]) {
+    if (!toolDocument) return;
+    toolFindings = reviewDocument(toolDocument.text, terminology);
+    toolReviewRun = true;
+  }
+
   function newChat() {
     safeAbort();
     clearConversation();
@@ -195,6 +214,7 @@
     sessionId = generateSessionId();
     messages = [{ role: 'assistant', content: 'Fresh session started. My memory is now clear. What would you like to work on?' }];
     rag = clearRagState();
+    clearDocumentToolState();
     artifactQueue.clear();
     activeArtifactEntry = null;
     artifactError = null;
@@ -211,6 +231,7 @@
     clearAllData(sessionId);
     messages = [{ role: 'assistant', content: 'Chat cleared. My memory has been wiped. What would you like to work on?' }];
     rag = clearRagState();
+    clearDocumentToolState();
     artifactQueue.clear();
     activeArtifactEntry = null;
     artifactError = null;
@@ -219,15 +240,24 @@
     if (fileInput) fileInput.value = '';
   }
 
-  function removeFile() { rag = clearRagState(); documentTopics = ''; if (fileInput) fileInput.value = ''; }
+  function removeFile() {
+    rag = clearRagState();
+    documentTopics = '';
+    clearDocumentToolState();
+    if (fileInput) fileInput.value = '';
+  }
 
   async function onFileSelected(event: Event) {
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
+    clearDocumentToolState();
     isUploading = true;
     rag.uploadStatus = 'uploading';
     rag.uploadedFileName = file.name;
     const result = await handleFileUpload(file, sessionId, (p) => rag.uploadProgress = p, (s) => rag.uploadStatus = s);
+    if (result.sourceText) {
+      toolDocument = { name: file.name, text: result.sourceText };
+    }
     if (result.success) {
       rag.ragDegraded = result.degraded;
       messages = [...messages, { role: 'assistant', content: result.message }];
@@ -689,6 +719,16 @@
 
     <input type="file" bind:this={fileInput} onchange={onFileSelected} class="hidden" accept=".txt,.md,.json,.csv" />
 
+    {#if toolsOpen}
+      <DocumentToolsPanel
+        documentName={toolDocument?.name ?? ''}
+        findings={toolFindings}
+        hasRun={toolReviewRun}
+        onReview={runDocumentReview}
+        onClose={() => { toolsOpen = false; }}
+      />
+    {/if}
+
     <ChatInput
       disabled={isLoading}
       {isStreaming}
@@ -706,6 +746,8 @@
       ragDegraded={rag.ragDegraded}
       ragUploadProgress={rag.uploadProgress}
       onRemoveFile={removeFile}
+      {toolsOpen}
+      onToggleTools={() => { toolsOpen = !toolsOpen; }}
       {tokenDisplay}
       {chatPath}
       {failoverEvents}

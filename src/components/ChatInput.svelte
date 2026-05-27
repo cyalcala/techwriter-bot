@@ -24,6 +24,8 @@
     ragDegraded?: boolean;
     ragUploadProgress?: { done: number; total: number } | null;
     onRemoveFile: () => void;
+    toolsOpen: boolean;
+    onToggleTools: () => void;
     tokenDisplay: { in: number; cached?: boolean } | null;
     chatPath: string | null;
     failoverEvents?: FailoverEvent[];
@@ -35,7 +37,7 @@
     disabled, isStreaming, inputMessage, onInputChange, onSend, onStop,
     mode, onModeChange, enhancedCredits, onFileClick, isUploading,
     ragUploadedFileName = '', ragUploadStatus = 'idle', ragDegraded = false,
-    ragUploadProgress = null, onRemoveFile, tokenDisplay, chatPath, failoverEvents = [], panelOpen, isMobile,
+    ragUploadProgress = null, onRemoveFile, toolsOpen, onToggleTools, tokenDisplay, chatPath, failoverEvents = [], panelOpen, isMobile,
   }: Props = $props();
   let privacyOpen = $state(false);
 
@@ -158,6 +160,13 @@
         </div>
         <div class="flex items-center gap-2 shrink-0">
           <span class="hidden sm:inline">AI can make mistakes. Verify important info.</span>
+          <button
+            type="button"
+            onclick={onToggleTools}
+            aria-expanded={toolsOpen}
+            aria-controls="document-tools-panel"
+            class="rounded-md px-1.5 py-1 text-stone-500 hover:text-stone-700 hover:bg-stone-100 transition-colors"
+          >Tools</button>
           <button
             type="button"
             onclick={() => privacyOpen = !privacyOpen}
