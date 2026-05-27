@@ -7,7 +7,7 @@ on:
 
 jobs:
   graphify:
-    if: github.ref_name == 'main'
+    if: github.ref_name == 'main' || github.ref_name == 'codex/privacy-first-disclosure'
     runs-on: ubuntu-latest
     continue-on-error: true
     permissions:
@@ -48,6 +48,10 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Read app version
+        id: app-version
+        run: node -e "process.stdout.write('value=' + require('./package.json').version + '\n')" >> "$GITHUB_OUTPUT"
 
       - name: Build
         run: npm run build
@@ -92,10 +96,15 @@ jobs:
             TURNSTILE_SECRET_KEY: process.env.TURNSTILE_SECRET_KEY,
             DEV_IPS: process.env.DEV_IPS,
           };
+          const publicVars = {
+            PROJECT_NAME: { type: 'plain_text', value: process.env.PROJECT_NAME },
+            APP_VERSION: { type: 'plain_text', value: process.env.APP_VERSION },
+          };
           const body = JSON.stringify({
-            deployment_configs: { [process.env.DEPLOYMENT_ENV]: { env_vars: Object.fromEntries(
-              Object.entries(vars).filter(([,v]) => v).map(([k,v]) => [k, { type: 'secret_text', value: v }])
-            )}}
+            deployment_configs: { [process.env.DEPLOYMENT_ENV]: { env_vars: {
+              ...publicVars,
+              ...Object.fromEntries(Object.entries(vars).filter(([,v]) => v).map(([k,v]) => [k, { type: 'secret_text', value: v }]))
+            }}}
           });
           const https = require('https');
           const req = https.request({
@@ -125,6 +134,8 @@ jobs:
           "
         env:
           DEPLOYMENT_ENV: ${{ github.ref_name == 'main' && 'production' || 'preview' }}
+          PROJECT_NAME: tw-bot
+          APP_VERSION: ${{ steps.app-version.outputs.value }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -134,6 +145,13 @@ jobs:
           EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
           TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
           DEV_IPS: ${{ secrets.DEV_IPS }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Publish application version marker
+        run: npx wrangler kv key put --binding=SESSION "tw-bot:app:version" "$APP_VERSION" --remote
+        env:
+          APP_VERSION: ${{ steps.app-version.outputs.value }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 

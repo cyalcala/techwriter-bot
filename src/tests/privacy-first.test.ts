@@ -97,13 +97,20 @@ describe('privacy-first content retention', () => {
     expect(workflow).toContain('process.exitCode = 1');
   });
 
-  it('deploys the hardening branch through preview configuration only', () => {
+  it('deploys the hardening branch through preview configuration with bounded operational publication', () => {
     const workflow = source('.github/workflows/deploy.yml');
+    const graphify = source('scripts/graphify-ci.sh');
 
     expect(workflow).toContain('codex/privacy-first-disclosure');
-    expect(workflow).toContain("if: github.ref_name == 'main'");
+    expect(workflow).toContain("if: github.ref_name == 'main' || github.ref_name == 'codex/privacy-first-disclosure'");
     expect(workflow).toContain("DEPLOYMENT_ENV: ${{ github.ref_name == 'main' && 'production' || 'preview' }}");
     expect(workflow).toContain('deployment_configs: { [process.env.DEPLOYMENT_ENV]: { env_vars:');
+    expect(workflow).toContain("PROJECT_NAME: { type: 'plain_text'");
+    expect(workflow).toContain("APP_VERSION: { type: 'plain_text'");
+    expect(workflow).toContain('Publish application version marker');
+    expect(workflow).toContain('"tw-bot:app:version" "$APP_VERSION" --remote');
     expect(workflow).toContain('--branch ${{ github.ref_name }}');
+    expect(graphify).toContain('--binding=SESSION "graph:latest" --path=graphify-out/graph.json.gz --remote');
+    expect(graphify).toContain('--binding=SESSION "graph:version" --path=/tmp/gv.txt --remote');
   });
 });

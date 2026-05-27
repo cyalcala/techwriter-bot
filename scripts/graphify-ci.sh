@@ -87,9 +87,9 @@ if [ -f graphify-out/graph.json ]; then
   echo "Compressed: ${GRAPH_SIZE} bytes"
 
   npm install -g wrangler 2>/dev/null || true
-  npx wrangler kv key put --binding=SESSION "graph:latest" --path=graphify-out/graph.json.gz
+  npx wrangler kv key put --binding=SESSION "graph:latest" --path=graphify-out/graph.json.gz --remote
   echo "$(date -u +%s)" > /tmp/gv.txt
-  npx wrangler kv key put --binding=SESSION "graph:version" --path=/tmp/gv.txt
+  npx wrangler kv key put --binding=SESSION "graph:version" --path=/tmp/gv.txt --remote
   echo "Uploaded to KV"
   echo "::endgroup::"
 else
