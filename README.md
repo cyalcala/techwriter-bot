@@ -197,7 +197,7 @@ Technical Writer Bot is hosted on Cloudflare, while requested chat, live-search,
 
 - **Self-hostable** — Deploy to your own Cloudflare Pages project with privacy-first session-only document context.
 - **Access tier system** — Six reputation tiers (Premium → Blocked) automatically manage abusive usage without affecting legitimate users
-- **Token budget visibility** — Every response shows token counts and processing path. IT teams can monitor aggregate usage via the debug endpoint.
+- **Token budget visibility** — Every response shows token counts and processing path. IT teams can monitor aggregate operational usage in their deployment environment.
 - **Dev IP bypass** — Configure `DEV_IPS` for trusted ranges to bypass rate limits during internal use
 
 ---

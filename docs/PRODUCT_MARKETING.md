@@ -107,7 +107,7 @@ For enterprises, Technical Writer Bot provides a self-hostable AI writing assist
 
 **Configurable provider policies.** Enterprise deployments can configure `DEV_IPS` for trusted internal IP ranges that bypass rate limits, set custom daily enhanced search limits, and configure the provider pool to prefer specific models for compliance requirements.
 
-**Token budget visibility.** Every response includes token usage counts and which processing path was used (fast/balanced/heavy). Enterprise IT teams can monitor content-free operational usage patterns through diagnostics.
+**Token budget visibility.** Every response includes token usage counts and which processing path was used (fast/balanced/heavy). Enterprise IT teams can monitor content-free operational usage patterns through their deployment environment.
 
 ---
 

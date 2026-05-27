@@ -152,7 +152,8 @@ Verification:
 
 Deliver:
 
-- `/api/health` endpoint testing all configured providers with a 1-token ping.
+- `/api/health` endpoint testing configured providers with a 1-token ping and
+  returning only sanitized public availability fields.
 - Circuit breaker failover log with timestamp and provider name.
 - UI footer showing recent failover events.
 - Last-resort mode: if all providers fail, provide a retryable unavailable
@@ -173,7 +174,8 @@ Verification:
 - Mock one provider failure and confirm failover.
 - Mock all providers down and confirm retryable outage behavior plus any
   session-memory-only UI continuity.
-- Confirm health response lists provider status without leaking secrets.
+- Confirm health response lists provider status without configuration
+  inventories, raw provider errors, or secret values.
 
 ### 3. Safety And Sanity
 

@@ -42,4 +42,14 @@ describe('app version checks', () => {
       mismatch: false,
     });
   });
+
+  it('does not disclose KV failure details in public version status', async () => {
+    const { checkAppVersion } = await import('../lib/app-version');
+    const kv = { get: async () => { throw new Error('backend credential detail'); } };
+
+    const result = await checkAppVersion(kv, { APP_VERSION: '1.2.3', PROJECT_NAME: 'Acme' });
+
+    expect(result.error).toBe('version_check_failed');
+    expect(JSON.stringify(result)).not.toContain('credential detail');
+  });
 });

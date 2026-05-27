@@ -1,14 +1,14 @@
 import type { APIRoute } from 'astro';
 import { env as cfGlobalEnv } from 'cloudflare:workers';
-import { routeChat, getCircuitDiagnostics, getRecentFailoverEvents, initCircuitKV, type ResponseMetadata } from '../../lib/zen-router';
+import { routeChat, initCircuitKV, type ResponseMetadata } from '../../lib/zen-router';
 import { searchRouter } from '../../lib/search';
 import { buildSystemPrompt, type SearchResult, type PromptContext } from '../../lib/prompts';
-import { readEnvKeys, checkEnvKeys } from '../../lib/env-reader';
+import { readEnvKeys } from '../../lib/env-reader';
 import { updateReputation, getDefaultState, deserializeReputation, serializeReputation, getTierProviderPool, getDailyLimits, type ReputationState } from '../../lib/reputation';
 import { determineChatPath, isArtifactGenerationRequest } from '../../lib/path-router';
-import { ensureGraph, queryGraph, getGraphStats } from '../../lib/graph-query';
-import { logTokenUsage, estimateTokens, isWithinBudget, getTokenStats } from '../../lib/token-counter';
-import { apiError, createRequestId, jsonResponse } from '../../lib/api-response';
+import { ensureGraph, queryGraph } from '../../lib/graph-query';
+import { logTokenUsage, estimateTokens, isWithinBudget } from '../../lib/token-counter';
+import { apiError, createRequestId } from '../../lib/api-response';
 import { getRequestLimits, sanitizeChatInput } from '../../lib/request-limits';
 import { kvKey } from '../../lib/kv-prefix';
 import { startCleanupInterval } from '../../lib/runtime-interval';
@@ -98,20 +98,14 @@ async function getReputation(kv: any, ip: string, headers: Headers, env: Record<
   return updateReputation(s, 'request');
 }
 
-export const GET: APIRoute = async ({ request, locals }) => {
+export const GET: APIRoute = async () => {
   const rid = createRequestId();
-  const env = loadEnv(locals);
-  const graphStats = getGraphStats();
-  const tokenStats = await getTokenStats(env.SESSION, env);
-  return jsonResponse({
-    status: 'ok', circuits: getCircuitDiagnostics(),
-    failoverEvents: getRecentFailoverEvents(),
-    dailyRequests: [...dailyUsage.entries()].reduce((a, [, c]) => a + c, 0),
-    keys: checkEnvKeys(env),
-    clientIP: request.headers.get('cf-connecting-ip') || 'unknown',
-    graph: graphStats || { available: false },
-    tokenUsage: tokenStats,
-  }, { requestId: rid });
+  return apiError({
+    requestId: rid,
+    status: 405,
+    code: 'METHOD_NOT_ALLOWED',
+    message: 'Use POST /api/chat to submit a chat request.',
+  });
 };
 
 export const POST: APIRoute = async (ctx) => {

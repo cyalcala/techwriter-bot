@@ -54,14 +54,14 @@ export async function checkAppVersion(kv: any, env: Record<string, unknown>): Pr
       key,
       ...(mismatch ? { recovery: recoveryGuidance(expected, normalizedStored) } : {}),
     };
-  } catch (error: any) {
+  } catch {
     return {
       available: false,
       expected,
       stored: null,
       mismatch: false,
       key,
-      error: String(error?.message || error).slice(0, 200),
+      error: 'version_check_failed',
     };
   }
 }

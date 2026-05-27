@@ -123,6 +123,10 @@ Documentation Tooling Agent direction.
 - Changed the Pages deployment workflow to keep provider/Turnstile secrets out
   of build inputs and configure encrypted runtime `secret_text` values before
   deployment, failing closed if Cloudflare rejects that configuration.
+- Tightened public operational surfaces after deployment-acceptance probing:
+  `/api/health` exposes sanitized availability only, raw version-check errors
+  are suppressed, `GET /api/chat` no longer returns diagnostics, and the
+  legacy `/api/debug` and `/api/debug-ai` routes are disabled.
 - Pushed verified Phase 1 checkpoints to
   `origin/codex/privacy-first-disclosure`:
   - `4163d77` privacy-first foundation and disclosure delivery.
@@ -143,8 +147,11 @@ Documentation Tooling Agent direction.
 - WebContainer runtime verification is no longer a completion requirement. The
   controlled-renderer checkpoint removes that external browser package runtime
   from executable product paths and treats legacy output as inert code.
-- Remaining Phase 1 work should focus on final controlled-renderer and
-  deployment/runtime acceptance checks.
+- The public `https://tw-bot.pages.dev` deployment still reflects the prior
+  public-diagnostics response shape until this feature branch reaches an
+  authorized preview or production deployment.
+- Remaining Phase 1 work should focus on deployed-endpoint confirmation and
+  the first bounded Documentation Tooling Agent specification.
 
 ## Blockers And Notes
 
@@ -154,6 +161,9 @@ Documentation Tooling Agent direction.
 - There are unrelated/unmanaged untracked local artifacts in the workspace. Do not delete them unless the user explicitly asks.
 - A same-shell `subst T:` alias lets the build run.
 - Build requires `CLOUDFLARE_REMOTE_BINDINGS` to stay unset or `false` unless Wrangler is logged in.
+- Local Wrangler inspection on 2026-05-27 reported no authenticated Cloudflare
+  session, and the GitHub deploy workflow targets `main` only; do not claim
+  this feature branch has been preview-deployed.
 - Local build currently emits non-failing Node `punycode`/`MaxListenersExceeded`
   warnings plus the Wrangler local-AI remote-usage warning.
 
@@ -229,11 +239,31 @@ Latest incremental verification on 2026-05-26:
   interactive browser verification, so no manual UI success is claimed for
   this checkpoint.
 
+Latest incremental verification on 2026-05-27:
+
+- Safe read-only probes of the current deployed baseline found that
+  `/api/health`, `GET /api/chat`, `/api/debug`, and `/api/debug-ai` still
+  expose configuration/diagnostic metadata on the deployed `main` version.
+- Added a branch hardening slice that publishes only sanitized health
+  availability fields, suppresses raw version-check error detail, and disables
+  the legacy public diagnostics surfaces.
+- Red-green coverage confirmed the gap before implementation and then passed:
+  `npm.cmd test` passed with 18 test files and 78 tests after the fix.
+- The privacy/replay audit returned no prohibited production matches, and the
+  public-diagnostics audit returned no exposed configuration inventory or raw
+  health/version-message matches.
+- A serialized local HTTP check returned sanitized `/api/health` fields,
+  `GET /api/chat` as `405 METHOD_NOT_ALLOWED`, and both diagnostic routes as
+  `404 DIAGNOSTICS_DISABLED`; its known local server was stopped afterward.
+- The recorded `build:local` command passed, with only the already-noted
+  non-failing warnings.
+
 ## Next Task
 
 Continue Phase 1 with deployment acceptance and bounded tooling definition:
 
-- Exercise preview/live deployment acceptance for `/api/health`, version
+- Deploy the hardened branch through an authorized preview or production path,
+  then repeat public endpoint acceptance for sanitized `/api/health`, version
   mismatch handling, provider failover, and all-providers-unavailable UI
   continuity without content or secret leakage.
 - Define the first bounded Documentation Tooling Agent slice around controlled

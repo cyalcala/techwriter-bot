@@ -58,4 +58,30 @@ describe('provider health checks', () => {
     expect(result.status).toBe(503);
     expect(result.retryable).toBe(true);
   });
+
+  it('publishes provider availability without configuration or error details', async () => {
+    const { toPublicProviderHealth } = await import('../lib/provider-health');
+
+    const publicStatus = toPublicProviderHealth({
+      id: 'groq-fast',
+      name: 'groq',
+      configured: true,
+      ok: false,
+      status: 503,
+      latencyMs: 8,
+      retryable: true,
+      error: 'provider message containing internal context',
+    });
+
+    expect(publicStatus).toEqual({
+      id: 'groq-fast',
+      name: 'groq',
+      ok: false,
+      status: 503,
+      latencyMs: 8,
+      retryable: true,
+    });
+    expect(JSON.stringify(publicStatus)).not.toContain('configured');
+    expect(JSON.stringify(publicStatus)).not.toContain('internal context');
+  });
 });

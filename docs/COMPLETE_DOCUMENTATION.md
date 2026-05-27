@@ -330,9 +330,16 @@ content-retention-disabled response rather than storing document embeddings.
 
 Returns remaining enhanced search credits and current tier information for the requesting IP.
 
-### GET `/api/chat` (GET)
+### GET `/api/health`
 
-Debug endpoint returning system status: circuit breaker diagnostics, daily request counts, configured API keys, client IP, graph stats, token usage.
+Returns public service availability, version state, and sanitized provider
+status. It does not disclose configured key inventories or raw provider errors.
+
+### Disabled Diagnostics Routes
+
+`GET /api/chat` is method-disabled, and the legacy `/api/debug` and
+`/api/debug-ai` routes return `DIAGNOSTICS_DISABLED` rather than exposing
+operational configuration to public visitors.
 
 ---
 
@@ -460,8 +467,8 @@ src/
 │       ├── summarize.ts        # Conversation/document summarization
 │       ├── rag-store.ts        # Disabled legacy vector-persistence endpoint
 │       ├── search-credits.ts   # Credit balance endpoint
-│       ├── debug.ts            # System diagnostics
-│       └── debug-ai.ts         # AI provider diagnostics
+│       ├── debug.ts            # Disabled legacy diagnostics route
+│       └── debug-ai.ts         # Disabled legacy AI diagnostics route
 ├── components/
 │   ├── ChatIsland.svelte        # Root UI component
 │   ├── ChatMessages.svelte      # Message log renderer

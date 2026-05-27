@@ -51,7 +51,6 @@
   let editingMessageIdx = $state<number | null>(null);
   let editText = $state('');
   let copiedMessageIdx = $state<number | null>(null);
-  let keyStatus = $state<{ groq: boolean; gemini: boolean; cerebras: boolean } | null>(null);
   let chatPath = $state<string | null>(null);
   let tokenDisplay = $state<{ in: number; graph: number; cached?: boolean } | null>(null);
   let failoverEvents = $state<FailoverEvent[]>([]);
@@ -157,14 +156,6 @@
     }
   }
 
-  async function checkKeys() {
-    try {
-      const res = await fetch('/api/chat');
-      const data = await res.json();
-      keyStatus = { groq: data.keys?.GROQ_API_KEY === true, gemini: data.keys?.GEMINI_API_KEY === true, cerebras: data.keys?.CEREBRAS_API_KEY === true };
-    } catch { keyStatus = null; }
-  }
-
   function generateSessionId() {
     try { return crypto.randomUUID(); } catch (e) { return Math.random().toString(36).substring(2) + Date.now().toString(36); }
   }
@@ -184,7 +175,6 @@
     runStaleCheck();
     setupCleanupCallbacks(sessionId);
     pollCredits();
-    checkKeys();
     preloadPopular();
     window.addEventListener('message', (e) => {
       if (e.data?.type === 'ARTIFACT_ERROR') artifactError = e.data.error;
@@ -630,9 +620,6 @@
   <div class="flex flex-col flex-1 min-w-0 transition-all duration-300">
     {#if !isOnline}
       <div class="bg-amber-600 text-white text-center text-xs py-1.5 font-medium tracking-wide">You're offline. Reconnecting...</div>
-    {/if}
-    {#if keyStatus && (!keyStatus.groq || !keyStatus.gemini || !keyStatus.cerebras)}
-      <div class="bg-red-600/80 text-white text-center text-xs py-1.5 font-medium flex items-center justify-center gap-2"><span>Keys missing</span><span class="opacity-70">(using fallback)</span></div>
     {/if}
     {#if liveOutage}
       <div role="status" aria-live="polite" class="bg-amber-50 border-b border-amber-200 px-3 py-2 text-xs text-amber-900 flex flex-wrap items-center justify-center gap-x-2 gap-y-1">

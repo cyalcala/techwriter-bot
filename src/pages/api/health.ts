@@ -2,8 +2,8 @@ import type { APIRoute } from 'astro';
 import { env as cfGlobalEnv } from 'cloudflare:workers';
 import { apiError, createRequestId, jsonResponse } from '../../lib/api-response';
 import { checkAppVersion } from '../../lib/app-version';
-import { readEnvKeys, checkEnvKeys } from '../../lib/env-reader';
-import { checkProvidersHealth } from '../../lib/provider-health';
+import { readEnvKeys } from '../../lib/env-reader';
+import { checkProvidersHealth, toPublicProviderHealth } from '../../lib/provider-health';
 import { ZEN_REGISTRY } from '../../lib/providers';
 
 function loadEnv(locals: App.Locals): Record<string, unknown> {
@@ -33,27 +33,25 @@ export const GET: APIRoute = async ({ locals }) => {
   try {
     const timeoutMs = positiveInt(env.HEALTH_PING_TIMEOUT_MS, 5000);
     const providers = await checkProvidersHealth(ZEN_REGISTRY, env, { timeoutMs });
-    const configuredProviders = providers.filter(provider => provider.configured).length;
     const activeProviders = providers.filter(provider => provider.ok).length;
+    const publicProviders = providers.map(toPublicProviderHealth);
     const version = await checkAppVersion((env as any).SESSION, env);
     const status = activeProviders > 0 && !version.mismatch ? 'ok' : 'unavailable';
 
     return jsonResponse({
       status,
       generatedAt: new Date().toISOString(),
-      providerCount: providers.length,
-      configuredProviders,
+      providerCount: publicProviders.length,
       activeProviders,
-      keys: checkEnvKeys(env),
       version,
-      providers,
+      providers: publicProviders,
     }, { requestId, status: activeProviders > 0 && !version.mismatch ? 200 : 503 });
-  } catch (error: any) {
+  } catch {
     return apiError({
       requestId,
       status: 500,
       code: 'HEALTH_CHECK_FAILED',
-      message: error?.message ? String(error.message).slice(0, 200) : 'Health check failed.',
+      message: 'Health check failed.',
       retryable: true,
     });
   }

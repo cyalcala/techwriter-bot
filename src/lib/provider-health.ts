@@ -17,6 +17,15 @@ export interface ProviderHealth {
   error?: string;
 }
 
+export interface PublicProviderHealth {
+  id: string;
+  name: string;
+  ok: boolean;
+  status: number | null;
+  latencyMs: number;
+  retryable: boolean;
+}
+
 export interface ProviderHealthOptions {
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
@@ -116,4 +125,15 @@ export async function checkProvidersHealth(
   options: ProviderHealthOptions = {},
 ): Promise<ProviderHealth[]> {
   return Promise.all(providers.map(provider => pingProvider(provider, env, options)));
+}
+
+export function toPublicProviderHealth(provider: ProviderHealth): PublicProviderHealth {
+  return {
+    id: provider.id,
+    name: provider.name,
+    ok: provider.ok,
+    status: provider.status,
+    latencyMs: provider.latencyMs,
+    retryable: provider.retryable,
+  };
 }
