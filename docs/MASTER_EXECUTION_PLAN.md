@@ -63,13 +63,16 @@ Do not add these unless the product strategy changes in writing:
 
 ## Graphify Reference
 
-The current code graph was generated on 2026-05-13:
+The current code graph was refreshed with `graphify update .` on 2026-05-27:
 
 - Report: `graphify-out/GRAPH_REPORT.md`
 - Graph: `graphify-out/graph.json`
-- Summary: 600 nodes, 863 edges, 42 communities
-- Extraction confidence: 100% EXTRACTED, 0% INFERRED, 0% AMBIGUOUS
-- Built from commit: `e51be6bf`
+- Summary: 701 nodes, 1081 edges
+- Extraction confidence: 95% EXTRACTED, 5% INFERRED, 0% AMBIGUOUS
+- Built from code at commit: `4a9bfbfa`
+- The generated report currently disagrees with itself on total community
+  count; use node/edge counts and targeted graph queries for acceptance until
+  that reporting discrepancy is reconciled.
 
 Before broad architecture work, read `graphify-out/GRAPH_REPORT.md` first.
 When the graph may be stale, run:

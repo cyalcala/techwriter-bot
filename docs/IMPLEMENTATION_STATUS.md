@@ -165,6 +165,9 @@ Documentation Tooling Agent direction.
   `docs/superpowers/plans/2026-05-27-documentation-tooling-agent-foundation.md`:
   active-session deterministic document review and a bounded read-only
   `src/` reference lookup with no generic fallback output.
+- Refreshed tracked Graphify artifacts locally with `graphify update .` from
+  code at commit `4a9bfbfa`; publication to the deployed graph binding remains
+  part of authorized deployment acceptance.
 - Remaining Phase 1 work should focus on authorized deployed-endpoint
   confirmation and publication/freshness acceptance for the configured graph.
 
@@ -287,12 +290,17 @@ Latest incremental verification on 2026-05-27:
 - `npm.cmd test` passed with 22 test files and 93 tests after the tooling
   implementation.
 - The graph-tool audit returned no durable write or public diagnostics matches.
-- The recorded `build:local` command passed after both tool actions, with only
-  the already-noted non-failing warnings.
+- The recorded `build:local` command passed after both tool actions and the
+  local Graphify refresh, with only the already-noted non-failing warnings.
 - Local rendered verification confirmed the graph tool's clean
-  `Reference index unavailable` state without a local KV graph binding. The
-  current Graphify report remains based on commit `e51be6bf`; no refreshed
-  graph publication or deployed tool acceptance is claimed.
+  `Reference index unavailable` state without a local KV graph binding.
+- `graphify update .` refreshed `graphify-out/GRAPH_REPORT.md`,
+  `graphify-out/graph.json`, and `graphify-out/manifest.json` from code at
+  `4a9bfbfa`: 701 nodes and 1081 edges, with graph query output identifying
+  `queryGraphReferences()` and `src/pages/api/tool-graph-lookup.ts`.
+- The generated Graphify report disagrees between its summary and detailed
+  community-count text; no community-count acceptance claim is made. No
+  refreshed graph publication or deployed tool acceptance is claimed.
 
 ## Next Task
 
@@ -305,9 +313,11 @@ Continue Phase 1 with deployment acceptance for the hardened tooling branch:
 - Through an authorized deployment path, verify `Review Document` behavior and
   `POST /api/tool-graph-lookup` response bounds, no-store headers, `src/`-only
   results, unavailable-state handling, and absence of content or secret leakage.
-- If the deployed graph should include the new tool paths, perform a code-only
-  Graphify refresh and publish it through the approved deployment process;
-  do not introduce autonomous execution or browser package runtimes.
+- Publish the refreshed graph artifacts through the approved deployment
+  process if the deployed graph should include the new tool paths, and
+  reconcile the generated community-count reporting discrepancy if community
+  counts are used for acceptance. Do not introduce autonomous execution or
+  browser package runtimes.
 
 ## Continue Prompt
 
