@@ -96,4 +96,14 @@ describe('privacy-first content retention', () => {
     expect(workflow).not.toContain('console.log(d)');
     expect(workflow).toContain('process.exitCode = 1');
   });
+
+  it('deploys the hardening branch through preview configuration only', () => {
+    const workflow = source('.github/workflows/deploy.yml');
+
+    expect(workflow).toContain('codex/privacy-first-disclosure');
+    expect(workflow).toContain("if: github.ref_name == 'main'");
+    expect(workflow).toContain("DEPLOYMENT_ENV: ${{ github.ref_name == 'main' && 'production' || 'preview' }}");
+    expect(workflow).toContain('deployment_configs: { [process.env.DEPLOYMENT_ENV]: { env_vars:');
+    expect(workflow).toContain('--branch ${{ github.ref_name }}');
+  });
 });

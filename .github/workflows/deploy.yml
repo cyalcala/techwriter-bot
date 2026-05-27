@@ -2,11 +2,12 @@ name: Deploy to Cloudflare Pages
 
 on:
   push:
-    branches: [main]
+    branches: [main, codex/privacy-first-disclosure]
   workflow_dispatch:
 
 jobs:
   graphify:
+    if: github.ref_name == 'main'
     runs-on: ubuntu-latest
     continue-on-error: true
     permissions:
@@ -92,7 +93,7 @@ jobs:
             DEV_IPS: process.env.DEV_IPS,
           };
           const body = JSON.stringify({
-            deployment_configs: { production: { env_vars: Object.fromEntries(
+            deployment_configs: { [process.env.DEPLOYMENT_ENV]: { env_vars: Object.fromEntries(
               Object.entries(vars).filter(([,v]) => v).map(([k,v]) => [k, { type: 'secret_text', value: v }])
             )}}
           });
@@ -123,6 +124,7 @@ jobs:
           req.write(body); req.end();
           "
         env:
+          DEPLOYMENT_ENV: ${{ github.ref_name == 'main' && 'production' || 'preview' }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -140,4 +142,4 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist/client --project-name tw-bot --branch main --commit-dirty=true
+          command: pages deploy dist/client --project-name tw-bot --branch ${{ github.ref_name }} --commit-dirty=true
