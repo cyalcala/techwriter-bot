@@ -11,38 +11,7 @@ export interface EmbedProgress {
   done: number;
   total: number;
   skipped: number;
-  stage: 'idle' | 'embedding' | 'done' | 'error' | 'fallback';
-}
-
-let localPipeline: any = null;
-let localPipelineLoading = false;
-const TRANSFORMERS_CDN = 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js';
-
-async function getLocalPipeline(): Promise<any> {
-  if (localPipeline) return localPipeline;
-
-  if (localPipelineLoading) {
-    await new Promise(r => setTimeout(r, 100));
-    return getLocalPipeline();
-  }
-
-  localPipelineLoading = true;
-  try {
-    const mod: any = await import(/* @vite-ignore */ TRANSFORMERS_CDN);
-    localPipeline = await mod.pipeline('feature-extraction', 'Xenova/bge-small-en-v1.5', { quantized: true });
-    return localPipeline;
-  } catch (e) {
-    console.warn('[embed] local fallback failed to load:', e);
-    localPipelineLoading = false;
-    return null;
-  }
-}
-
-async function embedLocal(texts: string[]): Promise<number[][]> {
-  const pipe = await getLocalPipeline();
-  if (!pipe) throw new Error('Local pipeline unavailable');
-  const output = await pipe(texts, { pooling: 'mean', normalize: true });
-  return output.map((t: any) => Array.from(t.data) as number[]);
+  stage: 'idle' | 'embedding' | 'done' | 'error';
 }
 
 export async function embedChunks(
@@ -63,7 +32,6 @@ export async function embedChunks(
 
     if (!serverFailed) {
       let batchResult: EmbedResponse | null = null;
-      let lastError: string | null = null;
 
       for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
         if (signal?.aborted) throw new Error('Aborted');
@@ -87,8 +55,7 @@ export async function embedChunks(
 
           batchResult = await res.json() as EmbedResponse;
           break;
-        } catch (e: any) {
-          lastError = e.message || 'Unknown error';
+        } catch {
           if (attempt < MAX_RETRIES - 1) {
             await new Promise(r => setTimeout(r, RETRY_DELAYS[attempt]));
           }
@@ -114,39 +81,17 @@ export async function embedChunks(
         });
         continue;
       }
-
-      if (serverFailed || lastError?.includes('fetch')) {
-        degraded = true;
-      }
     }
 
-    try {
-      const localVecs = await embedLocal(batch);
-      for (const v of localVecs) {
-        if (v && v.length > 0) {
-          allVectors.push(v);
-        } else {
-          skipped++;
-          allVectors.push([]);
-        }
-      }
-      onProgress?.({
-        done: Math.min(i + BATCH_SIZE, total),
-        total,
-        skipped,
-        stage: degraded ? 'fallback' : 'embedding',
-      });
-    } catch {
-      skipped += batch.length;
-      for (let j = 0; j < batch.length; j++) allVectors.push([]);
-      degraded = true;
-      onProgress?.({
-        done: Math.min(i + BATCH_SIZE, total),
-        total,
-        skipped,
-        stage: 'fallback',
-      });
-    }
+    skipped += batch.length;
+    for (let j = 0; j < batch.length; j++) allVectors.push([]);
+    degraded = true;
+    onProgress?.({
+      done: Math.min(i + BATCH_SIZE, total),
+      total,
+      skipped,
+      stage: 'error',
+    });
   }
 
   return { vectors: allVectors, skipped, degraded };

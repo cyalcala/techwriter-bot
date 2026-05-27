@@ -79,7 +79,7 @@ export async function handleFileUpload(
 
     await storeVectors(sessionId, validChunks);
 
-    const modeNote = degraded ? ' (offline fallback)' : '';
+    const modeNote = degraded ? ' (partial indexing)' : '';
     const skipNote = skipped > 0 ? ` (${skipped} skipped)` : '';
 
     onStatusChange('done');
