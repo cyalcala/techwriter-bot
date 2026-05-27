@@ -138,15 +138,19 @@ Documentation Tooling Agent direction.
   - `33b6f4b` retirement of the executable WebContainer artifact runtime.
   - `aea2af7` removal of public diagnostics disclosure.
   - `9695f84` bounded Documentation Tooling Agent design.
+  - `7fcf58f` approved bounded tooling implementation plan.
+  - `15271a3` deterministic document review engine.
+  - `5a26ba1` explicit in-session document review UI and outage-resilient handoff.
+  - `7d4a1ec` bounded read-only source reference lookup.
 
 ## In Progress
 
 - Phase 1 foundations are partially implemented.
 - The `codex/privacy-first-disclosure` branch is backed up on GitHub through
-  checkpoint `9695f84`, including verified content-free telemetry,
+  checkpoint `7d4a1ec`, including verified content-free telemetry,
   open-session-only outage continuity, invalid replay removal,
   deployment-secret hardening, controlled-renderer runtime retirement, public
-  diagnostic-surface hardening, and the bounded tooling design.
+  diagnostic-surface hardening, and the first bounded documentation tools.
 - WebContainer runtime verification is no longer a completion requirement. The
   controlled-renderer checkpoint removes that external browser package runtime
   from executable product paths and treats legacy output as inert code.
@@ -157,8 +161,12 @@ Documentation Tooling Agent direction.
   `docs/superpowers/specs/2026-05-27-documentation-tooling-agent-foundation-design.md`:
   explicit document review and read-only graph lookup only, with no autonomous
   actions, arbitrary runtime, or durable user-content retention.
-- Remaining Phase 1 work should focus on deployed-endpoint confirmation and
-  reviewing/planning the bounded tooling implementation.
+- Implemented the approved slice from
+  `docs/superpowers/plans/2026-05-27-documentation-tooling-agent-foundation.md`:
+  active-session deterministic document review and a bounded read-only
+  `src/` reference lookup with no generic fallback output.
+- Remaining Phase 1 work should focus on authorized deployed-endpoint
+  confirmation and publication/freshness acceptance for the configured graph.
 
 ## Blockers And Notes
 
@@ -264,21 +272,42 @@ Latest incremental verification on 2026-05-27:
   `404 DIAGNOSTICS_DISABLED`; its known local server was stopped afterward.
 - The recorded `build:local` command passed, with only the already-noted
   non-failing warnings.
+- Added the first bounded tooling implementation: `Review Document` checks
+  heading levels, fenced code closure, empty links, duplicate headings, and
+  per-review terminology preferences using active-page source only.
+- Rendered local verification confirmed that `Review Document` still produces
+  findings when the pre-existing embedding/indexing path is unavailable, and
+  that removing the document clears the panel and findings.
+- Added `Find Code References` as an explicit second tool action backed by
+  `POST /api/tool-graph-lookup`; it returns only bounded matching `src/`
+  references, performs no writes, omits graph version metadata, and does not
+  return unrelated hub or document nodes on a miss.
+- Targeted graph testing found and fixed an existing decompression stream hang
+  by awaiting typed-byte writes in `src/lib/graph-query.ts`.
+- `npm.cmd test` passed with 22 test files and 93 tests after the tooling
+  implementation.
+- The graph-tool audit returned no durable write or public diagnostics matches.
+- The recorded `build:local` command passed after both tool actions, with only
+  the already-noted non-failing warnings.
+- Local rendered verification confirmed the graph tool's clean
+  `Reference index unavailable` state without a local KV graph binding. The
+  current Graphify report remains based on commit `e51be6bf`; no refreshed
+  graph publication or deployed tool acceptance is claimed.
 
 ## Next Task
 
-Continue Phase 1 with deployment acceptance and bounded tooling review:
+Continue Phase 1 with deployment acceptance for the hardened tooling branch:
 
 - Deploy the hardened branch through an authorized preview or production path,
   then repeat public endpoint acceptance for sanitized `/api/health`, version
   mismatch handling, provider failover, and all-providers-unavailable UI
   continuity without content or secret leakage.
-- The bounded Documentation Tooling Agent design was approved on 2026-05-27.
-  Execute
-  `docs/superpowers/plans/2026-05-27-documentation-tooling-agent-foundation.md`,
-  beginning with the deterministic document-review engine and keeping it
-  limited to controlled document and repository tools without autonomous
-  execution or browser package runtimes.
+- Through an authorized deployment path, verify `Review Document` behavior and
+  `POST /api/tool-graph-lookup` response bounds, no-store headers, `src/`-only
+  results, unavailable-state handling, and absence of content or secret leakage.
+- If the deployed graph should include the new tool paths, perform a code-only
+  Graphify refresh and publish it through the approved deployment process;
+  do not introduce autonomous execution or browser package runtimes.
 
 ## Continue Prompt
 

@@ -24,6 +24,11 @@ explicit non-goals.
   tools; do not depend on arbitrary in-browser Node/package environments.
 - First tooling design reference:
   `docs/superpowers/specs/2026-05-27-documentation-tooling-agent-foundation-design.md`.
+- First tooling implementation plan:
+  `docs/superpowers/plans/2026-05-27-documentation-tooling-agent-foundation.md`.
+- Feature-branch delivery: explicit in-session `Review Document` and bounded
+  read-only `Find Code References` tools are implemented and locally verified;
+  authorized deployment acceptance remains pending.
 
 ## Do Not Build
 
@@ -119,6 +124,21 @@ Graphify identified these as the main implementation pressure points:
 ## Phase 1: Deploy And Harden
 
 Goal: make the app sellable and safe to deploy.
+
+### Delivered Tooling Checkpoint
+
+The first Documentation Tooling Agent slice is implemented on
+`codex/privacy-first-disclosure`:
+
+- `Review Document` operates only on the active uploaded source in page memory
+  and performs deterministic structural and optional terminology checks.
+- `Find Code References` performs a user-invoked read-only lookup, returns only
+  bounded matching `src/` references, and has no durable query/result writes.
+- Both controls degrade visibly when document indexing or the configured graph
+  binding is unavailable, without introducing an executable browser runtime.
+
+Deployment acceptance for this checkpoint is still required before treating
+it as live product behavior.
 
 ### 1. Bulletproof Deployment
 

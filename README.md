@@ -92,6 +92,15 @@ Upload your existing documentation — `.txt`, `.md`, `.json`, `.csv` up to 5MB 
 
 Privacy-first mode does not enable persistent document storage across sessions or devices.
 
+### User-Controlled Documentation Tools
+
+The `Tools` panel exposes two explicit, non-autonomous actions:
+
+- **Review Document** runs deterministic checks on the currently uploaded text for heading-level skips, unclosed code fences, empty Markdown links, duplicate headings, and optional terminology preferences entered for that review. It remains usable even when document embedding for chat context is unavailable.
+- **Find Code References** runs a bounded, read-only lookup against the configured project graph and returns matching `src/` references only. It does not return document nodes or generic graph hubs when a term has no match.
+
+Uploaded review source, terminology input, findings, and reference results remain in active page memory only; the application does not intentionally persist them in durable storage.
+
 ### Multi-Provider Reliability with Circuit Breaker
 
 No single AI provider offers guaranteed uptime, best latency for every query type, and free access. Technical Writer Bot runs across **six providers** with automatic failover:
@@ -131,6 +140,7 @@ Long conversations drain tokens that could be used for actual context. The syste
 
 - Chats and generated responses remain available only while the page is open and are not intentionally written to durable application storage.
 - Uploaded document context is held in active browser memory for the current page session and is not written to Cloudflare KV.
+- Documentation tool inputs and results remain in active page memory; graph lookup responses are read-only, bounded, and sent with no-store caching directives.
 - Rendered artifact output and search-result content are not stored in application caches.
 - Limited operational metadata may be retained temporarily for security, rate limiting, provider reliability, and aggregate usage reporting; it does not include message content.
 - Requested features may transmit necessary content to Cloudflare Workers AI, selected AI/search providers, or Kroki under their own terms.
