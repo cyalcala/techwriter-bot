@@ -32,20 +32,22 @@ export function createArtifactQueue() {
     messageIdx: number,
     artifactId: string,
     replacement: Artifact,
-    meta: Partial<Pick<ArtifactEntry, 'status' | 'error' | 'ts'>> = {},
+    meta: Partial<Pick<ArtifactEntry, 'status' | 'ts'>> & { error?: string | null } = {},
   ): ArtifactEntry | null {
     let updated: ArtifactEntry | null = null;
-    entries = entries.map(e =>
-      e.messageIdx === messageIdx && e.artifact.id === artifactId
-        ? (updated = {
-            ...e,
-            ...meta,
-            messageIdx,
-            artifact: replacement,
-            ts: meta.ts ?? e.ts,
-          })
-        : e
-    );
+    entries = entries.map(e => {
+      if (e.messageIdx !== messageIdx || e.artifact.id !== artifactId) return e;
+      const next: ArtifactEntry = {
+        ...e,
+        ...meta,
+        messageIdx,
+        artifact: replacement,
+        ts: meta.ts ?? e.ts,
+      };
+      if (meta.error === null) delete next.error;
+      updated = next;
+      return next;
+    });
     for (const sub of subscribers) sub(entries);
     return updated;
   }

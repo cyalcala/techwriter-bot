@@ -12,6 +12,7 @@
   import { clearConversation } from '../lib/session-persist';
   import { createArtifactQueue, type ArtifactEntry } from '../lib/artifact-queue';
   import { extractArtifactTitle } from '../lib/artifact-lifecycle';
+  import { createArtifactRepairTarget, planArtifactRepairReplacement, type ArtifactRepairTarget } from '../lib/artifact-repair';
   import { createLiveOutageState, hasVisibleLiveResponse, type LiveOutageState } from '../lib/session-continuity';
   import { reviewDocument, type DocumentFinding, type TerminologyRule } from '../lib/document-review';
   import ChatMessages from './ChatMessages.svelte';
@@ -93,6 +94,7 @@
   const artifactQueue = createArtifactQueue();
   let activeArtifactEntry = $state<ArtifactEntry | null>(null);
   let artifactError = $state<string | null>(null);
+  let pendingArtifactRepair = $state<ArtifactRepairTarget | null>(null);
 
   async function resolveArtifact(art: Artifact, msgIdx: number) {
     let code = art.code;
@@ -112,16 +114,32 @@
     }
 
     const cleanArt = { ...art, code };
+    const repairTarget = pendingArtifactRepair;
     const codeFingerprint = `${cleanArt.type}:${code.slice(0, 200)}:${code.length}`;
-    if (renderedHashes.has(codeFingerprint)) return;
+    if (!repairTarget && renderedHashes.has(codeFingerprint)) return;
     renderedHashes.add(codeFingerprint);
     const title = cleanArt.title || extractArtifactTitle(code, cleanArt.type);
-    const entry: ArtifactEntry = { messageIdx: msgIdx, artifact: { ...cleanArt, title }, ts: Date.now() };
-    artifactQueue.push(entry);
+    const queueArtifact = { ...cleanArt, title };
+    let entry: ArtifactEntry = { messageIdx: msgIdx, artifact: queueArtifact, ts: Date.now() };
+
+    if (repairTarget) {
+      const repairPlan = planArtifactRepairReplacement(repairTarget, queueArtifact);
+      const updatedRepair = artifactQueue.replace(repairPlan.messageIdx, repairPlan.artifactId, repairPlan.artifact, repairPlan.meta);
+      if (updatedRepair) {
+        entry = updatedRepair;
+        activeArtifactEntry = updatedRepair;
+      } else {
+        artifactQueue.push(entry);
+      }
+      pendingArtifactRepair = null;
+      artifactError = null;
+    } else {
+      artifactQueue.push(entry);
+    }
     // Only use Kroki for types that have NO client-side renderer
-  const KROKI_SERVER_ONLY = new Set(['d2', 'graphviz', 'plantuml']);
-  if (!KROKI_SERVER_ONLY.has(cleanArt.type)) return;
+    if (!KROKI_SERVER_ONLY.has(cleanArt.type)) return;
     const pendingId = entry.artifact.id;
+    const pendingMessageIdx = entry.messageIdx;
 
     // One-shot server render — no retry cascade, no auto AI re-prompt
     try {
@@ -138,8 +156,8 @@
       if (res.ok) {
         const data = await res.json();
         if (data.svg) {
-          artifactQueue.replace(msgIdx, pendingId, { ...cleanArt, code: data.svg, type: 'svg' as any, title, placement: 'inline' });
-          const updated = artifactQueue.entries.find(e => e.messageIdx === msgIdx && e.artifact.type === 'svg');
+          artifactQueue.replace(pendingMessageIdx, pendingId, { ...cleanArt, code: data.svg, type: 'svg' as any, title, placement: 'inline' }, { status: 'ready', error: null });
+          const updated = artifactQueue.entries.find(e => e.messageIdx === pendingMessageIdx && e.artifact.id === pendingId);
           if (updated && activeArtifactEntry?.artifact.id === pendingId) {
             activeArtifactEntry = updated;
           }
@@ -150,11 +168,11 @@
       // On any error (400 syntax, 502 server, etc.) — store error on entry, don't auto-retry
       const errData = await res.json().catch(() => ({}));
       const errMsg = errData.message || errData.error || `Server returned ${res.status}`;
-      artifactQueue.replace(msgIdx, pendingId, { ...cleanArt, title }, { error: errMsg, status: 'error' });
+      artifactQueue.replace(pendingMessageIdx, pendingId, { ...cleanArt, title }, { error: errMsg, status: 'error' });
       // Keep the raw diagram code visible — user can click "Fix with AI" manually
     } catch (e) {
       const errMsg = (e as Error).name === 'AbortError' ? 'Render timed out (15s)' : (e as Error).message;
-      artifactQueue.replace(msgIdx, pendingId, { ...cleanArt, title }, { error: errMsg, status: 'error' });
+      artifactQueue.replace(pendingMessageIdx, pendingId, { ...cleanArt, title }, { error: errMsg, status: 'error' });
     }
   }
 
@@ -165,6 +183,7 @@
       activeIdx: 0,
     } : null);
     if (prompt && activeArtifactEntry) {
+      pendingArtifactRepair = createArtifactRepairTarget(activeArtifactEntry);
       messages = [...messages, { role: 'user', content: prompt }];
       artifactError = null;
       doSend();
@@ -261,6 +280,7 @@
     artifactQueue.clear();
     activeArtifactEntry = null;
     artifactError = null;
+    pendingArtifactRepair = null;
     liveOutage = null;
     isLiveMode = false;
     chatPath = null;
@@ -278,6 +298,7 @@
     artifactQueue.clear();
     activeArtifactEntry = null;
     artifactError = null;
+    pendingArtifactRepair = null;
     liveOutage = null;
     chatPath = null;
     if (fileInput) fileInput.value = '';
@@ -641,6 +662,7 @@
       if (timeoutTimer1) { clearTimeout(timeoutTimer1); timeoutTimer1 = null; }
       if (timeoutTimer2) { clearTimeout(timeoutTimer2); timeoutTimer2 = null; }
       if (timeoutTimer3) { clearTimeout(timeoutTimer3); timeoutTimer3 = null; }
+      pendingArtifactRepair = null;
       chatState = 'idle';
       isLoading = false;
       isStreaming = false;
