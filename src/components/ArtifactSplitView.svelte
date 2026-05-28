@@ -21,6 +21,8 @@
   let activeIdx = $state(0);
   let allEntries = $state<ArtifactEntry[]>([]);
   let panelRendererError = $state<string | null>(null);
+  let copiedSourceKey = $state('');
+  let copyResetTimer: ReturnType<typeof setTimeout> | null = null;
 
   $effect(() => {
     if (activeEntry) {
@@ -39,14 +41,39 @@
   let overlayKey = $derived(currentEntry ? `${currentEntry.artifact.id}:${currentEntry.artifact.type}:${currentEntry.artifact.code.length}` : 'none');
   let currentError = $derived(currentEntry?.error || panelRendererError || artifactError);
   let galleryEntries = $derived(allEntries);
+  let currentEntryKey = $derived(currentEntry ? artifactEntryKey(currentEntry) : '');
 
   $effect(() => {
     overlayKey;
     panelRendererError = null;
   });
 
+  $effect(() => {
+    return () => {
+      if (copyResetTimer) clearTimeout(copyResetTimer);
+    };
+  });
+
   function goNext() { if (msgEntries.length > 1) activeIdx = (activeIdx + 1) % msgEntries.length; }
   function goPrev() { if (msgEntries.length > 1) activeIdx = (activeIdx - 1 + msgEntries.length) % msgEntries.length; }
+
+  function artifactEntryKey(entry: ArtifactEntry): string {
+    return `${entry.messageIdx}:${entry.artifact.id}`;
+  }
+
+  async function copySource(entry: ArtifactEntry) {
+    try {
+      await navigator.clipboard.writeText(entry.artifact.code);
+      copiedSourceKey = artifactEntryKey(entry);
+      if (copyResetTimer) clearTimeout(copyResetTimer);
+      copyResetTimer = setTimeout(() => {
+        copiedSourceKey = '';
+        copyResetTimer = null;
+      }, 1500);
+    } catch {
+      copiedSourceKey = '';
+    }
+  }
 
   function isActiveGalleryEntry(entry: ArtifactEntry): boolean {
     return currentEntry?.messageIdx === entry.messageIdx && currentEntry?.artifact.id === entry.artifact.id;
@@ -103,7 +130,7 @@
         </div>
         <div class="flex items-center gap-1 shrink-0">
           <button onclick={() => currentEntry && onregenerate(currentEntry)} disabled={busy} class="text-[10px] px-2 py-1 rounded-md text-stone-400 hover:text-white hover:bg-white/10 disabled:opacity-40 transition-all" aria-label="Regenerate selected artifact">Regenerate</button>
-          <button onclick={async () => { try { await navigator.clipboard.writeText(currentEntry?.artifact.code || ''); } catch {} }} class="text-[10px] px-2 py-1 rounded-md text-stone-400 hover:text-white hover:bg-white/10 transition-all" aria-label="Copy artifact code">Copy</button>
+          <button onclick={() => currentEntry && copySource(currentEntry)} class="min-w-[4.75rem] whitespace-nowrap text-center text-[10px] px-2 py-1 rounded-md text-stone-400 hover:text-white hover:bg-white/10 transition-all" aria-label="Copy selected artifact source">{copiedSourceKey === currentEntryKey ? 'Copied' : 'Copy source'}</button>
           <button onclick={onclose} class="text-[10px] px-2 py-1 rounded-md text-stone-400 hover:text-white hover:bg-white/10 transition-all" aria-label="Close panel (Esc)">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>

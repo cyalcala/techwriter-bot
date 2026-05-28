@@ -62,4 +62,14 @@ describe('artifact gallery jump controls', () => {
     expect(island).toContain("artifactQueue.replace(entry.messageIdx, entry.artifact.id, entry.artifact, { status: 'updating', error: null })");
     expect(island).toContain('onregenerate={regenerateArtifactEntry}');
   });
+
+  it('copies source from the selected gallery artifact with visible feedback', () => {
+    const split = source('src/components/ArtifactSplitView.svelte');
+
+    expect(split).toContain('function copySource(entry: ArtifactEntry)');
+    expect(split).toContain('navigator.clipboard.writeText(entry.artifact.code)');
+    expect(split).toContain('Copy selected artifact source');
+    expect(split).toContain("copiedSourceKey === currentEntryKey ? 'Copied' : 'Copy source'");
+    expect(split).toContain('copyResetTimer');
+  });
 });
