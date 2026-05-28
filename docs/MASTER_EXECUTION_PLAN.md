@@ -26,10 +26,10 @@ explicit non-goals.
   `docs/superpowers/specs/2026-05-27-documentation-tooling-agent-foundation-design.md`.
 - First tooling implementation plan:
   `docs/superpowers/plans/2026-05-27-documentation-tooling-agent-foundation.md`.
-- Feature-branch delivery: explicit in-session `Review Document` and bounded
-  read-only `Find Code References` tools are implemented and accepted on the
-  authorized Cloudflare Pages preview deployment; production promotion remains
-  pending.
+- Production delivery: explicit in-session `Review Document` and bounded
+  read-only `Find Code References` tools are implemented, accepted on preview,
+  merged through PR #1, and verified on the public Cloudflare Pages production
+  deployment.
 
 ## Do Not Build
 
@@ -64,16 +64,19 @@ Do not add these unless the product strategy changes in writing:
 
 ## Graphify Reference
 
-The current code graph was refreshed with `graphify update .` on 2026-05-27:
+The current tracked code graph was refreshed with `graphify update .` on
+2026-05-28:
 
 - Report: `graphify-out/GRAPH_REPORT.md`
 - Graph: `graphify-out/graph.json`
 - Summary: 703 nodes, 1083 edges
 - Extraction confidence: 95% EXTRACTED, 5% INFERRED, 0% AMBIGUOUS
-- Built from code at commit: `2c301913`
+- Built from code at commit: `145db14f`
 - The generated report currently disagrees with itself on total community
   count; use node/edge counts and targeted graph queries for acceptance until
   that reporting discrepancy is reconciled.
+- The production runtime graph is published by the GitHub Actions extraction
+  pipeline and currently reports 969 nodes and 1306 edges.
 
 Before broad architecture work, read `graphify-out/GRAPH_REPORT.md` first.
 When the graph may be stale, run:
@@ -141,10 +144,9 @@ The first Documentation Tooling Agent slice is implemented on
 - Both controls degrade visibly when document indexing or the configured graph
   binding is unavailable, without introducing an executable browser runtime.
 
-Deployment acceptance for this checkpoint passed on the authorized preview
-alias `https://codex-privacy-first-disclosu.tw-bot.pages.dev`. Production
-promotion and repeat production acceptance remain required before treating it
-as public production behavior.
+Deployment acceptance for this checkpoint passed on both the authorized preview
+alias `https://codex-privacy-first-disclosu.tw-bot.pages.dev` and production
+alias `https://tw-bot.pages.dev`.
 
 ### 1. Bulletproof Deployment
 

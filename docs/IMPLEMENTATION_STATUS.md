@@ -152,22 +152,25 @@ Documentation Tooling Agent direction.
   - `031f9b9` authorized preview-origin CSRF allowance.
   - `77c9102` Node 24 deployment action preparation.
   - `2c30191` direct Wrangler CLI preview deployment without deprecated wrapper.
+  - `f8f2207` accepted hardened preview documentation and graph refresh.
+  - `145db14` production promotion merge commit from PR #1.
 
 ## In Progress
 
-- Phase 1 preview acceptance is substantially complete; production promotion
-  and repeat production acceptance remain open.
+- Phase 1 production promotion and repeat production acceptance are complete
+  for the privacy-first hardening and first bounded documentation-tooling
+  slice.
 - The `codex/privacy-first-disclosure` branch is backed up on GitHub through
-  checkpoint `2c30191`, including the privacy hardening, bounded documentation
-  tools, authorized preview deployment, runtime graph/version publication, and
-  CI deployment maintenance described below.
+  checkpoint `f8f2207` and merged to `main` through PR #1 at merge commit
+  `145db14`, including the privacy hardening, bounded documentation tools,
+  runtime graph/version publication, and CI deployment maintenance described
+  below.
 - WebContainer runtime verification is no longer a completion requirement. The
   controlled-renderer checkpoint removes that external browser package runtime
   from executable product paths and treats legacy output as inert code.
-- The authorized preview alias
-  `https://codex-privacy-first-disclosu.tw-bot.pages.dev` serves the hardened
-  feature branch. The public production alias `https://tw-bot.pages.dev` has
-  not been promoted from this branch and must not be described as hardened yet.
+- The public production alias `https://tw-bot.pages.dev` now serves the
+  hardened merge commit `145db14`. The accepted preview alias remains available
+  at `https://codex-privacy-first-disclosu.tw-bot.pages.dev`.
 - Defined the first bounded Documentation Tooling Agent slice in
   `docs/superpowers/specs/2026-05-27-documentation-tooling-agent-foundation-design.md`:
   explicit document review and read-only graph lookup only, with no autonomous
@@ -176,16 +179,18 @@ Documentation Tooling Agent direction.
   `docs/superpowers/plans/2026-05-27-documentation-tooling-agent-foundation.md`:
   active-session deterministic document review and a bounded read-only
   `src/` reference lookup with no generic fallback output.
-- Published a preview runtime graph through the authorized GitHub Actions path;
-  the latest accepted runtime extraction from `2c30191` contains 969 nodes and
-  1306 edges and is available only through the bounded `src/` lookup surface.
-- Remaining Phase 1 work should focus on reviewed production promotion and a
-  repeat acceptance pass on production, without reviving browser package
+- Published a production runtime graph through the authorized GitHub Actions
+  path; the latest accepted runtime extraction from `145db14` contains 969
+  nodes and 1306 edges and is available only through the bounded `src/` lookup
+  surface.
+- Remaining Phase 1 follow-up should focus on safe fault-injection coverage
+  and renderer-preload warning cleanup, without reviving browser package
   runtimes or extending the bounded tooling scope.
 
 ## Blockers And Notes
 
-- Active branch: `codex/privacy-first-disclosure`.
+- Active release branch: `main`; source branch
+  `codex/privacy-first-disclosure` remains on GitHub as a reviewed backup.
 - Create verified GitHub checkpoint pushes on this feature branch as coherent
   slices complete; do not commit scratch/generated local artifacts.
 - There are unrelated/unmanaged untracked local artifacts in the workspace. Do not delete them unless the user explicitly asks.
@@ -196,11 +201,18 @@ Documentation Tooling Agent direction.
   `https://588c750b.tw-bot.pages.dev` and alias
   `https://codex-privacy-first-disclosu.tw-bot.pages.dev`; this is not a
   production promotion.
+- Production promotion succeeded from merge commit `145db14` with immutable
+  deployment URL `https://a9899309.tw-bot.pages.dev` and production alias
+  `https://tw-bot.pages.dev`.
 - Local build currently emits non-failing Node `punycode`/`MaxListenersExceeded`
   warnings plus the Wrangler local-AI remote-usage warning.
 - Browser acceptance produced zero console errors and non-blocking unused/preload
   warnings for optional renderer assets; those are performance follow-up work,
   not a privacy or tooling blocker.
+- Production browser acceptance reproduced one transient `/api/embed`
+  `ERR_NETWORK_CHANGED` during upload, after which the document still indexed
+  and both documentation tools remained usable. Optional renderer preload
+  warnings remain a non-blocking performance cleanup item.
 
 ## Verification Log
 
@@ -358,22 +370,36 @@ Latest incremental verification on 2026-05-27:
 - Final local release gate for the CI maintenance slice passed:
   `npm.cmd test` (23 test files, 99 tests), zero production dependency audit
   findings, and the recorded `build:local` command.
+- PR #1 was merged into `main` on 2026-05-28 at merge commit `145db14`.
+  GitHub Actions run `26569125864` passed both production jobs: direct Wrangler
+  Pages deploy and runtime graph publication. The immutable production
+  deployment is `https://a9899309.tw-bot.pages.dev`; the production alias is
+  `https://tw-bot.pages.dev`.
+- Production API acceptance on `https://tw-bot.pages.dev` confirmed:
+  sanitized `/api/health` with request id, four active providers out of six,
+  matching `tw-bot:app:version`, no configuration inventory, no raw health
+  errors; disabled diagnostics; `GET /api/chat` as `METHOD_NOT_ALLOWED`;
+  `POST /api/chat` streaming successfully; and `POST /api/tool-graph-lookup`
+  as `no-store, private`, bounded, `src/`-only, no graph-version disclosure,
+  no context on miss, and structured errors for blank or GET requests.
+- Production browser acceptance uploaded a Markdown sample, confirmed the
+  reviewer reports the expected heading-jump, terminology, and empty-link
+  findings, rendered 12 `ChatIsland` source references from the 969-node
+  runtime graph, and confirmed removing the file dismisses tool context from
+  the active UI state.
 
 ## Next Task
 
-Continue Phase 1 with a reviewed production promotion of the accepted preview:
+Continue with the remaining Phase 1 follow-up before starting broad Phase 2:
 
-- Review and merge/promote `codex/privacy-first-disclosure` to the production
-  deployment path, then repeat the sanitized health, disabled diagnostic,
-  streamed chat, version-marker, and bounded documentation-tool acceptance
-  probes on `https://tw-bot.pages.dev`.
-- Preserve automated provider-failover and all-providers-unavailable coverage;
-  add a safe fault-injection harness before intentionally disrupting configured
-  production or shared preview providers.
-- Treat renderer-asset preload console warnings and Graphify's inconsistent
-  community-count wording as non-blocking follow-up unless those values become
-  release criteria. Do not introduce autonomous execution or browser package
-  runtimes.
+- Add a safe fault-injection harness for provider failover/all-providers-down
+  acceptance so shared preview or production credentials do not need to be
+  intentionally disrupted.
+- Clean up optional renderer-asset preload warnings if it can be done without
+  broad artifact-system refactoring.
+- Treat Graphify's inconsistent community-count wording as non-blocking unless
+  community totals become release criteria. Do not introduce autonomous
+  execution or browser package runtimes.
 
 ## Continue Prompt
 
