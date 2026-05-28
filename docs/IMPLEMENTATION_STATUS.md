@@ -173,7 +173,7 @@ Documentation Tooling Agent direction.
   controlled-renderer checkpoint removes that external browser package runtime
   from executable product paths and treats legacy output as inert code.
 - The public production alias `https://tw-bot.pages.dev` now serves selected
-  artifact regenerate in-place controls commit `4a35a83`. The accepted
+  artifact source-copy controls commit `aa87bb6`. The accepted
   preview alias remains available at
   `https://codex-privacy-first-disclosu.tw-bot.pages.dev`.
 - Defined the first bounded Documentation Tooling Agent slice in
@@ -185,8 +185,8 @@ Documentation Tooling Agent direction.
   active-session deterministic document review and a bounded read-only
   `src/` reference lookup with no generic fallback output.
 - Published a production runtime graph through the authorized GitHub Actions
-  path; the latest accepted runtime extraction from `4a35a83` contains 1029
-  nodes and 1400 edges and is available only through the bounded `src/` lookup
+  path; the latest accepted runtime extraction from `582ef31` contains 1032
+  nodes and 1404 edges and is available only through the bounded `src/` lookup
   surface.
 - Safe provider fault-injection coverage, renderer-preload warning cleanup,
   Phase 2 renderer boundaries, Kroki/server-render coverage, and
@@ -578,6 +578,14 @@ Latest incremental verification on 2026-05-29:
 - `graphify update .` refreshed tracked local Graphify artifacts from commit
   `aa87bb6`: 735 nodes and 1145 edges. Community-count wording remains
   non-blocking.
+- The selected source-copy deploy passed in GitHub Actions run `26588578350`
+  at immutable URL `https://4419e739.tw-bot.pages.dev`. The production
+  runtime graph from that run reports 1032 nodes and 1404 edges.
+- Production probes confirmed `/api/health` returns `200` with request id,
+  four active providers out of six at probe time, matching app version, and no
+  version mismatch; bounded graph lookup for `copySource` returns
+  `src/components/ArtifactSplitView.svelte:L64` with
+  `Cache-Control: no-store, private`.
 
 ## Next Task
 
