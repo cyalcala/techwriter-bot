@@ -1,6 +1,7 @@
 import { ZEN_REGISTRY, classifyQuery, getProvidersForRole, type Provider, type ProviderRole } from './providers';
 import { kvKey } from './kv-prefix';
 import { recordProviderTelemetry, type ProviderOutcome } from './provider-telemetry';
+import { getInjectedProviderStatus, type ProviderFaultPolicy } from './provider-fault-injection';
 import { startCleanupInterval } from './runtime-interval';
 
 const FAIL_WINDOW_MS = 60_000;
@@ -266,6 +267,7 @@ export async function routeChat(
   chatPath: 'fast' | 'balanced' | 'heavy' = 'balanced',
   forceSticky: boolean = false,
   maxTokensOverride?: number,
+  faultPolicy?: ProviderFaultPolicy | null,
 ) {
   const role: ProviderRole = classifyQuery(messages, intent);
   let candidates = getProvidersForRole(role);
@@ -340,6 +342,14 @@ export async function routeChat(
     if (!skipCircuit && isCircuitOpen(provider.id)) return null;
 
     const requestedOutputTokens = getMaxTokens(provider);
+    const injectedStatus = getInjectedProviderStatus(faultPolicy, provider.id);
+    if (injectedStatus != null) {
+      recordFail(provider.id, injectedStatus);
+      recordFailoverEvent(provider, `injected_provider_http_${injectedStatus}`, injectedStatus, chatPath, metadata);
+      recordAttempt(provider, 'http_error', 0, injectedStatus, requestedOutputTokens);
+      return null;
+    }
+
     const apiKey = getApiKey(provider, env);
     if (!apiKey && provider.name !== 'cloudflare') {
       recordFail(provider.id, 401);

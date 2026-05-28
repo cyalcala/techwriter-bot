@@ -80,4 +80,80 @@ describe('zen router failover metadata', () => {
       retryable: true,
     });
   });
+
+  it('can inject provider failure without calling real provider endpoints', async () => {
+    const { routeChat } = await import('../lib/zen-router');
+    const calls: string[] = [];
+
+    vi.stubGlobal('fetch', async (input: RequestInfo | URL) => {
+      const url = String(input);
+      calls.push(url);
+      return new Response('data: {"choices":[{"delta":{"content":"fallback ok"}}]}\n\ndata: [DONE]\n\n', {
+        status: 200,
+        headers: { 'Content-Type': 'text/event-stream' },
+      });
+    });
+
+    const metadata = {
+      provider: null,
+      searchTier: 'none' as const,
+      searchRemaining: 'unlimited',
+      tier: 'dev',
+      chatPath: 'fast' as const,
+    };
+
+    const response = await routeChat(
+      'chat-fast',
+      [{ role: 'user', content: 'hello' }],
+      {},
+      { GROQ_API_KEY: 'gsk_test', GEMINI_API_KEY: 'gemini_test' },
+      'session-zen-injected-failover',
+      [],
+      metadata,
+      ['groq-fast', 'gemini-flash'],
+      'fast',
+      false,
+      undefined,
+      { providerStatuses: { 'groq-fast': 503 } },
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('x-provider')).toBe('gemini-flash');
+    expect(calls.some(url => url.includes('api.groq.com'))).toBe(false);
+    expect(calls.some(url => url.includes('generativelanguage.googleapis.com'))).toBe(true);
+    expect(JSON.parse(response.headers.get('x-failover-events') || '[]')[0]).toMatchObject({
+      provider: 'groq-fast',
+      reason: 'injected_provider_http_503',
+      status: 503,
+    });
+  });
+
+  it('can inject an all-provider outage without provider network calls', async () => {
+    const { routeChat } = await import('../lib/zen-router');
+
+    vi.stubGlobal('fetch', async () => {
+      throw new Error('fetch should not be called for injected outages');
+    });
+
+    const response = await routeChat(
+      'chat-fast',
+      [{ role: 'user', content: 'hello' }],
+      {},
+      { GROQ_API_KEY: 'gsk_test', GEMINI_API_KEY: 'gemini_test' },
+      'session-zen-injected-all-down',
+      [],
+      undefined,
+      ['groq-fast', 'gemini-flash'],
+      'fast',
+      false,
+      undefined,
+      { allStatus: 503, providerStatuses: {} },
+    );
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toMatchObject({
+      code: 'AI_PROVIDERS_UNAVAILABLE',
+      retryable: true,
+    });
+  });
 });

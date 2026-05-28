@@ -136,8 +136,8 @@
     "hash": "71c9ff36a306743f1ca56acc39b1db53"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\lib\\env-reader.ts": {
-    "mtime": 1779964536.6942363,
-    "hash": "4a50ab0313cbb7a8170b6bbdee34de15"
+    "mtime": 1779964904.5191543,
+    "hash": "c9ffbeca40819ac3c793867aa7ba66b1"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\lib\\graph-query.ts": {
     "mtime": 1779964536.697227,
@@ -162,6 +162,10 @@
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\lib\\prompts.ts": {
     "mtime": 1778498152.4563265,
     "hash": "e7804bcbe99ba26946df1d1f1bb5de46"
+  },
+  "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\lib\\provider-fault-injection.ts": {
+    "mtime": 1779964870.7629316,
+    "hash": "303d26dd3fa3fa881bcd7163d6119806"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\lib\\provider-health.ts": {
     "mtime": 1779964536.707225,
@@ -252,12 +256,12 @@
     "hash": "a9e4953919d84f35254edd77396b99e1"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\lib\\zen-router.ts": {
-    "mtime": 1779964536.746226,
-    "hash": "1b94605338b4a85e75ada8d50a291541"
+    "mtime": 1779964904.512155,
+    "hash": "f20dc05fdc4622e89468099e5cac4588"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\pages\\api\\chat.ts": {
-    "mtime": 1779964536.7502263,
-    "hash": "575c8959a79b6d49dfcca4972eb95851"
+    "mtime": 1779964904.5171516,
+    "hash": "8482a7840074c9f64f500f3f6e97b9ac"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\pages\\api\\debug-ai.ts": {
     "mtime": 1779964536.7522237,
@@ -339,6 +343,10 @@
     "mtime": 1779964536.7870872,
     "hash": "f1793aa4e2fd9287958dcb00acf58acd"
   },
+  "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\tests\\provider-fault-injection.test.ts": {
+    "mtime": 1779964870.76493,
+    "hash": "1d8f945951ca5b6b239fca1dfa5abf55"
+  },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\tests\\provider-health.test.ts": {
     "mtime": 1779964536.7890887,
     "hash": "9f7c54639281060c323bbd8beee4a11c"
@@ -384,8 +392,8 @@
     "hash": "20f4c53c71e85e7a788f7df32e470d98"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\tests\\zen-router-failover.test.ts": {
-    "mtime": 1779964536.8113153,
-    "hash": "e89cf4d778c449c4eeeda301e75b2acc"
+    "mtime": 1779964870.7659304,
+    "hash": "a80fa9b4852750dadb6eb00c9c340b30"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\utils\\security.ts": {
     "mtime": 1777703379.950452,
@@ -416,12 +424,12 @@
     "hash": "5659010e5262e9fd04cd89f4b9b3191e"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\IMPLEMENTATION_STATUS.md": {
-    "mtime": 1779964603.339243,
-    "hash": "8526ef319a0cf884b693b15eb41d0c7d"
+    "mtime": 1779965016.939221,
+    "hash": "6c2be942f2d224fb7c26a2b89519f3e7"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\MASTER_EXECUTION_PLAN.md": {
-    "mtime": 1779964603.3362446,
-    "hash": "b321b8343fe2999df185277ab403118e"
+    "mtime": 1779965038.9246392,
+    "hash": "56b95e3ebfdfe62b0dbf26837a533c9f"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\PRODUCT_MARKETING.md": {
     "mtime": 1779964536.6182373,

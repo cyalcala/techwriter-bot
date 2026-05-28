@@ -69,14 +69,18 @@ The current tracked code graph was refreshed with `graphify update .` on
 
 - Report: `graphify-out/GRAPH_REPORT.md`
 - Graph: `graphify-out/graph.json`
-- Summary: 703 nodes, 1083 edges
+- Summary: 710 nodes, 1094 edges
 - Extraction confidence: 95% EXTRACTED, 5% INFERRED, 0% AMBIGUOUS
-- Built from code at commit: `145db14f`
+- Built from code at commit: `12c58853`
 - The generated report currently disagrees with itself on total community
   count; use node/edge counts and targeted graph queries for acceptance until
   that reporting discrepancy is reconciled.
 - The production runtime graph is published by the GitHub Actions extraction
   pipeline and currently reports 969 nodes and 1306 edges.
+- Controlled provider fault injection is available only when
+  `PROVIDER_FAULT_INJECTION_TOKEN` is configured and matched by request
+  headers, allowing failover/outage acceptance without disabling real provider
+  credentials.
 
 Before broad architecture work, read `graphify-out/GRAPH_REPORT.md` first.
 When the graph may be stale, run:

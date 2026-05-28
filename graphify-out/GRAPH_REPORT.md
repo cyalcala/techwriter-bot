@@ -1,16 +1,16 @@
 # Graph Report - techwriter-bot  (2026-05-28)
 
 ## Corpus Check
-- 99 files · ~58,313 words
+- 101 files · ~58,993 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 703 nodes · 1083 edges · 28 communities detected
-- Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 51 edges (avg confidence: 0.8)
+- 710 nodes · 1094 edges · 29 communities detected
+- Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 52 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `145db14f`
+- Built from commit: `12c58853`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -43,9 +43,10 @@
 - [[_COMMUNITY_Community 25|Community 25]]
 - [[_COMMUNITY_Community 26|Community 26]]
 - [[_COMMUNITY_Community 27|Community 27]]
+- [[_COMMUNITY_Community 28|Community 28]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `POST()` - 31 edges
+1. `POST()` - 32 edges
 2. `createRequestId()` - 23 edges
 3. `apiError()` - 20 edges
 4. `jsonResponse()` - 16 edges
@@ -68,15 +69,15 @@
 - `GET()` --calls--> `apiError()`  [INFERRED]
   src/pages/api/chat.ts → src/lib/api-response.ts
 
-## Communities (55 total, 3 thin omitted)
+## Communities (57 total, 3 thin omitted)
 
 ### Community 0 - "Community 0"
-Cohesion: 0.05
-Nodes (43): ../lib/artifact-detector, ../lib/stream-parser, detectAllArtifacts(), detectLang(), langToType(), normalizeType(), RawArtifact, validateArtifact() (+35 more)
+Cohesion: 0.06
+Nodes (48): GET(), ALLOWED_ORIGINS, checkCSRF(), dailyEmbedCounts, now, POST(), RateLimitEntry, rateLimits (+40 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.07
-Nodes (44): GET(), ALLOWED_ORIGINS, checkCSRF(), dailyEmbedCounts, now, POST(), RateLimitEntry, rateLimits (+36 more)
+Cohesion: 0.06
+Nodes (34): ../lib/artifact-detector, detectAllArtifacts(), detectLang(), langToType(), normalizeType(), RawArtifact, validateArtifact(), ArtifactStatus (+26 more)
 
 ### Community 2 - "Community 2"
 Cohesion: 0.09
@@ -87,8 +88,8 @@ Cohesion: 0.08
 Nodes (33): ../lib/rag-db, clearAllData(), clearLegacyBrowserState(), runStaleCheck(), chunkText(), embedChunks(), embedLocal(), EmbedProgress (+25 more)
 
 ### Community 4 - "Community 4"
-Cohesion: 0.06
-Nodes (25): ../lib/artifact-lifecycle, ../lib/artifact-queue, ../lib/artifact-state, ../lib/artifact-types, ../lib/cleanup, ../lib/markdown, ../lib/rag-client, ../lib/renderer-loader (+17 more)
+Cohesion: 0.07
+Nodes (26): ../lib/artifact-lifecycle, ../lib/artifact-queue, ../lib/artifact-state, ../lib/artifact-types, ../lib/cleanup, ../lib/markdown, ../lib/rag-client, ../lib/renderer-loader (+18 more)
 
 ### Community 5 - "Community 5"
 Cohesion: 0.05
@@ -104,7 +105,7 @@ Nodes (34): detectLanguage(), domReady(), escapeAttr(), escapeHtml(), getReactHt
 
 ### Community 8 - "Community 8"
 Cohesion: 0.08
-Nodes (27): asCount(), emptyBucket(), recordProviderTelemetry(), safeDimension(), classifyQuery(), getProvidersForRole(), Provider, ProviderRole (+19 more)
+Nodes (28): getInjectedProviderStatus(), parseProviderFaultInjection(), parseProviderFaultSpec(), readEnvString(), safeEquals(), classifyQuery(), getProvidersForRole(), Provider (+20 more)
 
 ### Community 9 - "Community 9"
 Cohesion: 0.16
@@ -143,30 +144,34 @@ Cohesion: 0.13
 Nodes (14): Artifact Rendering, Caching, code:block1 (src/), Commit: `b2ac2c0` | Branch: `main` | Deployed: `tw-bot.pages.dev`, Deployed Capabilities, File Inventory (Source Files Only), Infra, Knowledge Graph (+6 more)
 
 ### Community 18 - "Community 18"
+Cohesion: 0.23
+Nodes (8): ARTIFACT_LANGUAGE_ALIASES, balanced(), CODE_LANGS, looksLikeVegaSpec(), looksLikeWebContainerProject(), normalizeArtifactType(), TYPE_ALIASES, validateArtifact()
+
+### Community 19 - "Community 19"
 Cohesion: 0.33
 Nodes (6): CachedResponse, cacheKey(), checkCache(), normalizeQuery(), sha256(), writeCache()
 
-### Community 19 - "Community 19"
+### Community 20 - "Community 20"
 Cohesion: 0.25
 Nodes (4): DIAGRAM_LANGS, lang, origCode, renderer
 
-### Community 20 - "Community 20"
+### Community 21 - "Community 21"
 Cohesion: 0.25
 Nodes (7): env, keys, req, restored, rl, serialized, state
 
-### Community 21 - "Community 21"
+### Community 22 - "Community 22"
 Cohesion: 0.32
 Nodes (4): closesFence(), containsTerm(), escapeRegExp(), reviewDocument()
 
-### Community 22 - "Community 22"
+### Community 23 - "Community 23"
 Cohesion: 0.29
 Nodes (5): chunksDir, clientDir, distDir, files, serverDir
 
-### Community 23 - "Community 23"
+### Community 24 - "Community 24"
 Cohesion: 0.38
 Nodes (3): loadRaw(), saveArtifactQueue(), saveConversation()
 
-### Community 24 - "Community 24"
+### Community 25 - "Community 25"
 Cohesion: 0.33
 Nodes (5): config, configPath, distDir, serverDir, wranglerCache
 
@@ -178,14 +183,14 @@ Nodes (5): config, configPath, distDir, serverDir, wranglerCache
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `createRequestId()` connect `Community 1` to `Community 2`, `Community 11`?**
+- **Why does `createRequestId()` connect `Community 0` to `Community 2`, `Community 11`?**
   _High betweenness centrality (0.028) - this node is a cross-community bridge._
-- **Why does `apiError()` connect `Community 1` to `Community 2`, `Community 11`?**
+- **Why does `apiError()` connect `Community 0` to `Community 2`, `Community 11`?**
   _High betweenness centrality (0.026) - this node is a cross-community bridge._
-- **Why does `kvKey()` connect `Community 1` to `Community 8`, `Community 2`?**
+- **Why does `kvKey()` connect `Community 0` to `Community 8`, `Community 2`?**
   _High betweenness centrality (0.017) - this node is a cross-community bridge._
-- **Are the 5 inferred relationships involving `POST()` (e.g. with `createRequestId()` and `getRequestLimits()`) actually correct?**
-  _`POST()` has 5 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 6 inferred relationships involving `POST()` (e.g. with `createRequestId()` and `getRequestLimits()`) actually correct?**
+  _`POST()` has 6 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 12 inferred relationships involving `createRequestId()` (e.g. with `GET()` and `POST()`) actually correct?**
   _`createRequestId()` has 12 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 10 inferred relationships involving `apiError()` (e.g. with `GET()` and `POST()`) actually correct?**

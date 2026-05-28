@@ -16,6 +16,7 @@ export function readEnvKeys(baseEnv: Record<string, any>): void {
   set('CHAT_MAX_CHARS', import.meta.env.CHAT_MAX_CHARS);
   set('MAX_REQUEST_BODY_BYTES', import.meta.env.MAX_REQUEST_BODY_BYTES);
   set('HEALTH_PING_TIMEOUT_MS', import.meta.env.HEALTH_PING_TIMEOUT_MS);
+  set('PROVIDER_FAULT_INJECTION_TOKEN', import.meta.env.PROVIDER_FAULT_INJECTION_TOKEN);
 }
 
 export function checkEnvKeys(env: Record<string, any>): Record<string, boolean> {

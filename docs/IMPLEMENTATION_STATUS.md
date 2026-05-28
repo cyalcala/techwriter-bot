@@ -183,9 +183,10 @@ Documentation Tooling Agent direction.
   path; the latest accepted runtime extraction from `145db14` contains 969
   nodes and 1306 edges and is available only through the bounded `src/` lookup
   surface.
-- Remaining Phase 1 follow-up should focus on safe fault-injection coverage
-  and renderer-preload warning cleanup, without reviving browser package
-  runtimes or extending the bounded tooling scope.
+- Safe provider fault-injection coverage is implemented for controlled
+  acceptance without disrupting real credentials. Remaining Phase 1 follow-up
+  should focus on renderer-preload warning cleanup, without reviving browser
+  package runtimes or extending the bounded tooling scope.
 
 ## Blockers And Notes
 
@@ -387,14 +388,18 @@ Latest incremental verification on 2026-05-27:
   findings, rendered 12 `ChatIsland` source references from the 969-node
   runtime graph, and confirmed removing the file dismisses tool context from
   the active UI state.
+- Added a disabled-by-default provider fault-injection harness guarded by
+  `PROVIDER_FAULT_INJECTION_TOKEN`. With a matching token and bounded
+  `x-provider-fault` header, tests can simulate one-provider failover or an
+  all-providers-down outage without calling real provider endpoints or
+  changing provider credentials. Verification passed with `npm.cmd test`
+  (24 test files, 103 tests), `npm.cmd audit --omit=dev --audit-level=high`,
+  and the recorded `build:local` command.
 
 ## Next Task
 
 Continue with the remaining Phase 1 follow-up before starting broad Phase 2:
 
-- Add a safe fault-injection harness for provider failover/all-providers-down
-  acceptance so shared preview or production credentials do not need to be
-  intentionally disrupted.
 - Clean up optional renderer-asset preload warnings if it can be done without
   broad artifact-system refactoring.
 - Treat Graphify's inconsistent community-count wording as non-blocking unless

@@ -13,6 +13,7 @@ import { getRequestLimits, sanitizeChatInput } from '../../lib/request-limits';
 import { kvKey } from '../../lib/kv-prefix';
 import { startCleanupInterval } from '../../lib/runtime-interval';
 import { checkCSRF } from '../../lib/csrf';
+import { parseProviderFaultInjection } from '../../lib/provider-fault-injection';
 
 const rateLimits = new Map<string, { count: number; reset: number }>();
 const RATE_WINDOW = 60_000;
@@ -260,6 +261,7 @@ export const POST: APIRoute = async (ctx) => {
       messages, locals, env, sessionId, searchResult.sources, meta, pool, effectivePath,
       forceSticky,
       needsArtifact ? 2048 : undefined,
+      parseProviderFaultInjection(env, request.headers),
     );
 
     logTokenUsage(env.SESSION, env, meta.provider || 'unknown', inputTokens, 0).catch(() => {});
