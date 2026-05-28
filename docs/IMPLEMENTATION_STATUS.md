@@ -157,6 +157,7 @@ Documentation Tooling Agent direction.
   - `3a7a076` active-session artifact repair replacement.
   - `3693b55` active-session artifact gallery jump controls.
   - `4a35a83` selected artifact regenerate in-place controls.
+  - `aa87bb6` selected artifact source copy action.
 
 ## In Progress
 
@@ -190,8 +191,9 @@ Documentation Tooling Agent direction.
 - Safe provider fault-injection coverage, renderer-preload warning cleanup,
   Phase 2 renderer boundaries, Kroki/server-render coverage, and
   active-session artifact repair replacement plus gallery jump/regenerate
-  controls are implemented without disrupting real credentials, reviving
-  browser package runtimes, or extending the bounded tooling scope.
+  controls and selected source copy are implemented without disrupting real
+  credentials, reviving browser package runtimes, or extending the bounded
+  tooling scope.
 
 ## Blockers And Notes
 
@@ -560,14 +562,29 @@ Latest incremental verification on 2026-05-29:
 - The selected-regenerate deploy passed in GitHub Actions run `26587894774` at
   immutable URL `https://50808f19.tw-bot.pages.dev`. The production runtime
   graph from that run reports 1029 nodes and 1400 edges.
+- Added selected-artifact source copy in
+  `src/components/ArtifactSplitView.svelte`: the header Copy source action
+  now copies the currently selected gallery artifact's source text, gives
+  short visible `Copied` feedback, and stays active-session only with no
+  durable artifact write path.
+- Red-green coverage confirmed the prior copy-source gap, then passed after
+  implementation. Verification passed after this source-copy slice:
+  `npm.cmd test -- --run src/tests/artifact-gallery.test.ts --testNamePattern "copies source"`,
+  `npm.cmd test -- --run src/tests/artifact-gallery.test.ts`,
+  `npm.cmd test -- --run src/tests/artifact-gallery.test.ts src/tests/artifact-repair-flow.test.ts src/tests/artifact-error-boundary.test.ts src/tests/artifacts.test.ts`,
+  `npm.cmd test` (28 test files, 121 tests),
+  `npm.cmd audit --omit=dev --audit-level=high`, and the recorded
+  `build:local` command.
+- `graphify update .` refreshed tracked local Graphify artifacts from commit
+  `aa87bb6`: 735 nodes and 1145 edges. Community-count wording remains
+  non-blocking.
 
 ## Next Task
 
 Continue Phase 2 artifact reliability with the artifact gallery actions from
 the master plan in small slices:
 
-- Add copy source from the selected gallery entry.
-- Then add separate SVG/PNG/source downloads before considering any ZIP export.
+- Add separate SVG/PNG/source downloads before considering any ZIP export.
 - Treat Graphify's inconsistent community-count wording as non-blocking unless
   community totals become release criteria. Do not introduce autonomous
   execution or browser package runtimes.
