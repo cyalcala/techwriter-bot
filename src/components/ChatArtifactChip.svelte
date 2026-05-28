@@ -23,7 +23,7 @@
     code: 'bg-stone-600 text-white', python: 'bg-yellow-600 text-black',
     javascript: 'bg-amber-500 text-black', typescript: 'bg-blue-500 text-white',
     html: 'bg-red-500 text-white', svg: 'bg-emerald-600 text-white',
-    react: 'bg-sky-500 text-white', webcontainer: 'bg-rose-600 text-white',
+    react: 'bg-sky-500 text-white',
   };
 
   let longPressTimer: ReturnType<typeof setTimeout> | null = null;

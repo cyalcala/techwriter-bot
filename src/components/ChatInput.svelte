@@ -1,4 +1,12 @@
 <script lang="ts">
+  interface FailoverEvent {
+    timestamp: string;
+    provider: string;
+    reason: string;
+    status?: number;
+    chatPath?: string;
+  }
+
   interface Props {
     disabled: boolean;
     isStreaming: boolean;
@@ -16,8 +24,11 @@
     ragDegraded?: boolean;
     ragUploadProgress?: { done: number; total: number } | null;
     onRemoveFile: () => void;
+    toolsOpen: boolean;
+    onToggleTools: () => void;
     tokenDisplay: { in: number; cached?: boolean } | null;
     chatPath: string | null;
+    failoverEvents?: FailoverEvent[];
     panelOpen: boolean;
     isMobile: boolean;
   }
@@ -26,14 +37,27 @@
     disabled, isStreaming, inputMessage, onInputChange, onSend, onStop,
     mode, onModeChange, enhancedCredits, onFileClick, isUploading,
     ragUploadedFileName = '', ragUploadStatus = 'idle', ragDegraded = false,
-    ragUploadProgress = null, onRemoveFile, tokenDisplay, chatPath, panelOpen, isMobile,
+    ragUploadProgress = null, onRemoveFile, toolsOpen, onToggleTools, tokenDisplay, chatPath, failoverEvents = [], panelOpen, isMobile,
   }: Props = $props();
+  let privacyOpen = $state(false);
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); onSend(); return; }
     if (e.key === 'Enter') { e.preventDefault(); onSend(); }
   }
+
+  function failoverTime(timestamp: string): string {
+    const date = new Date(timestamp);
+    if (Number.isNaN(date.getTime())) return 'recent';
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function closePrivacyOnEscape(e: KeyboardEvent) {
+    if (e.key === 'Escape') privacyOpen = false;
+  }
 </script>
+
+<svelte:window onkeydown={closePrivacyOnEscape} />
 
 {#if !(panelOpen && isMobile)}
   <footer class="p-3 md:p-4 bg-[#faf7f2]/90 backdrop-blur-xl border-t border-stone-200/60 transition-all">
@@ -49,6 +73,17 @@
               <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
           </div>
+        </div>
+      {/if}
+
+      {#if failoverEvents.length > 0}
+        <div class="mb-2 flex flex-wrap items-center gap-1.5 text-[10px] text-amber-700">
+          <span class="font-semibold">Failover</span>
+          {#each failoverEvents.slice(0, 3) as event}
+            <span class="px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200/70" title={event.reason}>
+              {event.provider} {failoverTime(event.timestamp)}
+            </span>
+          {/each}
         </div>
       {/if}
 
@@ -78,6 +113,37 @@
         {/if}
       </div>
 
+      <div
+        id="privacy-notice"
+        aria-hidden={!privacyOpen}
+        style:grid-template-rows={privacyOpen ? '1fr' : '0fr'}
+        style:opacity={privacyOpen ? '1' : '0'}
+        style:margin-top={privacyOpen ? '0.75rem' : '0'}
+        style:pointer-events={privacyOpen ? 'auto' : 'none'}
+        class="grid transition-[grid-template-rows,opacity,margin] duration-300 ease-out motion-reduce:duration-0"
+      >
+        <div class="min-h-0 overflow-hidden">
+          <section class="rounded-xl border border-stone-200/80 bg-white/75 px-3.5 py-3 text-[11px] leading-relaxed text-stone-600" aria-label="Privacy Notice">
+            <div class="flex justify-between items-center gap-3">
+              <strong class="text-stone-700 font-medium">Privacy Notice</strong>
+              <button type="button" onclick={() => privacyOpen = false} class="text-stone-400 hover:text-stone-700 transition-colors" aria-label="Close privacy notice">Close</button>
+            </div>
+            <p class="mt-1.5">
+              Private by default: this site does not intentionally retain your chat messages, uploaded document content,
+              generated responses, or rendered artifact content in durable application storage. Your active chat remains
+              in memory while this page is open.
+            </p>
+            <p class="mt-1.5">
+              Content is processed only to provide requested features and may be handled by Cloudflare, AI providers,
+              search providers, or a diagram renderer under their own terms. Limited non-content technical data may be
+              retained temporarily for security and reliability. We use encrypted HTTPS transit, but no online service
+              can promise absolute security. Do not submit highly sensitive personal information.
+            </p>
+            <p class="mt-1.5">We do not sell personal information or use it for targeted advertising.</p>
+          </section>
+        </div>
+      </div>
+
       <div class="flex justify-between items-center text-[10px] md:text-[11px] text-stone-400 mt-2.5">
         <div class="flex items-center gap-2">
           <div class="flex items-center bg-stone-100 p-0.5 rounded-lg shrink-0">
@@ -92,7 +158,23 @@
             <span class="text-[10px] text-stone-300 hidden sm:inline">{tokenDisplay.cached ? '⚡ cached' : `~${tokenDisplay.in} tokens`}{chatPath ? ` · ${chatPath}` : ''}</span>
           {/if}
         </div>
-        <span class="hidden sm:inline">AI can make mistakes. Verify important info.</span>
+        <div class="flex items-center gap-2 shrink-0">
+          <span class="hidden sm:inline">AI can make mistakes. Verify important info.</span>
+          <button
+            type="button"
+            onclick={onToggleTools}
+            aria-expanded={toolsOpen}
+            aria-controls="document-tools-panel"
+            class="rounded-md px-1.5 py-1 text-stone-500 hover:text-stone-700 hover:bg-stone-100 transition-colors"
+          >Tools</button>
+          <button
+            type="button"
+            onclick={() => privacyOpen = !privacyOpen}
+            aria-expanded={privacyOpen}
+            aria-controls="privacy-notice"
+            class="rounded-md px-1.5 py-1 text-stone-500 hover:text-stone-700 hover:bg-stone-100 transition-colors"
+          >Privacy</button>
+        </div>
       </div>
     </div>
   </footer>

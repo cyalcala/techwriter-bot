@@ -178,7 +178,7 @@ export function updateReputation(
 }
 
 export function serializeReputation(state: ReputationState): string {
-  return JSON.stringify(state);
+  return JSON.stringify({ ...state, queries: [] });
 }
 
 export function deserializeReputation(raw: string): ReputationState {

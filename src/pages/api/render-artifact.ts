@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { env as cfGlobalEnv } from 'cloudflare:workers';
+import { apiError, createRequestId, jsonResponse } from '../../lib/api-response';
 import { renderViaKroki, KROKI_RENDERABLE } from '../../lib/kroki-renderer';
 
 function loadEnv(locals: any): any {
@@ -10,35 +11,48 @@ function loadEnv(locals: any): any {
 }
 
 export const POST: APIRoute = async ({ request, locals }) => {
+  const requestId = createRequestId();
   const env = loadEnv(locals);
 
   try {
     const body = await request.json().catch(() => null);
     if (!body?.type || !body?.code) {
-      return new Response(JSON.stringify({ error: 'invalid', message: 'type and code required' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+      return apiError({ requestId, status: 400, code: 'INVALID_REQUEST', message: 'Artifact type and code are required.' });
     }
 
     const type = String(body.type || '').toLowerCase();
     const code = String(body.code || '');
     if (code.length > 200_000) {
-      return new Response(JSON.stringify({ error: 'too_large', message: 'Artifact source is too large to render safely.' }), { status: 413, headers: { 'Content-Type': 'application/json' } });
+      return apiError({ requestId, status: 413, code: 'ARTIFACT_TOO_LARGE', message: 'Artifact source is too large to render safely.' });
     }
     if (!KROKI_RENDERABLE.has(type)) {
-      return new Response(JSON.stringify({ error: 'unsupported_type', message: `${type} is not server-renderable` }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+      return apiError({ requestId, status: 400, code: 'UNSUPPORTED_ARTIFACT_TYPE', message: `${type} is not server-renderable.` });
     }
 
-    const result = await renderViaKroki(type, code, env.SESSION);
+    const result = await renderViaKroki(type, code);
     if (result.svg) {
-      return new Response(JSON.stringify({ svg: result.svg, cached: result.cached }), {
+      return jsonResponse({ svg: result.svg, cached: result.cached }, {
+        requestId,
         headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': result.cached ? 'public, max-age=86400' : 'public, max-age=3600',
+          'Cache-Control': 'no-store, private',
         },
       });
     }
     const statusCode = result.status === 400 ? 400 : 502;
-    return new Response(JSON.stringify({ error: 'render_failed', message: result.error || 'Renderer returned no SVG.', status: statusCode }), { status: statusCode, headers: { 'Content-Type': 'application/json' } });
-  } catch (e: any) {
-    return new Response(JSON.stringify({ error: 'server_error', message: e.message?.slice(0, 200) }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+    return apiError({
+      requestId,
+      status: statusCode,
+      code: 'RENDER_FAILED',
+      message: result.error || 'Renderer returned no SVG.',
+      retryable: statusCode >= 500,
+    });
+  } catch {
+    return apiError({
+      requestId,
+      status: 500,
+      code: 'SERVER_ERROR',
+      message: 'Artifact render failed.',
+      retryable: true,
+    });
   }
 };

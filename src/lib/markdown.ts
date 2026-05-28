@@ -22,8 +22,6 @@ const DIAGRAM_LANGS = new Set([
   'katex',
   'latex',
   'tex',
-  'webcontainer',
-  'webcontainers',
 ]);
 
 const renderer = new marked.Renderer();

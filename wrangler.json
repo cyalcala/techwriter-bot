@@ -2,6 +2,10 @@
   "name": "tw-bot",
   "compatibility_date": "2024-11-01",
   "pages_build_output_dir": "dist/client",
+  "vars": {
+    "PROJECT_NAME": "tw-bot",
+    "APP_VERSION": "0.0.1"
+  },
   "ai": {
     "binding": "AI"
   },

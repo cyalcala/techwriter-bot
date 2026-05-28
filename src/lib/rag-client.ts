@@ -1,5 +1,5 @@
 import { embedChunks, chunkText, validateDocument, type EmbedProgress } from './embed-pipeline';
-import { storeVectors, getStoredVectors, updateActivity, cosineSimilarity } from './rag-db';
+import { storeVectors, getStoredVectors } from './rag-db';
 import { searchInWorker } from './sim-search';
 
 export type UploadState = 'idle' | 'uploading' | 'done' | 'error';
@@ -29,21 +29,32 @@ export interface RagChunk {
   score: number;
 }
 
+export interface UploadResult {
+  success: boolean;
+  chunkCount: number;
+  skipped: number;
+  degraded: boolean;
+  message: string;
+  sourceText?: string;
+}
+
 export async function handleFileUpload(
   file: File,
   sessionId: string,
   onProgress: (p: EmbedProgress) => void,
   onStatusChange: (s: UploadState) => void,
-): Promise<{ success: boolean; chunkCount: number; skipped: number; degraded: boolean; message: string }> {
+): Promise<UploadResult> {
   const validationError = validateDocument(file);
   if (validationError) {
     return { success: false, chunkCount: 0, skipped: 0, degraded: false, message: `Upload error: ${validationError}` };
   }
 
   onStatusChange('uploading');
+  let sourceText: string | undefined;
 
   try {
-    const text = await file.text();
+    sourceText = await file.text();
+    const text = sourceText;
     if (!text.trim()) {
       onStatusChange('error');
       return { success: false, chunkCount: 0, skipped: 0, degraded: false, message: 'Upload failed: File is empty.' };
@@ -63,12 +74,12 @@ export async function handleFileUpload(
 
     if (validChunks.length === 0) {
       onStatusChange('error');
-      return { success: false, chunkCount: 0, skipped, degraded, message: 'Upload failed: Failed to generate embeddings for this document.' };
+      return { success: false, chunkCount: 0, skipped, degraded, sourceText, message: 'Upload failed: Failed to generate embeddings for this document.' };
     }
 
     await storeVectors(sessionId, validChunks);
 
-    const modeNote = degraded ? ' (offline fallback)' : '';
+    const modeNote = degraded ? ' (partial indexing)' : '';
     const skipNote = skipped > 0 ? ` (${skipped} skipped)` : '';
 
     onStatusChange('done');
@@ -79,11 +90,12 @@ export async function handleFileUpload(
       chunkCount: validChunks.length,
       skipped,
       degraded,
+      sourceText,
       message: `I've processed **${file.name}** — ${validChunks.length} chunks indexed${skipNote}${modeNote}. You can now ask questions about it.`,
     };
   } catch (err: any) {
     onStatusChange('error');
-    return { success: false, chunkCount: 0, skipped: 0, degraded: false, message: `Upload failed: ${err.message}` };
+    return { success: false, chunkCount: 0, skipped: 0, degraded: false, sourceText, message: `Upload failed: ${err.message}` };
   }
 }
 

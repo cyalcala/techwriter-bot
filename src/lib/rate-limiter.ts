@@ -1,9 +1,11 @@
+import { startCleanupInterval } from './runtime-interval';
+
 export function createRateLimiter(perMin: number) {
   const map = new Map<string, { count: number; reset: number }>();
   const window = 60_000;
 
   if (typeof setInterval !== 'undefined') {
-    setInterval(() => {
+    startCleanupInterval(() => {
       const now = Date.now();
       for (const [k, v] of map) { if (now > v.reset) map.delete(k); }
     }, 30_000);
@@ -26,7 +28,7 @@ export function createDailyLimiter(defaultCap: number) {
   let reset = Date.now() + 86400000;
 
   if (typeof setInterval !== 'undefined') {
-    setInterval(() => {
+    startCleanupInterval(() => {
       const now = Date.now();
       if (now > reset) { map.clear(); reset = now + 86400000; }
     }, 300_000);

@@ -7,6 +7,14 @@ describe('Security checks', () => {
     expect(checkCSRF(req)).toBe(false);
   });
 
+  it('CSRF rejects origins that merely prefix-match a trusted origin', async () => {
+    const { checkCSRF } = await import('../lib/csrf');
+    const req = new Request('http://localhost:43210/test', {
+      headers: { origin: 'http://localhost:43210' }
+    });
+    expect(checkCSRF(req)).toBe(false);
+  });
+
   it('CSRF allows known origin', async () => {
     const { checkCSRF } = await import('../lib/csrf');
     const req = new Request('https://tw-bot.pages.dev/test', {
@@ -15,10 +23,31 @@ describe('Security checks', () => {
     expect(checkCSRF(req)).toBe(true);
   });
 
+  it('CSRF allows the authorized hardening preview alias only by exact origin', async () => {
+    const { checkCSRF } = await import('../lib/csrf');
+    const preview = new Request('https://codex-privacy-first-disclosu.tw-bot.pages.dev/api/chat', {
+      headers: { origin: 'https://codex-privacy-first-disclosu.tw-bot.pages.dev' }
+    });
+    const lookalike = new Request('https://codex-privacy-first-disclosu.tw-bot.pages.dev.evil.test/api/chat', {
+      headers: { origin: 'https://codex-privacy-first-disclosu.tw-bot.pages.dev.evil.test' }
+    });
+
+    expect(checkCSRF(preview)).toBe(true);
+    expect(checkCSRF(lookalike)).toBe(false);
+  });
+
   it('CSRF allows localhost', async () => {
     const { checkCSRF } = await import('../lib/csrf');
     const req = new Request('http://localhost:4321/test', {
       headers: { origin: 'http://localhost:4321' }
+    });
+    expect(checkCSRF(req)).toBe(true);
+  });
+
+  it('CSRF allows local loopback preview origin', async () => {
+    const { checkCSRF } = await import('../lib/csrf');
+    const req = new Request('http://127.0.0.1:4321/test', {
+      headers: { origin: 'http://127.0.0.1:4321' }
     });
     expect(checkCSRF(req)).toBe(true);
   });
@@ -62,10 +91,12 @@ describe('Reputation round-trip', () => {
     state = updateReputation(state, 'request');
     state = updateReputation(state, 'turnstile_pass');
     state = updateReputation(state, 'bot_ua');
+    state = updateReputation(state, 'dup_query', { message: 'my sensitive prompt' });
 
     const serialized = serializeReputation(state);
     const restored = deserializeReputation(serialized);
 
+    expect(serialized).not.toContain('my sensitive prompt');
     expect(restored.score).toBe(state.score);
     expect(restored.tier).toBe(state.tier);
     expect(restored.turnstilePassed).toBe(true);

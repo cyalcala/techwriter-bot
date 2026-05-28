@@ -2,18 +2,21 @@
   import { onMount } from 'svelte';
   import { TokenBatcher } from '../lib/token-batcher';
   import { handleFileUpload, searchDocumentChunks, formatRagContext, clearRagState, createDefaultRagState, type RagState } from '../lib/rag-client';
-  import { updateActivity } from '../lib/rag-db';
-  import { setupCleanupCallbacks, runStaleCheck, clearAllData, persistSessionId, getStoredSessionId } from '../lib/cleanup';
+  import { getStoredVectors, updateActivity } from '../lib/rag-db';
+  import { setupCleanupCallbacks, runStaleCheck, clearAllData } from '../lib/cleanup';
   import { ArtifactStreamParser, type Artifact } from '../lib/stream-parser';
   import { detectAllArtifacts } from '../lib/artifact-detector';
   import { preloadPopular } from '../lib/renderer-loader';
   import { fixArtifactError } from '../lib/artifact-state';
   import { estimateTokens } from '../lib/token-counter';
-  import { saveConversation, loadConversation, clearConversation, saveArtifactQueue } from '../lib/session-persist';
+  import { clearConversation } from '../lib/session-persist';
   import { createArtifactQueue, type ArtifactEntry } from '../lib/artifact-queue';
   import { extractArtifactTitle } from '../lib/artifact-lifecycle';
+  import { createLiveOutageState, hasVisibleLiveResponse, type LiveOutageState } from '../lib/session-continuity';
+  import { reviewDocument, type DocumentFinding, type TerminologyRule } from '../lib/document-review';
   import ChatMessages from './ChatMessages.svelte';
   import ChatInput from './ChatInput.svelte';
+  import DocumentToolsPanel from './DocumentToolsPanel.svelte';
   import ArtifactSplitView from './ArtifactSplitView.svelte';
 
   interface Message {
@@ -23,6 +26,21 @@
     sources?: { title: string; url: string }[];
     searchTier?: 'none' | 'basic' | 'enhanced';
     empty?: boolean;
+    liveResponse?: boolean;
+  }
+
+  interface FailoverEvent {
+    timestamp: string;
+    provider: string;
+    reason: string;
+    status?: number;
+    chatPath?: string;
+  }
+
+  interface GraphLookupResult {
+    available: boolean;
+    context: string;
+    nodeCount: number;
   }
 
   let messages = $state<Message[]>([{ role: 'assistant', content: "Hi! I'm Technical Writer. I help with writing, research, diagrams, and code. What can I create for you?" }]);
@@ -41,11 +59,19 @@
   let editingMessageIdx = $state<number | null>(null);
   let editText = $state('');
   let copiedMessageIdx = $state<number | null>(null);
-  let keyStatus = $state<{ groq: boolean; gemini: boolean; cerebras: boolean } | null>(null);
   let chatPath = $state<string | null>(null);
   let tokenDisplay = $state<{ in: number; graph: number; cached?: boolean } | null>(null);
+  let failoverEvents = $state<FailoverEvent[]>([]);
+  let liveOutage = $state<LiveOutageState | null>(null);
   let isMobile = $state(false);
   let documentTopics = $state('');
+  let toolsOpen = $state(false);
+  let toolDocument = $state<{ name: string; text: string } | null>(null);
+  let toolFindings = $state<DocumentFinding[]>([]);
+  let toolReviewRun = $state(false);
+  let toolGraphResult = $state<GraphLookupResult | null>(null);
+  let toolGraphLoading = $state(false);
+  let toolGraphError = $state('');
 
   type ChatState = 'idle' | 'loading' | 'streaming' | 'aborting';
   let chatState: ChatState = $state('idle');
@@ -117,7 +143,6 @@
           if (updated && activeArtifactEntry?.artifact.id === pendingId) {
             activeArtifactEntry = updated;
           }
-          saveArtifactQueue(sessionId, artifactQueue.entries);
           return;
         }
       }
@@ -146,17 +171,7 @@
     }
   }
 
-  async function checkKeys() {
-    try {
-      const res = await fetch('/api/chat');
-      const data = await res.json();
-      keyStatus = { groq: data.keys?.GROQ_API_KEY === true, gemini: data.keys?.GEMINI_API_KEY === true, cerebras: data.keys?.CEREBRAS_API_KEY === true };
-    } catch { keyStatus = null; }
-  }
-
   function generateSessionId() {
-    const stored = getStoredSessionId();
-    if (stored) return stored;
     try { return crypto.randomUUID(); } catch (e) { return Math.random().toString(36).substring(2) + Date.now().toString(36); }
   }
 
@@ -172,13 +187,9 @@
 
   onMount(() => {
     sessionId = generateSessionId();
-    persistSessionId(sessionId);
-    const restored = loadConversation(sessionId) as Message[] | null;
-    if (restored?.length) messages = restored;
     runStaleCheck();
     setupCleanupCallbacks(sessionId);
     pollCredits();
-    checkKeys();
     preloadPopular();
     window.addEventListener('message', (e) => {
       if (e.data?.type === 'ARTIFACT_ERROR') artifactError = e.data.error;
@@ -191,13 +202,52 @@
     window.addEventListener('resize', checkMobile);
   });
 
-  let persistDebounce: ReturnType<typeof setTimeout> | null = null;
-  $effect(() => {
-    messages; sessionId;
-    if (!sessionId) return;
-    if (persistDebounce) clearTimeout(persistDebounce);
-    persistDebounce = setTimeout(() => { saveConversation(sessionId, messages); }, 2000);
-  });
+  function clearDocumentToolState() {
+    toolsOpen = false;
+    toolDocument = null;
+    toolFindings = [];
+    toolReviewRun = false;
+    toolGraphResult = null;
+    toolGraphLoading = false;
+    toolGraphError = '';
+  }
+
+  function runDocumentReview(terminology: TerminologyRule[]) {
+    if (!toolDocument) return;
+    toolFindings = reviewDocument(toolDocument.text, terminology);
+    toolReviewRun = true;
+  }
+
+  async function runGraphLookup(term: string) {
+    if (!term) return;
+    toolGraphLoading = true;
+    toolGraphError = '';
+
+    try {
+      const response = await fetch('/api/tool-graph-lookup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ term }),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        toolGraphResult = null;
+        toolGraphError = String(payload.error || 'Reference lookup is unavailable.');
+        return;
+      }
+
+      toolGraphResult = {
+        available: Boolean(payload.available),
+        context: String(payload.context || ''),
+        nodeCount: Number(payload.nodeCount || 0),
+      };
+    } catch {
+      toolGraphResult = null;
+      toolGraphError = 'Reference lookup is unavailable.';
+    } finally {
+      toolGraphLoading = false;
+    }
+  }
 
   function newChat() {
     safeAbort();
@@ -205,12 +255,13 @@
     documentTopics = '';
     clearAllData(sessionId);
     sessionId = generateSessionId();
-    persistSessionId(sessionId);
     messages = [{ role: 'assistant', content: 'Fresh session started. My memory is now clear. What would you like to work on?' }];
     rag = clearRagState();
+    clearDocumentToolState();
     artifactQueue.clear();
     activeArtifactEntry = null;
     artifactError = null;
+    liveOutage = null;
     isLiveMode = false;
     chatPath = null;
     if (fileInput) fileInput.value = '';
@@ -223,33 +274,38 @@
     clearAllData(sessionId);
     messages = [{ role: 'assistant', content: 'Chat cleared. My memory has been wiped. What would you like to work on?' }];
     rag = clearRagState();
+    clearDocumentToolState();
     artifactQueue.clear();
     activeArtifactEntry = null;
     artifactError = null;
+    liveOutage = null;
     chatPath = null;
     if (fileInput) fileInput.value = '';
   }
 
-  function removeFile() { rag = clearRagState(); documentTopics = ''; if (fileInput) fileInput.value = ''; }
+  function removeFile() {
+    rag = clearRagState();
+    documentTopics = '';
+    clearDocumentToolState();
+    if (fileInput) fileInput.value = '';
+  }
 
   async function onFileSelected(event: Event) {
     const file = (event.target as HTMLInputElement).files?.[0];
     if (!file) return;
+    clearDocumentToolState();
     isUploading = true;
     rag.uploadStatus = 'uploading';
     rag.uploadedFileName = file.name;
     const result = await handleFileUpload(file, sessionId, (p) => rag.uploadProgress = p, (s) => rag.uploadStatus = s);
+    if (result.sourceText) {
+      toolDocument = { name: file.name, text: result.sourceText };
+    }
     if (result.success) {
       rag.ragDegraded = result.degraded;
       messages = [...messages, { role: 'assistant', content: result.message }];
       try {
-        const vectors = await import('../lib/rag-db').then(m => m.getStoredVectors(sessionId));
-        if (vectors.length > 0) {
-          await fetch('/api/rag-store', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sessionId, chunks: vectors.map(v => ({ text: v.text, vector: v.vector })) }) });
-        }
-      } catch {}
-      try {
-        const vectors2 = await import('../lib/rag-db').then(m => m.getStoredVectors(sessionId));
+        const vectors2 = await getStoredVectors(sessionId);
         if (vectors2.length >= 3) {
           const firstChunks = vectors2.slice(0, 3).map(v => v.text);
           const topicsRes = await fetch('/api/summarize', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: firstChunks.map(t => ({ role: 'user', content: t })), mode: 'topics' }) });
@@ -320,6 +376,27 @@
     return true;
   }
 
+  function mergeFailoverEvents(events: FailoverEvent[]) {
+    if (!events.length) return;
+    const merged = [...events, ...failoverEvents];
+    const seen = new Set<string>();
+    failoverEvents = merged.filter((event) => {
+      const key = `${event.timestamp}:${event.provider}:${event.reason}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }).slice(0, 5);
+  }
+
+  function captureFailoverHeader(headers: Headers) {
+    const raw = headers.get('x-failover-events');
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) mergeFailoverEvents(parsed);
+    } catch {}
+  }
+
   async function sendMessage() {
     if (!inputMessage.trim()) return;
     if (chatState !== 'idle') {
@@ -337,6 +414,7 @@
 
   async function doSend() {
     safeAbort();
+    liveOutage = null;
     chatState = 'loading';
     isLoading = true;
     abortController = new AbortController();
@@ -352,7 +430,6 @@
       messagesToSend = [messagesToSend[0], ...messagesToSend.slice(-2)];
     }
 
-    const idempotencyKey = crypto.randomUUID();
     const totalEst = messagesToSend.reduce((s, m) => s + estimateTokens(m.content || ''), 0);
 
     if (totalEst > 5000) {
@@ -393,14 +470,30 @@
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: messagesToSend, intent: isThinkingMode ? 'research' : 'chat-fast', sessionId, liveSearch: isLiveMode, hasDocument, idempotencyKey }),
+        body: JSON.stringify({ messages: messagesToSend, intent: isThinkingMode ? 'research' : 'chat-fast', sessionId, liveSearch: isLiveMode }),
         signal: abortController.signal,
       });
 
+      captureFailoverHeader(response.headers);
+
       if (!response.ok) {
         const errText = await response.text();
-        let errMessage = errText;
-        try { errMessage = JSON.parse(errText).message || JSON.parse(errText).error || errText; } catch {}
+        let errorPayload: Record<string, unknown> | null = null;
+        try { errorPayload = JSON.parse(errText) as Record<string, unknown>; } catch {}
+        const outage = createLiveOutageState(
+          errorPayload,
+          hasVisibleLiveResponse(messages.map((message, index) => ({
+            liveResponse: message.liveResponse,
+            content: message.content,
+            empty: message.empty,
+            hasArtifact: artifactQueue.forMessage(index).length > 0,
+          }))),
+        );
+        if (outage) {
+          liveOutage = outage;
+          return;
+        }
+        const errMessage = String(errorPayload?.message || errorPayload?.error || errText);
         throw new Error(errMessage);
       }
 
@@ -427,14 +520,13 @@
       const reader = stream.getReader();
       const decoder = new TextDecoder();
 
-      messages = [...messages, { role: 'assistant', content: '', provider: providerName, sources: sourcesFromHeaders, searchTier: msgSearchTier }];
+      messages = [...messages, { role: 'assistant', content: '', provider: providerName, sources: sourcesFromHeaders, searchTier: msgSearchTier, liveResponse: true }];
       msgIdx = messages.length - 1;
 
       checkpointContent = '';
       checkpointTimer = setInterval(() => {
         if (chatState === 'streaming' && messages[msgIdx]?.content) {
           checkpointContent = messages[msgIdx].content;
-          saveConversation(sessionId, messages);
         }
       }, 500);
 
@@ -531,7 +623,6 @@
         }
       }
 
-      saveArtifactQueue(sessionId, artifactQueue.entries);
       pollCredits();
       if (enhancedCredits.remaining <= 0) isLiveMode = false;
       await updateActivity(sessionId);
@@ -603,8 +694,17 @@
     {#if !isOnline}
       <div class="bg-amber-600 text-white text-center text-xs py-1.5 font-medium tracking-wide">You're offline. Reconnecting...</div>
     {/if}
-    {#if keyStatus && (!keyStatus.groq || !keyStatus.gemini || !keyStatus.cerebras)}
-      <div class="bg-red-600/80 text-white text-center text-xs py-1.5 font-medium flex items-center justify-center gap-2"><span>Keys missing</span><span class="opacity-70">(using fallback)</span></div>
+    {#if liveOutage}
+      <div role="status" aria-live="polite" class="bg-amber-50 border-b border-amber-200 px-3 py-2 text-xs text-amber-900 flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+        <span class="font-semibold">Live AI unavailable.</span>
+        {#if liveOutage.hasPriorResponse}
+          <span>Your last response remains visible in this open session only.</span>
+        {:else}
+          <span>No live response is available right now.</span>
+        {/if}
+        <span class="text-amber-700">Retry in about {liveOutage.retryAfterSeconds}s.</span>
+        <button type="button" onclick={regenerate} disabled={isLoading} class="ml-1 rounded-md border border-amber-300 bg-white px-2 py-1 font-medium text-amber-900 hover:bg-amber-100 disabled:opacity-50">Retry</button>
+      </div>
     {/if}
 
     <header class="px-3 md:px-6 py-2.5 bg-[#faf7f2]/90 backdrop-blur-xl border-b border-stone-200/60 flex justify-between items-center z-20">
@@ -662,6 +762,20 @@
 
     <input type="file" bind:this={fileInput} onchange={onFileSelected} class="hidden" accept=".txt,.md,.json,.csv" />
 
+    {#if toolsOpen}
+      <DocumentToolsPanel
+        documentName={toolDocument?.name ?? ''}
+        findings={toolFindings}
+        hasRun={toolReviewRun}
+        onReview={runDocumentReview}
+        graphResult={toolGraphResult}
+        graphLoading={toolGraphLoading}
+        graphError={toolGraphError}
+        onLookup={runGraphLookup}
+        onClose={() => { toolsOpen = false; }}
+      />
+    {/if}
+
     <ChatInput
       disabled={isLoading}
       {isStreaming}
@@ -679,8 +793,11 @@
       ragDegraded={rag.ragDegraded}
       ragUploadProgress={rag.uploadProgress}
       onRemoveFile={removeFile}
+      {toolsOpen}
+      onToggleTools={() => { toolsOpen = !toolsOpen; }}
       {tokenDisplay}
       {chatPath}
+      {failoverEvents}
       panelOpen={!!activeArtifactEntry}
       {isMobile}
     />

@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { env as cfGlobalEnv } from 'cloudflare:workers';
+import { apiError, createRequestId, jsonResponse } from '../../lib/api-response';
 
 function loadEnv(locals: any): any {
   const env: any = {};
@@ -9,15 +10,16 @@ function loadEnv(locals: any): any {
 }
 
 export const POST: APIRoute = async ({ request, locals }) => {
+  const requestId = createRequestId();
   const env = loadEnv(locals);
   if (!env.AI) {
-    return new Response(JSON.stringify({ error: 'AI binding not available' }), { status: 503, headers: { 'Content-Type': 'application/json' } });
+    return apiError({ requestId, status: 503, code: 'AI_BINDING_MISSING', message: 'AI binding not available.', retryable: true });
   }
 
   try {
     const body = await request.json().catch(() => null);
     if (!body?.messages || !Array.isArray(body.messages)) {
-      return new Response(JSON.stringify({ error: 'invalid' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+      return apiError({ requestId, status: 400, code: 'INVALID_REQUEST', message: 'Expected messages array.' });
     }
 
     const dialogue = body.messages
@@ -26,7 +28,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       .join('\n');
 
     if (dialogue.length < 100) {
-      return new Response(JSON.stringify({ summary: dialogue.slice(0, 300) }), { headers: { 'Content-Type': 'application/json' } });
+      return jsonResponse({ summary: dialogue.slice(0, 300) }, { requestId });
     }
 
     const mode = body.mode || 'summary';
@@ -44,8 +46,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
     });
 
     const summary = result?.response || result?.choices?.[0]?.message?.content || dialogue.slice(0, 400);
-    return new Response(JSON.stringify({ summary }), { headers: { 'Content-Type': 'application/json' } });
-  } catch (e: any) {
-    return new Response(JSON.stringify({ error: 'summarization_failed', message: e.message?.slice(0, 200) }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+    return jsonResponse({ summary }, { requestId });
+  } catch {
+    return apiError({
+      requestId,
+      status: 500,
+      code: 'SUMMARIZATION_FAILED',
+      message: 'Summarization failed.',
+      retryable: true,
+    });
   }
 };

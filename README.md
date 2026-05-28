@@ -34,7 +34,7 @@ It runs on Cloudflare Pages with a Svelte 5 reactive frontend and Cloudflare Wor
 
 ### Diagrams That Actually Work
 
-Generic AI tools produce Mermaid syntax that breaks, Graphviz that doesn't compile, or D2 code that renders as a blank screen. Technical Writer Bot handles the full diagram pipeline — from streaming detection of artifact tags as the AI generates them, through server-side rendering via Kroki.io with 24-hour caching, to client-side progressive enhancement.
+Generic AI tools produce Mermaid syntax that breaks, Graphviz that doesn't compile, or D2 code that renders as a blank screen. Technical Writer Bot handles the full diagram pipeline - from streaming detection of artifact tags as the AI generates them, through on-demand server-side rendering via Kroki.io without durable application caching, to client-side progressive enhancement.
 
 **12 artifact types supported:**
 
@@ -51,7 +51,7 @@ Generic AI tools produce Mermaid syntax that breaks, Graphviz that doesn't compi
 | Code | Syntax-highlighted blocks via Prism.js |
 | HTML | Self-contained HTML/CSS snippets |
 | React | Live React components in sandboxed iframes |
-| WebContainer | Full Node.js dev environments in-browser |
+| SVG | Inline graphics with sanitized rendering |
 
 When a diagram fails to render, the system surfaces the error and offers an AI-powered fix. No manual syntax debugging.
 
@@ -68,7 +68,7 @@ Enhanced search is available on demand — 3 uses per day by default, adjustable
 **Query handling:**
 - Automatic query expansion for short queries (strips filler words, adds related terms)
 - Relevance scoring and URL deduplication across all sources
-- Results cached in KV for 15 minutes
+- Search results are processed for the current request without durable content caching
 - Fallback to expanded queries when zero results are returned
 
 ### Codebase-Aware Responses
@@ -87,10 +87,19 @@ Upload your existing documentation — `.txt`, `.md`, `.json`, `.csv` up to 5MB 
 1. Chunks your document (~500 chars, 100-char overlap, max 100 chunks)
 2. Generates embeddings via Workers AI `bge-small-en-v1.5`
 3. Falls back to local Transformers.js if the server is unavailable
-4. Stores vectors in IndexedDB (immediate, offline-capable) + Cloudflare KV (cross-session)
+4. Holds vectors in active browser memory only for the open page session
 5. Surfaces top 3 relevant chunks with cosine similarity ≥ 0.3
 
-For enterprise-scale persistent RAG across sessions and devices, an optional Supabase pgvector backend provides 384-dimensional vector storage with Row Level Security and session isolation.
+Privacy-first mode does not enable persistent document storage across sessions or devices.
+
+### User-Controlled Documentation Tools
+
+The `Tools` panel exposes two explicit, non-autonomous actions:
+
+- **Review Document** runs deterministic checks on the currently uploaded text for heading-level skips, unclosed code fences, empty Markdown links, duplicate headings, and optional terminology preferences entered for that review. It remains usable even when document embedding for chat context is unavailable.
+- **Find Code References** runs a bounded, read-only lookup against the configured project graph and returns matching `src/` references only. It does not return document nodes or generic graph hubs when a term has no match.
+
+Uploaded review source, terminology input, findings, and reference results remain in active page memory only; the application does not intentionally persist them in durable storage.
 
 ### Multi-Provider Reliability with Circuit Breaker
 
@@ -127,12 +136,14 @@ Long conversations drain tokens that could be used for actual context. The syste
 - Automatic conversation summarization using Llama 3.2-1b-instruct when tokens exceed 3000 (or 5000 on topic shift)
 - Token usage reported in every response header (`x-token-usage`)
 
-### Response Caching and Idempotency
+### Privacy-First Processing
 
-- Query responses cached in KV for 15 minutes (SHA-256 normalized key)
-- Rendered diagram SVGs cached for 24 hours
-- Conversation persistence in localStorage (50-message window)
-- Idempotency key support eliminates duplicate request processing
+- Chats and generated responses remain available only while the page is open and are not intentionally written to durable application storage.
+- Uploaded document context is held in active browser memory for the current page session and is not written to Cloudflare KV.
+- Documentation tool inputs and results remain in active page memory; graph lookup responses are read-only, bounded, and sent with no-store caching directives.
+- Rendered artifact output and search-result content are not stored in application caches.
+- Limited operational metadata may be retained temporarily for security, rate limiting, provider reliability, and aggregate usage reporting; it does not include message content.
+- Requested features may transmit necessary content to Cloudflare Workers AI, selected AI/search providers, or Kroki under their own terms.
 
 ---
 
@@ -158,14 +169,10 @@ Long conversations drain tokens that could be used for actual context. The syste
 │  ┌──────▼──────┐  ┌───────▼──────┐  ┌─────────▼──────────┐  │
 │  │ SESSION KV  │  │  Workers AI  │  │     Kroki.io       │  │
 │  │ (rate limit, │  │ (embeddings, │  │ (Mermaid/Graphviz/ │  │
-│  │  reputation, │  │  chat LLM)   │  │  D2/PlantUML/Vega) │  │
-│  │  cache, RAG) │  │              │  │                    │  │
+│  │  health,     │  │  chat LLM)   │  │  D2/PlantUML/Vega) │  │
+│  │  counters)   │  │              │  │                    │  │
 │  └─────────────┘  └──────────────┘  └────────────────────┘  │
 └──────────────────────────────────────────────────────────────┘
-                           │
-                      ┌────▼──────────┐
-                      │   Supabase    │  ← Optional pgvector RAG
-                      └───────────────┘
 ```
 
 ### Technology Stack
@@ -177,7 +184,7 @@ Long conversations drain tokens that could be used for actual context. The syste
 | Styling | Tailwind CSS 4 |
 | Runtime | Cloudflare Pages + Workers AI |
 | AI Routing | Custom circuit breaker (6 providers) |
-| Vector Store | KV + IndexedDB + optional Supabase pgvector |
+| Vector Store | In-memory document context for the active page session |
 | Diagram Rendering | Kroki.io + client-side libraries |
 | Search | DuckDuckGo, Wikipedia, Reddit, Tavily, Exa |
 
@@ -196,11 +203,11 @@ Agencies face a specific problem: writers need to rapidly absorb client document
 
 ### For Enterprise Teams
 
-Technical Writer Bot runs entirely within the Cloudflare edge network. No data leaves the edge unless you explicitly activate enhanced search APIs.
+Technical Writer Bot is hosted on Cloudflare, while requested chat, live-search, and diagram features may transmit necessary content to selected AI, search, or rendering providers under their own terms.
 
-- **Self-hostable** — Deploy to your own Cloudflare Pages project. Supabase RAG is optional.
+- **Self-hostable** — Deploy to your own Cloudflare Pages project with privacy-first session-only document context.
 - **Access tier system** — Six reputation tiers (Premium → Blocked) automatically manage abusive usage without affecting legitimate users
-- **Token budget visibility** — Every response shows token counts, cache status, and processing path. IT teams can monitor usage via the debug endpoint.
+- **Token budget visibility** — Every response shows token counts and processing path. IT teams can monitor aggregate operational usage in their deployment environment.
 - **Dev IP bypass** — Configure `DEV_IPS` for trusted ranges to bypass rate limits during internal use
 
 ---
@@ -280,7 +287,7 @@ src/
 │       ├── embed.ts             # Embedding generation
 │       ├── render-artifact.ts   # Kroki rendering proxy
 │       ├── summarize.ts          # Conversation summarization
-│       ├── rag-store.ts         # KV vector storage
+│       ├── rag-store.ts         # Disabled legacy persistence endpoint
 │       └── search-credits.ts     # Credit balance endpoint
 ├── components/
 │   ├── ChatIsland.svelte         # Root UI orchestrator
@@ -301,7 +308,7 @@ src/
     ├── kroki-renderer.ts       # Server-side Kroki integration
     ├── reputation.ts            # User scoring + tier system
     ├── token-counter.ts        # Budget enforcement
-    └── session-persist.ts       # localStorage persistence
+    └── session-persist.ts       # Legacy browser-content cleanup
 supabase/
 └── schema.sql                   # pgvector RAG schema
 ```
@@ -324,7 +331,7 @@ supabase/
 11. SSE streaming response begins
 12. ArtifactStreamParser detects diagram tags as tokens arrive
 13. Diagrams render via Kroki (server) or client renderer
-14. Conversation persisted to localStorage
+14. Conversation remains in active page memory only
 15. Token usage and credits tracked
 ```
 
@@ -335,15 +342,15 @@ supabase/
 | Capability | Generic AI Chat | Technical Writer Bot |
 |---|:---:|:---:|
 | Diagram rendering | Raw code, breaks often | 12 types, server + client pipeline, auto-fix |
-| Live web search | Training data cutoff only | 3-tier search, source citations, 15-min cache |
+| Live web search | Training data cutoff only | 3-tier search with source citations |
 | Codebase context | None | Knowledge graph, 3-degree neighbor expansion |
-| Document RAG | None | Client + KV + optional Supabase pgvector |
+| Document RAG | None | Active-session in-memory document context |
 | Provider uptime | Single provider, downtime expected | Circuit breaker across 6 providers, auto-failover |
 | Access management | None | 6-tier reputation system, auto rate-limiting |
 | Streaming artifacts | None | Progressive, renders as AI generates |
 | Token management | Ignores | Hard 2048 cap, auto-summarization |
 | Deployment | SaaS only | Self-hostable on Cloudflare edge |
-| Enterprise RAG | None | Supabase pgvector with RLS |
+| Content retention | Varies | Privacy-first: no durable application content storage |
 
 ---
 

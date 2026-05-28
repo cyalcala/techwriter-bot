@@ -1,5 +1,9 @@
 import type { APIRoute } from 'astro';
 import { env as cfGlobalEnv } from 'cloudflare:workers';
+import { apiError, createRequestId, jsonResponse } from '../../lib/api-response';
+import { checkCSRF } from '../../lib/csrf';
+import { readEnvKeys } from '../../lib/env-reader';
+import { startCleanupInterval } from '../../lib/runtime-interval';
 
 const MAX_TEXTS_PER_REQUEST = 10;
 const MAX_TEXT_LENGTH = 2000;
@@ -13,7 +17,7 @@ const dailyEmbedCounts = new Map<string, number>();
 let dailyEmbedReset = Date.now() + 86400000;
 
 if (typeof setInterval !== 'undefined') {
-  setInterval(() => {
+  startCleanupInterval(() => {
     const now = Date.now();
     if (now > dailyEmbedReset) { dailyEmbedCounts.clear(); dailyEmbedReset = now + 86400000; }
   }, 300_000);
@@ -31,55 +35,33 @@ async function verifyTurnstileToken(token: string, secret: string): Promise<bool
   } catch { return false; }
 }
 
-const ALLOWED_ORIGINS = [
-  'https://tw-bot.pages.dev',
-  'https://techwriter-bot.pages.dev',
-  'http://localhost:4321',
-  'http://localhost:3000',
-];
-
-function checkCSRF(request: Request): boolean {
-  const origin = request.headers.get('origin');
-  const referer = request.headers.get('referer');
-  if (!origin && !referer) return true;
-  const checkUrl = (url: string): boolean => {
-    try {
-      const parsed = new URL(url);
-      const hostPart = `${parsed.protocol}//${parsed.host}`;
-      return ALLOWED_ORIGINS.some(allowed => hostPart.startsWith(allowed) || allowed.startsWith(hostPart));
-    } catch { return false; }
-  };
-  if (origin && !checkUrl(origin)) return false;
-  if (referer && !checkUrl(referer)) return false;
-  return true;
-}
-
 interface RateLimitEntry { count: number; reset: number; }
 const rateLimits = new Map<string, RateLimitEntry>();
 
 if (typeof setInterval !== 'undefined') {
-  setInterval(() => {
+  startCleanupInterval(() => {
     const now = Date.now();
     rateLimits.forEach((v, k) => { if (now > v.reset) rateLimits.delete(k); });
   }, 60_000);
 }
 
 export const POST: APIRoute = async ({ request, locals }) => {
+  const requestId = createRequestId();
   let env: any = {};
   try { if (cfGlobalEnv) env = { ...(cfGlobalEnv as any) }; } catch (e) {}
   try { const rEnv = (locals as any)?.runtime?.env; if (rEnv) for (const [k, v] of Object.entries(rEnv)) { if (v != null && !env[k]) env[k] = v; } } catch (e) {}
-  try { import('../../lib/env-reader').then(m => m.readEnvKeys(env)); } catch {}
+  readEnvKeys(env);
 
   const ip = request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || 'unknown';
 
   if (!checkCSRF(request)) {
-    return new Response(JSON.stringify({ error: 'forbidden' }), { status: 403 });
+    return apiError({ requestId, status: 403, code: 'FORBIDDEN', message: 'Request origin is not allowed.' });
   }
 
   const dailyCount = (dailyEmbedCounts.get(ip) || 0) + 1;
   dailyEmbedCounts.set(ip, dailyCount);
   if (dailyCount > MAX_DAILY_EMBED) {
-    return new Response(JSON.stringify({ error: 'daily_embed_limit' }), { status: 429 });
+    return apiError({ requestId, status: 429, code: 'DAILY_EMBED_LIMIT', message: 'Daily embedding limit reached. Please try again later.' });
   }
 
   const devIPs = (env.DEV_IPS || '').split(',').map((s: string) => s.trim()).filter(Boolean);
@@ -90,7 +72,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
       if (body?.turnstileToken) {
         const ok = await verifyTurnstileToken(body.turnstileToken, env.TURNSTILE_SECRET_KEY);
         if (!ok) {
-          return new Response(JSON.stringify({ error: 'captcha_failed' }), { status: 403 });
+          return apiError({ requestId, status: 403, code: 'CAPTCHA_FAILED', message: 'Verification failed. Please try again.', retryable: true });
         }
       }
     } catch {}
@@ -100,10 +82,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const rl = rateLimits.get(ip);
   if (rl && now < rl.reset) {
     if (rl.count >= MAX_REQUESTS_PER_WINDOW) {
-      return new Response(JSON.stringify({ error: 'rate_limit', message: 'Too many embed requests. Wait a minute.' }), {
-        status: 429,
-        headers: { 'Content-Type': 'application/json', 'Retry-After': '60' },
-      });
+      return apiError({ requestId, status: 429, code: 'RATE_LIMITED', message: 'Too many embed requests. Wait a minute.', retryable: true, retryAfter: 60 });
     }
     rl.count++;
   } else {
@@ -111,32 +90,23 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   if (!env.AI) {
-    return new Response(JSON.stringify({ error: 'service_unavailable', message: 'Embedding service not available.' }), {
-      status: 503,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return apiError({ requestId, status: 503, code: 'EMBEDDING_UNAVAILABLE', message: 'Embedding service not available.', retryable: true, retryAfter: 5 });
   }
 
   try {
     if (Number(request.headers.get('content-length') || '0') > MAX_BODY) {
-      return new Response(JSON.stringify({ error: 'too_large' }), { status: 413 });
+      return apiError({ requestId, status: 413, code: 'BODY_TOO_LARGE', message: 'Request body is too large.' });
     }
     const body = await request.json().catch(() => null);
     if (!body?.texts || !Array.isArray(body.texts)) {
-      return new Response(JSON.stringify({ error: 'invalid_request', message: 'Expected { texts: string[] }' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return apiError({ requestId, status: 400, code: 'INVALID_REQUEST', message: 'Expected { texts: string[] }.' });
     }
 
     const texts: string[] = body.texts.slice(0, MAX_TEXTS_PER_REQUEST).map((t: any) => String(t).slice(0, MAX_TEXT_LENGTH));
     const validTexts = texts.filter(t => t.trim().length > 0);
 
     if (validTexts.length === 0) {
-      return new Response(JSON.stringify({ vectors: [], errors: ['No valid texts provided'] }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return jsonResponse({ vectors: [], errors: ['No valid texts provided'] }, { requestId });
     }
 
     const aiResponse = await Promise.race([
@@ -145,10 +115,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
     ]) as any;
 
     if (!aiResponse?.data || !Array.isArray(aiResponse.data)) {
-      return new Response(JSON.stringify({ error: 'embedding_failed', message: 'Could not generate embeddings.' }), {
-        status: 502,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return apiError({ requestId, status: 502, code: 'EMBEDDING_FAILED', message: 'Could not generate embeddings.', retryable: true, retryAfter: 5 });
     }
 
     const vectors: number[][] = [];
@@ -164,15 +131,16 @@ export const POST: APIRoute = async ({ request, locals }) => {
       }
     }
 
-    return new Response(JSON.stringify({ vectors, errors }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  } catch (error: any) {
-    console.log(JSON.stringify({ event: 'embed_failure', message: error.message?.slice(0, 200) }));
-    return new Response(JSON.stringify({ error: 'embedding_failed', message: error.message || 'Embedding failed.' }), {
+    return jsonResponse({ vectors, errors }, { requestId });
+  } catch {
+    console.log(JSON.stringify({ event: 'embed_failure' }));
+    return apiError({
+      requestId,
       status: 500,
-      headers: { 'Content-Type': 'application/json' },
+      code: 'EMBEDDING_FAILED',
+      message: 'Embedding failed.',
+      retryable: true,
+      retryAfter: 5,
     });
   }
 };

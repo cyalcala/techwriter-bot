@@ -2,28 +2,23 @@ name: Deploy to Cloudflare Pages
 
 on:
   push:
-    branches: [main]
+    branches: [main, codex/privacy-first-disclosure]
   workflow_dispatch:
 
 jobs:
   graphify:
+    if: github.ref_name == 'main' || github.ref_name == 'codex/privacy-first-disclosure'
     runs-on: ubuntu-latest
     continue-on-error: true
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-
-      - name: Install Graphify
-        run: uv tool install graphifyy
 
       - name: Build knowledge graph
         run: bash scripts/graphify-ci.sh
@@ -37,10 +32,10 @@ jobs:
       contents: read
       deployments: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: 'npm'
@@ -48,47 +43,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Inject env vars into wrangler.json
-        run: |
-          node -e "
-          const fs = require('fs');
-          const cfg = JSON.parse(fs.readFileSync('wrangler.json','utf8'));
-          cfg.vars = {};
-          const keys = ['GROQ_API_KEY','CEREBRAS_API_KEY','GEMINI_API_KEY','NVIDIA_API_KEY','OPENROUTER_API_KEY','TAVILY_API_KEY','EXA_API_KEY','TURNSTILE_SECRET_KEY','DEV_IPS'];
-          for (const k of keys) { if (process.env[k]) cfg.vars[k] = process.env[k]; }
-          fs.writeFileSync('wrangler.json', JSON.stringify(cfg, null, 2));
-          console.log('Injected', Object.keys(cfg.vars).length, 'env vars into wrangler.json');
-          "
-
-      - name: Create .env from secrets
-        run: |
-          cat > .env << 'ENVEOF'
-          GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}
-          CEREBRAS_API_KEY=${{ secrets.CEREBRAS_API_KEY }}
-          GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
-          NVIDIA_API_KEY=${{ secrets.NVIDIA_API_KEY }}
-          OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}
-          TAVILY_API_KEY=${{ secrets.TAVILY_API_KEY }}
-          EXA_API_KEY=${{ secrets.EXA_API_KEY }}
-          TURNSTILE_SECRET_KEY=${{ secrets.TURNSTILE_SECRET_KEY }}
-          DEV_IPS=${{ secrets.DEV_IPS }}
-          ENVEOF
-          echo ".env created"
+      - name: Read app version
+        id: app-version
+        run: node -e "process.stdout.write('value=' + require('./package.json').version + '\n')" >> "$GITHUB_OUTPUT"
 
       - name: Build
         run: npm run build
-        env:
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-          CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
-          EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
-          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
-          DEV_IPS: ${{ secrets.DEV_IPS }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 
       - name: Post-process build (copy worker/chunks/middleware)
         run: |
@@ -116,14 +76,7 @@ jobs:
           rm -f dist/wrangler.json dist/server/wrangler.json 2>/dev/null || true
           rm -f .wrangler/deploy/config.json 2>/dev/null || true
 
-      - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist/client --project-name tw-bot --branch main --commit-dirty=true
-
-      - name: Set environment variables via API
+      - name: Configure runtime secrets before deployment
         run: |
           node -e "
           const vars = {
@@ -138,8 +91,8 @@ jobs:
             DEV_IPS: process.env.DEV_IPS,
           };
           const body = JSON.stringify({
-            deployment_configs: { production: { env_vars: Object.fromEntries(
-              Object.entries(vars).filter(([,v]) => v).map(([k,v]) => [k, {value: v}])
+            deployment_configs: { [process.env.DEPLOYMENT_ENV]: { env_vars: Object.fromEntries(
+              Object.entries(vars).filter(([,v]) => v).map(([k,v]) => [k, { type: 'secret_text', value: v }])
             )}}
           });
           const https = require('https');
@@ -148,10 +101,28 @@ jobs:
             path: '/client/v4/accounts/' + process.env.CLOUDFLARE_ACCOUNT_ID + '/pages/projects/tw-bot',
             method: 'PATCH',
             headers: { 'Authorization': 'Bearer ' + process.env.CLOUDFLARE_API_TOKEN, 'Content-Type': 'application/json' }
-          }, (res) => { let d=''; res.on('data',c=>d+=c); res.on('end',()=>console.log(d)); });
+          }, (res) => {
+            let data = '';
+            res.on('data', chunk => data += chunk);
+            res.on('end', () => {
+              let result = {};
+              try { result = JSON.parse(data); } catch {}
+              if (res.statusCode < 200 || res.statusCode >= 300 || result.success !== true) {
+                console.error('Failed to configure Cloudflare runtime secrets before deploy.');
+                process.exitCode = 1;
+                return;
+              }
+              console.log('Configured Cloudflare runtime secrets before deploy.');
+            });
+          });
+          req.on('error', () => {
+            console.error('Failed to configure Cloudflare runtime secrets before deploy.');
+            process.exitCode = 1;
+          });
           req.write(body); req.end();
           "
         env:
+          DEPLOYMENT_ENV: ${{ github.ref_name == 'main' && 'production' || 'preview' }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -161,5 +132,18 @@ jobs:
           EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
           TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
           DEV_IPS: ${{ secrets.DEV_IPS }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Publish application version marker
+        run: npx wrangler kv key put --binding=SESSION "tw-bot:app:version" "$APP_VERSION" --remote
+        env:
+          APP_VERSION: ${{ steps.app-version.outputs.value }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      - name: Deploy to Cloudflare Pages
+        run: npx wrangler pages deploy dist/client --project-name tw-bot --branch ${{ github.ref_name }} --commit-dirty=true
+        env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
