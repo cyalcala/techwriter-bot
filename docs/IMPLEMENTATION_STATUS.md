@@ -154,6 +154,7 @@ Documentation Tooling Agent direction.
   - `2c30191` direct Wrangler CLI preview deployment without deprecated wrapper.
   - `f8f2207` accepted hardened preview documentation and graph refresh.
   - `145db14` production promotion merge commit from PR #1.
+  - `18ea60a` safe provider fault-injection harness.
 
 ## In Progress
 
@@ -395,6 +396,12 @@ Latest incremental verification on 2026-05-27:
   changing provider credentials. Verification passed with `npm.cmd test`
   (24 test files, 103 tests), `npm.cmd audit --omit=dev --audit-level=high`,
   and the recorded `build:local` command.
+- The fault-injection harness production deploy passed in GitHub Actions run
+  `26569989665` at immutable URL `https://cc1fcc79.tw-bot.pages.dev`. The
+  production runtime graph from that run reports 979 nodes and 1323 edges.
+  A production probe confirmed normal chat still streams when fault headers are
+  supplied with a wrong token, proving the harness is inert unless the
+  configured secret token matches.
 
 ## Next Task
 
