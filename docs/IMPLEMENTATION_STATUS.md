@@ -156,6 +156,7 @@ Documentation Tooling Agent direction.
   - `cadedfa` Kroki/server-render fallback coverage and render API cache headers.
   - `3a7a076` active-session artifact repair replacement.
   - `3693b55` active-session artifact gallery jump controls.
+  - `4a35a83` selected artifact regenerate in-place controls.
 
 ## In Progress
 
@@ -170,8 +171,8 @@ Documentation Tooling Agent direction.
 - WebContainer runtime verification is no longer a completion requirement. The
   controlled-renderer checkpoint removes that external browser package runtime
   from executable product paths and treats legacy output as inert code.
-- The public production alias `https://tw-bot.pages.dev` now serves
-  active-session artifact gallery jump controls commit `3693b55`. The accepted
+- The public production alias `https://tw-bot.pages.dev` now serves selected
+  artifact regenerate in-place controls commit `4a35a83`. The accepted
   preview alias remains available at
   `https://codex-privacy-first-disclosu.tw-bot.pages.dev`.
 - Defined the first bounded Documentation Tooling Agent slice in
@@ -183,14 +184,14 @@ Documentation Tooling Agent direction.
   active-session deterministic document review and a bounded read-only
   `src/` reference lookup with no generic fallback output.
 - Published a production runtime graph through the authorized GitHub Actions
-  path; the latest accepted runtime extraction from `3693b55` contains 1025
-  nodes and 1392 edges and is available only through the bounded `src/` lookup
+  path; the latest accepted runtime extraction from `4a35a83` contains 1029
+  nodes and 1400 edges and is available only through the bounded `src/` lookup
   surface.
 - Safe provider fault-injection coverage, renderer-preload warning cleanup,
   Phase 2 renderer boundaries, Kroki/server-render coverage, and
-  active-session artifact repair replacement plus gallery jump controls are
-  implemented without disrupting real credentials, reviving browser package
-  runtimes, or extending the bounded tooling scope.
+  active-session artifact repair replacement plus gallery jump/regenerate
+  controls are implemented without disrupting real credentials, reviving
+  browser package runtimes, or extending the bounded tooling scope.
 
 ## Blockers And Notes
 
@@ -536,15 +537,37 @@ Latest incremental verification on 2026-05-28:
   `26586686524` at immutable URL `https://d0c180b5.tw-bot.pages.dev`. The
   production runtime graph from that run reports 1025 nodes and 1392 edges.
 
+Latest incremental verification on 2026-05-29:
+
+- Added selected-artifact regenerate controls in
+  `src/components/ArtifactSplitView.svelte`, `src/components/ChatIsland.svelte`,
+  and `src/lib/artifact-repair.ts`: the panel exposes a user-invoked
+  `Regenerate` action for the current artifact, marks the selected queue entry
+  as `updating`, sends a bounded regenerate prompt through the existing chat
+  loop, and reuses the existing active-session replacement target so the new
+  artifact replaces the same queue slot. The control is disabled while a chat
+  request is already in flight.
+- Verification passed after this selected-regenerate slice:
+  `npm.cmd test -- --run src/tests/artifact-gallery.test.ts`,
+  `npm.cmd test -- --run src/tests/artifact-gallery.test.ts src/tests/artifact-repair-flow.test.ts src/tests/artifact-error-boundary.test.ts src/tests/artifacts.test.ts`,
+  `npm.cmd test` (28 test files, 120 tests),
+  `npm.cmd audit --omit=dev --audit-level=high`, and the recorded
+  `build:local` command. One build attempt timed out without actionable output;
+  the longer rerun passed with the already-known non-failing warnings.
+- `graphify update .` refreshed tracked local Graphify artifacts from commit
+  `4a35a83`: 733 nodes and 1142 edges. Community-count wording remains
+  non-blocking.
+- The selected-regenerate deploy passed in GitHub Actions run `26587894774` at
+  immutable URL `https://50808f19.tw-bot.pages.dev`. The production runtime
+  graph from that run reports 1029 nodes and 1400 edges.
+
 ## Next Task
 
 Continue Phase 2 artifact reliability with the artifact gallery actions from
 the master plan in small slices:
 
-- Add explicit regenerate from the selected gallery entry, preserving the
-  replace-in-place behavior and no durable artifact content storage.
-- Then add copy source and separate SVG/PNG/source downloads before considering
-  any ZIP export.
+- Add copy source from the selected gallery entry.
+- Then add separate SVG/PNG/source downloads before considering any ZIP export.
 - Treat Graphify's inconsistent community-count wording as non-blocking unless
   community totals become release criteria. Do not introduce autonomous
   execution or browser package runtimes.
