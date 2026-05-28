@@ -1,16 +1,16 @@
 # Graph Report - techwriter-bot  (2026-05-28)
 
 ## Corpus Check
-- 103 files · ~59,985 words
+- 104 files · ~60,436 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 720 nodes · 1114 edges · 28 communities detected
+- 722 nodes · 1117 edges · 28 communities detected
 - Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 54 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `88afce0c`
+- Built from commit: `cadedfa1`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -42,7 +42,7 @@
 - [[_COMMUNITY_Community 24|Community 24]]
 - [[_COMMUNITY_Community 25|Community 25]]
 - [[_COMMUNITY_Community 26|Community 26]]
-- [[_COMMUNITY_Community 27|Community 27]]
+- [[_COMMUNITY_Community 28|Community 28]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `POST()` - 32 edges
@@ -71,12 +71,12 @@
 ## Communities (56 total, 3 thin omitted)
 
 ### Community 0 - "Community 0"
-Cohesion: 0.07
-Nodes (56): ALLOWED_ORIGINS, bindSession(), checkCSRF(), checkRateLimit(), dailyUsage, DC_ASNS, GET(), getReputation() (+48 more)
+Cohesion: 0.06
+Nodes (58): ALLOWED_ORIGINS, bindSession(), checkCSRF(), checkRateLimit(), dailyUsage, DC_ASNS, GET(), getReputation() (+50 more)
 
 ### Community 1 - "Community 1"
 Cohesion: 0.06
-Nodes (48): GET(), ALLOWED_ORIGINS, checkCSRF(), dailyEmbedCounts, now, POST(), RateLimitEntry, rateLimits (+40 more)
+Nodes (47): GET(), ALLOWED_ORIGINS, checkCSRF(), dailyEmbedCounts, now, POST(), RateLimitEntry, rateLimits (+39 more)
 
 ### Community 2 - "Community 2"
 Cohesion: 0.06
@@ -99,12 +99,12 @@ Cohesion: 0.05
 Nodes (38): Architecture, Build and Deploy, Building Around LLM Limitations, Codebase-Aware Responses, code:block1 (┌───────────────────────────────────────────────────────────), code:env (GROQ_API_KEY=gru_...), code:bash (git clone https://github.com/your-username/techwriter-bot.gi), code:bash (npm run dev) (+30 more)
 
 ### Community 7 - "Community 7"
-Cohesion: 0.08
-Nodes (28): getInjectedProviderStatus(), parseProviderFaultInjection(), parseProviderFaultSpec(), readEnvString(), safeEquals(), classifyQuery(), getProvidersForRole(), Provider (+20 more)
-
-### Community 8 - "Community 8"
 Cohesion: 0.11
 Nodes (34): detectLanguage(), domReady(), escapeAttr(), escapeHtml(), getReactHtml(), loadedScripts, loadedStyles, loadingScripts (+26 more)
+
+### Community 8 - "Community 8"
+Cohesion: 0.08
+Nodes (27): classifyQuery(), getProvidersForRole(), Provider, ProviderRole, ROLE_PRIORITY, ZEN_REGISTRY, createDailyLimiter(), createRateLimiter() (+19 more)
 
 ### Community 9 - "Community 9"
 Cohesion: 0.15
@@ -179,10 +179,10 @@ Nodes (5): config, configPath, distDir, serverDir, wranglerCache
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `createRequestId()` connect `Community 1` to `Community 0`, `Community 11`?**
-  _High betweenness centrality (0.028) - this node is a cross-community bridge._
+  _High betweenness centrality (0.030) - this node is a cross-community bridge._
 - **Why does `apiError()` connect `Community 1` to `Community 0`, `Community 11`?**
-  _High betweenness centrality (0.025) - this node is a cross-community bridge._
-- **Why does `kvKey()` connect `Community 1` to `Community 0`, `Community 7`?**
+  _High betweenness centrality (0.027) - this node is a cross-community bridge._
+- **Why does `kvKey()` connect `Community 1` to `Community 8`, `Community 0`?**
   _High betweenness centrality (0.017) - this node is a cross-community bridge._
 - **Are the 6 inferred relationships involving `POST()` (e.g. with `createRequestId()` and `getRequestLimits()`) actually correct?**
   _`POST()` has 6 INFERRED edges - model-reasoned connections that need verification._

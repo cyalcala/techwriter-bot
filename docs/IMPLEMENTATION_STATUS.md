@@ -153,6 +153,7 @@ Documentation Tooling Agent direction.
   - `c5c56ed` provider fault-harness deployment documentation.
   - `35031df` renderer preload warning cleanup and graph refresh.
   - `88afce0` artifact renderer error boundaries.
+  - `cadedfa` Kroki/server-render fallback coverage and render API cache headers.
 
 ## In Progress
 
@@ -167,8 +168,8 @@ Documentation Tooling Agent direction.
 - WebContainer runtime verification is no longer a completion requirement. The
   controlled-renderer checkpoint removes that external browser package runtime
   from executable product paths and treats legacy output as inert code.
-- The public production alias `https://tw-bot.pages.dev` now serves artifact
-  renderer boundary commit `88afce0`. The accepted preview alias remains
+- The public production alias `https://tw-bot.pages.dev` now serves Kroki
+  coverage commit `cadedfa`. The accepted preview alias remains
   available at `https://codex-privacy-first-disclosu.tw-bot.pages.dev`.
 - Defined the first bounded Documentation Tooling Agent slice in
   `docs/superpowers/specs/2026-05-27-documentation-tooling-agent-foundation-design.md`:
@@ -179,8 +180,8 @@ Documentation Tooling Agent direction.
   active-session deterministic document review and a bounded read-only
   `src/` reference lookup with no generic fallback output.
 - Published a production runtime graph through the authorized GitHub Actions
-  path; the latest accepted runtime extraction from `88afce0` contains 997
-  nodes and 1351 edges and is available only through the bounded `src/` lookup
+  path; the latest accepted runtime extraction from `cadedfa` contains 1003
+  nodes and 1359 edges and is available only through the bounded `src/` lookup
   surface.
 - Safe provider fault-injection coverage, renderer-preload warning cleanup, and
   the first Phase 2 renderer boundary slice are implemented without disrupting
@@ -211,6 +212,10 @@ Documentation Tooling Agent direction.
 - Artifact renderer boundaries deployed from commit `88afce0` through GitHub
   Actions run `26571712746` with immutable URL
   `https://c16a7ece.tw-bot.pages.dev` and production alias
+  `https://tw-bot.pages.dev`.
+- Kroki/server-render coverage deployed from commit `cadedfa` through GitHub
+  Actions run `26572177321` with immutable URL
+  `https://d8cd6e55.tw-bot.pages.dev` and production alias
   `https://tw-bot.pages.dev`.
 - Local build currently emits non-failing Node `punycode`/`MaxListenersExceeded`
   warnings plus the Wrangler local-AI remote-usage warning.
@@ -461,15 +466,36 @@ Latest incremental verification on 2026-05-28:
   Mermaid artifact and confirmed an inline `Mermaid renderer unavailable`
   boundary with recovery guidance and escaped source, with no relevant browser
   console artifact errors.
+- Added focused Kroki/server-render coverage for D2, Graphviz, PlantUML, Vega,
+  Flowchart, and Mermaid endpoint mapping. Tests confirm transient 5xx failures
+  retry once, permanent 4xx syntax errors do not retry, SVG responses are
+  sanitized, and Flowchart maps to Kroki's Mermaid endpoint.
+- Tightened `POST /api/render-artifact` so every response branch, including
+  invalid input and unsupported type errors, carries `Cache-Control: no-store,
+  private` with the existing request-id/error-envelope behavior.
+- Verification passed after this server-render slice:
+  `npm.cmd test -- --run src/tests/kroki-renderer.test.ts`,
+  `npm.cmd test` (26 test files, 113 tests),
+  `npm.cmd audit --omit=dev --audit-level=high`, and the recorded
+  `build:local` command.
+- `graphify update .` refreshed tracked local Graphify artifacts from commit
+  `cadedfa`: 722 nodes and 1117 edges.
+- The Kroki/server-render deploy passed in GitHub Actions run `26572177321` at
+  immutable URL `https://d8cd6e55.tw-bot.pages.dev`. The production runtime
+  graph from that run reports 1003 nodes and 1359 edges.
+- Production probes confirmed `/api/render-artifact` invalid and unsupported
+  type responses return `400` with request ids and `Cache-Control: no-store,
+  private`, while `/api/health` remains sanitized with matching app version.
 
 ## Next Task
 
 Continue Phase 2 artifact reliability:
 
-- Add focused Kroki/server-render fallback coverage for D2, Graphviz, PlantUML,
-  Vega, and Flowchart without durable artifact caching.
-- Continue active-session-only artifact regeneration/retry behavior and avoid
-  ZIP export unless the simpler separate-download alternative is exhausted.
+- Continue active-session-only artifact regeneration/retry behavior across the
+  chat artifact queue, including clearer replace-in-place behavior when a user
+  repairs an artifact.
+- Consider the artifact gallery actions from the master plan in small slices:
+  jump, regenerate, copy source, then separate downloads before any ZIP export.
 - Treat Graphify's inconsistent community-count wording as non-blocking unless
   community totals become release criteria. Do not introduce autonomous
   execution or browser package runtimes.

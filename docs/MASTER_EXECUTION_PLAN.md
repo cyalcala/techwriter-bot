@@ -69,14 +69,14 @@ The current tracked code graph was refreshed with `graphify update .` on
 
 - Report: `graphify-out/GRAPH_REPORT.md`
 - Graph: `graphify-out/graph.json`
-- Summary: 720 nodes, 1114 edges
+- Summary: 722 nodes, 1117 edges
 - Extraction confidence: 95% EXTRACTED, 5% INFERRED, 0% AMBIGUOUS
-- Built from code at commit: `88afce0c`
+- Built from code at commit: `cadedfa1`
 - The generated report currently disagrees with itself on total community
   count; use node/edge counts and targeted graph queries for acceptance until
   that reporting discrepancy is reconciled.
 - The production runtime graph is published by the GitHub Actions extraction
-  pipeline and currently reports 997 nodes and 1351 edges.
+  pipeline and currently reports 1003 nodes and 1359 edges.
 - Controlled provider fault injection is available only when
   `PROVIDER_FAULT_INJECTION_TOKEN` is configured and matched by request
   headers, allowing failover/outage acceptance without disabling real provider
@@ -85,6 +85,8 @@ The current tracked code graph was refreshed with `graphify update .` on
   landing page; they load through the controlled renderer loader when needed.
 - Phase 2 artifact reliability has begun with escaped, type-specific renderer
   failure boundaries and active-session renderer retry controls.
+- Kroki/server-render coverage now guards retry/no-retry behavior, SVG
+  sanitization, endpoint mapping, and uncached private render API responses.
 
 Before broad architecture work, read `graphify-out/GRAPH_REPORT.md` first.
 When the graph may be stale, run:

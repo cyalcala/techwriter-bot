@@ -288,8 +288,8 @@
     "hash": "3a549e31be16c088268ad96770d07caa"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\pages\\api\\render-artifact.ts": {
-    "mtime": 1779964536.7608666,
-    "hash": "82307abab83eb2ef9214de0701262334"
+    "mtime": 1779967927.3358772,
+    "hash": "1530f96183537c5b209c9e9528c9cb40"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\pages\\api\\search-credits.ts": {
     "mtime": 1779964536.7628622,
@@ -342,6 +342,10 @@
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\tests\\embed-pipeline-security.test.ts": {
     "mtime": 1779964536.7840743,
     "hash": "0f7834d5c8ff8c637bd17f0a871d6840"
+  },
+  "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\tests\\kroki-renderer.test.ts": {
+    "mtime": 1779967880.9699893,
+    "hash": "a4ff76467f775fc7c05e331434706d93"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\tests\\kv-prefix.test.ts": {
     "mtime": 1779964536.786087,
@@ -432,12 +436,12 @@
     "hash": "5659010e5262e9fd04cd89f4b9b3191e"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\IMPLEMENTATION_STATUS.md": {
-    "mtime": 1779966427.7340035,
-    "hash": "972dbae186790c27e47b4e73b70e2054"
+    "mtime": 1779967664.2984166,
+    "hash": "4d3dfd4d336bd6865655e22d3e10934b"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\MASTER_EXECUTION_PLAN.md": {
-    "mtime": 1779966401.8131769,
-    "hash": "b85cc821438a88dfcad7be876ffb130f"
+    "mtime": 1779967664.2964342,
+    "hash": "5f6f990dadc6a7fb0fafd46a8e5bde0f"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\PRODUCT_MARKETING.md": {
     "mtime": 1779964536.6182373,
