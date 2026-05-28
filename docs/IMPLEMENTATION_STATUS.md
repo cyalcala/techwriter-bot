@@ -12,19 +12,14 @@ Then continue from the "Next Task" section below.
 
 ## Current Focus
 
-Phase 1: Deploy and Harden.
+Phase 2: Core Engine.
 
-The active slice is API hardening and deploy foundation:
+The active slice is artifact reliability:
 
-- Request IDs on API responses.
-- Standardized JSON error envelopes.
-- Env-configurable chat rate limits.
-- Safer input/body limits.
-- First-pass provider health endpoint.
-- PROJECT_NAME-based KV key prefixing.
-- Deployment script foundation.
-- Privacy-first durable content removal.
-- Provider failover visibility without retained response content.
+- Escaped, type-specific renderer failure boundaries.
+- Active-session renderer retry controls.
+- Existing Fix with AI handoff for panel renderer errors.
+- Clearer browser-render and server-render failure messaging.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -157,6 +152,7 @@ Documentation Tooling Agent direction.
   - `18ea60a` safe provider fault-injection harness.
   - `c5c56ed` provider fault-harness deployment documentation.
   - `35031df` renderer preload warning cleanup and graph refresh.
+  - `88afce0` artifact renderer error boundaries.
 
 ## In Progress
 
@@ -171,9 +167,9 @@ Documentation Tooling Agent direction.
 - WebContainer runtime verification is no longer a completion requirement. The
   controlled-renderer checkpoint removes that external browser package runtime
   from executable product paths and treats legacy output as inert code.
-- The public production alias `https://tw-bot.pages.dev` now serves renderer
-  cleanup commit `35031df`. The accepted preview alias remains available at
-  `https://codex-privacy-first-disclosu.tw-bot.pages.dev`.
+- The public production alias `https://tw-bot.pages.dev` now serves artifact
+  renderer boundary commit `88afce0`. The accepted preview alias remains
+  available at `https://codex-privacy-first-disclosu.tw-bot.pages.dev`.
 - Defined the first bounded Documentation Tooling Agent slice in
   `docs/superpowers/specs/2026-05-27-documentation-tooling-agent-foundation-design.md`:
   explicit document review and read-only graph lookup only, with no autonomous
@@ -183,12 +179,13 @@ Documentation Tooling Agent direction.
   active-session deterministic document review and a bounded read-only
   `src/` reference lookup with no generic fallback output.
 - Published a production runtime graph through the authorized GitHub Actions
-  path; the latest accepted runtime extraction from `35031df` contains 981
-  nodes and 1325 edges and is available only through the bounded `src/` lookup
+  path; the latest accepted runtime extraction from `88afce0` contains 997
+  nodes and 1351 edges and is available only through the bounded `src/` lookup
   surface.
-- Safe provider fault-injection coverage and renderer-preload warning cleanup
-  are implemented without disrupting real credentials, reviving browser package
-  runtimes, or extending the bounded tooling scope.
+- Safe provider fault-injection coverage, renderer-preload warning cleanup, and
+  the first Phase 2 renderer boundary slice are implemented without disrupting
+  real credentials, reviving browser package runtimes, or extending the bounded
+  tooling scope.
 
 ## Blockers And Notes
 
@@ -210,6 +207,10 @@ Documentation Tooling Agent direction.
 - Renderer preload cleanup deployed from commit `35031df` through GitHub
   Actions run `26570500363` with immutable URL
   `https://1667e8f3.tw-bot.pages.dev` and production alias
+  `https://tw-bot.pages.dev`.
+- Artifact renderer boundaries deployed from commit `88afce0` through GitHub
+  Actions run `26571712746` with immutable URL
+  `https://c16a7ece.tw-bot.pages.dev` and production alias
   `https://tw-bot.pages.dev`.
 - Local build currently emits non-failing Node `punycode`/`MaxListenersExceeded`
   warnings plus the Wrangler local-AI remote-usage warning.
@@ -437,15 +438,38 @@ Latest incremental verification on 2026-05-28:
   `referrerpolicy="no-referrer"`, and returned no relevant preload/renderer
   warnings or errors. Browser screenshot capture timed out, so no screenshot
   evidence is claimed for this cleanup.
+- Began Phase 2 artifact reliability with `src/lib/artifact-error-boundary.ts`,
+  shared type-specific recovery guidance, escaped inline error HTML, a retry
+  renderer control in `ArtifactPanel`, and a split-view handoff so panel
+  renderer failures can use the existing Fix with AI path.
+- Red-green artifact boundary coverage passed after implementation:
+  `npm.cmd test -- --run src/tests/artifact-error-boundary.test.ts`, followed
+  by `npm.cmd test` (25 test files, 108 tests),
+  `npm.cmd audit --omit=dev --audit-level=high`, and the recorded
+  `build:local` command.
+- `graphify update .` refreshed tracked local Graphify artifacts from commit
+  `88afce0`: 720 nodes and 1114 edges. Community-count wording remains
+  non-blocking.
+- The artifact boundary production deploy passed in GitHub Actions run
+  `26571712746` at immutable URL `https://c16a7ece.tw-bot.pages.dev`. The
+  production runtime graph from that run reports 997 nodes and 1351 edges.
+- Production probes confirmed sanitized `/api/health` with request id, four
+  active providers out of six at probe time, matching app version, no
+  configuration inventory, and bounded source lookup for
+  `artifact-error-boundary`.
+- Production browser verification loaded a deliberately broken standalone
+  Mermaid artifact and confirmed an inline `Mermaid renderer unavailable`
+  boundary with recovery guidance and escaped source, with no relevant browser
+  console artifact errors.
 
 ## Next Task
 
-Phase 1 follow-up is complete enough to start broad Phase 2. Recommended next
-slice:
+Continue Phase 2 artifact reliability:
 
-- Start Phase 2 with a narrow artifact reliability pass: error boundaries per
-  artifact type, clearer renderer failure messaging, and focused tests around
-  broken Mermaid/KaTeX/HTML/React inputs.
+- Add focused Kroki/server-render fallback coverage for D2, Graphviz, PlantUML,
+  Vega, and Flowchart without durable artifact caching.
+- Continue active-session-only artifact regeneration/retry behavior and avoid
+  ZIP export unless the simpler separate-download alternative is exhausted.
 - Treat Graphify's inconsistent community-count wording as non-blocking unless
   community totals become release criteria. Do not introduce autonomous
   execution or browser package runtimes.
@@ -455,5 +479,5 @@ slice:
 Use this in a new chat if the session stops:
 
 ```text
-Continue from C:\Users\admin\Desktop\techwriter-bot. Read docs\MASTER_EXECUTION_PLAN.md, docs\IMPLEMENTATION_STATUS.md, and graphify-out\GRAPH_REPORT.md first. Then continue Phase 1 from docs\IMPLEMENTATION_STATUS.md Next Task. Use the build verification command recorded there. Do not rebuild OAuth, Stripe, multi-tenancy, email, marketing pages, autonomous agents, Kubernetes, Redis, or complex dashboards.
+Continue from C:\Users\admin\Desktop\techwriter-bot. Read docs\MASTER_EXECUTION_PLAN.md, docs\IMPLEMENTATION_STATUS.md, and graphify-out\GRAPH_REPORT.md first. Then continue Phase 2 from docs\IMPLEMENTATION_STATUS.md Next Task. Use the build verification command recorded there. Do not rebuild OAuth, Stripe, multi-tenancy, email, marketing pages, autonomous agents, Kubernetes, Redis, or complex dashboards.
 ```
