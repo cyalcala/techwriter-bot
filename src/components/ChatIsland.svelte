@@ -12,7 +12,7 @@
   import { clearConversation } from '../lib/session-persist';
   import { createArtifactQueue, type ArtifactEntry } from '../lib/artifact-queue';
   import { extractArtifactTitle } from '../lib/artifact-lifecycle';
-  import { createArtifactRepairTarget, planArtifactRepairReplacement, type ArtifactRepairTarget } from '../lib/artifact-repair';
+  import { createArtifactRegenerationPrompt, createArtifactRepairTarget, planArtifactRepairReplacement, type ArtifactRepairTarget } from '../lib/artifact-repair';
   import { createLiveOutageState, hasVisibleLiveResponse, type LiveOutageState } from '../lib/session-continuity';
   import { reviewDocument, type DocumentFinding, type TerminologyRule } from '../lib/document-review';
   import ChatMessages from './ChatMessages.svelte';
@@ -687,6 +687,16 @@
     });
   }
 
+  function regenerateArtifactEntry(entry: ArtifactEntry) {
+    if (isLoading) return;
+    const updatedEntry = artifactQueue.replace(entry.messageIdx, entry.artifact.id, entry.artifact, { status: 'updating', error: null });
+    activeArtifactEntry = updatedEntry || entry;
+    pendingArtifactRepair = createArtifactRepairTarget(entry);
+    artifactError = null;
+    messages = [...messages, { role: 'user', content: createArtifactRegenerationPrompt(entry) }];
+    doSend();
+  }
+
   function closeSplit() {
     activeArtifactEntry = null;
     artifactError = null;
@@ -833,8 +843,10 @@
     queue={artifactQueue}
     {isMobile}
     activeEntry={activeArtifactEntry}
+    busy={isLoading}
     onclose={closeSplit}
     onselect={handleChipClick}
+    onregenerate={regenerateArtifactEntry}
     onFixArtifact={(code: string, err: string) => { artifactError = err; fixArtifactErr(); }}
     {artifactError}
   />

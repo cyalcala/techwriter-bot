@@ -1,12 +1,26 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { createArtifactRegenerationPrompt } from '../lib/artifact-repair';
+import type { ArtifactEntry } from '../lib/artifact-queue';
 
 function source(path: string): string {
   return readFileSync(join(process.cwd(), path), 'utf8');
 }
 
 describe('artifact gallery jump controls', () => {
+  const entry: ArtifactEntry = {
+    messageIdx: 4,
+    ts: 100,
+    artifact: {
+      id: 'mermaid-checkout',
+      type: 'mermaid',
+      title: 'Checkout Flow',
+      placement: 'inline',
+      code: 'graph TD\nA-->B',
+    },
+  };
+
   it('renders an all-session artifact gallery in the split view', () => {
     const split = source('src/components/ArtifactSplitView.svelte');
 
@@ -25,5 +39,27 @@ describe('artifact gallery jump controls', () => {
     expect(island).toContain("scrollIntoView({ behavior: 'smooth', block: 'center' })");
     expect(messages).toContain('activeArtifactId');
     expect(messages).toContain('active={activeMessageIdx === i && activeArtifactId === entry.artifact.id}');
+  });
+
+  it('creates a bounded prompt for regenerating the selected artifact', () => {
+    const prompt = createArtifactRegenerationPrompt(entry);
+
+    expect(prompt).toContain('Regenerate this mermaid artifact');
+    expect(prompt).toContain('Replace the current artifact in this open session');
+    expect(prompt).toContain('```mermaid\ngraph TD\nA-->B\n```');
+    expect(prompt).not.toContain('durable');
+  });
+
+  it('wires selected-artifact regenerate through the split view and queue replacement state', () => {
+    const island = source('src/components/ChatIsland.svelte');
+    const split = source('src/components/ArtifactSplitView.svelte');
+
+    expect(split).toContain('onregenerate?: (entry: ArtifactEntry) => void');
+    expect(split).toContain('Regenerate selected artifact');
+    expect(split).toContain('onclick={() => currentEntry && onregenerate(currentEntry)}');
+    expect(island).toContain('function regenerateArtifactEntry(entry: ArtifactEntry)');
+    expect(island).toContain('createArtifactRegenerationPrompt(entry)');
+    expect(island).toContain("artifactQueue.replace(entry.messageIdx, entry.artifact.id, entry.artifact, { status: 'updating', error: null })");
+    expect(island).toContain('onregenerate={regenerateArtifactEntry}');
   });
 });

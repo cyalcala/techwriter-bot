@@ -37,3 +37,18 @@ export function planArtifactRepairReplacement(
     meta: { status: 'ready', error: null, ts },
   };
 }
+
+export function createArtifactRegenerationPrompt(entry: ArtifactEntry): string {
+  const { artifact } = entry;
+  const title = artifact.title ? ` titled "${artifact.title}"` : '';
+
+  return [
+    `Regenerate this ${artifact.type} artifact${title}.`,
+    'Replace the current artifact in this open session with an improved version.',
+    'Return one complete artifact block only, using the same artifact type unless a syntax-compatible fix requires a closely related diagram type.',
+    '',
+    `\`\`\`${artifact.type}`,
+    artifact.code,
+    '```',
+  ].join('\n');
+}

@@ -8,13 +8,15 @@
     queue: ArtifactQueue;
     isMobile: boolean;
     activeEntry: ArtifactEntry | null;
+    busy?: boolean;
     onclose: () => void;
     onselect?: (entry: ArtifactEntry) => void;
+    onregenerate?: (entry: ArtifactEntry) => void;
     onFixArtifact: (code: string, error: string) => void;
     artifactError: string | null;
   }
 
-  let { queue, isMobile, activeEntry, onclose, onselect = () => {}, onFixArtifact, artifactError }: Props = $props();
+  let { queue, isMobile, activeEntry, busy = false, onclose, onselect = () => {}, onregenerate = () => {}, onFixArtifact, artifactError }: Props = $props();
 
   let activeIdx = $state(0);
   let allEntries = $state<ArtifactEntry[]>([]);
@@ -100,6 +102,7 @@
           <span class="text-sm font-medium text-stone-200 truncate">{currentEntry?.artifact.title || 'Artifact'}</span>
         </div>
         <div class="flex items-center gap-1 shrink-0">
+          <button onclick={() => currentEntry && onregenerate(currentEntry)} disabled={busy} class="text-[10px] px-2 py-1 rounded-md text-stone-400 hover:text-white hover:bg-white/10 disabled:opacity-40 transition-all" aria-label="Regenerate selected artifact">Regenerate</button>
           <button onclick={async () => { try { await navigator.clipboard.writeText(currentEntry?.artifact.code || ''); } catch {} }} class="text-[10px] px-2 py-1 rounded-md text-stone-400 hover:text-white hover:bg-white/10 transition-all" aria-label="Copy artifact code">Copy</button>
           <button onclick={onclose} class="text-[10px] px-2 py-1 rounded-md text-stone-400 hover:text-white hover:bg-white/10 transition-all" aria-label="Close panel (Esc)">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
