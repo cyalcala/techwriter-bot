@@ -682,6 +682,9 @@
 
   function handleChipClick(entry: ArtifactEntry) {
     activeArtifactEntry = entry;
+    requestAnimationFrame(() => {
+      document.getElementById(`msg-${entry.messageIdx}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
   }
 
   function closeSplit() {
@@ -769,6 +772,7 @@
       isStreaming={isStreaming}
       isLoading={isLoading}
       activeMessageIdx={activeArtifactEntry?.messageIdx ?? null}
+      activeArtifactId={activeArtifactEntry?.artifact.id ?? null}
       onChipClick={handleChipClick}
       onCopyMessage={copyMessage}
       onRetryMessage={regenerate}
@@ -830,6 +834,7 @@
     {isMobile}
     activeEntry={activeArtifactEntry}
     onclose={closeSplit}
+    onselect={handleChipClick}
     onFixArtifact={(code: string, err: string) => { artifactError = err; fixArtifactErr(); }}
     {artifactError}
   />

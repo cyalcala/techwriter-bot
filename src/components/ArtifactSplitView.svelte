@@ -2,7 +2,6 @@
   import type { ArtifactQueue, ArtifactEntry } from '../lib/artifact-queue';
   import ArtifactOverlay from './ArtifactOverlay.svelte';
   import ArtifactPanel from './ArtifactPanel.svelte';
-  import ChatArtifactChip from './ChatArtifactChip.svelte';
   import { renderSvgArtifact } from '../lib/renderer-loader';
 
   interface Props {
@@ -37,7 +36,7 @@
   let currentEntry = $derived(msgEntries[activeIdx] || activeEntry);
   let overlayKey = $derived(currentEntry ? `${currentEntry.artifact.id}:${currentEntry.artifact.type}:${currentEntry.artifact.code.length}` : 'none');
   let currentError = $derived(currentEntry?.error || panelRendererError || artifactError);
-  let chipBases = $derived(allEntries.filter(e => !activeEntry || e.messageIdx !== activeEntry.messageIdx));
+  let galleryEntries = $derived(allEntries);
 
   $effect(() => {
     overlayKey;
@@ -46,6 +45,18 @@
 
   function goNext() { if (msgEntries.length > 1) activeIdx = (activeIdx + 1) % msgEntries.length; }
   function goPrev() { if (msgEntries.length > 1) activeIdx = (activeIdx - 1 + msgEntries.length) % msgEntries.length; }
+
+  function isActiveGalleryEntry(entry: ArtifactEntry): boolean {
+    return currentEntry?.messageIdx === entry.messageIdx && currentEntry?.artifact.id === entry.artifact.id;
+  }
+
+  function selectGalleryEntry(entry: ArtifactEntry) {
+    const nextEntries = allEntries.filter(e => e.messageIdx === entry.messageIdx);
+    const idx = nextEntries.findIndex(e => e.artifact.id === entry.artifact.id);
+    activeIdx = idx >= 0 ? idx : 0;
+    panelRendererError = null;
+    onselect(entry);
+  }
 
   function handleKeydown(e: KeyboardEvent) {
     if (!activeEntry) return;
@@ -96,49 +107,75 @@
         </div>
       </div>
 
-      {#if msgEntries.length > 1}
-        <div class="flex gap-2 overflow-x-auto px-3 py-2 bg-stone-100 border-b border-stone-200 shrink-0">
-          {#each msgEntries as item, idx}
-            <button onclick={() => activeIdx = idx}
-              class="shrink-0 w-20 rounded-lg overflow-hidden border-2 transition-all duration-150
-                {idx === activeIdx ? 'border-amber-400 shadow-md scale-105' : 'border-transparent hover:border-stone-300 hover:shadow-sm'}">
-              {#if item.artifact.type === 'svg'}
-                <div class="w-full h-12 bg-white overflow-hidden">{@html renderSvgArtifact(item.artifact.code)}</div>
-              {:else}
-                <div class="w-full h-12 flex items-center justify-center bg-stone-200 text-[10px] font-bold text-stone-500 uppercase">{item.artifact.type}</div>
-              {/if}
-              <div class="text-[9px] text-stone-600 truncate px-1 py-0.5 leading-tight">{item.artifact.title || 'Untitled'}</div>
-            </button>
-          {/each}
-        </div>
-      {/if}
+      <div class="flex min-h-0 flex-1">
+        {#if galleryEntries.length > 1}
+          <aside class="hidden lg:flex w-40 shrink-0 flex-col border-r border-stone-200 bg-stone-50" aria-label="Session artifacts">
+            <div class="border-b border-stone-200 px-3 py-2">
+              <div class="text-[10px] font-semibold uppercase tracking-wide text-stone-500">Session artifacts</div>
+              <div class="mt-0.5 text-[10px] text-stone-400">{galleryEntries.length} item{galleryEntries.length !== 1 ? 's' : ''}</div>
+            </div>
+            <div class="min-h-0 flex-1 space-y-1 overflow-y-auto p-2">
+              {#each galleryEntries as entry}
+                <button
+                  type="button"
+                  onclick={() => selectGalleryEntry(entry)}
+                  aria-current={isActiveGalleryEntry(entry) ? 'true' : undefined}
+                  class="group w-full rounded-md border px-2 py-2 text-left transition-colors
+                    {isActiveGalleryEntry(entry) ? 'border-amber-300 bg-amber-50 text-stone-900' : entry.error ? 'border-red-100 bg-red-50 text-stone-800 hover:border-red-200' : 'border-transparent text-stone-700 hover:border-stone-200 hover:bg-white'}"
+                >
+                  <div class="flex items-center gap-2">
+                    <span class="inline-flex h-6 w-8 shrink-0 items-center justify-center rounded bg-stone-800 text-[8px] font-bold uppercase tracking-wide text-white">{entry.artifact.type.slice(0, 4)}</span>
+                    <span class="min-w-0 flex-1 truncate text-[11px] font-semibold">{entry.artifact.title || 'Artifact'}</span>
+                  </div>
+                  <div class="mt-1 flex items-center gap-1 text-[10px] {entry.error ? 'text-red-500' : 'text-stone-400'}">
+                    <span>Message {entry.messageIdx + 1}</span>
+                    {#if entry.error}
+                      <span>- issue</span>
+                    {/if}
+                  </div>
+                </button>
+              {/each}
+            </div>
+          </aside>
+        {/if}
 
-      <div class="flex-1 overflow-auto bg-[#faf7f2]">
-        {#if currentError}
-          <div class="bg-red-50 border-b border-red-200 px-4 py-2 flex items-center justify-between gap-2">
-            <div class="text-xs text-red-700 truncate min-w-0"><span class="font-bold">Error:</span> {currentError}</div>
-            <button onclick={() => currentEntry && onFixArtifact(currentEntry.artifact.code, currentError)} class="text-[10px] px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-md font-bold shrink-0 transition-all">Fix with AI</button>
+        <div class="flex min-w-0 flex-1 flex-col">
+          {#if msgEntries.length > 1}
+            <div class="flex gap-2 overflow-x-auto px-3 py-2 bg-stone-100 border-b border-stone-200 shrink-0">
+              {#each msgEntries as item, idx}
+                <button onclick={() => selectGalleryEntry(item)}
+                  class="shrink-0 w-20 rounded-lg overflow-hidden border-2 transition-all duration-150
+                    {idx === activeIdx ? 'border-amber-400 shadow-md scale-105' : 'border-transparent hover:border-stone-300 hover:shadow-sm'}">
+                  {#if item.artifact.type === 'svg'}
+                    <div class="w-full h-12 bg-white overflow-hidden">{@html renderSvgArtifact(item.artifact.code)}</div>
+                  {:else}
+                    <div class="w-full h-12 flex items-center justify-center bg-stone-200 text-[10px] font-bold text-stone-500 uppercase">{item.artifact.type}</div>
+                  {/if}
+                  <div class="text-[9px] text-stone-600 truncate px-1 py-0.5 leading-tight">{item.artifact.title || 'Untitled'}</div>
+                </button>
+              {/each}
+            </div>
+          {/if}
+
+          <div class="flex-1 overflow-auto bg-[#faf7f2]">
+            {#if currentError}
+              <div class="bg-red-50 border-b border-red-200 px-4 py-2 flex items-center justify-between gap-2">
+                <div class="text-xs text-red-700 truncate min-w-0"><span class="font-bold">Error:</span> {currentError}</div>
+                <button onclick={() => currentEntry && onFixArtifact(currentEntry.artifact.code, currentError)} class="text-[10px] px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-md font-bold shrink-0 transition-all">Fix with AI</button>
+              </div>
+            {/if}
+            {#if currentEntry}
+              {#key currentEntry.artifact.id}
+                <ArtifactPanel
+                  artifact={currentEntry.artifact}
+                  progressive={true}
+                  onrenderererror={(message) => { panelRendererError = message; }}
+                />
+              {/key}
+            {/if}
           </div>
-        {/if}
-        {#if currentEntry}
-          {#key currentEntry.artifact.id}
-            <ArtifactPanel
-              artifact={currentEntry.artifact}
-              progressive={true}
-              onrenderererror={(message) => { panelRendererError = message; }}
-            />
-          {/key}
-        {/if}
+        </div>
       </div>
-    </div>
-  {/if}
-
-  {#if chipBases.length > 0 && !isMobile}
-    <div class="hidden md:block absolute bottom-4 right-4 max-w-xs max-h-64 overflow-y-auto space-y-1 p-2 bg-white/90 backdrop-blur rounded-lg border border-stone-200 shadow-lg z-20">
-      <div class="text-[10px] font-semibold text-stone-400 px-2 py-1">Other artifacts</div>
-      {#each chipBases as entry}
-        <ChatArtifactChip entry={entry} onclick={() => onselect(entry)} />
-      {/each}
     </div>
   {/if}
 {/if}

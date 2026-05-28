@@ -9,6 +9,7 @@
     isStreaming: boolean;
     isLoading: boolean;
     activeMessageIdx: number | null;
+    activeArtifactId: string | null;
     onChipClick: (entry: ArtifactEntry) => void;
     onCopyMessage: (idx: number) => void;
     onRetryMessage: () => void;
@@ -23,7 +24,7 @@
   }
 
   let {
-    messages, queue, isStreaming, isLoading, activeMessageIdx,
+    messages, queue, isStreaming, isLoading, activeMessageIdx, activeArtifactId,
     onChipClick, onCopyMessage, onRetryMessage, onEditMessage,
     editingMessageIdx, editText, onEditTextChange, onSaveEdit, onCancelEdit,
     copiedMessageIdx, chatPath,
@@ -98,7 +99,7 @@
         <div class="flex justify-start w-full">
           <ChatArtifactChip
             entry={entry}
-            active={activeMessageIdx === i}
+            active={activeMessageIdx === i && activeArtifactId === entry.artifact.id}
             onclick={() => onChipClick(entry)}
           />
         </div>
