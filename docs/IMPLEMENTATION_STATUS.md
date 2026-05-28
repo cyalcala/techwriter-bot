@@ -155,6 +155,7 @@ Documentation Tooling Agent direction.
   - `88afce0` artifact renderer error boundaries.
   - `cadedfa` Kroki/server-render fallback coverage and render API cache headers.
   - `3a7a076` active-session artifact repair replacement.
+  - `3693b55` active-session artifact gallery jump controls.
 
 ## In Progress
 
@@ -169,9 +170,10 @@ Documentation Tooling Agent direction.
 - WebContainer runtime verification is no longer a completion requirement. The
   controlled-renderer checkpoint removes that external browser package runtime
   from executable product paths and treats legacy output as inert code.
-- The public production alias `https://tw-bot.pages.dev` now serves active-session
-  artifact repair replacement commit `3a7a076`. The accepted preview alias remains
-  available at `https://codex-privacy-first-disclosu.tw-bot.pages.dev`.
+- The public production alias `https://tw-bot.pages.dev` now serves
+  active-session artifact gallery jump controls commit `3693b55`. The accepted
+  preview alias remains available at
+  `https://codex-privacy-first-disclosu.tw-bot.pages.dev`.
 - Defined the first bounded Documentation Tooling Agent slice in
   `docs/superpowers/specs/2026-05-27-documentation-tooling-agent-foundation-design.md`:
   explicit document review and read-only graph lookup only, with no autonomous
@@ -181,14 +183,14 @@ Documentation Tooling Agent direction.
   active-session deterministic document review and a bounded read-only
   `src/` reference lookup with no generic fallback output.
 - Published a production runtime graph through the authorized GitHub Actions
-  path; the latest accepted runtime extraction from `3a7a076` contains 1018
-  nodes and 1387 edges and is available only through the bounded `src/` lookup
+  path; the latest accepted runtime extraction from `3693b55` contains 1025
+  nodes and 1392 edges and is available only through the bounded `src/` lookup
   surface.
 - Safe provider fault-injection coverage, renderer-preload warning cleanup,
   Phase 2 renderer boundaries, Kroki/server-render coverage, and
-  active-session artifact repair replacement are implemented without disrupting
-  real credentials, reviving browser package runtimes, or extending the bounded
-  tooling scope.
+  active-session artifact repair replacement plus gallery jump controls are
+  implemented without disrupting real credentials, reviving browser package
+  runtimes, or extending the bounded tooling scope.
 
 ## Blockers And Notes
 
@@ -513,14 +515,33 @@ Latest incremental verification on 2026-05-28:
   request id and `Cache-Control: no-store, private`; bounded graph lookup for
   `createArtifactRepairTarget` returns the published
   `src/lib/artifact-repair.ts` context with `Cache-Control: no-store, private`.
+- Added the first artifact gallery action in `src/components/ArtifactSplitView.svelte`,
+  `src/components/ChatIsland.svelte`, and `src/components/ChatMessages.svelte`:
+  the desktop split view now shows an active-session `Session artifacts` rail
+  for all current artifacts, selecting a gallery entry updates the active
+  artifact exactly, highlights only that artifact chip, and scrolls the source
+  chat message into view. This remains page-memory only.
+- Verification passed after this gallery jump slice:
+  `npm.cmd test -- --run src/tests/artifact-gallery.test.ts`,
+  `npm.cmd test -- --run src/tests/artifact-gallery.test.ts src/tests/artifact-error-boundary.test.ts src/tests/artifact-repair-flow.test.ts src/tests/artifacts.test.ts`,
+  `npm.cmd test` (28 test files, 118 tests),
+  `npm.cmd audit --omit=dev --audit-level=high`, and the recorded
+  `build:local` command. A local dev-server browser attempt did not expose a
+  reachable listener on `127.0.0.1:4321`, so no browser UI success is claimed
+  for this slice.
+- `graphify update .` refreshed tracked local Graphify artifacts from commit
+  `3693b55`: 731 nodes and 1135 edges. Community-count wording remains
+  non-blocking.
+- The artifact gallery jump deploy passed in GitHub Actions run
+  `26586686524` at immutable URL `https://d0c180b5.tw-bot.pages.dev`. The
+  production runtime graph from that run reports 1025 nodes and 1392 edges.
 
 ## Next Task
 
 Continue Phase 2 artifact reliability with the artifact gallery actions from
 the master plan in small slices:
 
-- Add a clear active-session gallery jump action for multiple artifacts.
-- Then add explicit regenerate from the selected gallery entry, preserving the
+- Add explicit regenerate from the selected gallery entry, preserving the
   replace-in-place behavior and no durable artifact content storage.
 - Then add copy source and separate SVG/PNG/source downloads before considering
   any ZIP export.

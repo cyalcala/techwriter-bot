@@ -69,14 +69,14 @@ The current tracked code graph was refreshed with `graphify update .` on
 
 - Report: `graphify-out/GRAPH_REPORT.md`
 - Graph: `graphify-out/graph.json`
-- Summary: 727 nodes, 1132 edges
+- Summary: 731 nodes, 1135 edges
 - Extraction confidence: 95% EXTRACTED, 5% INFERRED, 0% AMBIGUOUS
-- Built from code at commit: `3a7a0763`
+- Built from code at commit: `3693b550`
 - The generated report currently disagrees with itself on total community
   count; use node/edge counts and targeted graph queries for acceptance until
   that reporting discrepancy is reconciled.
 - The production runtime graph is published by the GitHub Actions extraction
-  pipeline and currently reports 1018 nodes and 1387 edges.
+  pipeline and currently reports 1025 nodes and 1392 edges.
 - Controlled provider fault injection is available only when
   `PROVIDER_FAULT_INJECTION_TOKEN` is configured and matched by request
   headers, allowing failover/outage acceptance without disabling real provider
@@ -90,6 +90,9 @@ The current tracked code graph was refreshed with `graphify update .` on
 - Active-session artifact repair now replaces the original queue entry when a
   user invokes Fix with AI, clears stale renderer errors, and avoids durable
   artifact caching or duplicate repaired entries.
+- The first artifact gallery slice adds an active-session desktop gallery rail
+  for all current artifacts; selecting an item opens that artifact and scrolls
+  the related chat message into view.
 
 Before broad architecture work, read `graphify-out/GRAPH_REPORT.md` first.
 When the graph may be stale, run:
