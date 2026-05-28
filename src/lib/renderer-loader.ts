@@ -52,6 +52,8 @@ function loadStyle(href: string): Promise<void> {
       reject(new Error(`Timed out loading ${href}`));
     }, LOAD_TIMEOUT_MS);
     link.rel = 'stylesheet';
+    link.crossOrigin = 'anonymous';
+    link.referrerPolicy = 'no-referrer';
     link.href = href;
     link.onload = () => {
       clearTimeout(timer);
