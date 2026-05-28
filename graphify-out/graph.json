@@ -15938,9 +15938,9 @@
       "source_file": "src/tests/renderer-sandbox.test.ts",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_tests_renderer_sandbox_test_ts",
-      "target": "tests_renderer_sandbox_test_source",
-      "confidence_score": 1.0
+      "target": "tests_renderer_sandbox_test_source"
     },
     {
       "relation": "contains",
@@ -17750,5 +17750,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "c5c56ede1607499889a6d26b69e708bb290c42f8"
+  "built_at_commit": "35031df652de6c4e73ec6d55833aa6cf1e2080b0"
 }

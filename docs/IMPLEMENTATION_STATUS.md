@@ -155,6 +155,8 @@ Documentation Tooling Agent direction.
   - `f8f2207` accepted hardened preview documentation and graph refresh.
   - `145db14` production promotion merge commit from PR #1.
   - `18ea60a` safe provider fault-injection harness.
+  - `c5c56ed` provider fault-harness deployment documentation.
+  - `35031df` renderer preload warning cleanup and graph refresh.
 
 ## In Progress
 
@@ -169,9 +171,9 @@ Documentation Tooling Agent direction.
 - WebContainer runtime verification is no longer a completion requirement. The
   controlled-renderer checkpoint removes that external browser package runtime
   from executable product paths and treats legacy output as inert code.
-- The public production alias `https://tw-bot.pages.dev` now serves the
-  hardened merge commit `145db14`. The accepted preview alias remains available
-  at `https://codex-privacy-first-disclosu.tw-bot.pages.dev`.
+- The public production alias `https://tw-bot.pages.dev` now serves renderer
+  cleanup commit `35031df`. The accepted preview alias remains available at
+  `https://codex-privacy-first-disclosu.tw-bot.pages.dev`.
 - Defined the first bounded Documentation Tooling Agent slice in
   `docs/superpowers/specs/2026-05-27-documentation-tooling-agent-foundation-design.md`:
   explicit document review and read-only graph lookup only, with no autonomous
@@ -181,13 +183,12 @@ Documentation Tooling Agent direction.
   active-session deterministic document review and a bounded read-only
   `src/` reference lookup with no generic fallback output.
 - Published a production runtime graph through the authorized GitHub Actions
-  path; the latest accepted runtime extraction from `145db14` contains 969
-  nodes and 1306 edges and is available only through the bounded `src/` lookup
+  path; the latest accepted runtime extraction from `35031df` contains 981
+  nodes and 1325 edges and is available only through the bounded `src/` lookup
   surface.
-- Safe provider fault-injection coverage is implemented for controlled
-  acceptance without disrupting real credentials. Remaining Phase 1 follow-up
-  should focus on renderer-preload warning cleanup, without reviving browser
-  package runtimes or extending the bounded tooling scope.
+- Safe provider fault-injection coverage and renderer-preload warning cleanup
+  are implemented without disrupting real credentials, reviving browser package
+  runtimes, or extending the bounded tooling scope.
 
 ## Blockers And Notes
 
@@ -205,6 +206,10 @@ Documentation Tooling Agent direction.
   production promotion.
 - Production promotion succeeded from merge commit `145db14` with immutable
   deployment URL `https://a9899309.tw-bot.pages.dev` and production alias
+  `https://tw-bot.pages.dev`.
+- Renderer preload cleanup deployed from commit `35031df` through GitHub
+  Actions run `26570500363` with immutable URL
+  `https://1667e8f3.tw-bot.pages.dev` and production alias
   `https://tw-bot.pages.dev`.
 - Local build currently emits non-failing Node `punycode`/`MaxListenersExceeded`
   warnings plus the Wrangler local-AI remote-usage warning.
@@ -372,6 +377,9 @@ Latest incremental verification on 2026-05-27:
 - Final local release gate for the CI maintenance slice passed:
   `npm.cmd test` (23 test files, 99 tests), zero production dependency audit
   findings, and the recorded `build:local` command.
+
+Latest incremental verification on 2026-05-28:
+
 - PR #1 was merged into `main` on 2026-05-28 at merge commit `145db14`.
   GitHub Actions run `26569125864` passed both production jobs: direct Wrangler
   Pages deploy and runtime graph publication. The immutable production
@@ -402,13 +410,42 @@ Latest incremental verification on 2026-05-27:
   A production probe confirmed normal chat still streams when fault headers are
   supplied with a wrong token, proving the harness is inert unless the
   configured secret token matches.
+- Removed global landing-page preloads for optional renderer assets
+  (Mermaid, KaTeX, Prism, Graphviz, and D2) while preserving the existing
+  idle/demand dynamic renderer loader. Dynamic stylesheet loads now use the
+  same anonymous cross-origin and no-referrer attributes as script loads.
+- Red-green renderer coverage confirmed the prior preload warning gap, then
+  passed after implementation. Final local verification passed:
+  `npm.cmd test` (24 test files, 105 tests),
+  `npm.cmd audit --omit=dev --audit-level=high`, and the recorded
+  `build:local` command.
+- `graphify update .` refreshed tracked local Graphify artifacts from commit
+  `35031df`: 711 nodes and 1095 edges. The report still has inconsistent
+  community-count wording, so community totals remain non-release criteria.
+- The renderer cleanup production deploy passed in GitHub Actions run
+  `26570500363` at immutable URL `https://1667e8f3.tw-bot.pages.dev`. The
+  production runtime graph from that run reports 981 nodes and 1325 edges.
+- Production probes on `https://tw-bot.pages.dev` confirmed sanitized
+  `/api/health` with request id, three active providers out of six at probe
+  time, matching `tw-bot:app:version`, no configuration inventory, and no raw
+  errors; root HTML contains no optional renderer preload tags; bounded graph
+  lookup for `renderer-loader` returns 12 source-only context nodes with no
+  graph-version disclosure.
+- Production browser verification loaded the app, confirmed it was not blank,
+  found zero optional renderer preload links, confirmed idle-loaded Prism and
+  Mermaid assets carry `crossorigin="anonymous"` and
+  `referrerpolicy="no-referrer"`, and returned no relevant preload/renderer
+  warnings or errors. Browser screenshot capture timed out, so no screenshot
+  evidence is claimed for this cleanup.
 
 ## Next Task
 
-Continue with the remaining Phase 1 follow-up before starting broad Phase 2:
+Phase 1 follow-up is complete enough to start broad Phase 2. Recommended next
+slice:
 
-- Clean up optional renderer-asset preload warnings if it can be done without
-  broad artifact-system refactoring.
+- Start Phase 2 with a narrow artifact reliability pass: error boundaries per
+  artifact type, clearer renderer failure messaging, and focused tests around
+  broken Mermaid/KaTeX/HTML/React inputs.
 - Treat Graphify's inconsistent community-count wording as non-blocking unless
   community totals become release criteria. Do not introduce autonomous
   execution or browser package runtimes.
