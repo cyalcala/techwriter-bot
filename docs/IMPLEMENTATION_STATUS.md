@@ -154,6 +154,7 @@ Documentation Tooling Agent direction.
   - `35031df` renderer preload warning cleanup and graph refresh.
   - `88afce0` artifact renderer error boundaries.
   - `cadedfa` Kroki/server-render fallback coverage and render API cache headers.
+  - `3a7a076` active-session artifact repair replacement.
 
 ## In Progress
 
@@ -168,8 +169,8 @@ Documentation Tooling Agent direction.
 - WebContainer runtime verification is no longer a completion requirement. The
   controlled-renderer checkpoint removes that external browser package runtime
   from executable product paths and treats legacy output as inert code.
-- The public production alias `https://tw-bot.pages.dev` now serves Kroki
-  coverage commit `cadedfa`. The accepted preview alias remains
+- The public production alias `https://tw-bot.pages.dev` now serves active-session
+  artifact repair replacement commit `3a7a076`. The accepted preview alias remains
   available at `https://codex-privacy-first-disclosu.tw-bot.pages.dev`.
 - Defined the first bounded Documentation Tooling Agent slice in
   `docs/superpowers/specs/2026-05-27-documentation-tooling-agent-foundation-design.md`:
@@ -180,11 +181,12 @@ Documentation Tooling Agent direction.
   active-session deterministic document review and a bounded read-only
   `src/` reference lookup with no generic fallback output.
 - Published a production runtime graph through the authorized GitHub Actions
-  path; the latest accepted runtime extraction from `cadedfa` contains 1003
-  nodes and 1359 edges and is available only through the bounded `src/` lookup
+  path; the latest accepted runtime extraction from `3a7a076` contains 1018
+  nodes and 1387 edges and is available only through the bounded `src/` lookup
   surface.
-- Safe provider fault-injection coverage, renderer-preload warning cleanup, and
-  the first Phase 2 renderer boundary slice are implemented without disrupting
+- Safe provider fault-injection coverage, renderer-preload warning cleanup,
+  Phase 2 renderer boundaries, Kroki/server-render coverage, and
+  active-session artifact repair replacement are implemented without disrupting
   real credentials, reviving browser package runtimes, or extending the bounded
   tooling scope.
 
@@ -486,16 +488,42 @@ Latest incremental verification on 2026-05-28:
 - Production probes confirmed `/api/render-artifact` invalid and unsupported
   type responses return `400` with request ids and `Cache-Control: no-store,
   private`, while `/api/health` remains sanitized with matching app version.
+- Added active-session artifact repair replacement in
+  `src/lib/artifact-repair.ts`, `src/lib/artifact-queue.ts`, and
+  `src/components/ChatIsland.svelte`: Fix with AI captures the original
+  queue entry, the first repaired artifact replaces that entry in page memory,
+  stale renderer errors are cleared, and a missing target falls back to the
+  existing append path. No durable artifact cache or background execution was
+  added.
+- Verification passed after this repair slice:
+  `npm.cmd test -- --run src/tests/artifact-repair-flow.test.ts`,
+  `npm.cmd test -- --run src/tests/artifact-repair-flow.test.ts src/tests/artifacts.test.ts src/tests/artifact-error-boundary.test.ts src/tests/kroki-renderer.test.ts`,
+  `npm.cmd test` (27 test files, 116 tests),
+  `npm.cmd audit --omit=dev --audit-level=high`, and the recorded
+  `build:local` command.
+- `graphify update .` refreshed tracked local Graphify artifacts from commit
+  `3a7a076`: 727 nodes and 1132 edges. Community-count wording remains
+  non-blocking.
+- The artifact repair replacement deploy passed in GitHub Actions run
+  `26585550560` at immutable URL `https://758d3b86.tw-bot.pages.dev`. The
+  production runtime graph from that run reports 1018 nodes and 1387 edges.
+- Production probes confirmed `/api/health` returns `200` with request id,
+  four active providers out of six at probe time, and matching app version;
+  invalid `/api/render-artifact` still returns `400 INVALID_REQUEST` with
+  request id and `Cache-Control: no-store, private`; bounded graph lookup for
+  `createArtifactRepairTarget` returns the published
+  `src/lib/artifact-repair.ts` context with `Cache-Control: no-store, private`.
 
 ## Next Task
 
-Continue Phase 2 artifact reliability:
+Continue Phase 2 artifact reliability with the artifact gallery actions from
+the master plan in small slices:
 
-- Continue active-session-only artifact regeneration/retry behavior across the
-  chat artifact queue, including clearer replace-in-place behavior when a user
-  repairs an artifact.
-- Consider the artifact gallery actions from the master plan in small slices:
-  jump, regenerate, copy source, then separate downloads before any ZIP export.
+- Add a clear active-session gallery jump action for multiple artifacts.
+- Then add explicit regenerate from the selected gallery entry, preserving the
+  replace-in-place behavior and no durable artifact content storage.
+- Then add copy source and separate SVG/PNG/source downloads before considering
+  any ZIP export.
 - Treat Graphify's inconsistent community-count wording as non-blocking unless
   community totals become release criteria. Do not introduce autonomous
   execution or browser package runtimes.

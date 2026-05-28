@@ -76,8 +76,8 @@
     "hash": "4e00c0c7a15ef1b6a06d7dc38a5e0afa"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\components\\ChatIsland.svelte": {
-    "mtime": 1779964536.6682267,
-    "hash": "e87121d5b620e2852106bbcd58aac957"
+    "mtime": 1779982977.4218688,
+    "hash": "0f1ddf71a78274a17ddf879ed56c6c2d"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\components\\ChatMessages.svelte": {
     "mtime": 1778237660.9402738,
@@ -108,8 +108,12 @@
     "hash": "cc19eaa6e5181b2312739af995110c5e"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\lib\\artifact-queue.ts": {
-    "mtime": 1778279135.6880069,
-    "hash": "670090687c097284f250107ccb79f8d2"
+    "mtime": 1779982879.390794,
+    "hash": "03a0b0ce5cafd8a861e12ac6effedeb7"
+  },
+  "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\lib\\artifact-repair.ts": {
+    "mtime": 1779982879.3887942,
+    "hash": "59abb533038dd01e7505dcecc1723215"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\lib\\artifact-state.ts": {
     "mtime": 1778177778.4454238,
@@ -323,6 +327,10 @@
     "mtime": 1779966731.363155,
     "hash": "2eafd1e269a9881b6bd231c099c67af1"
   },
+  "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\tests\\artifact-repair-flow.test.ts": {
+    "mtime": 1779982798.091914,
+    "hash": "d4df1df73418aea2d78c13f0496bbed3"
+  },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\tests\\artifacts.test.ts": {
     "mtime": 1779964536.7768636,
     "hash": "79881320015ea14144b55511fe26e795"
@@ -436,12 +444,12 @@
     "hash": "5659010e5262e9fd04cd89f4b9b3191e"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\IMPLEMENTATION_STATUS.md": {
-    "mtime": 1779967664.2984166,
-    "hash": "4d3dfd4d336bd6865655e22d3e10934b"
+    "mtime": 1779968205.280605,
+    "hash": "e56b33f3d78247e5a12e204435d71676"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\MASTER_EXECUTION_PLAN.md": {
-    "mtime": 1779967664.2964342,
-    "hash": "5f6f990dadc6a7fb0fafd46a8e5bde0f"
+    "mtime": 1779968205.2796047,
+    "hash": "d8a0dc21d05a1131078affad05a08a1d"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\PRODUCT_MARKETING.md": {
     "mtime": 1779964536.6182373,
