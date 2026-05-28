@@ -2,9 +2,10 @@
   import type { Artifact, ArtifactType } from '../lib/stream-parser';
   import { loadRenderer, renderCodeArtifact, renderHtmlArtifact, renderSvgArtifact, renderMermaidArtifact, renderReactArtifact, renderKatexArtifact, renderMarkmapArtifact, renderD2Artifact, renderVegaArtifact, renderGraphvizArtifact, renderPlantUMLArtifact, renderFlowchartArtifact } from '../lib/renderer-loader';
   import { PREVIEWABLE_ARTIFACT_TYPES } from '../lib/artifact-types';
+  import { formatArtifactRendererError } from '../lib/artifact-error-boundary';
 
-  interface Props { artifact: Artifact; progressive?: boolean; }
-  let { artifact, progressive = false }: Props = $props();
+  interface Props { artifact: Artifact; progressive?: boolean; onrenderererror?: (message: string) => void; }
+  let { artifact, progressive = false, onrenderererror = () => {} }: Props = $props();
 
   let renderedHtml = $state('');
   let isLoaded = $state(false);
@@ -15,6 +16,7 @@
   let fading = $state(false);
   let prevId = $state('');
   let loadError = $state('');
+  let renderNonce = $state(0);
 
   $effect(() => {
     if (artifact.id !== prevId && prevId) {
@@ -47,22 +49,28 @@
   $effect(() => {
     const a = artifact;
     if (!a) return;
+    renderNonce;
+    let cancelled = false;
     isLoaded = false;
     renderedHtml = '';
     loadError = '';
     collapsed = false;
     progressiveCode = a.code;
 
-    // Timeout guard: if renderer takes >15s, show error
+    const fail = (message: string) => {
+      if (cancelled) return;
+      loadError = message;
+      renderedHtml = formatArtifactRendererError(a.type, message, a.code);
+      onrenderererror(`${a.type}: ${message}`);
+      isLoaded = true;
+    };
+
     const renderTimeout = setTimeout(() => {
-      if (!isLoaded) {
-        loadError = 'Renderer took too long to load. Please refresh the page.';
-        renderedHtml = renderPanelError(a.type, loadError, a.code);
-        isLoaded = true;
-      }
+      if (!isLoaded) fail('Renderer took too long to load. Retry the renderer or view the source.');
     }, 15_000);
 
     loadRenderer(a.type).then(() => {
+      if (cancelled) return;
       clearTimeout(renderTimeout);
       try {
         switch (a.type) {
@@ -81,16 +89,19 @@
           default: renderedHtml = `<pre>${escapeHtml(a.code)}</pre>`;
         }
       } catch (error) {
-        loadError = error instanceof Error ? error.message : String(error);
-        renderedHtml = renderPanelError(a.type, loadError, a.code);
+        fail(error instanceof Error ? error.message : String(error));
+        return;
       }
       isLoaded = true;
     }).catch((error) => {
       clearTimeout(renderTimeout);
-      loadError = error instanceof Error ? error.message : String(error);
-      renderedHtml = renderPanelError(a.type, loadError, a.code);
-      isLoaded = true;
+      fail(error instanceof Error ? error.message : String(error));
     });
+
+    return () => {
+      cancelled = true;
+      clearTimeout(renderTimeout);
+    };
   });
 
   $effect(() => {
@@ -105,6 +116,12 @@
   function escapeHtml(s: string): string { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
   async function copyCode() { try { await navigator.clipboard.writeText(artifact.code); copied = true; setTimeout(() => copied = false, 1500); } catch {} }
+
+  function retryRenderer() {
+    loadError = '';
+    activeTab = 'preview';
+    renderNonce += 1;
+  }
 
   function downloadArtifact() {
     const extMap: Record<string, string> = {
@@ -123,9 +140,6 @@
 
   const showPreview = $derived(previewableTypes.includes(artifact.type));
 
-  function renderPanelError(type: string, message: string, code: string): string {
-    return `<div class="artifact-error"><strong>${escapeHtml(type)} renderer unavailable</strong><span>${escapeHtml(message)}</span><pre>${escapeHtml(code)}</pre></div>`;
-  }
 </script>
 
 <div class="artifact-card rounded-lg overflow-hidden shadow-md border border-stone-200 bg-white w-full transition-all">
@@ -163,6 +177,13 @@
         {#if !isLoaded}
           <div class="p-6 text-center text-sm text-[#8c8576]" aria-live="polite">Loading renderer...</div>
         {:else}
+          {#if loadError}
+            <div class="artifact-recovery" aria-live="polite">
+              <span>Renderer failed for this {artifact.type} artifact.</span>
+              <button type="button" onclick={retryRenderer}>Retry renderer</button>
+              <button type="button" onclick={() => activeTab = 'code'}>View code</button>
+            </div>
+          {/if}
           {#if artifact.type === 'html' || artifact.type === 'react'}
             <div class="artifact-preview-shell artifact-preview-frame w-full">{@html renderedHtml}</div>
           {:else if artifact.type === 'svg' || artifact.type === 'plantuml'}
@@ -245,6 +266,10 @@
     line-height: 1.4;
   }
 
+  :global(.artifact-error-hint) {
+    color: #7f1d1d;
+  }
+
   :global(.artifact-error pre) {
     max-height: 280px;
     overflow: auto;
@@ -254,6 +279,28 @@
     padding: 8px;
     white-space: pre-wrap;
     word-break: break-word;
+  }
+
+  .artifact-recovery {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    color: #7f1d1d;
+    background: #fff7ed;
+    border-bottom: 1px solid #fed7aa;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .artifact-recovery button {
+    border: 1px solid #fdba74;
+    border-radius: 6px;
+    background: #fff;
+    color: #9a3412;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 8px;
   }
 
   @media (max-width: 520px) {

@@ -1,4 +1,5 @@
 import type { ArtifactType } from './stream-parser';
+import { formatArtifactRendererError } from './artifact-error-boundary';
 
 const loadedScripts = new Set<string>();
 const loadedStyles = new Set<string>();
@@ -395,7 +396,7 @@ function sanitizeSvg(svg: string): string {
 function safeClassName(value: string): string { return value.replace(/[^\w-]/g, '') || 'plaintext'; }
 function rand(): string { return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`; }
 function renderError(type: string, message: string, code: string): string {
-  return `<div class="text-red-500 text-xs p-3 bg-red-50 rounded-lg border border-red-200"><strong>${type} error:</strong><br/><code class="text-[11px] whitespace-pre-wrap break-all">${escapeHtml(message)}</code><button class="mt-2 px-2 py-1 text-[10px] bg-red-100 hover:bg-red-200 rounded border border-red-300" onclick="this.nextElementSibling.classList.toggle('hidden')">Show raw</button><pre class="hidden mt-2 p-2 bg-gray-100 rounded text-[11px] overflow-x-auto whitespace-pre-wrap">${escapeHtml(code)}</pre></div>`;
+  return formatArtifactRendererError(type, message, code);
 }
 
 declare global { interface Window { Prism: any; mermaid: any; katex: any; flowchart: any; } }

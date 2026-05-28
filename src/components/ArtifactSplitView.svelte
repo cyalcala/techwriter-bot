@@ -19,6 +19,7 @@
 
   let activeIdx = $state(0);
   let allEntries = $state<ArtifactEntry[]>([]);
+  let panelRendererError = $state<string | null>(null);
 
   $effect(() => {
     if (activeEntry) {
@@ -34,9 +35,14 @@
 
   let msgEntries = $derived(activeEntry ? allEntries.filter(e => e.messageIdx === activeEntry.messageIdx) : []);
   let currentEntry = $derived(msgEntries[activeIdx] || activeEntry);
-  let currentError = $derived(currentEntry?.error || artifactError);
   let overlayKey = $derived(currentEntry ? `${currentEntry.artifact.id}:${currentEntry.artifact.type}:${currentEntry.artifact.code.length}` : 'none');
+  let currentError = $derived(currentEntry?.error || panelRendererError || artifactError);
   let chipBases = $derived(allEntries.filter(e => !activeEntry || e.messageIdx !== activeEntry.messageIdx));
+
+  $effect(() => {
+    overlayKey;
+    panelRendererError = null;
+  });
 
   function goNext() { if (msgEntries.length > 1) activeIdx = (activeIdx + 1) % msgEntries.length; }
   function goPrev() { if (msgEntries.length > 1) activeIdx = (activeIdx - 1 + msgEntries.length) % msgEntries.length; }
@@ -116,7 +122,11 @@
         {/if}
         {#if currentEntry}
           {#key currentEntry.artifact.id}
-            <ArtifactPanel artifact={currentEntry.artifact} progressive={true} />
+            <ArtifactPanel
+              artifact={currentEntry.artifact}
+              progressive={true}
+              onrenderererror={(message) => { panelRendererError = message; }}
+            />
           {/key}
         {/if}
       </div>
