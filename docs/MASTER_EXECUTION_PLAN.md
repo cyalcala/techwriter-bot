@@ -69,9 +69,9 @@ The current tracked code graph was refreshed with `graphify update .` on
 
 - Report: `graphify-out/GRAPH_REPORT.md`
 - Graph: `graphify-out/graph.json`
-- Summary: 735 nodes, 1145 edges
+- Summary: 741 nodes, 1155 edges
 - Extraction confidence: 95% EXTRACTED, 5% INFERRED, 0% AMBIGUOUS
-- Built from code at commit: `aa87bb66`
+- Built from code at commit: `75f8d126`
 - The generated report currently disagrees with itself on total community
   count; use node/edge counts and targeted graph queries for acceptance until
   that reporting discrepancy is reconciled.
@@ -98,6 +98,8 @@ The current tracked code graph was refreshed with `graphify update .` on
   when the regenerated artifact arrives.
 - Selected artifact source copy uses the currently selected active-session
   gallery artifact and shows in-panel copy feedback without durable writes.
+- Separate selected-artifact source, SVG, and PNG downloads are implemented in
+  the active split-view path before any ZIP export dependency is considered.
 
 Before broad architecture work, read `graphify-out/GRAPH_REPORT.md` first.
 When the graph may be stale, run:

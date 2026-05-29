@@ -158,6 +158,7 @@ Documentation Tooling Agent direction.
   - `3693b55` active-session artifact gallery jump controls.
   - `4a35a83` selected artifact regenerate in-place controls.
   - `aa87bb6` selected artifact source copy action.
+  - `75f8d12` selected artifact source/SVG/PNG downloads.
 
 ## In Progress
 
@@ -191,9 +192,9 @@ Documentation Tooling Agent direction.
 - Safe provider fault-injection coverage, renderer-preload warning cleanup,
   Phase 2 renderer boundaries, Kroki/server-render coverage, and
   active-session artifact repair replacement plus gallery jump/regenerate
-  controls and selected source copy are implemented without disrupting real
-  credentials, reviving browser package runtimes, or extending the bounded
-  tooling scope.
+  controls, selected source copy, and separate source/SVG/PNG downloads are
+  implemented without disrupting real credentials, reviving browser package
+  runtimes, or extending the bounded tooling scope.
 
 ## Blockers And Notes
 
@@ -586,13 +587,31 @@ Latest incremental verification on 2026-05-29:
   version mismatch; bounded graph lookup for `copySource` returns
   `src/components/ArtifactSplitView.svelte:L64` with
   `Cache-Control: no-store, private`.
+- Added separate selected-artifact downloads in
+  `src/components/ArtifactSplitView.svelte`: Source downloads the selected
+  artifact text with a type-aware extension, SVG downloads the selected raw or
+  rendered SVG when available, and PNG converts that SVG through a browser
+  canvas. If the renderer has not produced SVG yet, the panel shows a visible
+  retryable notice instead of a blank failure.
+- Red-green coverage confirmed the prior download-action gap, then passed
+  after implementation. Verification passed after this download slice:
+  `npm.cmd test -- --run src/tests/artifact-gallery.test.ts --testNamePattern "separate source"`,
+  `npm.cmd test -- --run src/tests/artifact-gallery.test.ts`,
+  `npm.cmd test -- --run src/tests/artifact-gallery.test.ts src/tests/artifact-repair-flow.test.ts src/tests/artifact-error-boundary.test.ts src/tests/artifacts.test.ts`,
+  `npm.cmd test` (28 test files, 122 tests),
+  `npm.cmd audit --omit=dev --audit-level=high`, `git diff --check`, and the
+  recorded `build:local` command.
+- `graphify update .` refreshed tracked local Graphify artifacts from commit
+  `75f8d12`: 741 nodes and 1155 edges. Community-count wording remains
+  non-blocking.
 
 ## Next Task
 
-Continue Phase 2 artifact reliability with the artifact gallery actions from
-the master plan in small slices:
+Continue Phase 2 core-engine work with streaming parser hardening from the
+master plan in small slices:
 
-- Add separate SVG/PNG/source downloads before considering any ZIP export.
+- Add parser coverage for malformed artifact tags and nested artifact tags.
+- Then add UTF-8/chunk-boundary coverage and debounce/timeout behavior.
 - Treat Graphify's inconsistent community-count wording as non-blocking unless
   community totals become release criteria. Do not introduce autonomous
   execution or browser package runtimes.
