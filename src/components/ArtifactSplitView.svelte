@@ -23,6 +23,30 @@
   let panelRendererError = $state<string | null>(null);
   let copiedSourceKey = $state('');
   let copyResetTimer: ReturnType<typeof setTimeout> | null = null;
+  let downloadNotice = $state('');
+  let downloadNoticeTimer: ReturnType<typeof setTimeout> | null = null;
+  let panelHost: HTMLDivElement | null = null;
+
+  const SOURCE_EXTENSIONS: Record<string, string> = {
+    code: '.txt',
+    html: '.html',
+    svg: '.svg',
+    mermaid: '.mmd',
+    react: '.jsx',
+    katex: '.tex',
+    markmap: '.md',
+    d2: '.d2',
+    vega: '.json',
+    graphviz: '.dot',
+    plantuml: '.puml',
+    flowchart: '.fc.js',
+  };
+  const SOURCE_MIME_TYPES: Record<string, string> = {
+    html: 'text/html;charset=utf-8',
+    svg: 'image/svg+xml;charset=utf-8',
+    vega: 'application/json;charset=utf-8',
+  };
+  const SVG_DOWNLOAD_TYPES = new Set(['svg', 'mermaid', 'markmap', 'd2', 'vega', 'graphviz', 'plantuml', 'flowchart']);
 
   $effect(() => {
     if (activeEntry) {
@@ -42,6 +66,7 @@
   let currentError = $derived(currentEntry?.error || panelRendererError || artifactError);
   let galleryEntries = $derived(allEntries);
   let currentEntryKey = $derived(currentEntry ? artifactEntryKey(currentEntry) : '');
+  let canDownloadRenderedSvg = $derived(currentEntry ? SVG_DOWNLOAD_TYPES.has(currentEntry.artifact.type) : false);
 
   $effect(() => {
     overlayKey;
@@ -51,6 +76,7 @@
   $effect(() => {
     return () => {
       if (copyResetTimer) clearTimeout(copyResetTimer);
+      if (downloadNoticeTimer) clearTimeout(downloadNoticeTimer);
     };
   });
 
@@ -73,6 +99,118 @@
     } catch {
       copiedSourceKey = '';
     }
+  }
+
+  function downloadSource(entry: ArtifactEntry) {
+    const languageExt = entry.artifact.type === 'code' && entry.artifact.language
+      ? `.${entry.artifact.language.replace(/^\./, '').replace(/[^a-zA-Z0-9_-]/g, '') || 'txt'}`
+      : '';
+    const extension = languageExt || SOURCE_EXTENSIONS[entry.artifact.type] || '.txt';
+    const mime = SOURCE_MIME_TYPES[entry.artifact.type] || 'text/plain;charset=utf-8';
+    downloadBlob(entry.artifact.code, mime, `${downloadBaseName(entry)}${extension}`);
+  }
+
+  function downloadSvg(entry: ArtifactEntry) {
+    const svg = getSelectedSvgMarkup(entry);
+    if (!svg) {
+      showDownloadNotice('Render the preview before downloading SVG.');
+      return;
+    }
+    downloadBlob(svg, 'image/svg+xml;charset=utf-8', `${downloadBaseName(entry)}.svg`);
+  }
+
+  async function downloadPng(entry: ArtifactEntry) {
+    const svg = getSelectedSvgMarkup(entry);
+    if (!svg) {
+      showDownloadNotice('Render the preview before downloading PNG.');
+      return;
+    }
+
+    const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
+    try {
+      const img = new Image();
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error('SVG image failed to load'));
+        img.src = url;
+      });
+
+      const { width, height } = getSvgDimensions(svg);
+      const scale = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.ceil(width * scale);
+      canvas.height = Math.ceil(height * scale);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas is unavailable');
+      ctx.setTransform(scale, 0, 0, scale, 0, 0);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, width, height);
+      ctx.drawImage(img, 0, 0, width, height);
+
+      const png = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+      if (!png) throw new Error('PNG export failed');
+      downloadBlob(png, 'image/png', `${downloadBaseName(entry)}.png`);
+    } catch {
+      showDownloadNotice('PNG download is unavailable for this artifact.');
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  function getSelectedSvgMarkup(entry: ArtifactEntry): string {
+    if (entry.artifact.type === 'svg') return normalizeSvgMarkup(entry.artifact.code);
+    const svg = panelHost?.querySelector('svg') as SVGSVGElement | null;
+    if (!svg) return '';
+    return normalizeSvgMarkup(new XMLSerializer().serializeToString(svg));
+  }
+
+  function normalizeSvgMarkup(value: string): string {
+    const raw = value.trim();
+    const start = raw.search(/<svg[\s>]/i);
+    if (start < 0) return '';
+    const svg = raw.slice(start);
+    const firstTag = svg.slice(0, Math.max(svg.indexOf('>') + 1, 0));
+    if (/\sxmlns=/.test(firstTag)) return svg;
+    return svg.replace(/^<svg\b/i, '<svg xmlns="http://www.w3.org/2000/svg"');
+  }
+
+  function getSvgDimensions(svg: string): { width: number; height: number } {
+    const parsed = new DOMParser().parseFromString(svg, 'image/svg+xml').documentElement;
+    const viewBox = (parsed.getAttribute('viewBox') || '').trim().split(/\s+/).map(Number);
+    const width = readSvgSize(parsed.getAttribute('width')) || (viewBox.length === 4 ? viewBox[2] : 0) || 1200;
+    const height = readSvgSize(parsed.getAttribute('height')) || (viewBox.length === 4 ? viewBox[3] : 0) || 800;
+    return { width: Math.max(1, width), height: Math.max(1, height) };
+  }
+
+  function readSvgSize(value: string | null): number {
+    if (!value || value.includes('%')) return 0;
+    const parsed = Number.parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  function downloadBaseName(entry: ArtifactEntry): string {
+    return (entry.artifact.title || entry.artifact.id || 'artifact').replace(/[^a-zA-Z0-9_-]/g, '_') || 'artifact';
+  }
+
+  function downloadBlob(content: string | Blob, type: string, filename: string) {
+    const blob = content instanceof Blob ? content : new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+  }
+
+  function showDownloadNotice(message: string) {
+    downloadNotice = message;
+    if (downloadNoticeTimer) clearTimeout(downloadNoticeTimer);
+    downloadNoticeTimer = setTimeout(() => {
+      downloadNotice = '';
+      downloadNoticeTimer = null;
+    }, 2200);
   }
 
   function isActiveGalleryEntry(entry: ArtifactEntry): boolean {
@@ -128,14 +266,22 @@
           <span class="text-[10px] uppercase tracking-widest font-bold px-2 py-1 rounded-md bg-amber-500 text-stone-900">{currentEntry?.artifact.type}</span>
           <span class="text-sm font-medium text-stone-200 truncate">{currentEntry?.artifact.title || 'Artifact'}</span>
         </div>
-        <div class="flex items-center gap-1 shrink-0">
+        <div class="flex max-w-[72%] items-center gap-1 overflow-x-auto shrink-0">
           <button onclick={() => currentEntry && onregenerate(currentEntry)} disabled={busy} class="text-[10px] px-2 py-1 rounded-md text-stone-400 hover:text-white hover:bg-white/10 disabled:opacity-40 transition-all" aria-label="Regenerate selected artifact">Regenerate</button>
           <button onclick={() => currentEntry && copySource(currentEntry)} class="min-w-[4.75rem] whitespace-nowrap text-center text-[10px] px-2 py-1 rounded-md text-stone-400 hover:text-white hover:bg-white/10 transition-all" aria-label="Copy selected artifact source">{copiedSourceKey === currentEntryKey ? 'Copied' : 'Copy source'}</button>
+          <button onclick={() => currentEntry && downloadSource(currentEntry)} class="text-[10px] px-2 py-1 rounded-md text-stone-400 hover:text-white hover:bg-white/10 transition-all" aria-label="Download selected artifact source">Source</button>
+          {#if canDownloadRenderedSvg}
+            <button onclick={() => currentEntry && downloadSvg(currentEntry)} class="text-[10px] px-2 py-1 rounded-md text-stone-400 hover:text-white hover:bg-white/10 transition-all" aria-label="Download selected artifact SVG">SVG</button>
+            <button onclick={() => currentEntry && downloadPng(currentEntry)} class="text-[10px] px-2 py-1 rounded-md text-stone-400 hover:text-white hover:bg-white/10 transition-all" aria-label="Download selected artifact PNG">PNG</button>
+          {/if}
           <button onclick={onclose} class="text-[10px] px-2 py-1 rounded-md text-stone-400 hover:text-white hover:bg-white/10 transition-all" aria-label="Close panel (Esc)">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </div>
       </div>
+      {#if downloadNotice}
+        <div class="shrink-0 border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-800" aria-live="polite">{downloadNotice}</div>
+      {/if}
 
       <div class="flex min-h-0 flex-1">
         {#if galleryEntries.length > 1}
@@ -187,7 +333,7 @@
             </div>
           {/if}
 
-          <div class="flex-1 overflow-auto bg-[#faf7f2]">
+          <div class="flex-1 overflow-auto bg-[#faf7f2]" bind:this={panelHost}>
             {#if currentError}
               <div class="bg-red-50 border-b border-red-200 px-4 py-2 flex items-center justify-between gap-2">
                 <div class="text-xs text-red-700 truncate min-w-0"><span class="font-bold">Error:</span> {currentError}</div>

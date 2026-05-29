@@ -72,4 +72,20 @@ describe('artifact gallery jump controls', () => {
     expect(split).toContain("copiedSourceKey === currentEntryKey ? 'Copied' : 'Copy source'");
     expect(split).toContain('copyResetTimer');
   });
+
+  it('offers separate source, SVG, and PNG downloads for the selected artifact', () => {
+    const split = source('src/components/ArtifactSplitView.svelte');
+
+    expect(split).toContain('function downloadSource(entry: ArtifactEntry)');
+    expect(split).toContain('function downloadSvg(entry: ArtifactEntry)');
+    expect(split).toContain('async function downloadPng(entry: ArtifactEntry)');
+    expect(split).toContain('function getSelectedSvgMarkup(entry: ArtifactEntry)');
+    expect(split).toContain("querySelector('svg')");
+    expect(split).toContain('new XMLSerializer().serializeToString(svg)');
+    expect(split).toContain('canvas.toBlob');
+    expect(split).toContain('aria-label="Download selected artifact source"');
+    expect(split).toContain('aria-label="Download selected artifact SVG"');
+    expect(split).toContain('aria-label="Download selected artifact PNG"');
+    expect(split).toContain('bind:this={panelHost}');
+  });
 });
