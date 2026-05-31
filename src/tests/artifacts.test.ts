@@ -72,6 +72,16 @@ describe('artifact detection', () => {
 });
 
 describe('artifact stream parser', () => {
+  function feedUtf8ByteChunks(parser: ArtifactStreamParser, value: string) {
+    const decoder = new TextDecoder();
+    for (const byte of new TextEncoder().encode(value)) {
+      const chunk = decoder.decode(Uint8Array.of(byte), { stream: true });
+      if (chunk) parser.feed(chunk);
+    }
+    const finalChunk = decoder.decode();
+    if (finalChunk) parser.feed(finalChunk);
+  }
+
   it('parses artifact tags split across token boundaries without leaking markup', () => {
     const artifacts: Artifact[] = [];
     const text: string[] = [];
@@ -108,6 +118,77 @@ describe('artifact stream parser', () => {
 
     expect(artifacts).toHaveLength(1);
     expect(artifacts[0]).toMatchObject({ type: 'code', title: 'Old app' });
+  });
+
+  it('parses tolerant artifact open tags split across token boundaries', () => {
+    const artifacts: Artifact[] = [];
+    const text: string[] = [];
+    const parser = new ArtifactStreamParser((artifact) => artifacts.push(artifact), (chunk) => text.push(chunk));
+
+    parser.feed('Intro <xr');
+    parser.feed('tifact type="mermaid" title="Flow">graph TD\nA-->B</xrtifact> outro');
+    parser.flush();
+
+    expect(text.join('')).toBe('Intro  outro');
+    expect(artifacts).toHaveLength(1);
+    expect(artifacts[0]).toMatchObject({
+      type: 'mermaid',
+      title: 'Flow',
+      code: 'graph TD\nA-->B',
+    });
+  });
+
+  it('closes artifact bodies when the close tag is split across token boundaries', () => {
+    const artifacts: Artifact[] = [];
+    const text: string[] = [];
+    const parser = new ArtifactStreamParser((artifact) => artifacts.push(artifact), (chunk) => text.push(chunk));
+
+    parser.feed('Intro <artifact type="code" title="Demo">const value = 1;</arti');
+    parser.feed('fact> outro');
+    parser.flush();
+
+    expect(text.join('')).toBe('Intro  outro');
+    expect(artifacts).toHaveLength(1);
+    expect(artifacts[0]).toMatchObject({
+      type: 'code',
+      title: 'Demo',
+      code: 'const value = 1;',
+    });
+  });
+
+  it('preserves UTF-8 artifact content while tags arrive as byte-sized chunks', () => {
+    const artifacts: Artifact[] = [];
+    const text: string[] = [];
+    const parser = new ArtifactStreamParser((artifact) => artifacts.push(artifact), (chunk) => text.push(chunk));
+
+    feedUtf8ByteChunks(
+      parser,
+      'Intro <artifact type="code" title="Resume">Résumé ✓\nnaive cafe</artifact> outro',
+    );
+    parser.flush();
+
+    expect(text.join('')).toBe('Intro  outro');
+    expect(artifacts).toHaveLength(1);
+    expect(artifacts[0]).toMatchObject({
+      type: 'code',
+      title: 'Resume',
+      code: 'Résumé ✓\nnaive cafe',
+    });
+  });
+
+  it('preserves unfinished tag-like artifact content on flush', () => {
+    const artifacts: Artifact[] = [];
+    const parser = new ArtifactStreamParser((artifact) => artifacts.push(artifact), () => {});
+
+    parser.feed('<artifact type="html" title="Draft"><div');
+    parser.flush();
+
+    expect(artifacts).toHaveLength(1);
+    expect(artifacts[0]).toMatchObject({
+      type: 'html',
+      title: 'Draft',
+      code: '<div',
+    });
   });
 
   it('accepts case-varied artifact close tags without swallowing trailing text', () => {
