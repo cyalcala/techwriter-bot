@@ -75,7 +75,7 @@ The current tracked code graph was refreshed with `graphify update .` on
 - Graph: `graphify-out/graph.json`
 - Summary: 763 nodes, 1215 edges
 - Extraction confidence: 94% EXTRACTED, 6% INFERRED, 0% AMBIGUOUS
-- Built from code at commit: `0dd45bc2`
+- Built from code at commit: `20ee914a`
 - The generated report currently disagrees with itself on total community
   count; use node/edge counts and targeted graph queries for acceptance until
   that reporting discrepancy is reconciled.
@@ -127,6 +127,9 @@ The current tracked code graph was refreshed with `graphify update .` on
 - Client `PERSONA_NAME` is read from env for the page title, app header, and
   initial greeting; empty-chat suggested prompts are derived from
   `SYSTEM_PROMPT` without passing the raw prompt to the browser.
+- The Cloudflare Pages route prefers runtime env for `SYSTEM_PROMPT` and
+  `PERSONA_NAME`; the GitHub deployment workflow can configure both values as
+  Cloudflare Pages env vars without committing client-specific brand policy.
 
 Before broad architecture work, read `graphify-out/GRAPH_REPORT.md` first.
 When the graph may be stale, run:
