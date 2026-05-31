@@ -51,6 +51,60 @@ function normalizeClientSystemPrompt(prompt?: string): string {
   return (prompt || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
 }
 
+const DEFAULT_SUGGESTED_PROMPTS = [
+  'Draft release notes for a recent change',
+  'Review this documentation for clarity',
+  'Create a diagram for a technical workflow',
+];
+
+const SUGGESTION_RULES: { terms: string[]; prompt: string }[] = [
+  {
+    terms: ['api', 'endpoint', 'reference'],
+    prompt: 'Turn API details into a clear reference page',
+  },
+  {
+    terms: ['onboarding', 'quickstart', 'setup'],
+    prompt: 'Create a quickstart from these notes',
+  },
+  {
+    terms: ['release', 'changelog', 'version'],
+    prompt: 'Draft release notes in this voice',
+  },
+  {
+    terms: ['diagram', 'architecture', 'workflow'],
+    prompt: 'Create a diagram for this workflow',
+  },
+  {
+    terms: ['troubleshoot', 'support', 'faq'],
+    prompt: 'Write troubleshooting steps for users',
+  },
+  {
+    terms: ['style', 'voice', 'tone', 'second person', 'hype'],
+    prompt: 'Rewrite this draft in the client voice',
+  },
+  {
+    terms: ['security', 'privacy', 'compliance'],
+    prompt: 'Review this doc for security-safe wording',
+  },
+];
+
+export function deriveSuggestedPrompts(systemPrompt?: string): string[] {
+  const normalized = normalizeClientSystemPrompt(systemPrompt).toLowerCase();
+  const suggestions: string[] = [];
+
+  for (const rule of SUGGESTION_RULES) {
+    if (rule.terms.some((term) => normalized.includes(term)) && !suggestions.includes(rule.prompt)) {
+      suggestions.push(rule.prompt);
+    }
+  }
+
+  for (const prompt of DEFAULT_SUGGESTED_PROMPTS) {
+    if (!suggestions.includes(prompt)) suggestions.push(prompt);
+  }
+
+  return suggestions.slice(0, 3);
+}
+
 export function buildSystemPrompt(query: string, ctx: PromptContext): string {
   const now = new Date();
   const dayName = now.toLocaleDateString('en-US', { weekday: 'long' });

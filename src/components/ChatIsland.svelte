@@ -49,10 +49,50 @@
     text: string;
   }
 
-  let messages = $state<Message[]>([{ role: 'assistant', content: "Hi! I'm Technical Writer. I help with writing, research, diagrams, and code. What can I create for you?" }]);
+  interface Props {
+    personaName?: string;
+    suggestedPrompts?: string[];
+  }
+
+  const DEFAULT_PERSONA_NAME = 'Technical Writer';
+  const DEFAULT_SUGGESTED_PROMPTS = [
+    'Draft release notes for a recent change',
+    'Review this documentation for clarity',
+    'Create a diagram for a technical workflow',
+  ];
+
+  let {
+    personaName = DEFAULT_PERSONA_NAME,
+    suggestedPrompts = DEFAULT_SUGGESTED_PROMPTS,
+  }: Props = $props();
+
+  function cleanPersonaName(name?: string): string {
+    return (name || '').trim() || DEFAULT_PERSONA_NAME;
+  }
+
+  function personaGreeting(name: string): string {
+    return `Hi! I'm ${name}. I help with writing, research, diagrams, and code. What can I create for you?`;
+  }
+
+  const visiblePersonaName = $derived(cleanPersonaName(personaName));
+  const visibleSuggestedPrompts = $derived(
+    (Array.isArray(suggestedPrompts) ? suggestedPrompts : [])
+      .map((prompt) => prompt.trim())
+      .filter(Boolean)
+      .slice(0, 3),
+  );
+
+  let messages = $state<Message[]>([{ role: 'assistant', content: personaGreeting(visiblePersonaName) }]);
   let inputMessage = $state('');
   let isLoading = $state(false);
   let isStreaming = $state(false);
+  const showSuggestedPrompts = $derived(
+    visibleSuggestedPrompts.length > 0
+      && messages.length === 1
+      && messages[0]?.role === 'assistant'
+      && !isLoading
+      && !isStreaming,
+  );
   let sessionId = $state('');
   let isUploading = $state(false);
   let rag = $state<RagState>(createDefaultRagState());
@@ -507,6 +547,13 @@
     await doSend();
   }
 
+  async function sendSuggestedPrompt(prompt: string) {
+    const trimmed = prompt.trim();
+    if (!trimmed || isLoading) return;
+    inputMessage = trimmed;
+    await sendMessage();
+  }
+
   async function doSend() {
     safeAbort();
     liveOutage = null;
@@ -823,7 +870,7 @@
       <div class="flex items-center gap-2 md:gap-3 min-w-0">
         <div class="flex items-center gap-1.5 shrink-0">
           <div class="w-2 h-2 md:w-2.5 md:h-2.5 rounded-full bg-green-600 animate-pulse shadow-[0_0_6px_rgba(22,163,74,0.4)]"></div>
-          <h1 class="text-xs md:text-sm font-semibold tracking-tight text-stone-800 whitespace-nowrap">Technical Writer</h1>
+          <h1 class="text-xs md:text-sm font-semibold tracking-tight text-stone-800 whitespace-nowrap">{visiblePersonaName}</h1>
         </div>
         <span class="text-stone-300 hidden sm:inline">/</span>
         <a href="https://www.linkedin.com/in/cyrusalcala/" target="_blank" rel="noopener" class="hidden sm:flex items-center gap-1 text-[10px] md:text-[11px] text-stone-400 hover:text-stone-600 transition-colors font-medium">
@@ -872,6 +919,21 @@
       {copiedMessageIdx}
       {chatPath}
     />
+
+    {#if showSuggestedPrompts}
+      <div class="px-4 md:px-8 pb-2">
+        <div class="max-w-3xl mx-auto flex flex-wrap gap-2">
+          {#each visibleSuggestedPrompts as prompt}
+            <button
+              type="button"
+              onclick={() => sendSuggestedPrompt(prompt)}
+              disabled={isLoading}
+              class="max-w-full rounded-lg border border-stone-200 bg-white/70 px-3 py-2 text-left text-xs font-medium text-stone-600 shadow-sm transition-colors hover:border-amber-200 hover:bg-amber-50 hover:text-stone-800 disabled:opacity-50"
+            >{prompt}</button>
+          {/each}
+        </div>
+      </div>
+    {/if}
 
     <input type="file" bind:this={fileInput} onchange={onFileSelected} class="hidden" accept=".txt,.md,.json,.csv" multiple />
 
