@@ -20,7 +20,8 @@ The active slice is artifact reliability:
 - Active-session renderer retry controls.
 - Existing Fix with AI handoff for panel renderer errors.
 - Clearer browser-render and server-render failure messaging.
-- Streaming parser hardening for malformed and nested artifact tags.
+- Streaming parser hardening for malformed, nested, and chunk-split artifact
+  tags.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -161,6 +162,7 @@ Documentation Tooling Agent direction.
   - `aa87bb6` selected artifact source copy action.
   - `75f8d12` selected artifact source/SVG/PNG downloads.
   - `58e2663` malformed and nested artifact stream parser hardening.
+  - `4a4f621` UTF-8 and chunk-boundary artifact stream parser hardening.
 
 ## In Progress
 
@@ -197,6 +199,11 @@ Documentation Tooling Agent direction.
   source copy, separate source/SVG/PNG downloads, and malformed/nested artifact
   parser hardening are implemented without disrupting real credentials,
   reviving browser package runtimes, or extending the bounded tooling scope.
+- Local `main` contains chunk-boundary parser hardening commit `4a4f621`, which
+  preserves tolerant open tags, split close tags, UTF-8 artifact content, and
+  unfinished tag-like artifact content across streaming chunk boundaries.
+  Production acceptance for that commit is pending the next GitHub Actions
+  deployment.
 
 ## Blockers And Notes
 
@@ -644,14 +651,31 @@ Latest incremental verification on 2026-05-31:
   four active providers out of six at probe time, matching app version, and no
   version mismatch; bounded graph lookup for `findNextArtifactBoundary` returns
   `src/lib/stream-parser.ts:L117` with `Cache-Control: no-store, private`.
+- Added chunk-boundary parser hardening in `src/lib/stream-parser.ts` plus
+  regression coverage in `src/tests/artifacts.test.ts`: tolerant artifact open
+  tags split across chunks no longer leak to main text, close tags split across
+  chunks close the artifact and preserve trailing text, UTF-8 artifact content
+  survives byte-sized decoded chunks, and unfinished tag-like artifact content
+  is preserved on flush.
+- Red-green coverage confirmed the previous chunk-boundary gaps, then passed
+  after implementation. Verification passed after this parser slice:
+  `npm.cmd test -- --run src/tests/artifacts.test.ts --testNamePattern "tolerant artifact open|close tag is split|UTF-8 artifact"`,
+  `npm.cmd test -- --run src/tests/artifacts.test.ts --testNamePattern "unfinished tag-like"`,
+  `npm.cmd test -- --run src/tests/artifacts.test.ts` (18 tests),
+  `npm.cmd test -- --run src/tests/artifacts.test.ts src/tests/artifact-gallery.test.ts src/tests/artifact-repair-flow.test.ts src/tests/artifact-error-boundary.test.ts src/tests/kroki-renderer.test.ts` (5 files, 35 tests),
+  `npm.cmd test` (28 files, 129 tests),
+  `npm.cmd audit --omit=dev --audit-level=high`, `git diff --check`, and the
+  recorded `build:local` command.
+- `graphify update .` refreshed tracked local Graphify artifacts from commit
+  `4a4f621`: 745 nodes and 1162 edges. Community-count wording remains
+  non-blocking.
 
 ## Next Task
 
 Continue Phase 2 core-engine work with streaming parser hardening from the
 master plan in small slices:
 
-- Add UTF-8/chunk-boundary coverage for artifact tags and content.
-- Then add debounce/timeout behavior.
+- Add debounce/timeout behavior for artifact DOM updates.
 - Treat Graphify's inconsistent community-count wording as non-blocking unless
   community totals become release criteria. Do not introduce autonomous
   execution or browser package runtimes.

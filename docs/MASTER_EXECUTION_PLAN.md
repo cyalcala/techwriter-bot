@@ -69,9 +69,9 @@ The current tracked code graph was refreshed with `graphify update .` on
 
 - Report: `graphify-out/GRAPH_REPORT.md`
 - Graph: `graphify-out/graph.json`
-- Summary: 742 nodes, 1157 edges
+- Summary: 745 nodes, 1162 edges
 - Extraction confidence: 95% EXTRACTED, 5% INFERRED, 0% AMBIGUOUS
-- Built from code at commit: `58e2663f`
+- Built from code at commit: `4a4f6213`
 - The generated report currently disagrees with itself on total community
   count; use node/edge counts and targeted graph queries for acceptance until
   that reporting discrepancy is reconciled.
@@ -103,6 +103,8 @@ The current tracked code graph was refreshed with `graphify update .` on
 - Streaming parser hardening now tolerates case-varied and typo-style artifact
   tags and preserves nested artifact tags inside the outer artifact body without
   leaking trailing text.
+- Artifact tag buffering now also preserves tolerant open tags, close tags, and
+  UTF-8 artifact content when stream chunks split across tag or byte boundaries.
 
 Before broad architecture work, read `graphify-out/GRAPH_REPORT.md` first.
 When the graph may be stale, run:
