@@ -3,8 +3,15 @@ import '../styles/global.css';
 import ChatIsland from '../components/ChatIsland.svelte';
 import { deriveSuggestedPrompts } from '../lib/prompts';
 
-const personaName = (import.meta.env.PERSONA_NAME || 'Technical Writer').trim() || 'Technical Writer';
-const suggestedPrompts = deriveSuggestedPrompts(import.meta.env.SYSTEM_PROMPT);
+const runtimeEnv = (Astro.locals as any)?.runtime?.env ?? {};
+const rawPersonaName = typeof runtimeEnv.PERSONA_NAME === 'string'
+  ? runtimeEnv.PERSONA_NAME
+  : import.meta.env.PERSONA_NAME;
+const rawSystemPrompt = typeof runtimeEnv.SYSTEM_PROMPT === 'string'
+  ? runtimeEnv.SYSTEM_PROMPT
+  : import.meta.env.SYSTEM_PROMPT;
+const personaName = (rawPersonaName || 'Technical Writer').trim() || 'Technical Writer';
+const suggestedPrompts = deriveSuggestedPrompts(rawSystemPrompt);
 ---
 
 <html lang="en">

@@ -65,4 +65,19 @@ describe('client brand voice prompt injection', () => {
     expect(envReader).toContain("set('PERSONA_NAME'");
     expect(template).toContain('PERSONA_NAME=');
   });
+
+  it('keeps brand voice runtime-configurable in Cloudflare Pages deploys', () => {
+    const index = source('src/pages/index.astro');
+    const workflow = source('.github/workflows/deploy.yml');
+
+    expect(index).toContain('Astro.locals');
+    expect(index).toContain('runtime?.env');
+    expect(index).toContain('runtimeEnv.SYSTEM_PROMPT');
+    expect(index).toContain('runtimeEnv.PERSONA_NAME');
+
+    expect(workflow).toContain('SYSTEM_PROMPT: process.env.SYSTEM_PROMPT');
+    expect(workflow).toContain('PERSONA_NAME: process.env.PERSONA_NAME');
+    expect(workflow).toContain('SYSTEM_PROMPT: ${{ secrets.SYSTEM_PROMPT }}');
+    expect(workflow).toContain('PERSONA_NAME: ${{ vars.PERSONA_NAME || secrets.PERSONA_NAME }}');
+  });
 });
