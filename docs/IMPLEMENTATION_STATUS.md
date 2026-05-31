@@ -191,7 +191,7 @@ Documentation Tooling Agent direction.
   controlled-renderer checkpoint removes that external browser package runtime
   from executable product paths and treats legacy output as inert code.
 - The public production alias `https://tw-bot.pages.dev` now serves
-  RAG document registry code commit `378a61a` via docs commit `46d95d1`.
+  Knowledge Base re-embed code commit `220dab2` via docs commit `65be264`.
   The accepted preview alias remains available at
   `https://codex-privacy-first-disclosu.tw-bot.pages.dev`.
 - Defined the first bounded Documentation Tooling Agent slice in
@@ -203,7 +203,7 @@ Documentation Tooling Agent direction.
   active-session deterministic document review and a bounded read-only
   `src/` reference lookup with no generic fallback output.
 - Published a production runtime graph through the authorized GitHub Actions
-  path; the latest accepted runtime extraction from `46d95d1` contains 841
+  path; the latest accepted runtime extraction from `65be264` contains 841
   nodes and 1231 edges and is available only through the bounded `src/` lookup
   surface.
 - Safe provider fault-injection coverage, renderer-preload warning cleanup,
@@ -212,13 +212,9 @@ Documentation Tooling Agent direction.
   source copy, separate source/SVG/PNG downloads, malformed/nested artifact
   parser hardening, chunk-boundary parser hardening, artifact debounce/timeout
   behavior, RAG citation metadata/retrieval guards, and the first RAG Knowledge
-  Base registry/delete controls are implemented without disrupting real
-  credentials, reviving browser package runtimes, or extending the bounded
+  Base registry/delete/re-embed controls are implemented without disrupting
+  real credentials, reviving browser package runtimes, or extending the bounded
   tooling scope.
-- Local `main` contains Knowledge Base re-embed commit `220dab2`, which retains
-  uploaded source text only in active `ChatIsland` memory and reuses the
-  existing upload/indexing path when the user clicks Re-embed. Production
-  acceptance for that commit is pending the next GitHub Actions deployment.
 
 ## Blockers And Notes
 
@@ -271,6 +267,10 @@ Documentation Tooling Agent direction.
 - RAG document registry and Knowledge Base controls deployed from docs commit
   `46d95d1` through GitHub Actions run `26702942883` with immutable URL
   `https://42bf2dbb.tw-bot.pages.dev` and production alias
+  `https://tw-bot.pages.dev`.
+- Knowledge Base re-embed deployed from docs commit `65be264` through GitHub
+  Actions run `26703161061` with immutable URL
+  `https://93e6f077.tw-bot.pages.dev` and production alias
   `https://tw-bot.pages.dev`.
 - Local build currently emits non-failing Node `punycode`/`MaxListenersExceeded`
   warnings plus the Wrangler local-AI remote-usage warning.
@@ -803,6 +803,14 @@ Latest incremental verification on 2026-05-31:
 - `graphify update .` refreshed tracked local Graphify artifacts from commit
   `220dab2`: 758 nodes and 1207 edges. Community-count wording remains
   non-blocking.
+- The Knowledge Base re-embed deploy passed in GitHub Actions run
+  `26703161061` at immutable URL `https://93e6f077.tw-bot.pages.dev`. The
+  production runtime graph from that run reports 841 nodes and 1231 edges.
+- Production probes confirmed `/api/health` returns `200` with request id,
+  three active providers out of six at probe time, matching app version, and no
+  version mismatch; bounded graph lookup for `ChatInput` returns
+  `src/components/ChatInput.svelte:L1` with `Cache-Control: no-store, private`;
+  the deployed `ChatIsland` component asset contained the `Re-embed` UI string.
 
 ## Next Task
 
