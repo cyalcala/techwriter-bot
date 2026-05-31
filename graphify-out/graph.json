@@ -189,7 +189,7 @@
       "source_file": "src/components/ArtifactSplitView.svelte",
       "source_location": "L1",
       "id": "src_components_artifactsplitview_svelte",
-      "community": 14,
+      "community": 13,
       "norm_label": "artifactsplitview.svelte"
     },
     {
@@ -198,7 +198,7 @@
       "source_file": "src/components/ArtifactSplitView.svelte",
       "source_location": "L83",
       "id": "components_artifactsplitview_gonext",
-      "community": 14,
+      "community": 13,
       "norm_label": "gonext()"
     },
     {
@@ -207,7 +207,7 @@
       "source_file": "src/components/ArtifactSplitView.svelte",
       "source_location": "L84",
       "id": "components_artifactsplitview_goprev",
-      "community": 14,
+      "community": 13,
       "norm_label": "goprev()"
     },
     {
@@ -216,7 +216,7 @@
       "source_file": "src/components/ArtifactSplitView.svelte",
       "source_location": "L86",
       "id": "components_artifactsplitview_artifactentrykey",
-      "community": 14,
+      "community": 13,
       "norm_label": "artifactentrykey()"
     },
     {
@@ -225,7 +225,7 @@
       "source_file": "src/components/ArtifactSplitView.svelte",
       "source_location": "L90",
       "id": "components_artifactsplitview_copysource",
-      "community": 14,
+      "community": 13,
       "norm_label": "copysource()"
     },
     {
@@ -234,7 +234,7 @@
       "source_file": "src/components/ArtifactSplitView.svelte",
       "source_location": "L104",
       "id": "components_artifactsplitview_downloadsource",
-      "community": 14,
+      "community": 13,
       "norm_label": "downloadsource()"
     },
     {
@@ -243,7 +243,7 @@
       "source_file": "src/components/ArtifactSplitView.svelte",
       "source_location": "L113",
       "id": "components_artifactsplitview_downloadsvg",
-      "community": 14,
+      "community": 13,
       "norm_label": "downloadsvg()"
     },
     {
@@ -252,7 +252,7 @@
       "source_file": "src/components/ArtifactSplitView.svelte",
       "source_location": "L122",
       "id": "components_artifactsplitview_downloadpng",
-      "community": 14,
+      "community": 13,
       "norm_label": "downloadpng()"
     },
     {
@@ -261,7 +261,7 @@
       "source_file": "src/components/ArtifactSplitView.svelte",
       "source_location": "L160",
       "id": "components_artifactsplitview_getselectedsvgmarkup",
-      "community": 14,
+      "community": 13,
       "norm_label": "getselectedsvgmarkup()"
     },
     {
@@ -270,7 +270,7 @@
       "source_file": "src/components/ArtifactSplitView.svelte",
       "source_location": "L167",
       "id": "components_artifactsplitview_normalizesvgmarkup",
-      "community": 14,
+      "community": 13,
       "norm_label": "normalizesvgmarkup()"
     },
     {
@@ -279,7 +279,7 @@
       "source_file": "src/components/ArtifactSplitView.svelte",
       "source_location": "L177",
       "id": "components_artifactsplitview_getsvgdimensions",
-      "community": 14,
+      "community": 13,
       "norm_label": "getsvgdimensions()"
     },
     {
@@ -540,7 +540,7 @@
       "source_file": "src/lib/artifact-lifecycle.ts",
       "source_location": "L1",
       "id": "src_lib_artifact_lifecycle_ts",
-      "community": 13,
+      "community": 14,
       "norm_label": "artifact-lifecycle.ts"
     },
     {
@@ -549,7 +549,7 @@
       "source_file": "src/lib/artifact-lifecycle.ts",
       "source_location": "L5",
       "id": "lib_artifact_lifecycle_generateartifactid",
-      "community": 13,
+      "community": 14,
       "norm_label": "generateartifactid()"
     },
     {
@@ -558,7 +558,7 @@
       "source_file": "src/lib/artifact-lifecycle.ts",
       "source_location": "L10",
       "id": "lib_artifact_lifecycle_extractartifacttitle",
-      "community": 13,
+      "community": 14,
       "norm_label": "extractartifacttitle()"
     },
     {
@@ -567,7 +567,7 @@
       "source_file": "src/lib/artifact-lifecycle.ts",
       "source_location": "L36",
       "id": "lib_artifact_lifecycle_isartifactupdate",
-      "community": 13,
+      "community": 14,
       "norm_label": "isartifactupdate()"
     },
     {
@@ -576,7 +576,7 @@
       "source_file": "src/lib/artifact-lifecycle.ts",
       "source_location": "L40",
       "id": "lib_artifact_lifecycle_timeago",
-      "community": 13,
+      "community": 14,
       "norm_label": "timeago()"
     },
     {
@@ -585,7 +585,7 @@
       "source_file": "src/lib/artifact-lifecycle.ts",
       "source_location": "L48",
       "id": "lib_artifact_lifecycle_simplehash",
-      "community": 13,
+      "community": 14,
       "norm_label": "simplehash()"
     },
     {
@@ -3249,7 +3249,7 @@
       "source_file": "src/tests/artifacts.test.ts",
       "source_location": "L1",
       "id": "src_tests_artifacts_test_ts",
-      "community": 13,
+      "community": 14,
       "norm_label": "artifacts.test.ts"
     },
     {
@@ -3258,7 +3258,7 @@
       "source_file": "src/tests/artifacts.test.ts",
       "source_location": "L75",
       "id": "tests_artifacts_test_feedutf8bytechunks",
-      "community": 13,
+      "community": 14,
       "norm_label": "feedutf8bytechunks()"
     },
     {
@@ -3707,7 +3707,7 @@
       "file_type": "code",
       "source_file": "src/components/ArtifactSplitView.svelte",
       "source_location": "L78",
-      "community": 14,
+      "community": 13,
       "norm_label": "isactivegalleryentry()",
       "id": "components_artifactsplitview_isactivegalleryentry"
     },
@@ -3716,7 +3716,7 @@
       "file_type": "code",
       "source_file": "src/components/ArtifactSplitView.svelte",
       "source_location": "L82",
-      "community": 14,
+      "community": 13,
       "norm_label": "selectgalleryentry()",
       "id": "components_artifactsplitview_selectgalleryentry"
     },
@@ -3725,7 +3725,7 @@
       "file_type": "code",
       "source_file": "src/components/ArtifactSplitView.svelte",
       "source_location": "L90",
-      "community": 14,
+      "community": 13,
       "norm_label": "handlekeydown()",
       "id": "components_artifactsplitview_handlekeydown"
     },
@@ -4031,7 +4031,7 @@
       "file_type": "code",
       "source_file": "src/lib/stream-parser",
       "confidence": "EXTRACTED",
-      "community": 17,
+      "community": 19,
       "norm_label": "../lib/stream-parser",
       "id": "c_users_admin_desktop_techwriter_bot_src_lib_stream_parser"
     },
@@ -4049,7 +4049,7 @@
       "file_type": "code",
       "source_file": "src/lib/renderer-loader",
       "confidence": "EXTRACTED",
-      "community": 19,
+      "community": 10,
       "norm_label": "../lib/renderer-loader",
       "id": "c_users_admin_desktop_techwriter_bot_src_lib_renderer_loader"
     },
@@ -4067,7 +4067,7 @@
       "file_type": "code",
       "source_file": "src/components/ArtifactSplitView.svelte",
       "source_location": "L36",
-      "community": 14,
+      "community": 13,
       "norm_label": "currententry",
       "id": "components_artifactsplitview_currententry"
     },
@@ -4076,7 +4076,7 @@
       "file_type": "code",
       "source_file": "src/components/ArtifactSplitView.svelte",
       "source_location": "L37",
-      "community": 14,
+      "community": 13,
       "norm_label": "currenterror",
       "id": "components_artifactsplitview_currenterror"
     },
@@ -4085,7 +4085,7 @@
       "file_type": "code",
       "source_file": "src/components/ArtifactSplitView.svelte",
       "source_location": "L38",
-      "community": 14,
+      "community": 13,
       "norm_label": "overlaykey",
       "id": "components_artifactsplitview_overlaykey"
     },
@@ -4094,7 +4094,7 @@
       "file_type": "code",
       "source_file": "src/components/ArtifactSplitView.svelte",
       "source_location": "L39",
-      "community": 14,
+      "community": 13,
       "norm_label": "chipbases",
       "id": "components_artifactsplitview_chipbases"
     },
@@ -4175,7 +4175,7 @@
       "file_type": "code",
       "source_file": "src/lib/artifact-detector",
       "confidence": "EXTRACTED",
-      "community": 13,
+      "community": 14,
       "norm_label": "../lib/artifact-detector",
       "id": "c_users_admin_desktop_techwriter_bot_src_lib_artifact_detector"
     },
@@ -4229,7 +4229,7 @@
       "file_type": "code",
       "source_file": "src/lib/artifact-lifecycle.ts",
       "source_location": "L3",
-      "community": 13,
+      "community": 17,
       "norm_label": "artifactstatus",
       "id": "lib_artifact_lifecycle_artifactstatus"
     },
@@ -5147,7 +5147,7 @@
       "file_type": "code",
       "source_file": "src/tests/artifacts.test.ts",
       "source_location": "L7",
-      "community": 13,
+      "community": 14,
       "norm_label": "taggedcases",
       "id": "tests_artifacts_test_taggedcases"
     },
@@ -5156,7 +5156,7 @@
       "file_type": "code",
       "source_file": "src/tests/artifacts.test.ts",
       "source_location": "L28",
-      "community": 13,
+      "community": 14,
       "norm_label": "text",
       "id": "tests_artifacts_test_text"
     },
@@ -5165,7 +5165,7 @@
       "file_type": "code",
       "source_file": "src/tests/artifacts.test.ts",
       "source_location": "L30",
-      "community": 13,
+      "community": 14,
       "norm_label": "result",
       "id": "tests_artifacts_test_result"
     },
@@ -5174,7 +5174,7 @@
       "file_type": "code",
       "source_file": "src/tests/artifacts.test.ts",
       "source_location": "L65",
-      "community": 13,
+      "community": 14,
       "norm_label": "artifacts",
       "id": "tests_artifacts_test_artifacts"
     },
@@ -5183,7 +5183,7 @@
       "file_type": "code",
       "source_file": "src/tests/artifacts.test.ts",
       "source_location": "L67",
-      "community": 13,
+      "community": 14,
       "norm_label": "parser",
       "id": "tests_artifacts_test_parser"
     },
@@ -5192,7 +5192,7 @@
       "file_type": "code",
       "source_file": "src/tests/artifacts.test.ts",
       "source_location": "L95",
-      "community": 13,
+      "community": 14,
       "norm_label": "base",
       "id": "tests_artifacts_test_base"
     },
@@ -5201,7 +5201,7 @@
       "file_type": "code",
       "source_file": "src/tests/artifacts.test.ts",
       "source_location": "L106",
-      "community": 13,
+      "community": 14,
       "norm_label": "queue",
       "id": "tests_artifacts_test_queue"
     },
@@ -5210,7 +5210,7 @@
       "file_type": "code",
       "source_file": "src/tests/artifacts.test.ts",
       "source_location": "L107",
-      "community": 13,
+      "community": 14,
       "norm_label": "artifact",
       "id": "tests_artifacts_test_artifact"
     },
@@ -19495,5 +19495,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "20ee914adcdd40dbf485cbf10965f743b9ccd24b"
+  "built_at_commit": "6ab6be34b4e492198708612873fbd8307d46e1f1"
 }

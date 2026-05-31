@@ -33,7 +33,7 @@ acceptance:
 - Accepted baseline: three empty-chat suggested prompts are derived from
   `SYSTEM_PROMPT` using safe preset mappings, so the raw prompt does not need to
   be serialized to the browser.
-- Current checkpoint: code commit `20ee914` is locally verified and its tracked
+- Current checkpoint: code commit `6ab6be3` is locally verified and its tracked
   Graphify artifacts were refreshed to 763 nodes and 1215 edges.
 - Next slice: push the code/docs checkpoint, watch GitHub Actions production
   deployment, smoke-test the production alias, and record acceptance evidence.
@@ -188,6 +188,7 @@ Documentation Tooling Agent direction.
   - `6964365` markdown-friendly client `SYSTEM_PROMPT` injection.
   - `0dd45bc` client persona header and empty-chat suggested prompts.
   - `20ee914` runtime-configurable brand voice deployment env.
+  - `6ab6be3` Cloudflare env access fix for the brand page route.
 
 ## In Progress
 
@@ -204,7 +205,7 @@ Documentation Tooling Agent direction.
   from executable product paths and treats legacy output as inert code.
 - The public production alias `https://tw-bot.pages.dev` currently serves
   client `SYSTEM_PROMPT` code commit `6964365` via docs commit `493ef4e`.
-  Code commit `20ee914` for client persona header/suggestions and runtime
+  Code commit `6ab6be3` for client persona header/suggestions and runtime
   brand env deployment is locally verified and awaiting the next GitHub Actions
   production deployment.
   The accepted preview alias remains available at
@@ -879,8 +880,8 @@ Latest incremental verification on 2026-05-31:
   non-blocking.
 - Added a runtime brand-env follow-up in `src/pages/index.astro` and
   `.github/workflows/deploy.yml`: the page now prefers
-  `Astro.locals.runtime.env` for `SYSTEM_PROMPT` and `PERSONA_NAME`, falling
-  back to build-time `import.meta.env`, and the GitHub deployment workflow can
+  Cloudflare runtime env for `SYSTEM_PROMPT` and `PERSONA_NAME`, falling back
+  to build-time `import.meta.env`, and the GitHub deployment workflow can
   configure both values as Cloudflare Pages env vars.
 - Red-green coverage confirmed the prior runtime deployment gap, then passed
   after implementation. Verification passed after this follow-up:
@@ -893,13 +894,33 @@ Latest incremental verification on 2026-05-31:
 - `graphify update .` refreshed tracked local Graphify artifacts from commit
   `20ee914`: 763 nodes and 1215 edges. Community-count wording remains
   non-blocking.
+- Production acceptance for `20ee914` caught a root-page regression before the
+  slice was accepted: `/api/health` stayed `200`, but `/` returned `500` on
+  both the production alias and immutable deployment
+  `https://db9d4039.tw-bot.pages.dev`.
+- Root cause: Astro v6 removed `Astro.locals.runtime.env`; the generated worker
+  names `import { env } from "cloudflare:workers"` as the replacement. Code
+  commit `6ab6be3` updates the brand page route to use the same
+  `cloudflare:workers` env import pattern already used by API routes.
+- Red-green coverage confirmed the removed-runtime-env rule, then passed after
+  implementation. Verification passed after this fix:
+  `npm.cmd test -- --run src/tests/brand-voice.test.ts` (5 tests),
+  `npm.cmd test -- --run src/tests/brand-voice.test.ts src/tests/privacy-first.test.ts src/tests/api-routes-consistency.test.ts src/tests/public-diagnostics.test.ts src/tests/critical.test.ts` (5 files, 44 tests),
+  `npm.cmd test` (31 files, 146 tests),
+  `npm.cmd audit --omit=dev --audit-level=high` (0 vulnerabilities),
+  `git diff --check` (only known CRLF conversion warnings), and the recorded
+  `build:local` command. Generated server chunks no longer reference
+  `Astro2.locals` for the brand page route.
+- `graphify update .` refreshed tracked local Graphify artifacts from commit
+  `6ab6be3`: 763 nodes and 1215 edges. Community-count wording remains
+  non-blocking.
 
 ## Next Task
 
 Finish the Brand Voice Per Client production acceptance loop, then move to the
 next phase:
 
-- Push the code/docs checkpoint containing `20ee914`, watch the GitHub Actions
+- Push the code/docs checkpoint containing `6ab6be3`, watch the GitHub Actions
   production deployment, record the run id and immutable Cloudflare URL, verify
   `/api/health`, and use the bounded graph lookup for `runtimeEnv`,
   `deriveSuggestedPrompts`, or `visiblePersonaName`.
