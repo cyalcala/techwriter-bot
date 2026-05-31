@@ -26,8 +26,10 @@ client brand voice:
   documents with visible filename, chunk count, and delete controls.
 - Accepted baseline: user-invoked Knowledge Base re-embed that keeps source
   text only in active page memory.
-- Next slice: start Phase 2 Brand Voice Per Client with env-driven
-  `SYSTEM_PROMPT`, `PERSONA_NAME`, and suggested prompts.
+- Accepted baseline: env-driven markdown-friendly `SYSTEM_PROMPT` injection
+  into every chat path.
+- Next slice: add `PERSONA_NAME` to the UI header and derive empty-chat
+  suggested prompts from `SYSTEM_PROMPT`.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -176,6 +178,7 @@ Documentation Tooling Agent direction.
   - `285a27c` RAG citation metadata and deterministic retrieval guard.
   - `378a61a` in-session RAG document registry and Knowledge Base controls.
   - `220dab2` user-invoked Knowledge Base re-embed control.
+  - `6964365` markdown-friendly client `SYSTEM_PROMPT` injection.
 
 ## In Progress
 
@@ -215,6 +218,11 @@ Documentation Tooling Agent direction.
   Base registry/delete/re-embed controls are implemented without disrupting
   real credentials, reviving browser package runtimes, or extending the bounded
   tooling scope.
+- Local `main` contains Brand Voice `SYSTEM_PROMPT` commit `6964365`, which
+  reads the env value, preserves markdown/multiline formatting, injects it into
+  `buildSystemPrompt()` for every chat path, and documents the env key in
+  `.env.template`. Production acceptance for that commit is pending the next
+  GitHub Actions deployment.
 
 ## Blockers And Notes
 
@@ -811,16 +819,32 @@ Latest incremental verification on 2026-05-31:
   version mismatch; bounded graph lookup for `ChatInput` returns
   `src/components/ChatInput.svelte:L1` with `Cache-Control: no-store, private`;
   the deployed `ChatIsland` component asset contained the `Re-embed` UI string.
+- Added the first Brand Voice Per Client slice in `src/lib/prompts.ts`,
+  `src/pages/api/chat.ts`, `src/lib/env-reader.ts`, and `.env.template`:
+  `SYSTEM_PROMPT` is read from env, normalized from CRLF to LF while preserving
+  markdown and blank lines, and injected through `buildSystemPrompt()` for
+  fast, balanced, and heavy chat paths.
+- Red-green coverage confirmed the previous missing client-prompt injection,
+  then passed after implementation. Verification passed after this slice:
+  `npm.cmd test -- --run src/tests/brand-voice.test.ts`,
+  `npm.cmd test -- --run src/tests/brand-voice.test.ts src/tests/api-routes-consistency.test.ts src/tests/public-diagnostics.test.ts src/tests/critical.test.ts` (4 files, 32 tests),
+  `npm.cmd test` (31 files, 143 tests),
+  `npm.cmd audit --omit=dev --audit-level=high`, `git diff --check`, and the
+  recorded `build:local` command.
+- `graphify update .` refreshed tracked local Graphify artifacts from commit
+  `6964365`: 761 nodes and 1211 edges. Community-count wording remains
+  non-blocking.
 
 ## Next Task
 
 Continue Phase 2 core-engine work with Brand Voice Per Client from the master
 plan in small slices:
 
-- Add focused tests for `SYSTEM_PROMPT` injection into chat requests, then wire
-  a markdown-friendly env prompt into the existing prompt-building path without
-  creating auth, billing, multi-tenancy, email, marketing pages, autonomous
-  agents, WebContainer tooling, or a complex dashboard.
+- Add focused tests for `PERSONA_NAME` in the UI header and empty-chat
+  suggested prompts derived from `SYSTEM_PROMPT`, then wire those into the
+  existing Svelte/Astro page without creating auth, billing, multi-tenancy,
+  email, marketing pages, autonomous agents, WebContainer tooling, or a complex
+  dashboard.
 - Treat Graphify's inconsistent community-count wording as non-blocking unless
   community totals become release criteria. Do not introduce autonomous
   execution or browser package runtimes.

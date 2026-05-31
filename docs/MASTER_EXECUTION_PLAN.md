@@ -73,9 +73,9 @@ The current tracked code graph was refreshed with `graphify update .` on
 
 - Report: `graphify-out/GRAPH_REPORT.md`
 - Graph: `graphify-out/graph.json`
-- Summary: 758 nodes, 1207 edges
+- Summary: 761 nodes, 1211 edges
 - Extraction confidence: 94% EXTRACTED, 6% INFERRED, 0% AMBIGUOUS
-- Built from code at commit: `220dab22`
+- Built from code at commit: `69643652`
 - The generated report currently disagrees with itself on total community
   count; use node/edge counts and targeted graph queries for acceptance until
   that reporting discrepancy is reconciled.
@@ -121,6 +121,9 @@ The current tracked code graph was refreshed with `graphify update .` on
 - Knowledge Base re-embed is user-invoked, retains source text only in active
   page memory, and reuses the existing upload/indexing path without durable
   document-content storage.
+- Client `SYSTEM_PROMPT` is read from env, preserves markdown/multiline
+  formatting, and is injected into every chat path through the central prompt
+  builder.
 
 Before broad architecture work, read `graphify-out/GRAPH_REPORT.md` first.
 When the graph may be stale, run:
