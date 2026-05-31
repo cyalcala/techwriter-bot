@@ -194,7 +194,7 @@ Documentation Tooling Agent direction.
   controlled-renderer checkpoint removes that external browser package runtime
   from executable product paths and treats legacy output as inert code.
 - The public production alias `https://tw-bot.pages.dev` now serves
-  Knowledge Base re-embed code commit `220dab2` via docs commit `65be264`.
+  client `SYSTEM_PROMPT` code commit `6964365` via docs commit `493ef4e`.
   The accepted preview alias remains available at
   `https://codex-privacy-first-disclosu.tw-bot.pages.dev`.
 - Defined the first bounded Documentation Tooling Agent slice in
@@ -206,8 +206,8 @@ Documentation Tooling Agent direction.
   active-session deterministic document review and a bounded read-only
   `src/` reference lookup with no generic fallback output.
 - Published a production runtime graph through the authorized GitHub Actions
-  path; the latest accepted runtime extraction from `65be264` contains 841
-  nodes and 1231 edges and is available only through the bounded `src/` lookup
+  path; the latest accepted runtime extraction from `493ef4e` contains 844
+  nodes and 1236 edges and is available only through the bounded `src/` lookup
   surface.
 - Safe provider fault-injection coverage, renderer-preload warning cleanup,
   Phase 2 renderer boundaries, Kroki/server-render coverage, active-session
@@ -218,11 +218,9 @@ Documentation Tooling Agent direction.
   Base registry/delete/re-embed controls are implemented without disrupting
   real credentials, reviving browser package runtimes, or extending the bounded
   tooling scope.
-- Local `main` contains Brand Voice `SYSTEM_PROMPT` commit `6964365`, which
-  reads the env value, preserves markdown/multiline formatting, injects it into
-  `buildSystemPrompt()` for every chat path, and documents the env key in
-  `.env.template`. Production acceptance for that commit is pending the next
-  GitHub Actions deployment.
+- Client `SYSTEM_PROMPT` injection is implemented without creating auth,
+  billing, multi-tenancy, email, marketing pages, autonomous agents,
+  WebContainer tooling, or a complex dashboard.
 
 ## Blockers And Notes
 
@@ -279,6 +277,10 @@ Documentation Tooling Agent direction.
 - Knowledge Base re-embed deployed from docs commit `65be264` through GitHub
   Actions run `26703161061` with immutable URL
   `https://93e6f077.tw-bot.pages.dev` and production alias
+  `https://tw-bot.pages.dev`.
+- Client `SYSTEM_PROMPT` injection deployed from docs commit `493ef4e` through
+  GitHub Actions run `26703435150` with immutable URL
+  `https://f1e13604.tw-bot.pages.dev` and production alias
   `https://tw-bot.pages.dev`.
 - Local build currently emits non-failing Node `punycode`/`MaxListenersExceeded`
   warnings plus the Wrangler local-AI remote-usage warning.
@@ -834,6 +836,14 @@ Latest incremental verification on 2026-05-31:
 - `graphify update .` refreshed tracked local Graphify artifacts from commit
   `6964365`: 761 nodes and 1211 edges. Community-count wording remains
   non-blocking.
+- The client `SYSTEM_PROMPT` deploy passed in GitHub Actions run
+  `26703435150` at immutable URL `https://f1e13604.tw-bot.pages.dev`. The
+  production runtime graph from that run reports 844 nodes and 1236 edges.
+- Production probes confirmed `/api/health` returns `200` with request id,
+  three active providers out of six at probe time, matching app version, and no
+  version mismatch; bounded graph lookup for `buildSystemPrompt` returns
+  `src/lib/prompts.ts:L54` from the 844-node runtime graph with
+  `Cache-Control: no-store, private`.
 
 ## Next Task
 
