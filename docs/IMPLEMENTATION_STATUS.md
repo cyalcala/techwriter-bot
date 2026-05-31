@@ -15,11 +15,14 @@ Then continue from the "Next Task" section below.
 
 Phase 2: Core Engine.
 
-The active slice is RAG/citation reliability:
+The active slice is RAG/Knowledge Base reliability:
 
-- In-session filename, heading, and line metadata for uploaded document chunks.
-- Document citation context in `[Doc: filename, line n]` format.
-- Deterministic retrieval failure and no-context messages.
+- Accepted baseline: in-session filename, heading, and line metadata for
+  uploaded document chunks.
+- Accepted baseline: document citation context in `[Doc: filename, line n]`
+  format plus deterministic retrieval failure and no-context messages.
+- Next slice: in-session uploaded-document registry for multiple documents
+  with visible filename, chunk count, and delete controls.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -181,7 +184,7 @@ Documentation Tooling Agent direction.
   controlled-renderer checkpoint removes that external browser package runtime
   from executable product paths and treats legacy output as inert code.
 - The public production alias `https://tw-bot.pages.dev` now serves
-  artifact debounce/timeout code commit `9cedcaf` via docs commit `6631867`.
+  RAG citation metadata code commit `285a27c` via docs commit `fd8461e`.
   The accepted preview alias remains available at
   `https://codex-privacy-first-disclosu.tw-bot.pages.dev`.
 - Defined the first bounded Documentation Tooling Agent slice in
@@ -193,21 +196,17 @@ Documentation Tooling Agent direction.
   active-session deterministic document review and a bounded read-only
   `src/` reference lookup with no generic fallback output.
 - Published a production runtime graph through the authorized GitHub Actions
-  path; the latest accepted runtime extraction from `6631867` contains 817
-  nodes and 1189 edges and is available only through the bounded `src/` lookup
+  path; the latest accepted runtime extraction from `fd8461e` contains 834
+  nodes and 1214 edges and is available only through the bounded `src/` lookup
   surface.
 - Safe provider fault-injection coverage, renderer-preload warning cleanup,
   Phase 2 renderer boundaries, Kroki/server-render coverage, active-session
   artifact repair replacement plus gallery jump/regenerate controls, selected
   source copy, separate source/SVG/PNG downloads, malformed/nested artifact
-  parser hardening, chunk-boundary parser hardening, and artifact debounce/
-  timeout behavior are implemented without disrupting real credentials,
-  reviving browser package runtimes, or extending the bounded tooling scope.
-- Local `main` contains RAG citation metadata commit `285a27c`, which preserves
-  in-session filename, heading, and line metadata for uploaded chunks, formats
-  retrieved context as `[Doc: filename, line n]`, and returns deterministic
-  no-context/retrieval-failure messages before calling chat. Production
-  acceptance for that commit is pending the next GitHub Actions deployment.
+  parser hardening, chunk-boundary parser hardening, artifact debounce/timeout
+  behavior, and RAG citation metadata/retrieval guards are implemented without
+  disrupting real credentials, reviving browser package runtimes, or extending
+  the bounded tooling scope.
 
 ## Blockers And Notes
 
@@ -252,6 +251,10 @@ Documentation Tooling Agent direction.
 - Artifact debounce/timeout behavior deployed from docs commit `6631867`
   through GitHub Actions run `26702133215` with immutable URL
   `https://c1407848.tw-bot.pages.dev` and production alias
+  `https://tw-bot.pages.dev`.
+- RAG citation metadata and retrieval guards deployed from docs commit
+  `fd8461e` through GitHub Actions run `26702540605` with immutable URL
+  `https://bb8f4cc5.tw-bot.pages.dev` and production alias
   `https://tw-bot.pages.dev`.
 - Local build currently emits non-failing Node `punycode`/`MaxListenersExceeded`
   warnings plus the Wrangler local-AI remote-usage warning.
@@ -734,6 +737,14 @@ Latest incremental verification on 2026-05-31:
 - `graphify update .` refreshed tracked local Graphify artifacts from commit
   `285a27c`: 753 nodes and 1192 edges. Community-count wording remains
   non-blocking.
+- The RAG citation metadata deploy passed in GitHub Actions run `26702540605`
+  at immutable URL `https://bb8f4cc5.tw-bot.pages.dev`. The production runtime
+  graph from that run reports 834 nodes and 1214 edges.
+- Production probes confirmed `/api/health` returns `200` with request id,
+  four active providers out of six at probe time, matching app version, and no
+  version mismatch; bounded graph lookup for `createRagRetrievalMessage`
+  returns `src/lib/rag-client.ts:L101` from the 834-node runtime graph with
+  `Cache-Control: no-store, private`.
 
 ## Next Task
 
