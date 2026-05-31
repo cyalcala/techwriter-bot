@@ -2,8 +2,9 @@
 import '../styles/global.css';
 import ChatIsland from '../components/ChatIsland.svelte';
 import { deriveSuggestedPrompts } from '../lib/prompts';
+import { env as cfGlobalEnv } from 'cloudflare:workers';
 
-const runtimeEnv = (Astro.locals as any)?.runtime?.env ?? {};
+const runtimeEnv = cfGlobalEnv as Record<string, unknown>;
 const rawPersonaName = typeof runtimeEnv.PERSONA_NAME === 'string'
   ? runtimeEnv.PERSONA_NAME
   : import.meta.env.PERSONA_NAME;

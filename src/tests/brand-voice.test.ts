@@ -70,10 +70,11 @@ describe('client brand voice prompt injection', () => {
     const index = source('src/pages/index.astro');
     const workflow = source('.github/workflows/deploy.yml');
 
-    expect(index).toContain('Astro.locals');
-    expect(index).toContain('runtime?.env');
+    expect(index).toContain("import { env as cfGlobalEnv } from 'cloudflare:workers'");
     expect(index).toContain('runtimeEnv.SYSTEM_PROMPT');
     expect(index).toContain('runtimeEnv.PERSONA_NAME');
+    expect(index).not.toContain('Astro.locals.runtime.env');
+    expect(index).not.toContain('runtime?.env');
 
     expect(workflow).toContain('SYSTEM_PROMPT: process.env.SYSTEM_PROMPT');
     expect(workflow).toContain('PERSONA_NAME: process.env.PERSONA_NAME');
