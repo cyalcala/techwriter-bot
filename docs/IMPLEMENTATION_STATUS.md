@@ -177,9 +177,9 @@ Documentation Tooling Agent direction.
 - WebContainer runtime verification is no longer a completion requirement. The
   controlled-renderer checkpoint removes that external browser package runtime
   from executable product paths and treats legacy output as inert code.
-- The public production alias `https://tw-bot.pages.dev` now serves parser
-  hardening code commit `58e2663` via docs commit `40e3509`. The accepted
-  preview alias remains available at
+- The public production alias `https://tw-bot.pages.dev` now serves
+  chunk-boundary parser hardening code commit `4a4f621` via docs commit
+  `02e78af`. The accepted preview alias remains available at
   `https://codex-privacy-first-disclosu.tw-bot.pages.dev`.
 - Defined the first bounded Documentation Tooling Agent slice in
   `docs/superpowers/specs/2026-05-27-documentation-tooling-agent-foundation-design.md`:
@@ -190,20 +190,16 @@ Documentation Tooling Agent direction.
   active-session deterministic document review and a bounded read-only
   `src/` reference lookup with no generic fallback output.
 - Published a production runtime graph through the authorized GitHub Actions
-  path; the latest accepted runtime extraction from `40e3509` contains 827
-  nodes and 1197 edges and is available only through the bounded `src/` lookup
+  path; the latest accepted runtime extraction from `02e78af` contains 829
+  nodes and 1200 edges and is available only through the bounded `src/` lookup
   surface.
 - Safe provider fault-injection coverage, renderer-preload warning cleanup,
   Phase 2 renderer boundaries, Kroki/server-render coverage, active-session
   artifact repair replacement plus gallery jump/regenerate controls, selected
-  source copy, separate source/SVG/PNG downloads, and malformed/nested artifact
-  parser hardening are implemented without disrupting real credentials,
-  reviving browser package runtimes, or extending the bounded tooling scope.
-- Local `main` contains chunk-boundary parser hardening commit `4a4f621`, which
-  preserves tolerant open tags, split close tags, UTF-8 artifact content, and
-  unfinished tag-like artifact content across streaming chunk boundaries.
-  Production acceptance for that commit is pending the next GitHub Actions
-  deployment.
+  source copy, separate source/SVG/PNG downloads, malformed/nested artifact
+  parser hardening, and chunk-boundary parser hardening are implemented without
+  disrupting real credentials, reviving browser package runtimes, or extending
+  the bounded tooling scope.
 
 ## Blockers And Notes
 
@@ -237,6 +233,10 @@ Documentation Tooling Agent direction.
 - Artifact parser hardening deployed from docs commit `40e3509` through GitHub
   Actions run `26701618728` with immutable URL
   `https://82b43224.tw-bot.pages.dev` and production alias
+  `https://tw-bot.pages.dev`.
+- Artifact chunk-boundary hardening deployed from docs commit `02e78af`
+  through GitHub Actions run `26701890133` with immutable URL
+  `https://ace73c37.tw-bot.pages.dev` and production alias
   `https://tw-bot.pages.dev`.
 - Local build currently emits non-failing Node `punycode`/`MaxListenersExceeded`
   warnings plus the Wrangler local-AI remote-usage warning.
@@ -669,6 +669,14 @@ Latest incremental verification on 2026-05-31:
 - `graphify update .` refreshed tracked local Graphify artifacts from commit
   `4a4f621`: 745 nodes and 1162 edges. Community-count wording remains
   non-blocking.
+- The chunk-boundary parser deploy passed in GitHub Actions run `26701890133`
+  at immutable URL `https://ace73c37.tw-bot.pages.dev`. The production runtime
+  graph from that run reports 829 nodes and 1200 edges.
+- Production probes confirmed `/api/health` returns `200` with request id,
+  four active providers out of six at probe time, matching app version, and no
+  version mismatch; bounded graph lookup for `trailingArtifactTagPrefixLength`
+  returns `src/lib/stream-parser.ts:L41` with
+  `Cache-Control: no-store, private`.
 
 ## Next Task
 
