@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { detectAllArtifacts } from '../lib/artifact-detector';
-import { createArtifactQueue } from '../lib/artifact-queue';
+import { createArtifactQueue, type ArtifactEntry } from '../lib/artifact-queue';
 import { extractArtifactTitle, generateArtifactId } from '../lib/artifact-lifecycle';
 import { ArtifactStreamParser, type Artifact, type ArtifactType } from '../lib/stream-parser';
 import { readFileSync } from 'node:fs';
@@ -280,5 +280,39 @@ describe('artifact lifecycle and queue', () => {
         artifact: { ...artifact, type: 'svg', code: '<svg></svg>' },
       },
     ]);
+  });
+
+  it('debounces artifact queue subscribers by 50 ms', () => {
+    vi.useFakeTimers();
+    try {
+      const queue = createArtifactQueue();
+      const calls: ArtifactEntry[][] = [];
+      const unsubscribe = queue.subscribeDebounced((entries) => calls.push(entries), 50);
+      const first: Artifact = {
+        id: 'mermaid-1',
+        type: 'mermaid',
+        title: 'Flow',
+        placement: 'inline',
+        code: 'graph TD\nA-->B',
+      };
+      const second: Artifact = {
+        ...first,
+        id: 'mermaid-2',
+        code: 'graph TD\nB-->C',
+      };
+
+      queue.push({ messageIdx: 1, artifact: first, ts: 100 });
+      vi.advanceTimersByTime(25);
+      queue.push({ messageIdx: 1, artifact: second, ts: 101 });
+      vi.advanceTimersByTime(49);
+
+      expect(calls).toHaveLength(1);
+      vi.advanceTimersByTime(1);
+      expect(calls).toHaveLength(2);
+      expect(calls[1].map((entry) => entry.artifact.id)).toEqual(['mermaid-1', 'mermaid-2']);
+      unsubscribe();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

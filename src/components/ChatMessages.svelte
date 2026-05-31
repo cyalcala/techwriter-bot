@@ -33,7 +33,7 @@
   let artifactEntries = $state<ArtifactEntry[]>([]);
 
   $effect(() => {
-    return queue.subscribe((entries) => {
+    return queue.subscribeDebounced((entries) => {
       artifactEntries = entries;
     });
   });

@@ -88,4 +88,15 @@ describe('artifact gallery jump controls', () => {
     expect(split).toContain('aria-label="Download selected artifact PNG"');
     expect(split).toContain('bind:this={panelHost}');
   });
+
+  it('debounces artifact DOM subscriptions and names the slow-provider switch', () => {
+    const island = source('src/components/ChatIsland.svelte');
+    const messages = source('src/components/ChatMessages.svelte');
+    const split = source('src/components/ArtifactSplitView.svelte');
+
+    expect(island).toContain('const STREAM_SLOW_SWITCH_MS = 30_000');
+    expect(island).toContain('Provider slow, switching...');
+    expect(messages).toContain('queue.subscribeDebounced');
+    expect(split).toContain('queue.subscribeDebounced');
+  });
 });

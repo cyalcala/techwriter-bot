@@ -57,7 +57,7 @@
   });
 
   $effect(() => {
-    return queue.subscribe(entries => { allEntries = entries; });
+    return queue.subscribeDebounced(entries => { allEntries = entries; });
   });
 
   let msgEntries = $derived(activeEntry ? allEntries.filter(e => e.messageIdx === activeEntry.messageIdx) : []);

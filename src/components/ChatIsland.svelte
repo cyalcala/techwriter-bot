@@ -87,6 +87,10 @@
   const MAX_QUEUE = 3;
   const SSE_MAX_DROPS = 3;
   const SSE_DROP_WINDOW_MS = 60_000;
+  const STREAM_SLOW_SWITCH_MS = 30_000;
+  const STREAM_IDLE_TIMEOUT_FAST_MS = 15_000;
+  const STREAM_IDLE_TIMEOUT_DEFAULT_MS = 30_000;
+  const STREAM_SLOW_SWITCH_MESSAGE = '*Provider slow, switching...*';
 
   const KROKI_SERVER_ONLY = new Set(['d2', 'graphviz', 'plantuml']);
   const renderedHashes = new Set<string>();
@@ -561,12 +565,12 @@
       }, 20_000);
       timeoutTimer3 = setTimeout(() => {
         if (chatState === 'loading' || chatState === 'streaming') {
-          messages[msgIdx] = { ...messages[msgIdx], content: (checkpointContent || messages[msgIdx].content) + '\n\n*Response timed out. Retrying with fallback...*' };
+          messages[msgIdx] = { ...messages[msgIdx], content: (checkpointContent || messages[msgIdx].content) + `\n\n${STREAM_SLOW_SWITCH_MESSAGE}` };
           const saved = msgIdx;
           safeAbort();
           requestAnimationFrame(() => { messages = [...messages.slice(0, saved)]; doSend(); });
         }
-      }, 30_000);
+      }, STREAM_SLOW_SWITCH_MS);
 
       const batcher = new TokenBatcher((batch) => { messages[msgIdx] = { ...messages[msgIdx], content: messages[msgIdx].content + batch }; });
 
@@ -577,7 +581,7 @@
 
       let buffer = '';
       let idleTimer: ReturnType<typeof setTimeout> | null = null;
-      const idleTimeout = chatPath === 'fast' ? 15_000 : 30_000;
+      const idleTimeout = chatPath === 'fast' ? STREAM_IDLE_TIMEOUT_FAST_MS : STREAM_IDLE_TIMEOUT_DEFAULT_MS;
       const resetIdleTimer = () => { if (idleTimer) clearTimeout(idleTimer); idleTimer = setTimeout(() => { reader.cancel().catch(() => {}); }, idleTimeout); };
       resetIdleTimer();
 

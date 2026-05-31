@@ -10,6 +10,7 @@ export interface ArtifactEntry {
 }
 
 type Subscriber = (entries: ArtifactEntry[]) => void;
+const DEFAULT_SUBSCRIBER_DEBOUNCE_MS = 50;
 
 export function createArtifactQueue() {
   let entries: ArtifactEntry[] = [];
@@ -67,7 +68,26 @@ export function createArtifactQueue() {
     return () => { subscribers = subscribers.filter(s => s !== sub); };
   }
 
-  return { push, remove, replace, forMessage, clear, subscribe, get entries() { return entries; } };
+  function subscribeDebounced(sub: Subscriber, delayMs: number = DEFAULT_SUBSCRIBER_DEBOUNCE_MS): () => void {
+    let latest = entries;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const handler: Subscriber = (next) => {
+      latest = next;
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        timer = null;
+        sub(latest);
+      }, delayMs);
+    };
+    subscribers = [...subscribers, handler];
+    sub(entries);
+    return () => {
+      if (timer) clearTimeout(timer);
+      subscribers = subscribers.filter(s => s !== handler);
+    };
+  }
+
+  return { push, remove, replace, forMessage, clear, subscribe, subscribeDebounced, get entries() { return entries; } };
 }
 
 export type ArtifactQueue = ReturnType<typeof createArtifactQueue>;
