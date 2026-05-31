@@ -44,6 +44,11 @@
     nodeCount: number;
   }
 
+  interface DocumentSource {
+    name: string;
+    text: string;
+  }
+
   let messages = $state<Message[]>([{ role: 'assistant', content: "Hi! I'm Technical Writer. I help with writing, research, diagrams, and code. What can I create for you?" }]);
   let inputMessage = $state('');
   let isLoading = $state(false);
@@ -66,6 +71,7 @@
   let liveOutage = $state<LiveOutageState | null>(null);
   let isMobile = $state(false);
   let documentTopics = $state('');
+  let documentSources = $state<Record<string, DocumentSource>>({});
   let toolsOpen = $state(false);
   let toolDocument = $state<{ name: string; text: string } | null>(null);
   let toolFindings = $state<DocumentFinding[]>([]);
@@ -235,6 +241,16 @@
     toolGraphError = '';
   }
 
+  function rememberDocumentSource(documentId: string, source: DocumentSource) {
+    documentSources = { ...documentSources, [documentId]: source };
+  }
+
+  function forgetDocumentSource(documentId: string) {
+    const next = { ...documentSources };
+    delete next[documentId];
+    documentSources = next;
+  }
+
   function runDocumentReview(terminology: TerminologyRule[]) {
     if (!toolDocument) return;
     toolFindings = reviewDocument(toolDocument.text, terminology);
@@ -280,6 +296,7 @@
     sessionId = generateSessionId();
     messages = [{ role: 'assistant', content: 'Fresh session started. My memory is now clear. What would you like to work on?' }];
     rag = clearRagState();
+    documentSources = {};
     clearDocumentToolState();
     artifactQueue.clear();
     activeArtifactEntry = null;
@@ -298,6 +315,7 @@
     clearAllData(sessionId);
     messages = [{ role: 'assistant', content: 'Chat cleared. My memory has been wiped. What would you like to work on?' }];
     rag = clearRagState();
+    documentSources = {};
     clearDocumentToolState();
     artifactQueue.clear();
     activeArtifactEntry = null;
@@ -311,6 +329,7 @@
   function removeFile() {
     clearSessionVectors(sessionId).catch(() => {});
     rag = clearRagState();
+    documentSources = {};
     documentTopics = '';
     clearDocumentToolState();
     if (fileInput) fileInput.value = '';
@@ -318,6 +337,7 @@
 
   async function removeDocument(documentId: string) {
     await deleteDocumentVectors(sessionId, documentId);
+    forgetDocumentSource(documentId);
     const remaining = rag.documents.filter((document) => document.id !== documentId);
     rag.documents = remaining;
 
@@ -348,6 +368,7 @@
       rag.ragDegraded = result.degraded;
       if (result.document) {
         rag.documents = [...rag.documents, result.document];
+        if (result.sourceText) rememberDocumentSource(result.document.id, { name: file.name, text: result.sourceText });
       }
       messages = [...messages, { role: 'assistant', content: result.message }];
       try {
@@ -374,6 +395,25 @@
       await processFileUpload(file);
     }
     isUploading = false;
+  }
+
+  async function reembedDocument(documentId: string) {
+    const source = documentSources[documentId];
+    if (!source) {
+      messages = [...messages, { role: 'assistant', content: 'Re-embed is unavailable because the document source is no longer in this open session.' }];
+      return;
+    }
+
+    isUploading = true;
+    try {
+      await deleteDocumentVectors(sessionId, documentId);
+      forgetDocumentSource(documentId);
+      rag.documents = rag.documents.filter((document) => document.id !== documentId);
+      const file = new File([source.text], source.name, { type: 'text/plain' });
+      await processFileUpload(file);
+    } finally {
+      isUploading = false;
+    }
   }
 
   async function copyMessage(idx: number) {
@@ -868,6 +908,7 @@
       ragDocuments={rag.documents}
       onRemoveFile={removeFile}
       onDeleteDocument={removeDocument}
+      onReembedDocument={reembedDocument}
       {toolsOpen}
       onToggleTools={() => { toolsOpen = !toolsOpen; }}
       {tokenDisplay}

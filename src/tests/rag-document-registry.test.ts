@@ -82,4 +82,31 @@ describe('RAG uploaded document registry', () => {
     expect(island).toContain('deleteDocumentVectors');
     expect(island).toContain('removeDocument');
   });
+
+  it('keeps re-embed source text in active chat state only', () => {
+    const rag = source('src/lib/rag-client.ts');
+    const island = source('src/components/ChatIsland.svelte');
+
+    const recordInterface = rag.slice(
+      rag.indexOf('export interface UploadedDocumentRecord'),
+      rag.indexOf('export interface UploadResult'),
+    );
+
+    expect(recordInterface).not.toContain('text');
+    expect(recordInterface).not.toContain('sourceText');
+    expect(island).toContain('documentSources');
+    expect(island).toContain('result.sourceText');
+    expect(island).not.toContain('localStorage.setItem');
+  });
+
+  it('wires user-invoked Knowledge Base re-embed controls through the upload path', () => {
+    const input = source('src/components/ChatInput.svelte');
+    const island = source('src/components/ChatIsland.svelte');
+
+    expect(input).toContain('onReembedDocument');
+    expect(input).toContain('Re-embed');
+    expect(island).toContain('reembedDocument');
+    expect(island).toContain('new File([source.text]');
+    expect(island).toContain('processFileUpload(file)');
+  });
 });

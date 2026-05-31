@@ -32,6 +32,7 @@
     ragDocuments?: RagDocumentSummary[];
     onRemoveFile: () => void;
     onDeleteDocument: (documentId: string) => void;
+    onReembedDocument: (documentId: string) => void;
     toolsOpen: boolean;
     onToggleTools: () => void;
     tokenDisplay: { in: number; cached?: boolean } | null;
@@ -45,7 +46,7 @@
     disabled, isStreaming, inputMessage, onInputChange, onSend, onStop,
     mode, onModeChange, enhancedCredits, onFileClick, isUploading,
     ragUploadedFileName = '', ragUploadStatus = 'idle', ragDegraded = false,
-    ragUploadProgress = null, ragDocuments = [], onRemoveFile, onDeleteDocument, toolsOpen, onToggleTools, tokenDisplay, chatPath, failoverEvents = [], panelOpen, isMobile,
+    ragUploadProgress = null, ragDocuments = [], onRemoveFile, onDeleteDocument, onReembedDocument, toolsOpen, onToggleTools, tokenDisplay, chatPath, failoverEvents = [], panelOpen, isMobile,
   }: Props = $props();
   let privacyOpen = $state(false);
 
@@ -77,6 +78,13 @@
             <span class="inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-lg border border-stone-200 bg-stone-100 px-2 py-1">
               <span class="max-w-[120px] truncate font-medium text-stone-700" title={document.filename}>{document.filename}</span>
               <span class="shrink-0 text-stone-400">{document.chunkCount} chunks</span>
+              <button
+                type="button"
+                onclick={() => onReembedDocument(document.id)}
+                class="shrink-0 rounded-md px-1 py-0.5 text-stone-500 hover:bg-stone-200 hover:text-stone-700 transition-colors"
+                aria-label={`Re-embed document ${document.filename}`}
+                title={`Re-embed ${document.filename}`}
+              >Re-embed</button>
               <button
                 type="button"
                 onclick={() => onDeleteDocument(document.id)}
