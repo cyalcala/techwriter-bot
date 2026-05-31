@@ -22,6 +22,7 @@ The active slice is artifact reliability:
 - Clearer browser-render and server-render failure messaging.
 - Streaming parser hardening for malformed, nested, and chunk-split artifact
   tags.
+- Artifact DOM update debounce and 30 second slow-provider timeout messaging.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -163,6 +164,7 @@ Documentation Tooling Agent direction.
   - `75f8d12` selected artifact source/SVG/PNG downloads.
   - `58e2663` malformed and nested artifact stream parser hardening.
   - `4a4f621` UTF-8 and chunk-boundary artifact stream parser hardening.
+  - `9cedcaf` debounced artifact DOM subscriptions and slow-provider timeout copy.
 
 ## In Progress
 
@@ -200,6 +202,11 @@ Documentation Tooling Agent direction.
   parser hardening, and chunk-boundary parser hardening are implemented without
   disrupting real credentials, reviving browser package runtimes, or extending
   the bounded tooling scope.
+- Local `main` contains debounce/timeout commit `9cedcaf`, which adds 50 ms
+  debounced artifact queue subscriptions for chat artifact DOM consumers and
+  makes the 30 second stream timeout say `Provider slow, switching...`.
+  Production acceptance for that commit is pending the next GitHub Actions
+  deployment.
 
 ## Blockers And Notes
 
@@ -677,13 +684,30 @@ Latest incremental verification on 2026-05-31:
   version mismatch; bounded graph lookup for `trailingArtifactTagPrefixLength`
   returns `src/lib/stream-parser.ts:L41` with
   `Cache-Control: no-store, private`.
+- Added 50 ms debounced artifact queue subscriptions in
+  `src/lib/artifact-queue.ts`, `src/components/ChatMessages.svelte`, and
+  `src/components/ArtifactSplitView.svelte`; `src/components/ChatIsland.svelte`
+  now centralizes stream timeout constants and uses the 30 second
+  `Provider slow, switching...` timeout copy before retrying.
+- Red-green coverage confirmed the previous debounce/timeout gaps, then passed
+  after implementation. Verification passed after this slice:
+  `npm.cmd test -- --run src/tests/artifacts.test.ts --testNamePattern "debounces artifact queue"`,
+  `npm.cmd test -- --run src/tests/artifact-gallery.test.ts --testNamePattern "debounces artifact DOM"`,
+  `npm.cmd test -- --run src/tests/artifacts.test.ts src/tests/artifact-gallery.test.ts src/tests/artifact-repair-flow.test.ts src/tests/artifact-error-boundary.test.ts src/tests/kroki-renderer.test.ts` (5 files, 37 tests),
+  `npm.cmd test` (28 files, 131 tests),
+  `npm.cmd audit --omit=dev --audit-level=high`, `git diff --check`, and the
+  recorded `build:local` command.
+- `graphify update .` refreshed tracked local Graphify artifacts from commit
+  `9cedcaf`: 746 nodes and 1175 edges. Community-count wording remains
+  non-blocking.
 
 ## Next Task
 
-Continue Phase 2 core-engine work with streaming parser hardening from the
+Continue Phase 2 core-engine work with RAG/citation reliability from the
 master plan in small slices:
 
-- Add debounce/timeout behavior for artifact DOM updates.
+- Add focused coverage for citation/source numbering and retrieval failure
+  messaging before changing broader RAG behavior.
 - Treat Graphify's inconsistent community-count wording as non-blocking unless
   community totals become release criteria. Do not introduce autonomous
   execution or browser package runtimes.

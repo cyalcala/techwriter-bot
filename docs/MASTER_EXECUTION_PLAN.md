@@ -69,9 +69,9 @@ The current tracked code graph was refreshed with `graphify update .` on
 
 - Report: `graphify-out/GRAPH_REPORT.md`
 - Graph: `graphify-out/graph.json`
-- Summary: 745 nodes, 1162 edges
-- Extraction confidence: 95% EXTRACTED, 5% INFERRED, 0% AMBIGUOUS
-- Built from code at commit: `4a4f6213`
+- Summary: 746 nodes, 1175 edges
+- Extraction confidence: 94% EXTRACTED, 6% INFERRED, 0% AMBIGUOUS
+- Built from code at commit: `9cedcafa`
 - The generated report currently disagrees with itself on total community
   count; use node/edge counts and targeted graph queries for acceptance until
   that reporting discrepancy is reconciled.
@@ -105,6 +105,9 @@ The current tracked code graph was refreshed with `graphify update .` on
   leaking trailing text.
 - Artifact tag buffering now also preserves tolerant open tags, close tags, and
   UTF-8 artifact content when stream chunks split across tag or byte boundaries.
+- Artifact queue subscribers used by the chat DOM and split-view artifact DOM
+  now debounce updates by 50 ms, and the 30 second stream timeout names the
+  slow-provider switch explicitly.
 
 Before broad architecture work, read `graphify-out/GRAPH_REPORT.md` first.
 When the graph may be stale, run:

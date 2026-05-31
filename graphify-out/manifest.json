@@ -60,8 +60,8 @@
     "hash": "a8b7cb4343aa3040db1361ae5e6d0598"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\components\\ArtifactSplitView.svelte": {
-    "mtime": 1780048125.6209602,
-    "hash": "05a24a9f0beb35eb1a28cb0c9733ab98"
+    "mtime": 1780197695.2192962,
+    "hash": "243eb619d835ac05e4d255e05051695c"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\components\\ArtifactStandalone.svelte": {
     "mtime": 1779964536.659233,
@@ -76,12 +76,12 @@
     "hash": "4e00c0c7a15ef1b6a06d7dc38a5e0afa"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\components\\ChatIsland.svelte": {
-    "mtime": 1779985370.4060152,
-    "hash": "8920d13b43d0fc8a9f774faa22bf5800"
+    "mtime": 1780197695.2212994,
+    "hash": "1541a10acf5985feca1d632fc79a58fc"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\components\\ChatMessages.svelte": {
-    "mtime": 1779983896.7570817,
-    "hash": "c84ff459807c1b7d68932882a2e2765a"
+    "mtime": 1780197695.2052956,
+    "hash": "e797bed6e6aefe1ef2e2c17dcc120b8f"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\components\\DocumentToolsPanel.svelte": {
     "mtime": 1779964536.6712265,
@@ -108,8 +108,8 @@
     "hash": "cc19eaa6e5181b2312739af995110c5e"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\lib\\artifact-queue.ts": {
-    "mtime": 1779982879.390794,
-    "hash": "03a0b0ce5cafd8a861e12ac6effedeb7"
+    "mtime": 1780197695.1982965,
+    "hash": "bc2906ff7b6ca5390dc3126b44a6e6ae"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\lib\\artifact-repair.ts": {
     "mtime": 1779985290.3257031,
@@ -328,16 +328,16 @@
     "hash": "2eafd1e269a9881b6bd231c099c67af1"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\tests\\artifact-gallery.test.ts": {
-    "mtime": 1780047748.2962153,
-    "hash": "e3ff283ec324b5c9804a873fb6fce98e"
+    "mtime": 1780197599.2752557,
+    "hash": "17bf229f895ca72e8b3b5c644bea6d03"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\tests\\artifact-repair-flow.test.ts": {
     "mtime": 1779982798.091914,
     "hash": "d4df1df73418aea2d78c13f0496bbed3"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\tests\\artifacts.test.ts": {
-    "mtime": 1780196982.3214173,
-    "hash": "371bf9621420b5a8cd283dd779ca06e0"
+    "mtime": 1780197609.40224,
+    "hash": "5b4b370694adae6a7d863e6016f6c93a"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\tests\\critical.test.ts": {
     "mtime": 1779964536.77886,
@@ -448,12 +448,12 @@
     "hash": "5659010e5262e9fd04cd89f4b9b3191e"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\IMPLEMENTATION_STATUS.md": {
-    "mtime": 1780196523.3365264,
-    "hash": "f2bba2876374972554f6c787a8c31394"
+    "mtime": 1780197341.937333,
+    "hash": "55e7c2393cc46c15c382012c90d0cb78"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\MASTER_EXECUTION_PLAN.md": {
-    "mtime": 1780196469.8012507,
-    "hash": "2f23b54b593b53f9a75e74ec20adbb44"
+    "mtime": 1780197341.935331,
+    "hash": "9df736b240c3fac171b6b517d450a6aa"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\PRODUCT_MARKETING.md": {
     "mtime": 1779964536.6182373,
