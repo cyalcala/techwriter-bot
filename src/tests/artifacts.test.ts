@@ -109,6 +109,55 @@ describe('artifact stream parser', () => {
     expect(artifacts).toHaveLength(1);
     expect(artifacts[0]).toMatchObject({ type: 'code', title: 'Old app' });
   });
+
+  it('accepts case-varied artifact close tags without swallowing trailing text', () => {
+    const artifacts: Artifact[] = [];
+    const text: string[] = [];
+    const parser = new ArtifactStreamParser((artifact) => artifacts.push(artifact), (chunk) => text.push(chunk));
+
+    parser.feed('Intro <artifact type="mermaid" title="Flow">graph TD\nA-->B</Artifact> outro');
+    parser.flush();
+
+    expect(text.join('')).toBe('Intro  outro');
+    expect(artifacts).toHaveLength(1);
+    expect(artifacts[0]).toMatchObject({
+      type: 'mermaid',
+      title: 'Flow',
+      code: 'graph TD\nA-->B',
+    });
+  });
+
+  it('accepts typo-style artifact open and close tags without leaking markup', () => {
+    const artifacts: Artifact[] = [];
+    const text: string[] = [];
+    const parser = new ArtifactStreamParser((artifact) => artifacts.push(artifact), (chunk) => text.push(chunk));
+
+    parser.feed('Intro <xrtifact type="mermaid" title="Flow">graph TD\nA-->B</xrtifact> outro');
+    parser.flush();
+
+    expect(text.join('')).toBe('Intro  outro');
+    expect(artifacts).toHaveLength(1);
+    expect(artifacts[0]).toMatchObject({
+      type: 'mermaid',
+      title: 'Flow',
+      code: 'graph TD\nA-->B',
+    });
+  });
+
+  it('keeps nested artifact tags inside the outer artifact body', () => {
+    const artifacts: Artifact[] = [];
+    const text: string[] = [];
+    const parser = new ArtifactStreamParser((artifact) => artifacts.push(artifact), (chunk) => text.push(chunk));
+
+    parser.feed('Start <artifact type="mermaid">graph TD\nA-->B\n<artifact type="code">const nested = true;</artifact>\nB-->C</artifact> End');
+    parser.flush();
+
+    expect(text.join('')).toBe('Start  End');
+    expect(artifacts).toHaveLength(1);
+    expect(artifacts[0]).toMatchObject({ type: 'mermaid' });
+    expect(artifacts[0].code).toContain('<artifact type="code">const nested = true;</artifact>');
+    expect(artifacts[0].code).toContain('B-->C');
+  });
 });
 
 describe('artifact lifecycle and queue', () => {

@@ -13,7 +13,9 @@ export interface Artifact {
 type ParserState = 'normal' | 'in_artifact_body';
 
 const ARTIFACT_OPEN_RE = /<\w*rtifact\s+type="(\w+)"(?:\s+placement="(\w+)")?(?:\s+title="([^"]*)")?(?:\s+language="([^"]*)")?\s*\/?>/i;
+const ARTIFACT_OPEN_START_RE = /<\w*rtifact\b/i;
 const ARTIFACT_CLOSE_RE = /<\/\w*rtifact\s*>/i;
+const ARTIFACT_BODY_TAG_RE = /<\/\w*rtifact\s*>|<\w*rtifact\b[^>]*>/ig;
 const ARTIFACT_OPEN = '<artifact';
 const INERT_LEGACY_TYPES = new Set(['webcontainer', 'webcontainers']);
 
@@ -33,6 +35,7 @@ export class ArtifactStreamParser {
   private onArtifactComplete: (artifact: Artifact) => void;
   private onMainText: (text: string) => void;
   private artifactCounter = 0;
+  private artifactDepth = 0;
 
   constructor(
     onArtifactComplete: (artifact: Artifact) => void,
@@ -48,7 +51,7 @@ export class ArtifactStreamParser {
 
     while (remaining.length > 0) {
       if (this.state === 'normal') {
-        const openIdx = remaining.indexOf(ARTIFACT_OPEN);
+        const openIdx = remaining.search(ARTIFACT_OPEN_START_RE);
         if (openIdx === -1) {
           const pendingLength = trailingMarkerPrefixLength(remaining, ARTIFACT_OPEN);
           const textEnd = remaining.length - pendingLength;
@@ -81,6 +84,7 @@ export class ArtifactStreamParser {
             language: match[4] || undefined,
           };
           this.artifactBuf = '';
+          this.artifactDepth = 0;
           this.state = 'in_artifact_body';
           remaining = remaining.slice(closeIdx + 1);
         } else {
@@ -88,18 +92,41 @@ export class ArtifactStreamParser {
           remaining = remaining.slice(closeIdx + 1);
         }
       } else {
-        const closeIdx = remaining.indexOf('</artifact>');
-        if (closeIdx === -1) {
+        const boundary = this.findNextArtifactBoundary(remaining);
+        if (!boundary) {
           this.artifactBuf += remaining;
           remaining = '';
+        } else if (boundary.kind === 'open') {
+          this.artifactBuf += remaining.slice(0, boundary.end);
+          if (!boundary.selfClosing) this.artifactDepth += 1;
+          remaining = remaining.slice(boundary.end);
+        } else if (this.artifactDepth > 0) {
+          this.artifactBuf += remaining.slice(0, boundary.end);
+          this.artifactDepth -= 1;
+          remaining = remaining.slice(boundary.end);
         } else {
-          this.artifactBuf += remaining.slice(0, closeIdx);
-          remaining = remaining.slice(closeIdx + 11);
+          this.artifactBuf += remaining.slice(0, boundary.start);
+          remaining = remaining.slice(boundary.end);
           this.emitArtifact();
           this.state = 'normal';
         }
       }
     }
+  }
+
+  private findNextArtifactBoundary(text: string): { kind: 'open' | 'close'; start: number; end: number; selfClosing?: boolean } | null {
+    ARTIFACT_BODY_TAG_RE.lastIndex = 0;
+    let match: RegExpExecArray | null;
+    while ((match = ARTIFACT_BODY_TAG_RE.exec(text)) !== null) {
+      const tag = match[0];
+      if (ARTIFACT_CLOSE_RE.test(tag)) {
+        return { kind: 'close', start: match.index, end: match.index + tag.length };
+      }
+      if (ARTIFACT_OPEN_RE.test(tag)) {
+        return { kind: 'open', start: match.index, end: match.index + tag.length, selfClosing: /\/\s*>$/.test(tag) };
+      }
+    }
+    return null;
   }
 
   private emitMain(text: string) {
@@ -133,6 +160,7 @@ export class ArtifactStreamParser {
     }
 
     this.onArtifactComplete(artifact);
+    this.artifactDepth = 0;
   }
 
   flush() {
@@ -144,6 +172,7 @@ export class ArtifactStreamParser {
     this.artifactBuf = '';
     this.mainBuf = '';
     this.currentArtifact = {};
+    this.artifactDepth = 0;
   }
 
   reset() {
@@ -151,6 +180,7 @@ export class ArtifactStreamParser {
     this.artifactBuf = '';
     this.mainBuf = '';
     this.currentArtifact = {};
+    this.artifactDepth = 0;
   }
 
   feedChunk(chunk: string, onText: (text: string) => void) {
