@@ -38,13 +38,12 @@ session boundary:
   active messages, artifacts, and uploaded document metadata only. It does not
   export uploaded source text, vectors, document tool findings, or add automatic
   durable chat retention.
-- Current checkpoint: code commit `a6ea3f7` is locally verified. The local
-  tracked graph is 776 nodes and 1247 edges, built from `a6ea3f70`. Production
-  acceptance is pending the docs/Graphify checkpoint push and GitHub Actions
-  deployment.
-- Next slice: finish deployment acceptance for `a6ea3f7`, then continue Phase 3
-  in small conversation-management slices. Prefer in-open-session history/list
-  tests next; do not add durable automatic chat retention.
+- Current checkpoint: code commit `a6ea3f7` is accepted on production via docs
+  commit `ebd8c38`; the local tracked graph is 776 nodes and 1247 edges, and
+  the production runtime graph is 873 nodes and 1301 edges.
+- Next slice: continue Phase 3 in small conversation-management slices. Prefer
+  in-open-session conversation history/list planning and tests next; do not add
+  durable automatic chat retention.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -226,8 +225,8 @@ Documentation Tooling Agent direction.
   active-session deterministic document review and a bounded read-only
   `src/` reference lookup with no generic fallback output.
 - Published a production runtime graph through the authorized GitHub Actions
-  path; the latest accepted runtime extraction from `91d1720` contains 849
-  nodes and 1252 edges and is available only through the bounded `src/` lookup
+  path; the latest accepted runtime extraction from `ebd8c38` contains 873
+  nodes and 1301 edges and is available only through the bounded `src/` lookup
   surface.
 - Safe provider fault-injection coverage, renderer-preload warning cleanup,
   Phase 2 renderer boundaries, Kroki/server-render coverage, active-session
@@ -250,7 +249,8 @@ Documentation Tooling Agent direction.
   backup containing active messages, active artifacts, and uploaded-document
   metadata only; `src/components/ChatIsland.svelte` exposes Export/Import
   controls and clears old active-session state before applying an imported
-  session.
+  session. This slice is accepted on production alias `https://tw-bot.pages.dev`
+  through docs commit `ebd8c38`.
 
 ## Blockers And Notes
 
@@ -959,17 +959,26 @@ Latest incremental verification on 2026-05-31:
 - `graphify update .` refreshed tracked local Graphify artifacts from commit
   `a6ea3f7`: 776 nodes and 1247 edges. Community-count wording remains
   non-blocking.
+- The explicit session export/import deploy passed in GitHub Actions run
+  `26725171807` from docs commit `ebd8c38` with immutable URL
+  `https://9857f602.tw-bot.pages.dev`. The production runtime graph reports
+  873 nodes and 1301 edges.
+- Production probes confirmed both `https://tw-bot.pages.dev/` and
+  `https://9857f602.tw-bot.pages.dev/` return `200`, contain the default
+  `Technical Writer` persona, and include the new Export session UI string.
+  Production `/api/health` returns `200` with request id
+  `c3d50ec3-9350-4fa1-b224-4197f8d5f0ba`, four active providers out of six,
+  matching app version, and no version mismatch. Bounded graph lookup for
+  `createSessionExport` returns `src/lib/session-transfer.ts:L57` from the
+  873-node runtime graph with `Cache-Control: no-store, private`.
 
 ## Next Task
 
 Continue with Phase 3 Conversation Management in small slices:
 
-- Push the docs/Graphify checkpoint for `a6ea3f7`, watch GitHub Actions, and
-  record production acceptance with immutable URL, `/api/health` request id,
-  production alias smoke, and runtime graph counts.
-- After acceptance, continue with in-open-session conversation history/list
-  planning and tests. Keep it active-session-first unless the user explicitly
-  exports JSON and later imports it.
+- Continue with in-open-session conversation history/list planning and tests.
+  Keep it active-session-first unless the user explicitly exports JSON and
+  later imports it.
 - Preserve active-session privacy boundaries: page refresh/navigation clearly
   ends active-session content unless the user explicitly exports a JSON backup
   file and later imports it.
