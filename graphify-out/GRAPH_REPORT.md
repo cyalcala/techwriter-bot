@@ -1,7 +1,7 @@
 # Graph Report - techwriter-bot  (2026-05-31)
 
 ## Corpus Check
-- 109 files · ~67,324 words
+- 109 files · ~67,856 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `378a61af`
+- Built from commit: `220dab22`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -117,8 +117,8 @@ Cohesion: 0.14
 Nodes (17): loadEnv(), POST(), buildCommunityContext(), buildContextFromNodes(), clearGraphCache(), ensureGraph(), getGodNodes(), getGraphStats() (+9 more)
 
 ### Community 10 - "Community 10"
-Cohesion: 0.11
-Nodes (13): ../lib/artifact-detector, ../lib/artifact-lifecycle, ../lib/artifact-queue, ../lib/artifact-state, ../lib/cleanup, ../lib/markdown, ../lib/renderer-loader, ../lib/session-persist (+5 more)
+Cohesion: 0.15
+Nodes (13): ../lib/artifact-lifecycle, ../lib/artifact-queue, ../lib/markdown, regenerateArtifactEntry(), ArtifactStatus, ArtifactEntry, ArtifactQueue, createArtifactQueue() (+5 more)
 
 ### Community 11 - "Community 11"
 Cohesion: 0.1
@@ -145,20 +145,20 @@ Cohesion: 0.12
 Nodes (15): cleanSlateConfig, clientChunks, clientDir, distDir, ignorePath, internalConfigs, legacyEntry, midPath (+7 more)
 
 ### Community 17 - "Community 17"
-Cohesion: 0.18
-Nodes (10): regenerateArtifactEntry(), ArtifactStatus, ArtifactEntry, ArtifactQueue, createArtifactQueue(), Subscriber, createArtifactRegenerationPrompt(), createArtifactRepairTarget() (+2 more)
+Cohesion: 0.13
+Nodes (9): ../lib/artifact-detector, ../lib/artifact-state, ../lib/cleanup, ../lib/session-persist, ../lib/token-batcher, closeSplit(), handleGlobalKeydown(), next (+1 more)
 
 ### Community 18 - "Community 18"
 Cohesion: 0.21
 Nodes (6): ArtifactPlacement, ArtifactStreamParser, isPotentialArtifactTagPrefix(), ParserState, trailingArtifactTagPrefixLength(), trailingMarkerPrefixLength()
 
 ### Community 19 - "Community 19"
-Cohesion: 0.13
-Nodes (14): Artifact Rendering, Caching, code:block1 (src/), Commit: `b2ac2c0` | Branch: `main` | Deployed: `tw-bot.pages.dev`, Deployed Capabilities, File Inventory (Source Files Only), Infra, Knowledge Graph (+6 more)
+Cohesion: 0.16
+Nodes (8): ../lib/artifact-types, ../lib/renderer-loader, ../lib/stream-parser, a, blob, url, fail(), renderTimeout
 
 ### Community 20 - "Community 20"
-Cohesion: 0.18
-Nodes (7): ../lib/artifact-types, ../lib/stream-parser, a, blob, url, fail(), renderTimeout
+Cohesion: 0.13
+Nodes (14): Artifact Rendering, Caching, code:block1 (src/), Commit: `b2ac2c0` | Branch: `main` | Deployed: `tw-bot.pages.dev`, Deployed Capabilities, File Inventory (Source Files Only), Infra, Knowledge Graph (+6 more)
 
 ### Community 21 - "Community 21"
 Cohesion: 0.23
@@ -208,7 +208,7 @@ Nodes (5): config, configPath, distDir, serverDir, wranglerCache
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `setTimeout()` connect `Community 7` to `Community 0`, `Community 1`, `Community 4`, `Community 6`, `Community 10`, `Community 13`?**
+- **Why does `setTimeout()` connect `Community 7` to `Community 0`, `Community 1`, `Community 4`, `Community 6`, `Community 13`, `Community 17`?**
   _High betweenness centrality (0.073) - this node is a cross-community bridge._
 - **Why does `createRequestId()` connect `Community 1` to `Community 0`, `Community 9`?**
   _High betweenness centrality (0.027) - this node is a cross-community bridge._

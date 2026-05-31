@@ -15,7 +15,8 @@ Then continue from the "Next Task" section below.
 
 Phase 2: Core Engine.
 
-The active slice is RAG/Knowledge Base reliability:
+The active slice is transitioning from RAG/Knowledge Base reliability to
+client brand voice:
 
 - Accepted baseline: in-session filename, heading, and line metadata for
   uploaded document chunks.
@@ -23,8 +24,10 @@ The active slice is RAG/Knowledge Base reliability:
   format plus deterministic retrieval failure and no-context messages.
 - Accepted baseline: in-session uploaded-document registry for multiple
   documents with visible filename, chunk count, and delete controls.
-- Next slice: add a user-invoked re-embed flow for Knowledge Base items while
-  keeping source text only in active page memory.
+- Accepted baseline: user-invoked Knowledge Base re-embed that keeps source
+  text only in active page memory.
+- Next slice: start Phase 2 Brand Voice Per Client with env-driven
+  `SYSTEM_PROMPT`, `PERSONA_NAME`, and suggested prompts.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -172,6 +175,7 @@ Documentation Tooling Agent direction.
   - `9cedcaf` debounced artifact DOM subscriptions and slow-provider timeout copy.
   - `285a27c` RAG citation metadata and deterministic retrieval guard.
   - `378a61a` in-session RAG document registry and Knowledge Base controls.
+  - `220dab2` user-invoked Knowledge Base re-embed control.
 
 ## In Progress
 
@@ -211,6 +215,10 @@ Documentation Tooling Agent direction.
   Base registry/delete controls are implemented without disrupting real
   credentials, reviving browser package runtimes, or extending the bounded
   tooling scope.
+- Local `main` contains Knowledge Base re-embed commit `220dab2`, which retains
+  uploaded source text only in active `ChatIsland` memory and reuses the
+  existing upload/indexing path when the user clicks Re-embed. Production
+  acceptance for that commit is pending the next GitHub Actions deployment.
 
 ## Blockers And Notes
 
@@ -778,15 +786,33 @@ Latest incremental verification on 2026-05-31:
   version mismatch; bounded graph lookup for `deleteDocumentVectors` returns
   `src/lib/rag-db.ts:L83` from the 841-node runtime graph with
   `Cache-Control: no-store, private`.
+- Added user-invoked Knowledge Base re-embed in
+  `src/components/ChatIsland.svelte` and `src/components/ChatInput.svelte`:
+  successful uploads store source text in active component state keyed by
+  document id, the registry record remains metadata-only, Re-embed deletes the
+  selected document vectors, rebuilds a `File` from active memory, and reuses
+  the existing upload/indexing path. If source text is no longer in the open
+  session, the user sees a clear unavailable message.
+- Red-green coverage confirmed the previous re-embed/source-retention gap,
+  then passed after implementation. Verification passed after this slice:
+  `npm.cmd test -- --run src/tests/rag-document-registry.test.ts`,
+  `npm.cmd test -- --run src/tests/rag-document-registry.test.ts src/tests/rag-citations.test.ts src/tests/rag-client-tools.test.ts src/tests/document-tools-ui.test.ts src/tests/privacy-first.test.ts` (5 files, 24 tests),
+  `npm.cmd test` (30 files, 141 tests),
+  `npm.cmd audit --omit=dev --audit-level=high`, `git diff --check`, and the
+  recorded `build:local` command.
+- `graphify update .` refreshed tracked local Graphify artifacts from commit
+  `220dab2`: 758 nodes and 1207 edges. Community-count wording remains
+  non-blocking.
 
 ## Next Task
 
-Continue Phase 2 core-engine work with RAG/citation reliability from the
-master plan in small slices:
+Continue Phase 2 core-engine work with Brand Voice Per Client from the master
+plan in small slices:
 
-- Add a user-invoked re-embed control for Knowledge Base items by retaining
-  only active-session source text per uploaded document, reusing the existing
-  upload/indexing path, and avoiding durable document-content storage.
+- Add focused tests for `SYSTEM_PROMPT` injection into chat requests, then wire
+  a markdown-friendly env prompt into the existing prompt-building path without
+  creating auth, billing, multi-tenancy, email, marketing pages, autonomous
+  agents, WebContainer tooling, or a complex dashboard.
 - Treat Graphify's inconsistent community-count wording as non-blocking unless
   community totals become release criteria. Do not introduce autonomous
   execution or browser package runtimes.

@@ -9,7 +9,7 @@
       "source_file": "astro.config.mjs",
       "source_location": "L1",
       "id": "astro_config_mjs",
-      "community": 20,
+      "community": 19,
       "norm_label": "astro.config.mjs"
     },
     {
@@ -18,7 +18,7 @@
       "source_file": "astro.config.mjs",
       "source_location": "L8",
       "id": "techwriter_bot_astro_config_envdefine",
-      "community": 20,
+      "community": 19,
       "norm_label": "envdefine()"
     },
     {
@@ -72,7 +72,7 @@
       "source_file": "svelte.config.js",
       "source_location": "L1",
       "id": "svelte_config_js",
-      "community": 20,
+      "community": 19,
       "norm_label": "svelte.config.js"
     },
     {
@@ -162,7 +162,7 @@
       "source_file": "src/components/ArtifactOverlay.svelte",
       "source_location": "L1",
       "id": "src_components_artifactoverlay_svelte",
-      "community": 20,
+      "community": 19,
       "norm_label": "artifactoverlay.svelte"
     },
     {
@@ -171,7 +171,7 @@
       "source_file": "src/components/ArtifactPanel.svelte",
       "source_location": "L1",
       "id": "src_components_artifactpanel_svelte",
-      "community": 20,
+      "community": 19,
       "norm_label": "artifactpanel.svelte"
     },
     {
@@ -180,7 +180,7 @@
       "source_file": "src/components/ArtifactPanel.svelte",
       "source_location": "L60",
       "id": "components_artifactpanel_fail",
-      "community": 20,
+      "community": 19,
       "norm_label": "fail()"
     },
     {
@@ -288,7 +288,7 @@
       "source_file": "src/components/ArtifactStandalone.svelte",
       "source_location": "L1",
       "id": "src_components_artifactstandalone_svelte",
-      "community": 20,
+      "community": 19,
       "norm_label": "artifactstandalone.svelte"
     },
     {
@@ -306,7 +306,7 @@
       "source_file": "src/components/ChatInput.svelte",
       "source_location": "L1",
       "id": "src_components_chatinput_svelte",
-      "community": 10,
+      "community": 17,
       "norm_label": "chatinput.svelte"
     },
     {
@@ -315,26 +315,26 @@
       "source_file": "src/components/ChatIsland.svelte",
       "source_location": "L1",
       "id": "src_components_chatisland_svelte",
-      "community": 10,
+      "community": 17,
       "norm_label": "chatisland.svelte"
-    },
-    {
-      "label": "checkMobile()",
-      "file_type": "code",
-      "source_file": "src/components/ChatIsland.svelte",
-      "source_location": "L223",
-      "id": "components_chatisland_checkmobile",
-      "community": 10,
-      "norm_label": "checkmobile()"
     },
     {
       "label": "if()",
       "file_type": "code",
       "source_file": "src/components/ChatIsland.svelte",
-      "source_location": "L458",
+      "source_location": "L119",
       "id": "components_chatisland_if",
-      "community": 10,
+      "community": 17,
       "norm_label": "if()"
+    },
+    {
+      "label": "checkMobile()",
+      "file_type": "code",
+      "source_file": "src/components/ChatIsland.svelte",
+      "source_location": "L229",
+      "id": "components_chatisland_checkmobile",
+      "community": 17,
+      "norm_label": "checkmobile()"
     },
     {
       "label": "ChatMessages.svelte",
@@ -603,7 +603,7 @@
       "source_file": "src/lib/artifact-queue.ts",
       "source_location": "L1",
       "id": "src_lib_artifact_queue_ts",
-      "community": 17,
+      "community": 10,
       "norm_label": "artifact-queue.ts"
     },
     {
@@ -612,7 +612,7 @@
       "source_file": "src/lib/artifact-queue.ts",
       "source_location": "L15",
       "id": "lib_artifact_queue_createartifactqueue",
-      "community": 17,
+      "community": 10,
       "norm_label": "createartifactqueue()"
     },
     {
@@ -621,7 +621,7 @@
       "source_file": "src/lib/artifact-repair.ts",
       "source_location": "L1",
       "id": "src_lib_artifact_repair_ts",
-      "community": 17,
+      "community": 10,
       "norm_label": "artifact-repair.ts"
     },
     {
@@ -630,7 +630,7 @@
       "source_file": "src/lib/artifact-repair.ts",
       "source_location": "L21",
       "id": "lib_artifact_repair_createartifactrepairtarget",
-      "community": 17,
+      "community": 10,
       "norm_label": "createartifactrepairtarget()"
     },
     {
@@ -639,7 +639,7 @@
       "source_file": "src/lib/artifact-repair.ts",
       "source_location": "L28",
       "id": "lib_artifact_repair_planartifactrepairreplacement",
-      "community": 17,
+      "community": 10,
       "norm_label": "planartifactrepairreplacement()"
     },
     {
@@ -648,7 +648,7 @@
       "source_file": "src/lib/artifact-repair.ts",
       "source_location": "L41",
       "id": "lib_artifact_repair_createartifactregenerationprompt",
-      "community": 17,
+      "community": 10,
       "norm_label": "createartifactregenerationprompt()"
     },
     {
@@ -3204,7 +3204,7 @@
       "source_file": "src/tests/artifact-gallery.test.ts",
       "source_location": "L1",
       "id": "src_tests_artifact_gallery_test_ts",
-      "community": 17,
+      "community": 10,
       "norm_label": "artifact-gallery.test.ts"
     },
     {
@@ -3213,7 +3213,7 @@
       "source_file": "src/tests/artifact-gallery.test.ts",
       "source_location": "L7",
       "id": "tests_artifact_gallery_test_source",
-      "community": 17,
+      "community": 10,
       "norm_label": "source()"
     },
     {
@@ -3222,7 +3222,7 @@
       "source_file": "src/tests/artifact-repair-flow.test.ts",
       "source_location": "L1",
       "id": "src_tests_artifact_repair_flow_test_ts",
-      "community": 17,
+      "community": 10,
       "norm_label": "artifact-repair-flow.test.ts"
     },
     {
@@ -3231,7 +3231,7 @@
       "source_file": "src/tests/artifact-repair-flow.test.ts",
       "source_location": "L8",
       "id": "tests_artifact_repair_flow_test_source",
-      "community": 17,
+      "community": 10,
       "norm_label": "source()"
     },
     {
@@ -3599,7 +3599,7 @@
       "file_type": "code",
       "source_file": "src/components/ChatIsland.svelte",
       "source_location": "L581",
-      "community": 10,
+      "community": 17,
       "norm_label": "resetidletimer()",
       "id": "components_chatisland_resetidletimer"
     },
@@ -3608,7 +3608,7 @@
       "file_type": "code",
       "source_file": "src/components/ChatIsland.svelte",
       "source_location": "L683",
-      "community": 10,
+      "community": 17,
       "norm_label": "handlechipclick()",
       "id": "components_chatisland_handlechipclick"
     },
@@ -3617,7 +3617,7 @@
       "file_type": "code",
       "source_file": "src/components/ChatIsland.svelte",
       "source_location": "L690",
-      "community": 17,
+      "community": 10,
       "norm_label": "regenerateartifactentry()",
       "id": "components_chatisland_regenerateartifactentry"
     },
@@ -3626,7 +3626,7 @@
       "file_type": "code",
       "source_file": "src/components/ChatIsland.svelte",
       "source_location": "L700",
-      "community": 10,
+      "community": 17,
       "norm_label": "closesplit()",
       "id": "components_chatisland_closesplit"
     },
@@ -3635,7 +3635,7 @@
       "file_type": "code",
       "source_file": "src/components/ChatIsland.svelte",
       "source_location": "L705",
-      "community": 10,
+      "community": 17,
       "norm_label": "handleglobalkeydown()",
       "id": "components_chatisland_handleglobalkeydown"
     },
@@ -3644,7 +3644,7 @@
       "file_type": "code",
       "source_file": "src/components/ChatIsland.svelte",
       "source_location": "L710",
-      "community": 10,
+      "community": 17,
       "norm_label": "setmode()",
       "id": "components_chatisland_setmode"
     },
@@ -3950,7 +3950,7 @@
       "file_type": "code",
       "source_file": "src/components/ArtifactOverlay.svelte",
       "source_location": "L63",
-      "community": 20,
+      "community": 19,
       "norm_label": "blob",
       "id": "components_artifactoverlay_blob"
     },
@@ -3959,7 +3959,7 @@
       "file_type": "code",
       "source_file": "src/components/ArtifactOverlay.svelte",
       "source_location": "L64",
-      "community": 20,
+      "community": 19,
       "norm_label": "url",
       "id": "components_artifactoverlay_url"
     },
@@ -3968,7 +3968,7 @@
       "file_type": "code",
       "source_file": "src/components/ArtifactOverlay.svelte",
       "source_location": "L65",
-      "community": 20,
+      "community": 19,
       "norm_label": "a",
       "id": "components_artifactoverlay_a"
     },
@@ -3977,7 +3977,7 @@
       "file_type": "code",
       "source_file": "svelte",
       "confidence": "EXTRACTED",
-      "community": 20,
+      "community": 19,
       "norm_label": "svelte",
       "id": "svelte"
     },
@@ -3986,7 +3986,7 @@
       "file_type": "code",
       "source_file": "src/lib/stream-parser",
       "confidence": "EXTRACTED",
-      "community": 20,
+      "community": 19,
       "norm_label": "../lib/stream-parser",
       "id": "c_users_admin_desktop_techwriter_bot_src_lib_stream_parser"
     },
@@ -3995,7 +3995,7 @@
       "file_type": "code",
       "source_file": "src/components/ArtifactPanel.svelte",
       "source_location": "L58",
-      "community": 20,
+      "community": 19,
       "norm_label": "rendertimeout",
       "id": "components_artifactpanel_rendertimeout"
     },
@@ -4004,7 +4004,7 @@
       "file_type": "code",
       "source_file": "src/lib/renderer-loader",
       "confidence": "EXTRACTED",
-      "community": 10,
+      "community": 19,
       "norm_label": "../lib/renderer-loader",
       "id": "c_users_admin_desktop_techwriter_bot_src_lib_renderer_loader"
     },
@@ -4013,7 +4013,7 @@
       "file_type": "code",
       "source_file": "src/lib/artifact-types",
       "confidence": "EXTRACTED",
-      "community": 20,
+      "community": 19,
       "norm_label": "../lib/artifact-types",
       "id": "c_users_admin_desktop_techwriter_bot_src_lib_artifact_types"
     },
@@ -4076,7 +4076,7 @@
       "file_type": "code",
       "source_file": "src/components/ChatIsland.svelte",
       "source_location": "L158",
-      "community": 10,
+      "community": 17,
       "norm_label": "stored",
       "id": "components_chatisland_stored"
     },
@@ -4085,7 +4085,7 @@
       "file_type": "code",
       "source_file": "src/components/ChatIsland.svelte",
       "source_location": "L561",
-      "community": 10,
+      "community": 17,
       "norm_label": "next",
       "id": "components_chatisland_next"
     },
@@ -4094,7 +4094,7 @@
       "file_type": "code",
       "source_file": "src/lib/token-batcher",
       "confidence": "EXTRACTED",
-      "community": 10,
+      "community": 17,
       "norm_label": "../lib/token-batcher",
       "id": "c_users_admin_desktop_techwriter_bot_src_lib_token_batcher"
     },
@@ -4121,7 +4121,7 @@
       "file_type": "code",
       "source_file": "src/lib/cleanup",
       "confidence": "EXTRACTED",
-      "community": 10,
+      "community": 17,
       "norm_label": "../lib/cleanup",
       "id": "c_users_admin_desktop_techwriter_bot_src_lib_cleanup"
     },
@@ -4130,7 +4130,7 @@
       "file_type": "code",
       "source_file": "src/lib/artifact-detector",
       "confidence": "EXTRACTED",
-      "community": 10,
+      "community": 17,
       "norm_label": "../lib/artifact-detector",
       "id": "c_users_admin_desktop_techwriter_bot_src_lib_artifact_detector"
     },
@@ -4139,7 +4139,7 @@
       "file_type": "code",
       "source_file": "src/lib/artifact-state",
       "confidence": "EXTRACTED",
-      "community": 10,
+      "community": 17,
       "norm_label": "../lib/artifact-state",
       "id": "c_users_admin_desktop_techwriter_bot_src_lib_artifact_state"
     },
@@ -4157,7 +4157,7 @@
       "file_type": "code",
       "source_file": "src/lib/session-persist",
       "confidence": "EXTRACTED",
-      "community": 10,
+      "community": 17,
       "norm_label": "../lib/session-persist",
       "id": "c_users_admin_desktop_techwriter_bot_src_lib_session_persist"
     },
@@ -4184,7 +4184,7 @@
       "file_type": "code",
       "source_file": "src/lib/artifact-lifecycle.ts",
       "source_location": "L3",
-      "community": 17,
+      "community": 10,
       "norm_label": "artifactstatus",
       "id": "lib_artifact_lifecycle_artifactstatus"
     },
@@ -4193,7 +4193,7 @@
       "file_type": "code",
       "source_file": "src/lib/artifact-queue.ts",
       "source_location": "L4",
-      "community": 17,
+      "community": 10,
       "norm_label": "artifactentry",
       "id": "lib_artifact_queue_artifactentry"
     },
@@ -4202,7 +4202,7 @@
       "file_type": "code",
       "source_file": "src/lib/artifact-queue.ts",
       "source_location": "L12",
-      "community": 17,
+      "community": 10,
       "norm_label": "subscriber",
       "id": "lib_artifact_queue_subscriber"
     },
@@ -4211,7 +4211,7 @@
       "file_type": "code",
       "source_file": "src/lib/artifact-queue.ts",
       "source_location": "L71",
-      "community": 17,
+      "community": 10,
       "norm_label": "artifactqueue",
       "id": "lib_artifact_queue_artifactqueue"
     },
@@ -4859,7 +4859,7 @@
       "file_type": "code",
       "source_file": "src/lib/stream-parser.ts",
       "source_location": "L4",
-      "community": 17,
+      "community": 10,
       "norm_label": "artifact",
       "id": "lib_stream_parser_artifact"
     },
@@ -6695,7 +6695,7 @@
       "file_type": "document",
       "source_file": "docs/SYSTEM_SAVEPOINT.md",
       "source_location": "L1",
-      "community": 19,
+      "community": 20,
       "norm_label": "system_savepoint.md",
       "id": "docs_system_savepoint_md"
     },
@@ -6704,7 +6704,7 @@
       "file_type": "document",
       "source_file": "docs/SYSTEM_SAVEPOINT.md",
       "source_location": "L1",
-      "community": 19,
+      "community": 20,
       "norm_label": "techwriter bot \u2014 system savepoint",
       "id": "docs_system_savepoint_techwriter_bot_system_savepoint"
     },
@@ -6713,7 +6713,7 @@
       "file_type": "document",
       "source_file": "docs/SYSTEM_SAVEPOINT.md",
       "source_location": "L2",
-      "community": 19,
+      "community": 20,
       "norm_label": "commit: `b2ac2c0` | branch: `main` | deployed: `tw-bot.pages.dev`",
       "id": "docs_system_savepoint_commit_b2ac2c0_branch_main_deployed_tw_bot_pages_dev"
     },
@@ -6722,7 +6722,7 @@
       "file_type": "document",
       "source_file": "docs/SYSTEM_SAVEPOINT.md",
       "source_location": "L4",
-      "community": 19,
+      "community": 20,
       "norm_label": "state summary",
       "id": "docs_system_savepoint_state_summary"
     },
@@ -6731,7 +6731,7 @@
       "file_type": "document",
       "source_file": "docs/SYSTEM_SAVEPOINT.md",
       "source_location": "L9",
-      "community": 19,
+      "community": 20,
       "norm_label": "file inventory (source files only)",
       "id": "docs_system_savepoint_file_inventory_source_files_only"
     },
@@ -6740,7 +6740,7 @@
       "file_type": "document",
       "source_file": "docs/SYSTEM_SAVEPOINT.md",
       "source_location": "L11",
-      "community": 19,
+      "community": 20,
       "norm_label": "code:block1 (src/)",
       "id": "docs_system_savepoint_codeblock_1"
     },
@@ -6749,7 +6749,7 @@
       "file_type": "document",
       "source_file": "docs/SYSTEM_SAVEPOINT.md",
       "source_location": "L69",
-      "community": 19,
+      "community": 20,
       "norm_label": "deployed capabilities",
       "id": "docs_system_savepoint_deployed_capabilities"
     },
@@ -6758,7 +6758,7 @@
       "file_type": "document",
       "source_file": "docs/SYSTEM_SAVEPOINT.md",
       "source_location": "L71",
-      "community": 19,
+      "community": 20,
       "norm_label": "routing intelligence",
       "id": "docs_system_savepoint_routing_intelligence"
     },
@@ -6767,7 +6767,7 @@
       "file_type": "document",
       "source_file": "docs/SYSTEM_SAVEPOINT.md",
       "source_location": "L80",
-      "community": 19,
+      "community": 20,
       "norm_label": "artifact rendering",
       "id": "docs_system_savepoint_artifact_rendering"
     },
@@ -6776,7 +6776,7 @@
       "file_type": "document",
       "source_file": "docs/SYSTEM_SAVEPOINT.md",
       "source_location": "L90",
-      "community": 19,
+      "community": 20,
       "norm_label": "knowledge graph",
       "id": "docs_system_savepoint_knowledge_graph"
     },
@@ -6785,7 +6785,7 @@
       "file_type": "document",
       "source_file": "docs/SYSTEM_SAVEPOINT.md",
       "source_location": "L96",
-      "community": 19,
+      "community": 20,
       "norm_label": "token economics",
       "id": "docs_system_savepoint_token_economics"
     },
@@ -6794,7 +6794,7 @@
       "file_type": "document",
       "source_file": "docs/SYSTEM_SAVEPOINT.md",
       "source_location": "L102",
-      "community": 19,
+      "community": 20,
       "norm_label": "caching",
       "id": "docs_system_savepoint_caching"
     },
@@ -6803,7 +6803,7 @@
       "file_type": "document",
       "source_file": "docs/SYSTEM_SAVEPOINT.md",
       "source_location": "L108",
-      "community": 19,
+      "community": 20,
       "norm_label": "security",
       "id": "docs_system_savepoint_security"
     },
@@ -6812,7 +6812,7 @@
       "file_type": "document",
       "source_file": "docs/SYSTEM_SAVEPOINT.md",
       "source_location": "L119",
-      "community": 19,
+      "community": 20,
       "norm_label": "mobile/desktop ux",
       "id": "docs_system_savepoint_mobile_desktop_ux"
     },
@@ -6821,7 +6821,7 @@
       "file_type": "document",
       "source_file": "docs/SYSTEM_SAVEPOINT.md",
       "source_location": "L126",
-      "community": 19,
+      "community": 20,
       "norm_label": "infra",
       "id": "docs_system_savepoint_infra"
     }
@@ -7653,21 +7653,21 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "src/components/ChatIsland.svelte",
-      "source_location": "L189",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "src_components_chatisland_svelte",
-      "target": "components_chatisland_checkmobile"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "src/components/ChatIsland.svelte",
       "source_location": "L326",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "src_components_chatisland_svelte",
       "target": "components_chatisland_if"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/components/ChatIsland.svelte",
+      "source_location": "L189",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "src_components_chatisland_svelte",
+      "target": "components_chatisland_checkmobile"
     },
     {
       "relation": "contains",
@@ -12204,9 +12204,9 @@
       "source_file": "src/lib/rag-client.ts",
       "source_location": "L66",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_lib_rag_client_ts",
-      "target": "lib_rag_client_createdocumentid",
-      "confidence_score": 1.0
+      "target": "lib_rag_client_createdocumentid"
     },
     {
       "relation": "contains",
@@ -12370,9 +12370,9 @@
       "source_file": "src/lib/rag-client.ts",
       "source_location": "L67",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "lib_rag_client_createdocumentid",
-      "target": "lib_rag_client_safefilename",
-      "confidence_score": 1.0
+      "target": "lib_rag_client_safefilename"
     },
     {
       "relation": "calls",
@@ -12392,9 +12392,9 @@
       "source_file": "src/lib/rag-client.ts",
       "source_location": "L180",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "lib_rag_client_handlefileupload",
-      "target": "lib_rag_client_safefilename",
-      "confidence_score": 1.0
+      "target": "lib_rag_client_safefilename"
     },
     {
       "relation": "calls",
@@ -12403,9 +12403,9 @@
       "source_file": "src/lib/rag-client.ts",
       "source_location": "L147",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "lib_rag_client_handlefileupload",
-      "target": "lib_rag_client_createdocumentid",
-      "confidence_score": 1.0
+      "target": "lib_rag_client_createdocumentid"
     },
     {
       "relation": "calls",
@@ -12532,9 +12532,9 @@
       "source_file": "src/lib/rag-db.ts",
       "source_location": "L39",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_lib_rag_db_ts",
-      "target": "lib_rag_db_getstoreddocuments",
-      "confidence_score": 1.0
+      "target": "lib_rag_db_getstoreddocuments"
     },
     {
       "relation": "contains",
@@ -12552,9 +12552,9 @@
       "source_file": "src/lib/rag-db.ts",
       "source_location": "L83",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_lib_rag_db_ts",
-      "target": "lib_rag_db_deletedocumentvectors",
-      "confidence_score": 1.0
+      "target": "lib_rag_db_deletedocumentvectors"
     },
     {
       "relation": "contains",
@@ -12696,9 +12696,9 @@
       "source_file": "src/lib/rag-db.ts",
       "source_location": "L84",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "lib_rag_db_deletedocumentvectors",
-      "target": "lib_rag_db_clearlegacyindexeddb",
-      "confidence_score": 1.0
+      "target": "lib_rag_db_clearlegacyindexeddb"
     },
     {
       "relation": "calls",
@@ -12718,9 +12718,9 @@
       "source_file": "src/lib/rag-db.ts",
       "source_location": "L40",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "lib_rag_db_getstoreddocuments",
-      "target": "lib_rag_db_getstoredvectors",
-      "confidence_score": 1.0
+      "target": "lib_rag_db_getstoredvectors"
     },
     {
       "relation": "calls",
@@ -12740,9 +12740,9 @@
       "source_file": "src/tests/rag-document-registry.test.ts",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_tests_rag_document_registry_test_ts",
-      "target": "lib_rag_db_getstoredvectors",
-      "confidence_score": 1.0
+      "target": "lib_rag_db_getstoredvectors"
     },
     {
       "relation": "calls",
@@ -12762,9 +12762,9 @@
       "source_file": "src/tests/rag-document-registry.test.ts",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_tests_rag_document_registry_test_ts",
-      "target": "lib_rag_db_getstoreddocuments",
-      "confidence_score": 1.0
+      "target": "lib_rag_db_getstoreddocuments"
     },
     {
       "relation": "imports",
@@ -12773,9 +12773,9 @@
       "source_file": "src/tests/rag-document-registry.test.ts",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_tests_rag_document_registry_test_ts",
-      "target": "lib_rag_db_storevectors",
-      "confidence_score": 1.0
+      "target": "lib_rag_db_storevectors"
     },
     {
       "relation": "calls",
@@ -12795,9 +12795,9 @@
       "source_file": "src/tests/rag-document-registry.test.ts",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_tests_rag_document_registry_test_ts",
-      "target": "lib_rag_db_deletedocumentvectors",
-      "confidence_score": 1.0
+      "target": "lib_rag_db_deletedocumentvectors"
     },
     {
       "relation": "calls",
@@ -12828,9 +12828,9 @@
       "source_file": "src/tests/rag-document-registry.test.ts",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_tests_rag_document_registry_test_ts",
-      "target": "lib_rag_db_clearsessionvectors",
-      "confidence_score": 1.0
+      "target": "lib_rag_db_clearsessionvectors"
     },
     {
       "relation": "calls",
@@ -17523,9 +17523,9 @@
       "source_file": "src/tests/rag-document-registry.test.ts",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_tests_rag_document_registry_test_ts",
-      "target": "c_users_admin_desktop_techwriter_bot_src_lib_rag_db",
-      "confidence_score": 1.0
+      "target": "c_users_admin_desktop_techwriter_bot_src_lib_rag_db"
     },
     {
       "relation": "contains",
@@ -17533,9 +17533,9 @@
       "source_file": "src/tests/rag-document-registry.test.ts",
       "source_location": "L12",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_tests_rag_document_registry_test_ts",
-      "target": "tests_rag_document_registry_test_source",
-      "confidence_score": 1.0
+      "target": "tests_rag_document_registry_test_source"
     },
     {
       "relation": "contains",
@@ -19366,5 +19366,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "378a61afc05ac6d302f2adecf069a66cefcd5aba"
+  "built_at_commit": "220dab221e78928c82c5e51c934ffbfcc2d25064"
 }

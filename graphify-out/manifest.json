@@ -72,12 +72,12 @@
     "hash": "ce036d6ac6c4e32f010605e82e86bdc3"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\components\\ChatInput.svelte": {
-    "mtime": 1780200290.1883416,
-    "hash": "54957d538fff59bada8defcbb7c30401"
+    "mtime": 1780201200.0822957,
+    "hash": "3533aa369b015be0dcf992d4307aca61"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\components\\ChatIsland.svelte": {
-    "mtime": 1780200496.3301835,
-    "hash": "2dcb8ae8f520b844436ec6bfe030323d"
+    "mtime": 1780201200.0122945,
+    "hash": "51c27a3a109f4e52972d092914528bec"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\components\\ChatMessages.svelte": {
     "mtime": 1780197695.2052956,
@@ -396,8 +396,8 @@
     "hash": "7f9fde29a403add37f58d5f421b94143"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\tests\\rag-document-registry.test.ts": {
-    "mtime": 1780199964.2612753,
-    "hash": "f520356c1587a14d940fd7251bff75ed"
+    "mtime": 1780201097.8148134,
+    "hash": "7a140bc1468489254a61fb095d2d0c23"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\tests\\renderer-sandbox.test.ts": {
     "mtime": 1779965502.549637,
@@ -460,12 +460,12 @@
     "hash": "5659010e5262e9fd04cd89f4b9b3191e"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\IMPLEMENTATION_STATUS.md": {
-    "mtime": 1780199732.3637285,
-    "hash": "35834b329e4297a1d1467a18930b524e"
+    "mtime": 1780200909.760458,
+    "hash": "6316e3bbff56eaf99e031f020cd9d13f"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\MASTER_EXECUTION_PLAN.md": {
-    "mtime": 1780199565.6828296,
-    "hash": "974a31f9e3ed58f6b45104238e00288f"
+    "mtime": 1780200886.1031053,
+    "hash": "57c3823248c5f9ac5cad1c75ddaeee72"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\PRODUCT_MARKETING.md": {
     "mtime": 1779964536.6182373,
