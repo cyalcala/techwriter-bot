@@ -15,8 +15,8 @@ Then continue from the "Next Task" section below.
 
 Phase 2: Core Engine.
 
-The active slice is transitioning from RAG/Knowledge Base reliability to
-client brand voice:
+The active slice is finishing Brand Voice Per Client and preparing production
+acceptance:
 
 - Accepted baseline: in-session filename, heading, and line metadata for
   uploaded document chunks.
@@ -28,8 +28,15 @@ client brand voice:
   text only in active page memory.
 - Accepted baseline: env-driven markdown-friendly `SYSTEM_PROMPT` injection
   into every chat path.
-- Next slice: add `PERSONA_NAME` to the UI header and derive empty-chat
-  suggested prompts from `SYSTEM_PROMPT`.
+- Accepted baseline: env-driven `PERSONA_NAME` for the page title, UI header,
+  and initial assistant greeting.
+- Accepted baseline: three empty-chat suggested prompts are derived from
+  `SYSTEM_PROMPT` using safe preset mappings, so the raw prompt does not need to
+  be serialized to the browser.
+- Current checkpoint: code commit `0dd45bc` is locally verified and its tracked
+  Graphify artifacts were refreshed to 763 nodes and 1215 edges.
+- Next slice: push the code/docs checkpoint, watch GitHub Actions production
+  deployment, smoke-test the production alias, and record acceptance evidence.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -179,6 +186,7 @@ Documentation Tooling Agent direction.
   - `378a61a` in-session RAG document registry and Knowledge Base controls.
   - `220dab2` user-invoked Knowledge Base re-embed control.
   - `6964365` markdown-friendly client `SYSTEM_PROMPT` injection.
+  - `0dd45bc` client persona header and empty-chat suggested prompts.
 
 ## In Progress
 
@@ -193,8 +201,10 @@ Documentation Tooling Agent direction.
 - WebContainer runtime verification is no longer a completion requirement. The
   controlled-renderer checkpoint removes that external browser package runtime
   from executable product paths and treats legacy output as inert code.
-- The public production alias `https://tw-bot.pages.dev` now serves
+- The public production alias `https://tw-bot.pages.dev` currently serves
   client `SYSTEM_PROMPT` code commit `6964365` via docs commit `493ef4e`.
+  Code commit `0dd45bc` for client persona header/suggestions is locally
+  verified and awaiting the next GitHub Actions production deployment.
   The accepted preview alias remains available at
   `https://codex-privacy-first-disclosu.tw-bot.pages.dev`.
 - Defined the first bounded Documentation Tooling Agent slice in
@@ -218,9 +228,10 @@ Documentation Tooling Agent direction.
   Base registry/delete/re-embed controls are implemented without disrupting
   real credentials, reviving browser package runtimes, or extending the bounded
   tooling scope.
-- Client `SYSTEM_PROMPT` injection is implemented without creating auth,
-  billing, multi-tenancy, email, marketing pages, autonomous agents,
-  WebContainer tooling, or a complex dashboard.
+- Client `SYSTEM_PROMPT` injection, `PERSONA_NAME` UI branding, and
+  `SYSTEM_PROMPT`-derived empty-chat suggestions are implemented without
+  creating auth, billing, multi-tenancy, email, marketing pages, autonomous
+  agents, WebContainer tooling, or a complex dashboard.
 
 ## Blockers And Notes
 
@@ -844,17 +855,37 @@ Latest incremental verification on 2026-05-31:
   version mismatch; bounded graph lookup for `buildSystemPrompt` returns
   `src/lib/prompts.ts:L54` from the 844-node runtime graph with
   `Cache-Control: no-store, private`.
+- Added the second Brand Voice Per Client slice in `src/lib/prompts.ts`,
+  `src/pages/index.astro`, `src/components/ChatIsland.svelte`,
+  `src/lib/env-reader.ts`, and `.env.template`: `PERSONA_NAME` drives the page
+  title, header, and initial greeting, while empty-chat suggested prompts are
+  derived from `SYSTEM_PROMPT` through safe preset mappings instead of exposing
+  the raw client prompt in browser props.
+- Red-green coverage confirmed the previous persona/suggestion gaps, then
+  passed after implementation. Verification passed after this slice:
+  `npm.cmd test -- --run src/tests/brand-voice.test.ts` (4 tests),
+  `npm.cmd test -- --run src/tests/brand-voice.test.ts src/tests/api-routes-consistency.test.ts src/tests/public-diagnostics.test.ts src/tests/critical.test.ts` (4 files, 34 tests),
+  `npm.cmd test` (31 files, 145 tests),
+  `npm.cmd audit --omit=dev --audit-level=high` (0 vulnerabilities),
+  `git diff --check` (only known CRLF conversion warnings), and the recorded
+  `build:local` command.
+- `graphify update .` refreshed tracked local Graphify artifacts from commit
+  `0dd45bc`: 763 nodes and 1215 edges. Community-count wording remains
+  non-blocking.
 
 ## Next Task
 
-Continue Phase 2 core-engine work with Brand Voice Per Client from the master
-plan in small slices:
+Finish the Brand Voice Per Client production acceptance loop, then move to the
+next phase:
 
-- Add focused tests for `PERSONA_NAME` in the UI header and empty-chat
-  suggested prompts derived from `SYSTEM_PROMPT`, then wire those into the
-  existing Svelte/Astro page without creating auth, billing, multi-tenancy,
-  email, marketing pages, autonomous agents, WebContainer tooling, or a complex
-  dashboard.
+- Push the code/docs checkpoint containing `0dd45bc`, watch the GitHub Actions
+  production deployment, record the run id and immutable Cloudflare URL, verify
+  `/api/health`, and use the bounded graph lookup for `deriveSuggestedPrompts`
+  or `visiblePersonaName`.
+- After production acceptance is recorded, continue with Phase 3 Conversation
+  Management in small slices, starting with tests for fresh conversation
+  isolation and explicit user-invoked session export/import planning. Do not
+  add durable automatic chat retention.
 - Treat Graphify's inconsistent community-count wording as non-blocking unless
   community totals become release criteria. Do not introduce autonomous
   execution or browser package runtimes.
