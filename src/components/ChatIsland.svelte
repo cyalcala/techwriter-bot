@@ -14,6 +14,7 @@
   import { extractArtifactTitle } from '../lib/artifact-lifecycle';
   import { createArtifactRegenerationPrompt, createArtifactRepairTarget, planArtifactRepairReplacement, type ArtifactRepairTarget } from '../lib/artifact-repair';
   import { createLiveOutageState, hasVisibleLiveResponse, type LiveOutageState } from '../lib/session-continuity';
+  import { createSessionExport, parseSessionImport, sessionExportFilename } from '../lib/session-transfer';
   import { reviewDocument, type DocumentFinding, type TerminologyRule } from '../lib/document-review';
   import ChatMessages from './ChatMessages.svelte';
   import ChatInput from './ChatInput.svelte';
@@ -97,6 +98,7 @@
   let isUploading = $state(false);
   let rag = $state<RagState>(createDefaultRagState());
   let fileInput: HTMLInputElement;
+  let sessionImportInput: HTMLInputElement;
   let isThinkingMode = $state(false);
   let isLiveMode = $state(false);
   let enhancedCredits = $state({ remaining: 3, total: 3, unlimited: false, budgetExhausted: false });
@@ -435,6 +437,71 @@
       await processFileUpload(file);
     }
     isUploading = false;
+  }
+
+  function exportSession() {
+    const payload = createSessionExport({
+      messages,
+      artifacts: artifactQueue.entries,
+      documents: rag.documents,
+      chatPath,
+    });
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = sessionExportFilename(new Date(payload.exportedAt));
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function onSessionImportSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    let raw = '';
+    try {
+      raw = await file.text();
+    } catch {
+      messages = [...messages, { role: 'assistant', content: 'Session import failed: I could not read that file.' }];
+      input.value = '';
+      return;
+    }
+
+    const parsed = parseSessionImport(raw);
+    if (!parsed.ok) {
+      messages = [...messages, { role: 'assistant', content: `Session import failed: ${parsed.message}` }];
+      input.value = '';
+      return;
+    }
+
+    safeAbort();
+    clearConversation();
+    documentTopics = '';
+    clearAllData(sessionId);
+    sessionId = generateSessionId();
+    messages = parsed.payload.messages;
+    rag = {
+      ...clearRagState(),
+      uploadStatus: parsed.payload.documents.length > 0 ? 'done' : 'idle',
+      uploadedFileName: parsed.payload.documents.at(-1)?.filename ?? '',
+      documents: parsed.payload.documents,
+    };
+    documentSources = {};
+    clearDocumentToolState();
+    artifactQueue.clear();
+    for (const entry of parsed.payload.artifacts) {
+      artifactQueue.push(entry);
+    }
+    activeArtifactEntry = artifactQueue.entries[0] ?? null;
+    artifactError = null;
+    pendingArtifactRepair = null;
+    liveOutage = null;
+    isLiveMode = false;
+    chatPath = parsed.payload.chatPath ?? null;
+    if (fileInput) fileInput.value = '';
+    input.value = '';
   }
 
   async function reembedDocument(documentId: string) {
@@ -881,6 +948,14 @@
         </a>
       </div>
       <div class="flex items-center gap-0.5 shrink-0">
+        <button onclick={exportSession} class="text-[10px] md:text-xs text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 px-2 md:px-3 py-1 md:py-1.5 rounded-lg transition-all flex items-center gap-1" title="Export session">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 md:h-3.5 md:w-3.5" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a1 1 0 011 1v7.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4A1 1 0 016.707 8.293L9 10.586V3a1 1 0 011-1z"/><path d="M3 14a1 1 0 011-1h2.5a1 1 0 110 2H5v1h10v-1h-1.5a1 1 0 110-2H16a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1v-3z"/></svg>
+          <span class="hidden sm:inline">Export</span>
+        </button>
+        <button onclick={() => sessionImportInput.click()} class="text-[10px] md:text-xs text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 px-2 md:px-3 py-1 md:py-1.5 rounded-lg transition-all flex items-center gap-1" title="Import session">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 md:h-3.5 md:w-3.5" viewBox="0 0 20 20" fill="currentColor"><path d="M10 18a1 1 0 01-1-1V9.414l-2.293 2.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 9.414V17a1 1 0 01-1 1z"/><path d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 11-2 0V4H5v2a1 1 0 01-2 0V3z"/></svg>
+          <span class="hidden sm:inline">Import</span>
+        </button>
         <button onclick={clearChat} class="text-[10px] md:text-xs text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 px-2 md:px-3 py-1 md:py-1.5 rounded-lg transition-all flex items-center gap-1" title="Clear">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 md:h-3.5 md:w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
           <span class="hidden sm:inline">Clear</span>
@@ -936,6 +1011,7 @@
     {/if}
 
     <input type="file" bind:this={fileInput} onchange={onFileSelected} class="hidden" accept=".txt,.md,.json,.csv" multiple />
+    <input type="file" bind:this={sessionImportInput} onchange={onSessionImportSelected} class="hidden" accept=".json,application/json" />
 
     {#if toolsOpen}
       <DocumentToolsPanel
