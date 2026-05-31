@@ -15,8 +15,8 @@ Then continue from the "Next Task" section below.
 
 Phase 2: Core Engine.
 
-The active slice is finishing Brand Voice Per Client and preparing production
-acceptance:
+The active slice has completed Brand Voice Per Client production acceptance and
+is ready to transition to Phase 3 Conversation Management:
 
 - Accepted baseline: in-session filename, heading, and line metadata for
   uploaded document chunks.
@@ -33,10 +33,12 @@ acceptance:
 - Accepted baseline: three empty-chat suggested prompts are derived from
   `SYSTEM_PROMPT` using safe preset mappings, so the raw prompt does not need to
   be serialized to the browser.
-- Current checkpoint: code commit `6ab6be3` is locally verified and its tracked
-  Graphify artifacts were refreshed to 763 nodes and 1215 edges.
-- Next slice: push the code/docs checkpoint, watch GitHub Actions production
-  deployment, smoke-test the production alias, and record acceptance evidence.
+- Current checkpoint: code commit `6ab6be3` is accepted on production via docs
+  commit `91d1720`; the local tracked graph is 763 nodes and 1215 edges, and
+  the production runtime graph is 849 nodes and 1252 edges.
+- Next slice: begin Phase 3 Conversation Management with explicit
+  user-invoked session export/import planning and fresh conversation isolation
+  tests, without adding durable automatic chat retention.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -203,11 +205,8 @@ Documentation Tooling Agent direction.
 - WebContainer runtime verification is no longer a completion requirement. The
   controlled-renderer checkpoint removes that external browser package runtime
   from executable product paths and treats legacy output as inert code.
-- The public production alias `https://tw-bot.pages.dev` currently serves
-  client `SYSTEM_PROMPT` code commit `6964365` via docs commit `493ef4e`.
-  Code commit `6ab6be3` for client persona header/suggestions and runtime
-  brand env deployment is locally verified and awaiting the next GitHub Actions
-  production deployment.
+- The public production alias `https://tw-bot.pages.dev` now serves Brand Voice
+  Per Client through code commit `6ab6be3` via docs commit `91d1720`.
   The accepted preview alias remains available at
   `https://codex-privacy-first-disclosu.tw-bot.pages.dev`.
 - Defined the first bounded Documentation Tooling Agent slice in
@@ -219,8 +218,8 @@ Documentation Tooling Agent direction.
   active-session deterministic document review and a bounded read-only
   `src/` reference lookup with no generic fallback output.
 - Published a production runtime graph through the authorized GitHub Actions
-  path; the latest accepted runtime extraction from `493ef4e` contains 844
-  nodes and 1236 edges and is available only through the bounded `src/` lookup
+  path; the latest accepted runtime extraction from `91d1720` contains 849
+  nodes and 1252 edges and is available only through the bounded `src/` lookup
   surface.
 - Safe provider fault-injection coverage, renderer-preload warning cleanup,
   Phase 2 renderer boundaries, Kroki/server-render coverage, active-session
@@ -235,7 +234,7 @@ Documentation Tooling Agent direction.
   `SYSTEM_PROMPT`-derived empty-chat suggestions are implemented without
   creating auth, billing, multi-tenancy, email, marketing pages, autonomous
   agents, WebContainer tooling, or a complex dashboard.
-- Brand voice runtime env now prefers Cloudflare Pages runtime bindings for the
+- Brand voice runtime env now uses the Cloudflare Workers env import for the
   page title/suggestions and the GitHub deployment workflow can configure
   `SYSTEM_PROMPT` and `PERSONA_NAME` as Pages environment variables.
 
@@ -914,20 +913,28 @@ Latest incremental verification on 2026-05-31:
 - `graphify update .` refreshed tracked local Graphify artifacts from commit
   `6ab6be3`: 763 nodes and 1215 edges. Community-count wording remains
   non-blocking.
+- The Brand Voice Per Client production deploy passed in GitHub Actions run
+  `26715890489` from docs commit `91d1720` with immutable URL
+  `https://23822c6b.tw-bot.pages.dev`. The production runtime graph reports
+  849 nodes and 1252 edges.
+- Production probes confirmed both `https://tw-bot.pages.dev/` and
+  `https://23822c6b.tw-bot.pages.dev/` return `200` and contain the default
+  `Technical Writer` persona header plus default suggested prompts. Production
+  `/api/health` returns `200` with request id
+  `feef6670-a8f1-4c02-bd72-1852715793b4`, four active providers out of six,
+  matching app version, and no version mismatch. Bounded graph lookup for
+  `deriveSuggestedPrompts` returns `src/lib/prompts.ts:L91` from the 849-node
+  runtime graph with `Cache-Control: no-store, private`.
 
 ## Next Task
 
-Finish the Brand Voice Per Client production acceptance loop, then move to the
-next phase:
+Continue with Phase 3 Conversation Management in small slices:
 
-- Push the code/docs checkpoint containing `6ab6be3`, watch the GitHub Actions
-  production deployment, record the run id and immutable Cloudflare URL, verify
-  `/api/health`, and use the bounded graph lookup for `runtimeEnv`,
-  `deriveSuggestedPrompts`, or `visiblePersonaName`.
-- After production acceptance is recorded, continue with Phase 3 Conversation
-  Management in small slices, starting with tests for fresh conversation
-  isolation and explicit user-invoked session export/import planning. Do not
-  add durable automatic chat retention.
+- Start with tests for fresh conversation isolation and explicit user-invoked
+  session export/import planning. Do not add durable automatic chat retention.
+- Preserve active-session privacy boundaries: page refresh/navigation clearly
+  ends active-session content unless the user explicitly exports a JSON backup
+  file and later imports it.
 - Treat Graphify's inconsistent community-count wording as non-blocking unless
   community totals become release criteria. Do not introduce autonomous
   execution or browser package runtimes.
