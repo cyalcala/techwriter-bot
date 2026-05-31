@@ -80,7 +80,7 @@ The current tracked code graph was refreshed with `graphify update .` on
   count; use node/edge counts and targeted graph queries for acceptance until
   that reporting discrepancy is reconciled.
 - The production runtime graph is published by the GitHub Actions extraction
-  pipeline and currently reports 834 nodes and 1214 edges.
+  pipeline and currently reports 841 nodes and 1231 edges.
 - Controlled provider fault injection is available only when
   `PROVIDER_FAULT_INJECTION_TOKEN` is configured and matched by request
   headers, allowing failover/outage acceptance without disabling real provider
