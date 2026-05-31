@@ -15,15 +15,11 @@ Then continue from the "Next Task" section below.
 
 Phase 2: Core Engine.
 
-The active slice is artifact reliability:
+The active slice is RAG/citation reliability:
 
-- Escaped, type-specific renderer failure boundaries.
-- Active-session renderer retry controls.
-- Existing Fix with AI handoff for panel renderer errors.
-- Clearer browser-render and server-render failure messaging.
-- Streaming parser hardening for malformed, nested, and chunk-split artifact
-  tags.
-- Artifact DOM update debounce and 30 second slow-provider timeout messaging.
+- In-session filename, heading, and line metadata for uploaded document chunks.
+- Document citation context in `[Doc: filename, line n]` format.
+- Deterministic retrieval failure and no-context messages.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -169,6 +165,7 @@ Documentation Tooling Agent direction.
   - `58e2663` malformed and nested artifact stream parser hardening.
   - `4a4f621` UTF-8 and chunk-boundary artifact stream parser hardening.
   - `9cedcaf` debounced artifact DOM subscriptions and slow-provider timeout copy.
+  - `285a27c` RAG citation metadata and deterministic retrieval guard.
 
 ## In Progress
 
@@ -206,6 +203,11 @@ Documentation Tooling Agent direction.
   parser hardening, chunk-boundary parser hardening, and artifact debounce/
   timeout behavior are implemented without disrupting real credentials,
   reviving browser package runtimes, or extending the bounded tooling scope.
+- Local `main` contains RAG citation metadata commit `285a27c`, which preserves
+  in-session filename, heading, and line metadata for uploaded chunks, formats
+  retrieved context as `[Doc: filename, line n]`, and returns deterministic
+  no-context/retrieval-failure messages before calling chat. Production
+  acceptance for that commit is pending the next GitHub Actions deployment.
 
 ## Blockers And Notes
 
@@ -713,14 +715,34 @@ Latest incremental verification on 2026-05-31:
   four active providers out of six at probe time, matching app version, and no
   version mismatch; bounded graph lookup for `createArtifactQueue` returns
   `src/lib/artifact-queue.ts:L15` with `Cache-Control: no-store, private`.
+- Added RAG citation metadata and retrieval guards in
+  `src/lib/rag-client.ts`, `src/lib/rag-db.ts`, `src/lib/sim-search.ts`,
+  `public/workers/similarity-worker.js`, and
+  `src/components/ChatIsland.svelte`: uploaded chunks now keep in-session
+  filename, heading, start line, and end line metadata; similarity search
+  preserves that metadata; retrieved context uses `[Doc: filename, line n]`;
+  and failed or empty retrieval returns a deterministic assistant message
+  rather than silently letting chat guess.
+- Red-green coverage confirmed the previous citation/no-context gaps, then
+  passed after implementation. Verification passed after this slice:
+  `npm.cmd test -- --run src/tests/rag-citations.test.ts`,
+  `npm.cmd test -- --run src/tests/rag-citations.test.ts src/tests/rag-client-tools.test.ts src/tests/document-tools-ui.test.ts src/tests/privacy-first.test.ts`,
+  `npm.cmd test -- --run src/tests/api-routes-consistency.test.ts src/tests/public-diagnostics.test.ts`,
+  `npm.cmd test` (29 files, 136 tests),
+  `npm.cmd audit --omit=dev --audit-level=high`, `git diff --check`, and the
+  recorded `build:local` command.
+- `graphify update .` refreshed tracked local Graphify artifacts from commit
+  `285a27c`: 753 nodes and 1192 edges. Community-count wording remains
+  non-blocking.
 
 ## Next Task
 
 Continue Phase 2 core-engine work with RAG/citation reliability from the
 master plan in small slices:
 
-- Add focused coverage for citation/source numbering and retrieval failure
-  messaging before changing broader RAG behavior.
+- Add an in-session uploaded-document registry for multiple documents, then
+  expose a small Knowledge Base sidebar/list with filename, chunk count, and
+  delete controls before any re-embed workflow.
 - Treat Graphify's inconsistent community-count wording as non-blocking unless
   community totals become release criteria. Do not introduce autonomous
   execution or browser package runtimes.
