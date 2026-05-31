@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { TokenBatcher } from '../lib/token-batcher';
-  import { handleFileUpload, searchDocumentChunks, formatRagContext, clearRagState, createDefaultRagState, type RagState } from '../lib/rag-client';
+  import { handleFileUpload, searchDocumentChunks, formatRagContext, createRagRetrievalMessage, clearRagState, createDefaultRagState, type RagState } from '../lib/rag-client';
   import { getStoredVectors, updateActivity } from '../lib/rag-db';
   import { setupCleanupCallbacks, runStaleCheck, clearAllData } from '../lib/cleanup';
   import { ArtifactStreamParser, type Artifact } from '../lib/stream-parser';
@@ -487,7 +487,10 @@
           if (embedFailed) rag.ragDegraded = true;
           if (chunks.length > 0) {
             const ctx = formatRagContext(chunks);
-            if (ctx) messagesToSend = [{ role: 'system', content: `Use these document key points. Cite as [Point 1], [Point 2], etc.\n\n${ctx}` }, ...messagesToSend];
+            if (ctx) messagesToSend = [{ role: 'system', content: `Use these uploaded document excerpts. Cite every document-backed claim with [Doc: filename, line n]. If the answer is not supported by these excerpts, say "I don't have enough context in the uploaded document to answer that."\n\n${ctx}` }, ...messagesToSend];
+          } else {
+            messages = [...messages, { role: 'assistant', content: createRagRetrievalMessage({ embedFailed }) }];
+            return;
           }
         }
       }

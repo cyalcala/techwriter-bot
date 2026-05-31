@@ -18,7 +18,7 @@ export async function searchInWorker(
   queryVector: number[],
   topK: number = 3,
   threshold: number = 0.3,
-): Promise<{ id: string; text: string; score: number }[]> {
+): Promise<{ id: string; text: string; score: number; filename?: string; startLine?: number; endLine?: number; heading?: string }[]> {
   const w = getWorker();
 
   if (w) {
@@ -52,11 +52,15 @@ function fallbackSearch(
   queryVector: number[],
   topK: number,
   threshold: number,
-): { id: string; text: string; score: number }[] {
+): { id: string; text: string; score: number; filename?: string; startLine?: number; endLine?: number; heading?: string }[] {
   const scored = vectors.map(v => ({
     id: v.id,
     text: v.text,
     score: cosineSimilarity(queryVector, v.vector),
+    filename: v.filename,
+    startLine: v.startLine,
+    endLine: v.endLine,
+    heading: v.heading,
   }));
   scored.sort((a, b) => b.score - a.score);
   return scored.slice(0, topK).filter(v => v.score > threshold);

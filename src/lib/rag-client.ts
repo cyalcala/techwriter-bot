@@ -1,4 +1,4 @@
-import { embedChunks, chunkText, validateDocument, type EmbedProgress } from './embed-pipeline';
+import { embedChunks, validateDocument, type EmbedProgress } from './embed-pipeline';
 import { storeVectors, getStoredVectors } from './rag-db';
 import { searchInWorker } from './sim-search';
 
@@ -27,6 +27,18 @@ export function clearRagState(): RagState {
 export interface RagChunk {
   text: string;
   score: number;
+  filename?: string;
+  startLine?: number;
+  endLine?: number;
+  heading?: string;
+}
+
+export interface DocumentChunk {
+  text: string;
+  filename: string;
+  startLine: number;
+  endLine: number;
+  heading?: string;
 }
 
 export interface UploadResult {
@@ -36,6 +48,60 @@ export interface UploadResult {
   degraded: boolean;
   message: string;
   sourceText?: string;
+}
+
+function safeFilename(name: string): string {
+  return name.split(/[\\/]/).pop()?.trim() || 'document';
+}
+
+function lineForOffset(text: string, offset: number): number {
+  if (offset <= 0) return 1;
+  const slice = text.slice(0, Math.min(offset, text.length));
+  return (slice.match(/\n/g) || []).length + 1;
+}
+
+function headingForLine(lines: string[], line: number): string | undefined {
+  for (let index = Math.min(line - 1, lines.length - 1); index >= 0; index -= 1) {
+    const match = lines[index].match(/^\s{0,3}#{1,6}\s+(.+?)\s*#*\s*$/);
+    if (match) return match[1].trim();
+  }
+  return undefined;
+}
+
+export function createDocumentChunks(
+  text: string,
+  filename: string,
+  chunkSize: number = 500,
+  overlap: number = 100,
+  maxChunks: number = 100,
+): DocumentChunk[] {
+  const chunks: DocumentChunk[] = [];
+  const step = Math.max(1, chunkSize - overlap);
+  const safeName = safeFilename(filename);
+  const lines = text.split(/\r?\n/);
+
+  for (let start = 0; start < text.length && chunks.length < maxChunks; start += step) {
+    const end = Math.min(start + chunkSize, text.length);
+    const chunk = text.slice(start, end);
+    if (!chunk.trim()) continue;
+    const startLine = lineForOffset(text, start);
+    const endLine = lineForOffset(text, Math.max(start, end - 1));
+    chunks.push({
+      text: chunk,
+      filename: safeName,
+      startLine,
+      endLine,
+      heading: headingForLine(lines, startLine),
+    });
+  }
+
+  return chunks;
+}
+
+export function createRagRetrievalMessage({ embedFailed }: { embedFailed: boolean }): string {
+  return embedFailed
+    ? 'Document retrieval is temporarily unavailable. Please retry the document question in a moment.'
+    : "I don't have enough context in the uploaded document to answer that.";
 }
 
 export async function handleFileUpload(
@@ -60,15 +126,16 @@ export async function handleFileUpload(
       return { success: false, chunkCount: 0, skipped: 0, degraded: false, message: 'Upload failed: File is empty.' };
     }
 
-    const chunks = chunkText(text, 500, 100, 100);
+    const chunks = createDocumentChunks(text, file.name, 500, 100, 100);
+    const chunkTexts = chunks.map((chunk) => chunk.text);
     onProgress({ done: 0, total: chunks.length, skipped: 0, stage: 'embedding' });
 
-    const { vectors, skipped, degraded } = await embedChunks(chunks, (p) => onProgress(p));
+    const { vectors, skipped, degraded } = await embedChunks(chunkTexts, (p) => onProgress(p));
 
-    const validChunks: { text: string; vector: number[] }[] = [];
+    const validChunks: { text: string; vector: number[]; filename: string; startLine: number; endLine: number; heading?: string }[] = [];
     for (let i = 0; i < chunks.length; i++) {
       if (vectors[i] && vectors[i].length > 0) {
-        validChunks.push({ text: chunks[i], vector: vectors[i] });
+        validChunks.push({ ...chunks[i], vector: vectors[i] });
       }
     }
 
@@ -131,9 +198,13 @@ export async function searchDocumentChunks(
     }
 
     return {
-      chunks: similar.map((c: { text: string; score: number }) => ({
+      chunks: similar.map((c: { text: string; score: number; filename?: string; startLine?: number; endLine?: number; heading?: string }) => ({
         text: c.text,
         score: c.score,
+        filename: c.filename,
+        startLine: c.startLine,
+        endLine: c.endLine,
+        heading: c.heading,
       })),
       embedFailed: false,
     };
@@ -156,7 +227,15 @@ export function formatRagContext(chunks: RagChunk[], maxLen: number = 2000): str
     return result || text.slice(0, max);
   };
 
-  const parts = chunks.map((c, i) => `[Point ${i + 1}] ${extractKeyPoints(c.text)}`);
+  const citationForChunk = (chunk: RagChunk, index: number): string => {
+    if (chunk.filename && chunk.startLine) {
+      const heading = chunk.heading ? ` (${chunk.heading})` : '';
+      return `[Doc: ${chunk.filename}, line ${chunk.startLine}]${heading}`;
+    }
+    return `[Point ${index + 1}]`;
+  };
+
+  const parts = chunks.map((c, i) => `${citationForChunk(c, i)} ${extractKeyPoints(c.text)}`);
   const raw = parts.join('\n');
   return raw.length > maxLen
     ? raw.slice(0, maxLen) + '\n[Context truncated — ask for details on specific points]'

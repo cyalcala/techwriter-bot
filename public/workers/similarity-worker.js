@@ -21,6 +21,10 @@ self.onmessage = function(event) {
         id: v.id,
         text: v.text,
         score: cosineSimilarity(queryVector, v.vector),
+        filename: v.filename,
+        startLine: v.startLine,
+        endLine: v.endLine,
+        heading: v.heading,
       };
     });
 
