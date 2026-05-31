@@ -73,9 +73,9 @@ The current tracked code graph was refreshed with `graphify update .` on
 
 - Report: `graphify-out/GRAPH_REPORT.md`
 - Graph: `graphify-out/graph.json`
-- Summary: 753 nodes, 1192 edges
+- Summary: 758 nodes, 1207 edges
 - Extraction confidence: 94% EXTRACTED, 6% INFERRED, 0% AMBIGUOUS
-- Built from code at commit: `285a27c9`
+- Built from code at commit: `378a61af`
 - The generated report currently disagrees with itself on total community
   count; use node/edge counts and targeted graph queries for acceptance until
   that reporting discrepancy is reconciled.
@@ -115,6 +115,9 @@ The current tracked code graph was refreshed with `graphify update .` on
 - RAG chunks now keep in-session filename, heading, and line metadata, retrieved
   context uses `[Doc: filename, line n]` citations, and empty/failed retrieval
   paths produce deterministic no-context messages instead of silent guessing.
+- The RAG Knowledge Base registry now keeps in-session document records with
+  filename and chunk counts, accepts multiple selected files, and can delete
+  one document's vectors without clearing the rest of the session.
 
 Before broad architecture work, read `graphify-out/GRAPH_REPORT.md` first.
 When the graph may be stale, run:

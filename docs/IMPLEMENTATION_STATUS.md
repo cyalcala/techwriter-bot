@@ -21,8 +21,10 @@ The active slice is RAG/Knowledge Base reliability:
   uploaded document chunks.
 - Accepted baseline: document citation context in `[Doc: filename, line n]`
   format plus deterministic retrieval failure and no-context messages.
-- Next slice: in-session uploaded-document registry for multiple documents
-  with visible filename, chunk count, and delete controls.
+- Accepted baseline: in-session uploaded-document registry for multiple
+  documents with visible filename, chunk count, and delete controls.
+- Next slice: add a user-invoked re-embed flow for Knowledge Base items while
+  keeping source text only in active page memory.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -169,6 +171,7 @@ Documentation Tooling Agent direction.
   - `4a4f621` UTF-8 and chunk-boundary artifact stream parser hardening.
   - `9cedcaf` debounced artifact DOM subscriptions and slow-provider timeout copy.
   - `285a27c` RAG citation metadata and deterministic retrieval guard.
+  - `378a61a` in-session RAG document registry and Knowledge Base controls.
 
 ## In Progress
 
@@ -207,6 +210,11 @@ Documentation Tooling Agent direction.
   behavior, and RAG citation metadata/retrieval guards are implemented without
   disrupting real credentials, reviving browser package runtimes, or extending
   the bounded tooling scope.
+- Local `main` contains RAG document registry commit `378a61a`, which adds
+  in-session document records, a compact Knowledge Base list, per-document
+  delete controls, and multi-file chooser handling without durable content
+  storage. Production acceptance for that commit is pending the next GitHub
+  Actions deployment.
 
 ## Blockers And Notes
 
@@ -745,15 +753,32 @@ Latest incremental verification on 2026-05-31:
   version mismatch; bounded graph lookup for `createRagRetrievalMessage`
   returns `src/lib/rag-client.ts:L101` from the 834-node runtime graph with
   `Cache-Control: no-store, private`.
+- Added the first Knowledge Base registry slice in `src/lib/rag-db.ts`,
+  `src/lib/rag-client.ts`, `src/components/ChatIsland.svelte`, and
+  `src/components/ChatInput.svelte`: uploaded chunks now carry a document id,
+  the in-memory store can summarize documents without exposing chunk text,
+  deleting one document removes only that document's vectors, the upload input
+  accepts multiple selected files, and the chat footer shows a compact
+  Knowledge Base list with filename, chunk count, and delete controls.
+- Red-green coverage confirmed the previous registry/delete gaps, then passed
+  after implementation. Verification passed after this slice:
+  `npm.cmd test -- --run src/tests/rag-document-registry.test.ts`,
+  `npm.cmd test -- --run src/tests/rag-document-registry.test.ts src/tests/rag-citations.test.ts src/tests/rag-client-tools.test.ts src/tests/document-tools-ui.test.ts src/tests/privacy-first.test.ts` (5 files, 22 tests),
+  `npm.cmd test` (30 files, 139 tests),
+  `npm.cmd audit --omit=dev --audit-level=high`, `git diff --check`, and the
+  recorded `build:local` command.
+- `graphify update .` refreshed tracked local Graphify artifacts from commit
+  `378a61a`: 758 nodes and 1207 edges. Community-count wording remains
+  non-blocking.
 
 ## Next Task
 
 Continue Phase 2 core-engine work with RAG/citation reliability from the
 master plan in small slices:
 
-- Add an in-session uploaded-document registry for multiple documents, then
-  expose a small Knowledge Base sidebar/list with filename, chunk count, and
-  delete controls before any re-embed workflow.
+- Add a user-invoked re-embed control for Knowledge Base items by retaining
+  only active-session source text per uploaded document, reusing the existing
+  upload/indexing path, and avoiding durable document-content storage.
 - Treat Graphify's inconsistent community-count wording as non-blocking unless
   community totals become release criteria. Do not introduce autonomous
   execution or browser package runtimes.

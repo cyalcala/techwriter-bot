@@ -72,12 +72,12 @@
     "hash": "ce036d6ac6c4e32f010605e82e86bdc3"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\components\\ChatInput.svelte": {
-    "mtime": 1779964536.6642237,
-    "hash": "4e00c0c7a15ef1b6a06d7dc38a5e0afa"
+    "mtime": 1780200290.1883416,
+    "hash": "54957d538fff59bada8defcbb7c30401"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\components\\ChatIsland.svelte": {
-    "mtime": 1780198947.1802115,
-    "hash": "e44292cbee9ba64e6adaf96f12318343"
+    "mtime": 1780200496.3301835,
+    "hash": "2dcb8ae8f520b844436ec6bfe030323d"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\components\\ChatMessages.svelte": {
     "mtime": 1780197695.2052956,
@@ -192,12 +192,12 @@
     "hash": "8ec04d31381b54651f13cab7171fd95c"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\lib\\rag-client.ts": {
-    "mtime": 1780198962.8251333,
-    "hash": "06afea3ef03f79cdf00253f2007e8aae"
+    "mtime": 1780200145.13844,
+    "hash": "3ea4acf4b60991d4d1634fb9cbee90a2"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\lib\\rag-db.ts": {
-    "mtime": 1780198947.1662126,
-    "hash": "3f00531c9b829ae3da36787ed36c77b9"
+    "mtime": 1780200121.3004334,
+    "hash": "c5eab62f2f04750e68bb88bbe4fa7c0c"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\lib\\rate-limiter.ts": {
     "mtime": 1779964536.7182264,
@@ -395,6 +395,10 @@
     "mtime": 1779964536.7960877,
     "hash": "7f9fde29a403add37f58d5f421b94143"
   },
+  "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\tests\\rag-document-registry.test.ts": {
+    "mtime": 1780199964.2612753,
+    "hash": "f520356c1587a14d940fd7251bff75ed"
+  },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\tests\\renderer-sandbox.test.ts": {
     "mtime": 1779965502.549637,
     "hash": "2a34d70d95639b3b30afb49b48ef6563"
@@ -456,12 +460,12 @@
     "hash": "5659010e5262e9fd04cd89f4b9b3191e"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\IMPLEMENTATION_STATUS.md": {
-    "mtime": 1780198454.4116125,
-    "hash": "361b3b8132922f5c08d64c5fc13ddea9"
+    "mtime": 1780199732.3637285,
+    "hash": "35834b329e4297a1d1467a18930b524e"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\MASTER_EXECUTION_PLAN.md": {
-    "mtime": 1780198454.4176123,
-    "hash": "fd277095335ce51705ceedb2ce3f7294"
+    "mtime": 1780199565.6828296,
+    "hash": "974a31f9e3ed58f6b45104238e00288f"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\PRODUCT_MARKETING.md": {
     "mtime": 1779964536.6182373,
