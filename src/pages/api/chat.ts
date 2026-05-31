@@ -214,6 +214,7 @@ export const POST: APIRoute = async (ctx) => {
       graphContext: graphContextStr || undefined,
       searchResult,
       needsArtifact,
+      clientSystemPrompt: typeof env.SYSTEM_PROMPT === 'string' && env.SYSTEM_PROMPT.trim() ? env.SYSTEM_PROMPT : undefined,
     };
 
     messages = [{ role: 'system', content: buildSystemPrompt(query, promptCtx) }, ...messages];

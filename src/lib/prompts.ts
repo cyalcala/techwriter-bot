@@ -15,6 +15,7 @@ export interface PromptContext {
   documentContext?: string;
   searchResult?: SearchResult;
   needsArtifact: boolean;
+  clientSystemPrompt?: string;
 }
 
 const ARTIFACT_COMPACT = [
@@ -46,6 +47,10 @@ const CORE_PERSONA_BALANCED = `You are an expert technical writing assistant. Yo
 
 const CORE_PERSONA_HEAVY = `You are an expert technical writing and research assistant. You have access to live search results and codebase knowledge. Answer thoroughly with citations. Prioritize recent, accurate information from provided sources. Never mention training data or knowledge cutoffs.`;
 
+function normalizeClientSystemPrompt(prompt?: string): string {
+  return (prompt || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+}
+
 export function buildSystemPrompt(query: string, ctx: PromptContext): string {
   const now = new Date();
   const dayName = now.toLocaleDateString('en-US', { weekday: 'long' });
@@ -68,6 +73,11 @@ export function buildSystemPrompt(query: string, ctx: PromptContext): string {
       layers.push({ priority: 0, content: dateLayer });
       layers.push({ priority: 0, content: CORE_PERSONA_HEAVY });
       break;
+  }
+
+  const clientSystemPrompt = normalizeClientSystemPrompt(ctx.clientSystemPrompt);
+  if (clientSystemPrompt) {
+    layers.push({ priority: 0, content: `CLIENT SYSTEM PROMPT:\n${clientSystemPrompt}` });
   }
 
   if (ctx.graphContext) {
