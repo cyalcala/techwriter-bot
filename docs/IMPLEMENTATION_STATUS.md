@@ -13,10 +13,11 @@ Then continue from the "Next Task" section below.
 
 ## Current Focus
 
-Phase 2: Core Engine.
+Phase 3: Workflow And Trust.
 
-The active slice has completed Brand Voice Per Client production acceptance and
-is ready to transition to Phase 3 Conversation Management:
+The active slice has begun Phase 3 Conversation Management with explicit
+user-invoked session export/import while preserving the privacy-first active
+session boundary:
 
 - Accepted baseline: in-session filename, heading, and line metadata for
   uploaded document chunks.
@@ -33,12 +34,17 @@ is ready to transition to Phase 3 Conversation Management:
 - Accepted baseline: three empty-chat suggested prompts are derived from
   `SYSTEM_PROMPT` using safe preset mappings, so the raw prompt does not need to
   be serialized to the browser.
-- Current checkpoint: code commit `6ab6be3` is accepted on production via docs
-  commit `91d1720`; the local tracked graph is 763 nodes and 1215 edges, and
-  the production runtime graph is 849 nodes and 1252 edges.
-- Next slice: begin Phase 3 Conversation Management with explicit
-  user-invoked session export/import planning and fresh conversation isolation
-  tests, without adding durable automatic chat retention.
+- Accepted baseline: explicit JSON session export/import is implemented for
+  active messages, artifacts, and uploaded document metadata only. It does not
+  export uploaded source text, vectors, document tool findings, or add automatic
+  durable chat retention.
+- Current checkpoint: code commit `a6ea3f7` is locally verified. The local
+  tracked graph is 776 nodes and 1247 edges, built from `a6ea3f70`. Production
+  acceptance is pending the docs/Graphify checkpoint push and GitHub Actions
+  deployment.
+- Next slice: finish deployment acceptance for `a6ea3f7`, then continue Phase 3
+  in small conversation-management slices. Prefer in-open-session history/list
+  tests next; do not add durable automatic chat retention.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -191,6 +197,8 @@ Documentation Tooling Agent direction.
   - `0dd45bc` client persona header and empty-chat suggested prompts.
   - `20ee914` runtime-configurable brand voice deployment env.
   - `6ab6be3` Cloudflare env access fix for the brand page route.
+  - `a6ea3f7` explicit user-invoked session export/import and fresh-session
+    isolation tests.
 
 ## In Progress
 
@@ -237,6 +245,12 @@ Documentation Tooling Agent direction.
 - Brand voice runtime env now uses the Cloudflare Workers env import for the
   page title/suggestions and the GitHub deployment workflow can configure
   `SYSTEM_PROMPT` and `PERSONA_NAME` as Pages environment variables.
+- Phase 3 Conversation Management has started with explicit session file
+  transfer: `src/lib/session-transfer.ts` creates/parses a versioned JSON
+  backup containing active messages, active artifacts, and uploaded-document
+  metadata only; `src/components/ChatIsland.svelte` exposes Export/Import
+  controls and clears old active-session state before applying an imported
+  session.
 
 ## Blockers And Notes
 
@@ -925,13 +939,37 @@ Latest incremental verification on 2026-05-31:
   matching app version, and no version mismatch. Bounded graph lookup for
   `deriveSuggestedPrompts` returns `src/lib/prompts.ts:L91` from the 849-node
   runtime graph with `Cache-Control: no-store, private`.
+- Added the first Phase 3 Conversation Management slice in
+  `src/lib/session-transfer.ts`, `src/components/ChatIsland.svelte`, and
+  `src/tests/session-transfer.test.ts`: Export creates an explicit JSON backup
+  of active messages, active artifact queue entries, and uploaded document
+  metadata; Import validates that JSON file, clears the prior active session,
+  applies the imported messages/artifacts/document metadata, and leaves uploaded
+  source text, vectors, document tool findings, automatic retention, and durable
+  writes out of scope.
+- Red-green coverage confirmed the previous missing transfer helper/UI path,
+  then passed after implementation. Verification passed after this slice:
+  `npm.cmd test -- --run src/tests/session-transfer.test.ts` (6 tests),
+  `npm.cmd test -- --run src/tests/session-transfer.test.ts src/tests/privacy-first.test.ts src/tests/rag-document-registry.test.ts src/tests/artifact-gallery.test.ts` (4 files, 27 tests),
+  `npm.cmd test` (32 files, 152 tests),
+  `npm.cmd audit --omit=dev --audit-level=high` (0 vulnerabilities),
+  `git diff --check` (only known CRLF conversion warning), and the recorded
+  `build:local` command (passed with the known non-failing `punycode` and
+  Wrangler local-AI warnings).
+- `graphify update .` refreshed tracked local Graphify artifacts from commit
+  `a6ea3f7`: 776 nodes and 1247 edges. Community-count wording remains
+  non-blocking.
 
 ## Next Task
 
 Continue with Phase 3 Conversation Management in small slices:
 
-- Start with tests for fresh conversation isolation and explicit user-invoked
-  session export/import planning. Do not add durable automatic chat retention.
+- Push the docs/Graphify checkpoint for `a6ea3f7`, watch GitHub Actions, and
+  record production acceptance with immutable URL, `/api/health` request id,
+  production alias smoke, and runtime graph counts.
+- After acceptance, continue with in-open-session conversation history/list
+  planning and tests. Keep it active-session-first unless the user explicitly
+  exports JSON and later imports it.
 - Preserve active-session privacy boundaries: page refresh/navigation clearly
   ends active-session content unless the user explicitly exports a JSON backup
   file and later imports it.
@@ -944,5 +982,5 @@ Continue with Phase 3 Conversation Management in small slices:
 Use this in a new chat if the session stops:
 
 ```text
-Continue from C:\Users\admin\Desktop\techwriter-bot. Read docs\MASTER_EXECUTION_PLAN.md, docs\IMPLEMENTATION_STATUS.md, docs\AI_RECOVERY_TRAIL.md, and graphify-out\GRAPH_REPORT.md first. Then continue Phase 2 from docs\IMPLEMENTATION_STATUS.md Next Task. Use the build verification command recorded there. Preserve GitHub backups after each coherent slice. Do not rebuild OAuth, Stripe, multi-tenancy, email, marketing pages, autonomous agents, Kubernetes, Redis, complex dashboards, or WebContainer/runtime package tooling.
+Continue from C:\Users\admin\Desktop\techwriter-bot. Read docs\MASTER_EXECUTION_PLAN.md, docs\IMPLEMENTATION_STATUS.md, docs\AI_RECOVERY_TRAIL.md, and graphify-out\GRAPH_REPORT.md first. Then continue Phase 3 from docs\IMPLEMENTATION_STATUS.md Next Task. Use the build verification command recorded there. Preserve GitHub backups after each coherent slice. Do not rebuild OAuth, Stripe, multi-tenancy, email, marketing pages, autonomous agents, Kubernetes, Redis, complex dashboards, or WebContainer/runtime package tooling.
 ```
