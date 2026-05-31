@@ -61,6 +61,10 @@ Do not add these unless the product strategy changes in writing:
   latency, aggregate token/cost counters, rate limits, and version markers.
 - Never persist prompt text, generated answers, uploaded document content,
   artifact content, or search-result content by default.
+- Every meaningful implementation move must be recoverable from GitHub alone:
+  follow `docs/AI_RECOVERY_TRAIL.md` for code commits, verification evidence,
+  Graphify/docs checkpoints, deployment acceptance, and exact next-task
+  handoffs.
 
 ## Graphify Reference
 

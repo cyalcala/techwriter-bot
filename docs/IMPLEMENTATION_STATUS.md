@@ -6,7 +6,8 @@ When starting a new chat, read these files first:
 
 1. `docs/MASTER_EXECUTION_PLAN.md`
 2. `docs/IMPLEMENTATION_STATUS.md`
-3. `graphify-out/GRAPH_REPORT.md`
+3. `docs/AI_RECOVERY_TRAIL.md`
+4. `graphify-out/GRAPH_REPORT.md`
 
 Then continue from the "Next Task" section below.
 
@@ -54,6 +55,9 @@ Documentation Tooling Agent direction.
   - `src/lib/rag-db.ts`
   - artifact parser/components.
 - Added `docs/IMPLEMENTATION_STATUS.md` as the relay checkpoint.
+- Added `docs/AI_RECOVERY_TRAIL.md` as the GitHub-backed recovery protocol so
+  future AI agents and maintainers can reconstruct decisions, verification, and
+  next steps from the repository alone.
 - Added shared API response helpers in `src/lib/api-response.ts`.
 - Migrated `src/pages/api/chat.ts` GET/POST responses to include `x-request-id` and standardized API error envelopes on the main chat paths.
 - Added env-configurable request limits in `src/lib/request-limits.ts`:
@@ -209,6 +213,9 @@ Documentation Tooling Agent direction.
   `codex/privacy-first-disclosure` remains on GitHub as a reviewed backup.
 - Create verified GitHub checkpoint pushes on this feature branch as coherent
   slices complete; do not commit scratch/generated local artifacts.
+- Follow `docs/AI_RECOVERY_TRAIL.md` for every meaningful move: code commit,
+  verification evidence, Graphify/docs checkpoint, GitHub push, deploy
+  acceptance, and exact next task.
 - There are unrelated/unmanaged untracked local artifacts in the workspace. Do not delete them unless the user explicitly asks.
 - A same-shell `subst T:` alias lets the build run.
 - Build requires `CLOUDFLARE_REMOTE_BINDINGS` to stay unset or `false` unless Wrangler is logged in.
@@ -723,5 +730,5 @@ master plan in small slices:
 Use this in a new chat if the session stops:
 
 ```text
-Continue from C:\Users\admin\Desktop\techwriter-bot. Read docs\MASTER_EXECUTION_PLAN.md, docs\IMPLEMENTATION_STATUS.md, and graphify-out\GRAPH_REPORT.md first. Then continue Phase 2 from docs\IMPLEMENTATION_STATUS.md Next Task. Use the build verification command recorded there. Do not rebuild OAuth, Stripe, multi-tenancy, email, marketing pages, autonomous agents, Kubernetes, Redis, or complex dashboards.
+Continue from C:\Users\admin\Desktop\techwriter-bot. Read docs\MASTER_EXECUTION_PLAN.md, docs\IMPLEMENTATION_STATUS.md, docs\AI_RECOVERY_TRAIL.md, and graphify-out\GRAPH_REPORT.md first. Then continue Phase 2 from docs\IMPLEMENTATION_STATUS.md Next Task. Use the build verification command recorded there. Preserve GitHub backups after each coherent slice. Do not rebuild OAuth, Stripe, multi-tenancy, email, marketing pages, autonomous agents, Kubernetes, Redis, complex dashboards, or WebContainer/runtime package tooling.
 ```
