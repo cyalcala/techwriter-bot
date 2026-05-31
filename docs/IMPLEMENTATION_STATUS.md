@@ -175,8 +175,8 @@ Documentation Tooling Agent direction.
 - WebContainer runtime verification is no longer a completion requirement. The
   controlled-renderer checkpoint removes that external browser package runtime
   from executable product paths and treats legacy output as inert code.
-- The public production alias `https://tw-bot.pages.dev` now serves selected
-  artifact source/SVG/PNG download controls commit `75f8d12`. The accepted
+- The public production alias `https://tw-bot.pages.dev` now serves parser
+  hardening code commit `58e2663` via docs commit `40e3509`. The accepted
   preview alias remains available at
   `https://codex-privacy-first-disclosu.tw-bot.pages.dev`.
 - Defined the first bounded Documentation Tooling Agent slice in
@@ -188,19 +188,15 @@ Documentation Tooling Agent direction.
   active-session deterministic document review and a bounded read-only
   `src/` reference lookup with no generic fallback output.
 - Published a production runtime graph through the authorized GitHub Actions
-  path; the latest accepted runtime extraction from `46ff7af` contains 1041
-  nodes and 1415 edges and is available only through the bounded `src/` lookup
+  path; the latest accepted runtime extraction from `40e3509` contains 827
+  nodes and 1197 edges and is available only through the bounded `src/` lookup
   surface.
 - Safe provider fault-injection coverage, renderer-preload warning cleanup,
-  Phase 2 renderer boundaries, Kroki/server-render coverage, and
-  active-session artifact repair replacement plus gallery jump/regenerate
-  controls, selected source copy, and separate source/SVG/PNG downloads are
-  implemented without disrupting real credentials, reviving browser package
-  runtimes, or extending the bounded tooling scope.
-- Local `main` contains parser hardening commit `58e2663`, which tolerates
-  case-varied and typo-style artifact tags and preserves nested artifact tags
-  inside the outer artifact body. Production acceptance for that commit is
-  pending the next GitHub Actions deployment.
+  Phase 2 renderer boundaries, Kroki/server-render coverage, active-session
+  artifact repair replacement plus gallery jump/regenerate controls, selected
+  source copy, separate source/SVG/PNG downloads, and malformed/nested artifact
+  parser hardening are implemented without disrupting real credentials,
+  reviving browser package runtimes, or extending the bounded tooling scope.
 
 ## Blockers And Notes
 
@@ -230,6 +226,10 @@ Documentation Tooling Agent direction.
 - Kroki/server-render coverage deployed from commit `cadedfa` through GitHub
   Actions run `26572177321` with immutable URL
   `https://d8cd6e55.tw-bot.pages.dev` and production alias
+  `https://tw-bot.pages.dev`.
+- Artifact parser hardening deployed from docs commit `40e3509` through GitHub
+  Actions run `26701618728` with immutable URL
+  `https://82b43224.tw-bot.pages.dev` and production alias
   `https://tw-bot.pages.dev`.
 - Local build currently emits non-failing Node `punycode`/`MaxListenersExceeded`
   warnings plus the Wrangler local-AI remote-usage warning.
@@ -618,7 +618,6 @@ Latest incremental verification on 2026-05-29:
   version mismatch; bounded graph lookup for `downloadPng` returns
   `src/components/ArtifactSplitView.svelte:L122` with
   `Cache-Control: no-store, private`.
-
 Latest incremental verification on 2026-05-31:
 
 - Added streaming parser hardening in `src/lib/stream-parser.ts` plus
@@ -638,6 +637,13 @@ Latest incremental verification on 2026-05-31:
 - `graphify update .` refreshed tracked local Graphify artifacts from commit
   `58e2663`: 742 nodes and 1157 edges. Community-count wording remains
   non-blocking.
+- The parser hardening deploy passed in GitHub Actions run `26701618728` at
+  immutable URL `https://82b43224.tw-bot.pages.dev`. The production runtime
+  graph from that run reports 827 nodes and 1197 edges.
+- Production probes confirmed `/api/health` returns `200` with request id,
+  four active providers out of six at probe time, matching app version, and no
+  version mismatch; bounded graph lookup for `findNextArtifactBoundary` returns
+  `src/lib/stream-parser.ts:L117` with `Cache-Control: no-store, private`.
 
 ## Next Task
 
