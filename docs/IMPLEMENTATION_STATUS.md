@@ -180,8 +180,8 @@ Documentation Tooling Agent direction.
   controlled-renderer checkpoint removes that external browser package runtime
   from executable product paths and treats legacy output as inert code.
 - The public production alias `https://tw-bot.pages.dev` now serves
-  chunk-boundary parser hardening code commit `4a4f621` via docs commit
-  `02e78af`. The accepted preview alias remains available at
+  artifact debounce/timeout code commit `9cedcaf` via docs commit `6631867`.
+  The accepted preview alias remains available at
   `https://codex-privacy-first-disclosu.tw-bot.pages.dev`.
 - Defined the first bounded Documentation Tooling Agent slice in
   `docs/superpowers/specs/2026-05-27-documentation-tooling-agent-foundation-design.md`:
@@ -192,21 +192,16 @@ Documentation Tooling Agent direction.
   active-session deterministic document review and a bounded read-only
   `src/` reference lookup with no generic fallback output.
 - Published a production runtime graph through the authorized GitHub Actions
-  path; the latest accepted runtime extraction from `02e78af` contains 829
-  nodes and 1200 edges and is available only through the bounded `src/` lookup
+  path; the latest accepted runtime extraction from `6631867` contains 817
+  nodes and 1189 edges and is available only through the bounded `src/` lookup
   surface.
 - Safe provider fault-injection coverage, renderer-preload warning cleanup,
   Phase 2 renderer boundaries, Kroki/server-render coverage, active-session
   artifact repair replacement plus gallery jump/regenerate controls, selected
   source copy, separate source/SVG/PNG downloads, malformed/nested artifact
-  parser hardening, and chunk-boundary parser hardening are implemented without
-  disrupting real credentials, reviving browser package runtimes, or extending
-  the bounded tooling scope.
-- Local `main` contains debounce/timeout commit `9cedcaf`, which adds 50 ms
-  debounced artifact queue subscriptions for chat artifact DOM consumers and
-  makes the 30 second stream timeout say `Provider slow, switching...`.
-  Production acceptance for that commit is pending the next GitHub Actions
-  deployment.
+  parser hardening, chunk-boundary parser hardening, and artifact debounce/
+  timeout behavior are implemented without disrupting real credentials,
+  reviving browser package runtimes, or extending the bounded tooling scope.
 
 ## Blockers And Notes
 
@@ -244,6 +239,10 @@ Documentation Tooling Agent direction.
 - Artifact chunk-boundary hardening deployed from docs commit `02e78af`
   through GitHub Actions run `26701890133` with immutable URL
   `https://ace73c37.tw-bot.pages.dev` and production alias
+  `https://tw-bot.pages.dev`.
+- Artifact debounce/timeout behavior deployed from docs commit `6631867`
+  through GitHub Actions run `26702133215` with immutable URL
+  `https://c1407848.tw-bot.pages.dev` and production alias
   `https://tw-bot.pages.dev`.
 - Local build currently emits non-failing Node `punycode`/`MaxListenersExceeded`
   warnings plus the Wrangler local-AI remote-usage warning.
@@ -700,6 +699,13 @@ Latest incremental verification on 2026-05-31:
 - `graphify update .` refreshed tracked local Graphify artifacts from commit
   `9cedcaf`: 746 nodes and 1175 edges. Community-count wording remains
   non-blocking.
+- The debounce/timeout deploy passed in GitHub Actions run `26702133215` at
+  immutable URL `https://c1407848.tw-bot.pages.dev`. The production runtime
+  graph from that run reports 817 nodes and 1189 edges.
+- Production probes confirmed `/api/health` returns `200` with request id,
+  four active providers out of six at probe time, matching app version, and no
+  version mismatch; bounded graph lookup for `createArtifactQueue` returns
+  `src/lib/artifact-queue.ts:L15` with `Cache-Control: no-store, private`.
 
 ## Next Task
 
