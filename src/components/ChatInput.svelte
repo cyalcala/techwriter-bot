@@ -7,6 +7,12 @@
     chatPath?: string;
   }
 
+  interface RagDocumentSummary {
+    id: string;
+    filename: string;
+    chunkCount: number;
+  }
+
   interface Props {
     disabled: boolean;
     isStreaming: boolean;
@@ -23,7 +29,9 @@
     ragUploadStatus?: string;
     ragDegraded?: boolean;
     ragUploadProgress?: { done: number; total: number } | null;
+    ragDocuments?: RagDocumentSummary[];
     onRemoveFile: () => void;
+    onDeleteDocument: (documentId: string) => void;
     toolsOpen: boolean;
     onToggleTools: () => void;
     tokenDisplay: { in: number; cached?: boolean } | null;
@@ -37,7 +45,7 @@
     disabled, isStreaming, inputMessage, onInputChange, onSend, onStop,
     mode, onModeChange, enhancedCredits, onFileClick, isUploading,
     ragUploadedFileName = '', ragUploadStatus = 'idle', ragDegraded = false,
-    ragUploadProgress = null, onRemoveFile, toolsOpen, onToggleTools, tokenDisplay, chatPath, failoverEvents = [], panelOpen, isMobile,
+    ragUploadProgress = null, ragDocuments = [], onRemoveFile, onDeleteDocument, toolsOpen, onToggleTools, tokenDisplay, chatPath, failoverEvents = [], panelOpen, isMobile,
   }: Props = $props();
   let privacyOpen = $state(false);
 
@@ -62,7 +70,28 @@
 {#if !(panelOpen && isMobile)}
   <footer class="p-3 md:p-4 bg-[#faf7f2]/90 backdrop-blur-xl border-t border-stone-200/60 transition-all">
     <div class="max-w-3xl mx-auto">
-      {#if ragUploadStatus !== 'idle'}
+      {#if ragDocuments.length > 0}
+        <div class="mb-2 flex flex-wrap items-center gap-1.5 text-[10px] text-stone-600" aria-label="Knowledge Base">
+          <span class="font-semibold text-stone-500">Knowledge Base</span>
+          {#each ragDocuments as document (document.id)}
+            <span class="inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-lg border border-stone-200 bg-stone-100 px-2 py-1">
+              <span class="max-w-[120px] truncate font-medium text-stone-700" title={document.filename}>{document.filename}</span>
+              <span class="shrink-0 text-stone-400">{document.chunkCount} chunks</span>
+              <button
+                type="button"
+                onclick={() => onDeleteDocument(document.id)}
+                class="shrink-0 rounded-full p-0.5 text-stone-400 hover:bg-stone-200 hover:text-stone-700 transition-colors"
+                aria-label={`Delete document ${document.filename}`}
+                title={`Delete ${document.filename}`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 7h12M9 7V5h6v2m-7 4l.5 8h7l.5-8"/></svg>
+              </button>
+            </span>
+          {/each}
+        </div>
+      {/if}
+
+      {#if ragUploadStatus !== 'idle' && ragUploadStatus !== 'done'}
         <div class="mb-2">
           <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border {ragUploadStatus === 'done' ? 'bg-stone-100 border-stone-200' : ragUploadStatus === 'error' ? 'bg-red-50 border-red-200 text-red-600' : 'bg-stone-50 border-stone-200 text-stone-500'}">
             {#if ragUploadStatus === 'uploading'}<div class="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin shrink-0"></div>{/if}

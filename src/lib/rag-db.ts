@@ -6,10 +6,17 @@ export interface ChunkVector {
   text: string;
   vector: number[];
   timestamp: number;
+  documentId?: string;
   filename?: string;
   startLine?: number;
   endLine?: number;
   heading?: string;
+}
+
+export interface StoredDocument {
+  id: string;
+  filename: string;
+  chunkCount: number;
 }
 
 const vectorsBySession = new Map<string, ChunkVector[]>();
@@ -29,15 +36,40 @@ export async function getStoredVectors(sessionId: string): Promise<ChunkVector[]
   return [...(vectorsBySession.get(sessionId) || [])];
 }
 
-export async function storeVectors(sessionId: string, chunks: { text: string; vector: number[]; filename?: string; startLine?: number; endLine?: number; heading?: string }[]): Promise<void> {
+export async function getStoredDocuments(sessionId: string): Promise<StoredDocument[]> {
+  const vectors = await getStoredVectors(sessionId);
+  const documents = new Map<string, StoredDocument>();
+
+  for (const vector of vectors) {
+    const id = vector.documentId || vector.filename || vector.id;
+    const existing = documents.get(id);
+    if (existing) {
+      existing.chunkCount += 1;
+    } else {
+      documents.set(id, {
+        id,
+        filename: vector.filename || 'document',
+        chunkCount: 1,
+      });
+    }
+  }
+
+  return [...documents.values()];
+}
+
+export async function storeVectors(
+  sessionId: string,
+  chunks: { text: string; vector: number[]; documentId?: string; filename?: string; startLine?: number; endLine?: number; heading?: string }[],
+): Promise<void> {
   clearLegacyIndexedDb();
   const timestamp = Date.now();
   const existing = vectorsBySession.get(sessionId) || [];
   const next = chunks.map((chunk, index) => ({
-    id: `${sessionId}_${timestamp}_${index}`,
+    id: `${sessionId}_${chunk.documentId || 'document'}_${timestamp}_${index}`,
     sessionId,
     text: chunk.text,
     vector: chunk.vector,
+    documentId: chunk.documentId,
     filename: chunk.filename,
     startLine: chunk.startLine,
     endLine: chunk.endLine,
@@ -46,6 +78,20 @@ export async function storeVectors(sessionId: string, chunks: { text: string; ve
   }));
   vectorsBySession.set(sessionId, [...existing, ...next]);
   activityBySession.set(sessionId, timestamp);
+}
+
+export async function deleteDocumentVectors(sessionId: string, documentId: string): Promise<void> {
+  clearLegacyIndexedDb();
+  const existing = vectorsBySession.get(sessionId) || [];
+  const remaining = existing.filter((vector) => (vector.documentId || vector.filename || vector.id) !== documentId);
+
+  if (remaining.length > 0) {
+    vectorsBySession.set(sessionId, remaining);
+    activityBySession.set(sessionId, Date.now());
+  } else {
+    vectorsBySession.delete(sessionId);
+    activityBySession.delete(sessionId);
+  }
 }
 
 export async function updateActivity(sessionId: string): Promise<void> {

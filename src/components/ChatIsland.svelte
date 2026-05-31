@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { TokenBatcher } from '../lib/token-batcher';
   import { handleFileUpload, searchDocumentChunks, formatRagContext, createRagRetrievalMessage, clearRagState, createDefaultRagState, type RagState } from '../lib/rag-client';
-  import { getStoredVectors, updateActivity } from '../lib/rag-db';
+  import { clearSessionVectors, deleteDocumentVectors, getStoredVectors, updateActivity } from '../lib/rag-db';
   import { setupCleanupCallbacks, runStaleCheck, clearAllData } from '../lib/cleanup';
   import { ArtifactStreamParser, type Artifact } from '../lib/stream-parser';
   import { detectAllArtifacts } from '../lib/artifact-detector';
@@ -309,17 +309,35 @@
   }
 
   function removeFile() {
+    clearSessionVectors(sessionId).catch(() => {});
     rag = clearRagState();
     documentTopics = '';
     clearDocumentToolState();
     if (fileInput) fileInput.value = '';
   }
 
-  async function onFileSelected(event: Event) {
-    const file = (event.target as HTMLInputElement).files?.[0];
-    if (!file) return;
+  async function removeDocument(documentId: string) {
+    await deleteDocumentVectors(sessionId, documentId);
+    const remaining = rag.documents.filter((document) => document.id !== documentId);
+    rag.documents = remaining;
+
+    if (remaining.length === 0) {
+      rag = clearRagState();
+      documentTopics = '';
+      clearDocumentToolState();
+      if (fileInput) fileInput.value = '';
+      return;
+    }
+
+    rag.uploadStatus = 'done';
+    rag.uploadedFileName = remaining[remaining.length - 1].filename;
+    if (toolDocument && !remaining.some((document) => document.filename === toolDocument?.name)) {
+      clearDocumentToolState();
+    }
+  }
+
+  async function processFileUpload(file: File) {
     clearDocumentToolState();
-    isUploading = true;
     rag.uploadStatus = 'uploading';
     rag.uploadedFileName = file.name;
     const result = await handleFileUpload(file, sessionId, (p) => rag.uploadProgress = p, (s) => rag.uploadStatus = s);
@@ -328,6 +346,9 @@
     }
     if (result.success) {
       rag.ragDegraded = result.degraded;
+      if (result.document) {
+        rag.documents = [...rag.documents, result.document];
+      }
       messages = [...messages, { role: 'assistant', content: result.message }];
       try {
         const vectors2 = await getStoredVectors(sessionId);
@@ -342,6 +363,15 @@
       } catch {}
     } else {
       messages = [...messages, { role: 'assistant', content: result.message }];
+    }
+  }
+
+  async function onFileSelected(event: Event) {
+    const files = Array.from((event.target as HTMLInputElement).files || []);
+    if (files.length === 0) return;
+    isUploading = true;
+    for (const file of files) {
+      await processFileUpload(file);
     }
     isUploading = false;
   }
@@ -479,7 +509,7 @@
         messagesToSend = [{ role: 'system', content: `DOCUMENT CONTEXT — Key topics: ${documentTopics}` }, ...messagesToSend];
       }
 
-      const hasDocument = rag.uploadStatus === 'done';
+      const hasDocument = rag.documents.length > 0 || rag.uploadStatus === 'done';
       if (hasDocument) {
         const lastUserMsg = [...messagesToSend].reverse().find((m: any) => m.role === 'user');
         if (lastUserMsg?.content) {
@@ -803,7 +833,7 @@
       {chatPath}
     />
 
-    <input type="file" bind:this={fileInput} onchange={onFileSelected} class="hidden" accept=".txt,.md,.json,.csv" />
+    <input type="file" bind:this={fileInput} onchange={onFileSelected} class="hidden" accept=".txt,.md,.json,.csv" multiple />
 
     {#if toolsOpen}
       <DocumentToolsPanel
@@ -835,7 +865,9 @@
       ragUploadStatus={rag.uploadStatus}
       ragDegraded={rag.ragDegraded}
       ragUploadProgress={rag.uploadProgress}
+      ragDocuments={rag.documents}
       onRemoveFile={removeFile}
+      onDeleteDocument={removeDocument}
       {toolsOpen}
       onToggleTools={() => { toolsOpen = !toolsOpen; }}
       {tokenDisplay}

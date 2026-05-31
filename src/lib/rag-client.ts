@@ -9,6 +9,7 @@ export interface RagState {
   uploadProgress: EmbedProgress | null;
   uploadedFileName: string;
   ragDegraded: boolean;
+  documents: UploadedDocumentRecord[];
 }
 
 export function createDefaultRagState(): RagState {
@@ -17,6 +18,7 @@ export function createDefaultRagState(): RagState {
     uploadProgress: null,
     uploadedFileName: '',
     ragDegraded: false,
+    documents: [],
   };
 }
 
@@ -41,6 +43,12 @@ export interface DocumentChunk {
   heading?: string;
 }
 
+export interface UploadedDocumentRecord {
+  id: string;
+  filename: string;
+  chunkCount: number;
+}
+
 export interface UploadResult {
   success: boolean;
   chunkCount: number;
@@ -48,10 +56,20 @@ export interface UploadResult {
   degraded: boolean;
   message: string;
   sourceText?: string;
+  document?: UploadedDocumentRecord;
 }
 
 function safeFilename(name: string): string {
   return name.split(/[\\/]/).pop()?.trim() || 'document';
+}
+
+function createDocumentId(filename: string): string {
+  const base = safeFilename(filename)
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 48) || 'document';
+  return `${base}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function lineForOffset(text: string, offset: number): number {
@@ -126,16 +144,17 @@ export async function handleFileUpload(
       return { success: false, chunkCount: 0, skipped: 0, degraded: false, message: 'Upload failed: File is empty.' };
     }
 
+    const documentId = createDocumentId(file.name);
     const chunks = createDocumentChunks(text, file.name, 500, 100, 100);
     const chunkTexts = chunks.map((chunk) => chunk.text);
     onProgress({ done: 0, total: chunks.length, skipped: 0, stage: 'embedding' });
 
     const { vectors, skipped, degraded } = await embedChunks(chunkTexts, (p) => onProgress(p));
 
-    const validChunks: { text: string; vector: number[]; filename: string; startLine: number; endLine: number; heading?: string }[] = [];
+    const validChunks: { text: string; vector: number[]; documentId: string; filename: string; startLine: number; endLine: number; heading?: string }[] = [];
     for (let i = 0; i < chunks.length; i++) {
       if (vectors[i] && vectors[i].length > 0) {
-        validChunks.push({ ...chunks[i], vector: vectors[i] });
+        validChunks.push({ ...chunks[i], documentId, vector: vectors[i] });
       }
     }
 
@@ -158,6 +177,7 @@ export async function handleFileUpload(
       skipped,
       degraded,
       sourceText,
+      document: { id: documentId, filename: safeFilename(file.name), chunkCount: validChunks.length },
       message: `I've processed **${file.name}** — ${validChunks.length} chunks indexed${skipNote}${modeNote}. You can now ask questions about it.`,
     };
   } catch (err: any) {
