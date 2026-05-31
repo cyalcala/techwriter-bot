@@ -65,13 +65,13 @@ Do not add these unless the product strategy changes in writing:
 ## Graphify Reference
 
 The current tracked code graph was refreshed with `graphify update .` on
-2026-05-29:
+2026-05-31:
 
 - Report: `graphify-out/GRAPH_REPORT.md`
 - Graph: `graphify-out/graph.json`
-- Summary: 741 nodes, 1155 edges
+- Summary: 742 nodes, 1157 edges
 - Extraction confidence: 95% EXTRACTED, 5% INFERRED, 0% AMBIGUOUS
-- Built from code at commit: `75f8d126`
+- Built from code at commit: `58e2663f`
 - The generated report currently disagrees with itself on total community
   count; use node/edge counts and targeted graph queries for acceptance until
   that reporting discrepancy is reconciled.
@@ -100,6 +100,9 @@ The current tracked code graph was refreshed with `graphify update .` on
   gallery artifact and shows in-panel copy feedback without durable writes.
 - Separate selected-artifact source, SVG, and PNG downloads are implemented in
   the active split-view path before any ZIP export dependency is considered.
+- Streaming parser hardening now tolerates case-varied and typo-style artifact
+  tags and preserves nested artifact tags inside the outer artifact body without
+  leaking trailing text.
 
 Before broad architecture work, read `graphify-out/GRAPH_REPORT.md` first.
 When the graph may be stale, run:

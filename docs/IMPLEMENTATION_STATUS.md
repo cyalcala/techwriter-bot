@@ -20,6 +20,7 @@ The active slice is artifact reliability:
 - Active-session renderer retry controls.
 - Existing Fix with AI handoff for panel renderer errors.
 - Clearer browser-render and server-render failure messaging.
+- Streaming parser hardening for malformed and nested artifact tags.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -159,6 +160,7 @@ Documentation Tooling Agent direction.
   - `4a35a83` selected artifact regenerate in-place controls.
   - `aa87bb6` selected artifact source copy action.
   - `75f8d12` selected artifact source/SVG/PNG downloads.
+  - `58e2663` malformed and nested artifact stream parser hardening.
 
 ## In Progress
 
@@ -195,6 +197,10 @@ Documentation Tooling Agent direction.
   controls, selected source copy, and separate source/SVG/PNG downloads are
   implemented without disrupting real credentials, reviving browser package
   runtimes, or extending the bounded tooling scope.
+- Local `main` contains parser hardening commit `58e2663`, which tolerates
+  case-varied and typo-style artifact tags and preserves nested artifact tags
+  inside the outer artifact body. Production acceptance for that commit is
+  pending the next GitHub Actions deployment.
 
 ## Blockers And Notes
 
@@ -613,13 +619,33 @@ Latest incremental verification on 2026-05-29:
   `src/components/ArtifactSplitView.svelte:L122` with
   `Cache-Control: no-store, private`.
 
+Latest incremental verification on 2026-05-31:
+
+- Added streaming parser hardening in `src/lib/stream-parser.ts` plus
+  regression coverage in `src/tests/artifacts.test.ts`: case-varied artifact
+  close tags no longer swallow trailing text, typo-style artifact open/close
+  tags are accepted without leaking markup, and nested artifact tags remain in
+  the outer artifact body.
+- Red-green coverage confirmed the previous parser gaps, then passed after
+  implementation. Verification passed after this parser slice:
+  `npm.cmd test -- --run src/tests/artifacts.test.ts --testNamePattern "case-varied|nested artifact"`,
+  `npm.cmd test -- --run src/tests/artifacts.test.ts --testNamePattern "typo-style"`,
+  `npm.cmd test -- --run src/tests/artifacts.test.ts` (14 tests),
+  `npm.cmd test -- --run src/tests/artifacts.test.ts src/tests/artifact-gallery.test.ts src/tests/artifact-repair-flow.test.ts src/tests/artifact-error-boundary.test.ts src/tests/kroki-renderer.test.ts` (5 files, 31 tests),
+  `npm.cmd test` (28 files, 125 tests),
+  `npm.cmd audit --omit=dev --audit-level=high`, `git diff --check`, and the
+  recorded `build:local` command.
+- `graphify update .` refreshed tracked local Graphify artifacts from commit
+  `58e2663`: 742 nodes and 1157 edges. Community-count wording remains
+  non-blocking.
+
 ## Next Task
 
 Continue Phase 2 core-engine work with streaming parser hardening from the
 master plan in small slices:
 
-- Add parser coverage for malformed artifact tags and nested artifact tags.
-- Then add UTF-8/chunk-boundary coverage and debounce/timeout behavior.
+- Add UTF-8/chunk-boundary coverage for artifact tags and content.
+- Then add debounce/timeout behavior.
 - Treat Graphify's inconsistent community-count wording as non-blocking unless
   community totals become release criteria. Do not introduce autonomous
   execution or browser package runtimes.
