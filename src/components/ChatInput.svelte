@@ -30,6 +30,7 @@
     ragDegraded?: boolean;
     ragUploadProgress?: { done: number; total: number } | null;
     ragDocuments?: RagDocumentSummary[];
+    ragMetadataOnly?: boolean;
     onRemoveFile: () => void;
     onDeleteDocument: (documentId: string) => void;
     onReembedDocument: (documentId: string) => void;
@@ -46,7 +47,7 @@
     disabled, isStreaming, inputMessage, onInputChange, onSend, onStop,
     mode, onModeChange, enhancedCredits, onFileClick, isUploading,
     ragUploadedFileName = '', ragUploadStatus = 'idle', ragDegraded = false,
-    ragUploadProgress = null, ragDocuments = [], onRemoveFile, onDeleteDocument, onReembedDocument, toolsOpen, onToggleTools, tokenDisplay, chatPath, failoverEvents = [], panelOpen, isMobile,
+    ragUploadProgress = null, ragDocuments = [], ragMetadataOnly = false, onRemoveFile, onDeleteDocument, onReembedDocument, toolsOpen, onToggleTools, tokenDisplay, chatPath, failoverEvents = [], panelOpen, isMobile,
   }: Props = $props();
   let privacyOpen = $state(false);
 
@@ -96,6 +97,11 @@
               </button>
             </span>
           {/each}
+          {#if ragMetadataOnly}
+            <span class="inline-flex max-w-full items-center rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] text-amber-800" role="status">
+              Document metadata only. Upload the source file again to use document context.
+            </span>
+          {/if}
         </div>
       {/if}
 

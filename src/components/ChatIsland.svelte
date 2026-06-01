@@ -112,6 +112,7 @@
   const visibleConversations = $derived(listVisibleConversations(conversationRecords));
   let isUploading = $state(false);
   let rag = $state<RagState>(createDefaultRagState());
+  let ragMetadataOnly = $state(false);
   let fileInput: HTMLInputElement;
   let sessionImportInput: HTMLInputElement;
   let isThinkingMode = $state(false);
@@ -353,6 +354,7 @@
       uploadedFileName: conversation.documents.at(-1)?.filename ?? '',
       documents: conversation.documents,
     };
+    ragMetadataOnly = conversation.documents.length > 0;
     documentSources = {};
     clearDocumentToolState();
     artifactQueue.clear();
@@ -452,6 +454,7 @@
     conversationId = generateConversationId();
     messages = [{ role: 'assistant', content: 'Fresh session started. My memory is now clear. What would you like to work on?' }];
     rag = clearRagState();
+    ragMetadataOnly = false;
     documentSources = {};
     clearDocumentToolState();
     artifactQueue.clear();
@@ -473,6 +476,7 @@
     conversationId = generateConversationId();
     messages = [{ role: 'assistant', content: 'Chat cleared. My memory has been wiped. What would you like to work on?' }];
     rag = clearRagState();
+    ragMetadataOnly = false;
     documentSources = {};
     clearDocumentToolState();
     artifactQueue.clear();
@@ -489,6 +493,7 @@
   function removeFile() {
     clearSessionVectors(sessionId).catch(() => {});
     rag = clearRagState();
+    ragMetadataOnly = false;
     documentSources = {};
     documentTopics = '';
     clearDocumentToolState();
@@ -500,9 +505,11 @@
     forgetDocumentSource(documentId);
     const remaining = rag.documents.filter((document) => document.id !== documentId);
     rag.documents = remaining;
+    ragMetadataOnly = ragMetadataOnly && remaining.length > 0;
 
     if (remaining.length === 0) {
       rag = clearRagState();
+      ragMetadataOnly = false;
       documentTopics = '';
       clearDocumentToolState();
       if (fileInput) fileInput.value = '';
@@ -525,6 +532,7 @@
       toolDocument = { name: file.name, text: result.sourceText };
     }
     if (result.success) {
+      ragMetadataOnly = false;
       rag.ragDegraded = result.degraded;
       if (result.document) {
         rag.documents = [...rag.documents, result.document];
@@ -608,6 +616,7 @@
       uploadedFileName: parsed.payload.documents.at(-1)?.filename ?? '',
       documents: parsed.payload.documents,
     };
+    ragMetadataOnly = parsed.payload.documents.length > 0;
     documentSources = {};
     clearDocumentToolState();
     artifactQueue.clear();
@@ -637,6 +646,7 @@
       await deleteDocumentVectors(sessionId, documentId);
       forgetDocumentSource(documentId);
       rag.documents = rag.documents.filter((document) => document.id !== documentId);
+      ragMetadataOnly = false;
       const file = new File([source.text], source.name, { type: 'text/plain' });
       await processFileUpload(file);
     } finally {
@@ -1224,6 +1234,7 @@
       ragDegraded={rag.ragDegraded}
       ragUploadProgress={rag.uploadProgress}
       ragDocuments={rag.documents}
+      {ragMetadataOnly}
       onRemoveFile={removeFile}
       onDeleteDocument={removeDocument}
       onReembedDocument={reembedDocument}

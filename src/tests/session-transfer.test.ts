@@ -150,4 +150,22 @@ describe('explicit session transfer', () => {
     expect(importHandler).toContain('clearDocumentToolState()');
     expect(importHandler).toContain('artifactQueue.clear()');
   });
+
+  it('shows a metadata-only restore note for imported or restored document records', () => {
+    const input = source('src/components/ChatInput.svelte');
+    const island = source('src/components/ChatIsland.svelte');
+    const importHandler = functionBlock(island, 'onSessionImportSelected');
+    const restoreHandler = functionBlock(island, 'restoreConversation');
+    const processUpload = functionBlock(island, 'processFileUpload');
+
+    expect(input).toContain('ragMetadataOnly?: boolean');
+    expect(input).toContain('ragMetadataOnly = false');
+    expect(input).toContain('Document metadata only');
+    expect(input).toContain('Upload the source file again');
+    expect(island).toContain('let ragMetadataOnly = $state(false)');
+    expect(island).toContain('{ragMetadataOnly}');
+    expect(importHandler).toContain('ragMetadataOnly = parsed.payload.documents.length > 0');
+    expect(restoreHandler).toContain('ragMetadataOnly = conversation.documents.length > 0');
+    expect(processUpload).toContain('ragMetadataOnly = false');
+  });
 });
