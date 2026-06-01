@@ -42,16 +42,13 @@ session boundary:
   sanitized in-memory records, derive deterministic three-word fallback titles,
   and support list/upsert/rename/archive/delete operations without durable
   storage or network writes.
-- Current checkpoint: code commit `5c8a076` implements Slack-format copy for
-  individual assistant responses and is locally verified. The local tracked
-  graph is 804 nodes and 1312 edges from `5c8a076`; production acceptance is
-  pending. The previous accepted production checkpoint remains
-  single-response Markdown export from code commit `8355b4f` via docs commit
-  `001f66d` and GitHub Actions run `26779584241`, with production runtime graph
-  908 nodes and 1389 edges.
-- Next slice: finish GitHub Actions deployment and production smoke acceptance
-  for Slack-format copy before starting the next Phase 3 export workflow. Do
-  not add durable automatic chat retention.
+- Current checkpoint: code commit `5c8a076` is accepted on production via docs
+  commit `406d5f5` and GitHub Actions run `26781247475`. The local tracked
+  graph is 804 nodes and 1312 edges from `5c8a076`; the production runtime
+  graph is 910 nodes and 1396 edges.
+- Next slice: continue the next Phase 3 export workflow with user-invoked
+  webhook export and visible retry/manual retry behavior. Do not add durable
+  automatic chat retention.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -1244,17 +1241,27 @@ Latest incremental verification on 2026-06-01:
 - `graphify update .` refreshed tracked local Graphify artifacts from commit
   `5c8a076`: 804 nodes and 1312 edges. Community-count wording remains
   non-blocking.
+- The Slack-format copy deploy passed in GitHub Actions run `26781247475` from
+  docs commit `406d5f5` with immutable URL
+  `https://e49edf92.tw-bot.pages.dev`. The production runtime graph reports
+  910 nodes and 1396 edges.
+- Production probes confirmed both `https://tw-bot.pages.dev/` and
+  `https://e49edf92.tw-bot.pages.dev/` return `200`, contain the default
+  `Technical Writer` persona, and include the new `Slack` UI string. Production
+  `/api/health` returns `200` with request id
+  `1c8304a2-a100-4165-9f48-93c7a4465fda`, three active providers out of six,
+  expected/stored app version `0.0.1`, and no version mismatch. Bounded graph
+  lookup for `createSlackMessageCopy` returns
+  `src/lib/chat-markdown-export.ts:L126` and
+  `CreateSlackMessageCopyInput` from the 910-node runtime graph with
+  `Cache-Control: no-store, private`.
 
 ## Next Task
 
 Continue with Phase 3 Conversation Management in small slices:
 
-- Finish GitHub Actions deployment and production smoke acceptance for
-  Slack-format copy. Record the run id, immutable URL, production health
-  request id, and bounded graph lookup for `createSlackMessageCopy`.
-- After Slack-format copy is accepted on production, continue the next export
-  slice: user-invoked webhook export with visible retry/manual retry behavior
-  and no durable exported-content retention.
+- Continue the next export slice: user-invoked webhook export with visible
+  retry/manual retry behavior and no durable exported-content retention.
 - Preserve active-session privacy boundaries: page refresh/navigation clearly
   ends active-session content unless the user explicitly exports a JSON backup
   file and later imports it.
