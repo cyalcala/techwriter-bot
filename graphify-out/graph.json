@@ -27,7 +27,7 @@
       "source_file": "deploy-final.js",
       "source_location": "L1",
       "id": "deploy_final_js",
-      "community": 18,
+      "community": 17,
       "norm_label": "deploy-final.js"
     },
     {
@@ -540,7 +540,7 @@
       "source_file": "src/lib/artifact-lifecycle.ts",
       "source_location": "L1",
       "id": "src_lib_artifact_lifecycle_ts",
-      "community": 16,
+      "community": 15,
       "norm_label": "artifact-lifecycle.ts"
     },
     {
@@ -549,7 +549,7 @@
       "source_file": "src/lib/artifact-lifecycle.ts",
       "source_location": "L5",
       "id": "lib_artifact_lifecycle_generateartifactid",
-      "community": 16,
+      "community": 15,
       "norm_label": "generateartifactid()"
     },
     {
@@ -558,7 +558,7 @@
       "source_file": "src/lib/artifact-lifecycle.ts",
       "source_location": "L10",
       "id": "lib_artifact_lifecycle_extractartifacttitle",
-      "community": 16,
+      "community": 15,
       "norm_label": "extractartifacttitle()"
     },
     {
@@ -567,7 +567,7 @@
       "source_file": "src/lib/artifact-lifecycle.ts",
       "source_location": "L36",
       "id": "lib_artifact_lifecycle_isartifactupdate",
-      "community": 16,
+      "community": 15,
       "norm_label": "isartifactupdate()"
     },
     {
@@ -576,7 +576,7 @@
       "source_file": "src/lib/artifact-lifecycle.ts",
       "source_location": "L40",
       "id": "lib_artifact_lifecycle_timeago",
-      "community": 16,
+      "community": 15,
       "norm_label": "timeago()"
     },
     {
@@ -585,7 +585,7 @@
       "source_file": "src/lib/artifact-lifecycle.ts",
       "source_location": "L48",
       "id": "lib_artifact_lifecycle_simplehash",
-      "community": 16,
+      "community": 15,
       "norm_label": "simplehash()"
     },
     {
@@ -594,7 +594,7 @@
       "source_file": "src/lib/artifact-queue.ts",
       "source_location": "L1",
       "id": "src_lib_artifact_queue_ts",
-      "community": 19,
+      "community": 18,
       "norm_label": "artifact-queue.ts"
     },
     {
@@ -603,7 +603,7 @@
       "source_file": "src/lib/artifact-queue.ts",
       "source_location": "L15",
       "id": "lib_artifact_queue_createartifactqueue",
-      "community": 19,
+      "community": 18,
       "norm_label": "createartifactqueue()"
     },
     {
@@ -612,7 +612,7 @@
       "source_file": "src/lib/artifact-repair.ts",
       "source_location": "L1",
       "id": "src_lib_artifact_repair_ts",
-      "community": 19,
+      "community": 18,
       "norm_label": "artifact-repair.ts"
     },
     {
@@ -621,7 +621,7 @@
       "source_file": "src/lib/artifact-repair.ts",
       "source_location": "L21",
       "id": "lib_artifact_repair_createartifactrepairtarget",
-      "community": 19,
+      "community": 18,
       "norm_label": "createartifactrepairtarget()"
     },
     {
@@ -630,7 +630,7 @@
       "source_file": "src/lib/artifact-repair.ts",
       "source_location": "L28",
       "id": "lib_artifact_repair_planartifactrepairreplacement",
-      "community": 19,
+      "community": 18,
       "norm_label": "planartifactrepairreplacement()"
     },
     {
@@ -639,7 +639,7 @@
       "source_file": "src/lib/artifact-repair.ts",
       "source_location": "L41",
       "id": "lib_artifact_repair_createartifactregenerationprompt",
-      "community": 19,
+      "community": 18,
       "norm_label": "createartifactregenerationprompt()"
     },
     {
@@ -2700,7 +2700,7 @@
       "source_file": "src/lib/stream-parser.ts",
       "source_location": "L1",
       "id": "src_lib_stream_parser_ts",
-      "community": 15,
+      "community": 19,
       "norm_label": "stream-parser.ts"
     },
     {
@@ -2709,7 +2709,7 @@
       "source_file": "src/lib/stream-parser.ts",
       "source_location": "L22",
       "id": "lib_stream_parser_ispotentialartifacttagprefix",
-      "community": 15,
+      "community": 19,
       "norm_label": "ispotentialartifacttagprefix()"
     },
     {
@@ -2718,7 +2718,7 @@
       "source_file": "src/lib/stream-parser.ts",
       "source_location": "L41",
       "id": "lib_stream_parser_trailingartifacttagprefixlength",
-      "community": 15,
+      "community": 19,
       "norm_label": "trailingartifacttagprefixlength()"
     },
     {
@@ -2727,7 +2727,7 @@
       "source_file": "src/lib/stream-parser.ts",
       "source_location": "L49",
       "id": "lib_stream_parser_artifactstreamparser",
-      "community": 15,
+      "community": 19,
       "norm_label": "artifactstreamparser"
     },
     {
@@ -2736,7 +2736,7 @@
       "source_file": "src/lib/stream-parser.ts",
       "source_location": "L60",
       "id": "lib_stream_parser_artifactstreamparser_constructor",
-      "community": 15,
+      "community": 19,
       "norm_label": ".constructor()"
     },
     {
@@ -2745,7 +2745,7 @@
       "source_file": "src/lib/stream-parser.ts",
       "source_location": "L68",
       "id": "lib_stream_parser_artifactstreamparser_feed",
-      "community": 15,
+      "community": 19,
       "norm_label": ".feed()"
     },
     {
@@ -2754,7 +2754,7 @@
       "source_file": "src/lib/stream-parser.ts",
       "source_location": "L143",
       "id": "lib_stream_parser_artifactstreamparser_findnextartifactboundary",
-      "community": 15,
+      "community": 19,
       "norm_label": ".findnextartifactboundary()"
     },
     {
@@ -2763,7 +2763,7 @@
       "source_file": "src/lib/stream-parser.ts",
       "source_location": "L158",
       "id": "lib_stream_parser_artifactstreamparser_emitmain",
-      "community": 15,
+      "community": 19,
       "norm_label": ".emitmain()"
     },
     {
@@ -2772,7 +2772,7 @@
       "source_file": "src/lib/stream-parser.ts",
       "source_location": "L164",
       "id": "lib_stream_parser_artifactstreamparser_emitartifact",
-      "community": 15,
+      "community": 19,
       "norm_label": ".emitartifact()"
     },
     {
@@ -2781,7 +2781,7 @@
       "source_file": "src/lib/stream-parser.ts",
       "source_location": "L192",
       "id": "lib_stream_parser_artifactstreamparser_flush",
-      "community": 15,
+      "community": 19,
       "norm_label": ".flush()"
     },
     {
@@ -2790,7 +2790,7 @@
       "source_file": "src/lib/stream-parser.ts",
       "source_location": "L209",
       "id": "lib_stream_parser_artifactstreamparser_reset",
-      "community": 15,
+      "community": 19,
       "norm_label": ".reset()"
     },
     {
@@ -2799,7 +2799,7 @@
       "source_file": "src/lib/stream-parser.ts",
       "source_location": "L218",
       "id": "lib_stream_parser_artifactstreamparser_feedchunk",
-      "community": 15,
+      "community": 19,
       "norm_label": ".feedchunk()"
     },
     {
@@ -2808,7 +2808,7 @@
       "source_file": "src/lib/stream-parser.ts",
       "source_location": "L224",
       "id": "lib_stream_parser_detectcodefencefallback",
-      "community": 15,
+      "community": 19,
       "norm_label": "detectcodefencefallback()"
     },
     {
@@ -3402,7 +3402,7 @@
       "source_file": "src/tests/artifact-gallery.test.ts",
       "source_location": "L1",
       "id": "src_tests_artifact_gallery_test_ts",
-      "community": 19,
+      "community": 18,
       "norm_label": "artifact-gallery.test.ts"
     },
     {
@@ -3411,7 +3411,7 @@
       "source_file": "src/tests/artifact-gallery.test.ts",
       "source_location": "L7",
       "id": "tests_artifact_gallery_test_source",
-      "community": 19,
+      "community": 18,
       "norm_label": "source()"
     },
     {
@@ -3420,7 +3420,7 @@
       "source_file": "src/tests/artifact-repair-flow.test.ts",
       "source_location": "L1",
       "id": "src_tests_artifact_repair_flow_test_ts",
-      "community": 19,
+      "community": 18,
       "norm_label": "artifact-repair-flow.test.ts"
     },
     {
@@ -3429,7 +3429,7 @@
       "source_file": "src/tests/artifact-repair-flow.test.ts",
       "source_location": "L8",
       "id": "tests_artifact_repair_flow_test_source",
-      "community": 19,
+      "community": 18,
       "norm_label": "source()"
     },
     {
@@ -3438,7 +3438,7 @@
       "source_file": "src/tests/artifacts.test.ts",
       "source_location": "L1",
       "id": "src_tests_artifacts_test_ts",
-      "community": 16,
+      "community": 15,
       "norm_label": "artifacts.test.ts"
     },
     {
@@ -3447,7 +3447,7 @@
       "source_file": "src/tests/artifacts.test.ts",
       "source_location": "L75",
       "id": "tests_artifacts_test_feedutf8bytechunks",
-      "community": 16,
+      "community": 15,
       "norm_label": "feedutf8bytechunks()"
     },
     {
@@ -3905,7 +3905,7 @@
       "file_type": "code",
       "source_file": "src/components/ChatIsland.svelte",
       "source_location": "L690",
-      "community": 19,
+      "community": 18,
       "norm_label": "regenerateartifactentry()",
       "id": "components_chatisland_regenerateartifactentry"
     },
@@ -3941,7 +3941,7 @@
       "file_type": "code",
       "source_file": "src/lib/stream-parser.ts",
       "source_location": "L22",
-      "community": 15,
+      "community": 19,
       "norm_label": "trailingmarkerprefixlength()",
       "id": "lib_stream_parser_trailingmarkerprefixlength"
     },
@@ -3995,7 +3995,7 @@
       "file_type": "code",
       "source_file": "deploy-final.js",
       "source_location": "L12",
-      "community": 18,
+      "community": 17,
       "norm_label": "distdir",
       "id": "techwriter_bot_deploy_final_distdir"
     },
@@ -4004,7 +4004,7 @@
       "file_type": "code",
       "source_file": "deploy-final.js",
       "source_location": "L13",
-      "community": 18,
+      "community": 17,
       "norm_label": "clientdir",
       "id": "techwriter_bot_deploy_final_clientdir"
     },
@@ -4013,7 +4013,7 @@
       "file_type": "code",
       "source_file": "deploy-final.js",
       "source_location": "L14",
-      "community": 18,
+      "community": 17,
       "norm_label": "serverdir",
       "id": "techwriter_bot_deploy_final_serverdir"
     },
@@ -4022,7 +4022,7 @@
       "file_type": "code",
       "source_file": "deploy-final.js",
       "source_location": "L17",
-      "community": 18,
+      "community": 17,
       "norm_label": "serverfiles",
       "id": "techwriter_bot_deploy_final_serverfiles"
     },
@@ -4031,7 +4031,7 @@
       "file_type": "code",
       "source_file": "deploy-final.js",
       "source_location": "L18",
-      "community": 18,
+      "community": 17,
       "norm_label": "workerentry",
       "id": "techwriter_bot_deploy_final_workerentry"
     },
@@ -4040,7 +4040,7 @@
       "file_type": "code",
       "source_file": "deploy-final.js",
       "source_location": "L19",
-      "community": 18,
+      "community": 17,
       "norm_label": "workertarget",
       "id": "techwriter_bot_deploy_final_workertarget"
     },
@@ -4049,7 +4049,7 @@
       "file_type": "code",
       "source_file": "deploy-final.js",
       "source_location": "L22",
-      "community": 18,
+      "community": 17,
       "norm_label": "serverentrypath",
       "id": "techwriter_bot_deploy_final_serverentrypath"
     },
@@ -4058,7 +4058,7 @@
       "file_type": "code",
       "source_file": "deploy-final.js",
       "source_location": "L27",
-      "community": 18,
+      "community": 17,
       "norm_label": "legacyentry",
       "id": "techwriter_bot_deploy_final_legacyentry"
     },
@@ -4067,7 +4067,7 @@
       "file_type": "code",
       "source_file": "deploy-final.js",
       "source_location": "L37",
-      "community": 18,
+      "community": 17,
       "norm_label": "serverchunks",
       "id": "techwriter_bot_deploy_final_serverchunks"
     },
@@ -4076,7 +4076,7 @@
       "file_type": "code",
       "source_file": "deploy-final.js",
       "source_location": "L38",
-      "community": 18,
+      "community": 17,
       "norm_label": "clientchunks",
       "id": "techwriter_bot_deploy_final_clientchunks"
     },
@@ -4085,7 +4085,7 @@
       "file_type": "code",
       "source_file": "deploy-final.js",
       "source_location": "L46",
-      "community": 18,
+      "community": 17,
       "norm_label": "midpath",
       "id": "techwriter_bot_deploy_final_midpath"
     },
@@ -4094,7 +4094,7 @@
       "file_type": "code",
       "source_file": "deploy-final.js",
       "source_location": "L53",
-      "community": 18,
+      "community": 17,
       "norm_label": "ignorepath",
       "id": "techwriter_bot_deploy_final_ignorepath"
     },
@@ -4103,7 +4103,7 @@
       "file_type": "code",
       "source_file": "deploy-final.js",
       "source_location": "L60",
-      "community": 18,
+      "community": 17,
       "norm_label": "internalconfigs",
       "id": "techwriter_bot_deploy_final_internalconfigs"
     },
@@ -4112,7 +4112,7 @@
       "file_type": "code",
       "source_file": "deploy-final.js",
       "source_location": "L73",
-      "community": 18,
+      "community": 17,
       "norm_label": "cleanslateconfig",
       "id": "techwriter_bot_deploy_final_cleanslateconfig"
     },
@@ -4121,7 +4121,7 @@
       "file_type": "code",
       "source_file": "deploy-final.js",
       "source_location": "L92",
-      "community": 18,
+      "community": 17,
       "norm_label": "wranglercache",
       "id": "techwriter_bot_deploy_final_wranglercache"
     },
@@ -4418,7 +4418,7 @@
       "file_type": "code",
       "source_file": "src/lib/artifact-detector",
       "confidence": "EXTRACTED",
-      "community": 16,
+      "community": 15,
       "norm_label": "../lib/artifact-detector",
       "id": "c_users_admin_desktop_techwriter_bot_src_lib_artifact_detector"
     },
@@ -4472,7 +4472,7 @@
       "file_type": "code",
       "source_file": "src/lib/artifact-lifecycle.ts",
       "source_location": "L3",
-      "community": 19,
+      "community": 18,
       "norm_label": "artifactstatus",
       "id": "lib_artifact_lifecycle_artifactstatus"
     },
@@ -4481,7 +4481,7 @@
       "file_type": "code",
       "source_file": "src/lib/artifact-queue.ts",
       "source_location": "L4",
-      "community": 19,
+      "community": 18,
       "norm_label": "artifactentry",
       "id": "lib_artifact_queue_artifactentry"
     },
@@ -4490,7 +4490,7 @@
       "file_type": "code",
       "source_file": "src/lib/artifact-queue.ts",
       "source_location": "L12",
-      "community": 19,
+      "community": 18,
       "norm_label": "subscriber",
       "id": "lib_artifact_queue_subscriber"
     },
@@ -4499,7 +4499,7 @@
       "file_type": "code",
       "source_file": "src/lib/artifact-queue.ts",
       "source_location": "L71",
-      "community": 19,
+      "community": 18,
       "norm_label": "artifactqueue",
       "id": "lib_artifact_queue_artifactqueue"
     },
@@ -5138,7 +5138,7 @@
       "file_type": "code",
       "source_file": "src/lib/stream-parser.ts",
       "source_location": "L2",
-      "community": 15,
+      "community": 19,
       "norm_label": "artifactplacement",
       "id": "lib_stream_parser_artifactplacement"
     },
@@ -5147,7 +5147,7 @@
       "file_type": "code",
       "source_file": "src/lib/stream-parser.ts",
       "source_location": "L4",
-      "community": 19,
+      "community": 18,
       "norm_label": "artifact",
       "id": "lib_stream_parser_artifact"
     },
@@ -5156,7 +5156,7 @@
       "file_type": "code",
       "source_file": "src/lib/stream-parser.ts",
       "source_location": "L13",
-      "community": 15,
+      "community": 19,
       "norm_label": "parserstate",
       "id": "lib_stream_parser_parserstate"
     },
@@ -5390,7 +5390,7 @@
       "file_type": "code",
       "source_file": "src/tests/artifacts.test.ts",
       "source_location": "L7",
-      "community": 16,
+      "community": 15,
       "norm_label": "taggedcases",
       "id": "tests_artifacts_test_taggedcases"
     },
@@ -5399,7 +5399,7 @@
       "file_type": "code",
       "source_file": "src/tests/artifacts.test.ts",
       "source_location": "L28",
-      "community": 16,
+      "community": 15,
       "norm_label": "text",
       "id": "tests_artifacts_test_text"
     },
@@ -5408,7 +5408,7 @@
       "file_type": "code",
       "source_file": "src/tests/artifacts.test.ts",
       "source_location": "L30",
-      "community": 16,
+      "community": 15,
       "norm_label": "result",
       "id": "tests_artifacts_test_result"
     },
@@ -5417,7 +5417,7 @@
       "file_type": "code",
       "source_file": "src/tests/artifacts.test.ts",
       "source_location": "L65",
-      "community": 16,
+      "community": 15,
       "norm_label": "artifacts",
       "id": "tests_artifacts_test_artifacts"
     },
@@ -5426,7 +5426,7 @@
       "file_type": "code",
       "source_file": "src/tests/artifacts.test.ts",
       "source_location": "L67",
-      "community": 16,
+      "community": 15,
       "norm_label": "parser",
       "id": "tests_artifacts_test_parser"
     },
@@ -5435,7 +5435,7 @@
       "file_type": "code",
       "source_file": "src/tests/artifacts.test.ts",
       "source_location": "L95",
-      "community": 16,
+      "community": 15,
       "norm_label": "base",
       "id": "tests_artifacts_test_base"
     },
@@ -5444,7 +5444,7 @@
       "file_type": "code",
       "source_file": "src/tests/artifacts.test.ts",
       "source_location": "L106",
-      "community": 16,
+      "community": 15,
       "norm_label": "queue",
       "id": "tests_artifacts_test_queue"
     },
@@ -5453,7 +5453,7 @@
       "file_type": "code",
       "source_file": "src/tests/artifacts.test.ts",
       "source_location": "L107",
-      "community": 16,
+      "community": 15,
       "norm_label": "artifact",
       "id": "tests_artifacts_test_artifact"
     },
@@ -5525,7 +5525,7 @@
       "file_type": "document",
       "source_file": "CHANGELOG.md",
       "source_location": "L1",
-      "community": 17,
+      "community": 16,
       "norm_label": "changelog.md",
       "id": "changelog_md"
     },
@@ -5534,7 +5534,7 @@
       "file_type": "document",
       "source_file": "CHANGELOG.md",
       "source_location": "L1",
-      "community": 17,
+      "community": 16,
       "norm_label": "changelog",
       "id": "techwriter_bot_changelog_changelog"
     },
@@ -5543,7 +5543,7 @@
       "file_type": "document",
       "source_file": "CHANGELOG.md",
       "source_location": "L5",
-      "community": 17,
+      "community": 16,
       "norm_label": "[2.1.0] - 2026-05-11 \u2014 one-shot artifact rendering engine overhaul",
       "id": "techwriter_bot_changelog_2_1_0_2026_05_11_one_shot_artifact_rendering_engine_overhaul"
     },
@@ -5552,7 +5552,7 @@
       "file_type": "document",
       "source_file": "CHANGELOG.md",
       "source_location": "L7",
-      "community": 17,
+      "community": 16,
       "norm_label": "overview",
       "id": "techwriter_bot_changelog_overview"
     },
@@ -5561,7 +5561,7 @@
       "file_type": "document",
       "source_file": "CHANGELOG.md",
       "source_location": "L10",
-      "community": 17,
+      "community": 16,
       "norm_label": "problem statement (pre-fix)",
       "id": "techwriter_bot_changelog_problem_statement_pre_fix"
     },
@@ -5570,7 +5570,7 @@
       "file_type": "document",
       "source_file": "CHANGELOG.md",
       "source_location": "L17",
-      "community": 17,
+      "community": 16,
       "norm_label": "changes",
       "id": "techwriter_bot_changelog_changes"
     },
@@ -5579,7 +5579,7 @@
       "file_type": "document",
       "source_file": "CHANGELOG.md",
       "source_location": "L19",
-      "community": 17,
+      "community": 16,
       "norm_label": "`src/lib/zen-router.ts`",
       "id": "techwriter_bot_changelog_src_lib_zen_router_ts"
     },
@@ -5588,7 +5588,7 @@
       "file_type": "document",
       "source_file": "CHANGELOG.md",
       "source_location": "L25",
-      "community": 17,
+      "community": 16,
       "norm_label": "`src/pages/api/chat.ts`",
       "id": "techwriter_bot_changelog_src_pages_api_chat_ts"
     },
@@ -5597,7 +5597,7 @@
       "file_type": "document",
       "source_file": "CHANGELOG.md",
       "source_location": "L30",
-      "community": 17,
+      "community": 16,
       "norm_label": "`src/lib/renderer-loader.ts`",
       "id": "techwriter_bot_changelog_src_lib_renderer_loader_ts"
     },
@@ -5606,7 +5606,7 @@
       "file_type": "document",
       "source_file": "CHANGELOG.md",
       "source_location": "L36",
-      "community": 17,
+      "community": 16,
       "norm_label": "`src/components/chatisland.svelte`",
       "id": "techwriter_bot_changelog_src_components_chatisland_svelte"
     },
@@ -5615,7 +5615,7 @@
       "file_type": "document",
       "source_file": "CHANGELOG.md",
       "source_location": "L42",
-      "community": 17,
+      "community": 16,
       "norm_label": "`src/lib/kroki-renderer.ts`",
       "id": "techwriter_bot_changelog_src_lib_kroki_renderer_ts"
     },
@@ -5624,7 +5624,7 @@
       "file_type": "document",
       "source_file": "CHANGELOG.md",
       "source_location": "L46",
-      "community": 17,
+      "community": 16,
       "norm_label": "`src/lib/prompts.ts`",
       "id": "techwriter_bot_changelog_src_lib_prompts_ts"
     },
@@ -5633,7 +5633,7 @@
       "file_type": "document",
       "source_file": "CHANGELOG.md",
       "source_location": "L49",
-      "community": 17,
+      "community": 16,
       "norm_label": "`src/pages/api/render-artifact.ts`",
       "id": "techwriter_bot_changelog_src_pages_api_render_artifact_ts"
     },
@@ -5642,7 +5642,7 @@
       "file_type": "document",
       "source_file": "CHANGELOG.md",
       "source_location": "L52",
-      "community": 17,
+      "community": 16,
       "norm_label": "all 12 artifact types \u2014 stability status",
       "id": "techwriter_bot_changelog_all_12_artifact_types_stability_status"
     },
@@ -5651,7 +5651,7 @@
       "file_type": "document",
       "source_file": "CHANGELOG.md",
       "source_location": "L70",
-      "community": 17,
+      "community": 16,
       "norm_label": "deployment",
       "id": "techwriter_bot_changelog_deployment"
     },
@@ -5660,7 +5660,7 @@
       "file_type": "document",
       "source_file": "CHANGELOG.md",
       "source_location": "L78",
-      "community": 17,
+      "community": 16,
       "norm_label": "[2.0.0] - 2026-05-10 \u2014 intelligent artifact auto-correction fallback",
       "id": "techwriter_bot_changelog_2_0_0_2026_05_10_intelligent_artifact_auto_correction_fallback"
     },
@@ -5669,7 +5669,7 @@
       "file_type": "document",
       "source_file": "CHANGELOG.md",
       "source_location": "L81",
-      "community": 17,
+      "community": 16,
       "norm_label": "[1.x] - earlier releases",
       "id": "techwriter_bot_changelog_1_x_earlier_releases"
     },
@@ -20408,5 +20408,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "3e64dcbc3c048de975048cae0dacbb3e07508bc0"
+  "built_at_commit": "3deff3070d7fd1e9ebc8ff5856287628639a9ccf"
 }

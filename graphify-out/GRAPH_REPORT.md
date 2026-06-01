@@ -1,7 +1,7 @@
 # Graph Report - techwriter-bot  (2026-06-01)
 
 ## Corpus Check
-- 114 files · ~74,212 words
+- 114 files · ~74,724 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `3e64dcbc`
+- Built from commit: `3deff307`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -137,24 +137,24 @@ Cohesion: 0.16
 Nodes (14): artifactEntryKey(), chipBases, copySource(), currentEntry, currentError, downloadPng(), downloadSvg(), getSelectedSvgMarkup() (+6 more)
 
 ### Community 15 - "Community 15"
-Cohesion: 0.19
-Nodes (7): ArtifactPlacement, ArtifactStreamParser, ArtifactType, isPotentialArtifactTagPrefix(), ParserState, trailingArtifactTagPrefixLength(), trailingMarkerPrefixLength()
+Cohesion: 0.14
+Nodes (14): ../lib/artifact-detector, extractArtifactTitle(), generateArtifactId(), isArtifactUpdate(), simpleHash(), ArtifactType, artifact, artifacts (+6 more)
 
 ### Community 16 - "Community 16"
-Cohesion: 0.15
-Nodes (13): ../lib/artifact-detector, extractArtifactTitle(), generateArtifactId(), isArtifactUpdate(), simpleHash(), artifact, artifacts, base (+5 more)
-
-### Community 17 - "Community 17"
 Cohesion: 0.12
 Nodes (16): [1.x] - Earlier releases, [2.0.0] - 2026-05-10 — Intelligent Artifact Auto-Correction Fallback, [2.1.0] - 2026-05-11 — One-Shot Artifact Rendering Engine Overhaul, All 12 Artifact Types — Stability Status, Changelog, Changes, Deployment, Overview (+8 more)
 
-### Community 18 - "Community 18"
+### Community 17 - "Community 17"
 Cohesion: 0.12
 Nodes (15): cleanSlateConfig, clientChunks, clientDir, distDir, ignorePath, internalConfigs, legacyEntry, midPath (+7 more)
 
-### Community 19 - "Community 19"
+### Community 18 - "Community 18"
 Cohesion: 0.18
 Nodes (10): regenerateArtifactEntry(), ArtifactStatus, ArtifactEntry, ArtifactQueue, createArtifactQueue(), Subscriber, createArtifactRegenerationPrompt(), createArtifactRepairTarget() (+2 more)
+
+### Community 19 - "Community 19"
+Cohesion: 0.21
+Nodes (6): ArtifactPlacement, ArtifactStreamParser, isPotentialArtifactTagPrefix(), ParserState, trailingArtifactTagPrefixLength(), trailingMarkerPrefixLength()
 
 ### Community 20 - "Community 20"
 Cohesion: 0.13
