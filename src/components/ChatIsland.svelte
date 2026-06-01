@@ -15,6 +15,12 @@
   import { createArtifactRegenerationPrompt, createArtifactRepairTarget, planArtifactRepairReplacement, type ArtifactRepairTarget } from '../lib/artifact-repair';
   import { createLiveOutageState, hasVisibleLiveResponse, type LiveOutageState } from '../lib/session-continuity';
   import { createSessionExport, parseSessionImport, sessionExportFilename } from '../lib/session-transfer';
+  import {
+    createConversationSnapshot,
+    listVisibleConversations,
+    upsertConversationSnapshot,
+    type ConversationSnapshot,
+  } from '../lib/conversation-session';
   import { reviewDocument, type DocumentFinding, type TerminologyRule } from '../lib/document-review';
   import ChatMessages from './ChatMessages.svelte';
   import ChatInput from './ChatInput.svelte';
@@ -95,6 +101,10 @@
       && !isStreaming,
   );
   let sessionId = $state('');
+  let conversationId = $state('');
+  let conversationRecords = $state<ConversationSnapshot[]>([]);
+  let conversationHistoryOpen = $state(false);
+  const visibleConversations = $derived(listVisibleConversations(conversationRecords));
   let isUploading = $state(false);
   let rag = $state<RagState>(createDefaultRagState());
   let fileInput: HTMLInputElement;
@@ -246,6 +256,10 @@
     try { return crypto.randomUUID(); } catch (e) { return Math.random().toString(36).substring(2) + Date.now().toString(36); }
   }
 
+  function generateConversationId() {
+    return `conversation_${generateSessionId()}`;
+  }
+
   async function pollCredits() {
     try {
       const res = await fetch('/api/search-credits');
@@ -258,6 +272,7 @@
 
   onMount(() => {
     sessionId = generateSessionId();
+    conversationId = generateConversationId();
     runStaleCheck();
     setupCleanupCallbacks(sessionId);
     pollCredits();
@@ -281,6 +296,68 @@
     toolGraphResult = null;
     toolGraphLoading = false;
     toolGraphError = '';
+  }
+
+  function hasActiveConversationContent() {
+    return messages.some((message) => message.role === 'user' && message.content.trim())
+      || messages.some((message, index) => index > 0 && message.role === 'assistant' && message.content.trim())
+      || artifactQueue.entries.length > 0
+      || rag.documents.length > 0;
+  }
+
+  function saveActiveConversationSnapshot() {
+    if (!conversationId || !sessionId || !hasActiveConversationContent()) return;
+
+    const snapshot = createConversationSnapshot({
+      id: conversationId,
+      sessionId,
+      messages,
+      artifacts: artifactQueue.entries,
+      documents: rag.documents,
+      chatPath,
+    });
+    conversationRecords = upsertConversationSnapshot(conversationRecords, snapshot);
+  }
+
+  function toggleConversationHistory() {
+    saveActiveConversationSnapshot();
+    conversationHistoryOpen = !conversationHistoryOpen;
+  }
+
+  function restoreConversation(conversation: ConversationSnapshot) {
+    if (conversation.id === conversationId) {
+      conversationHistoryOpen = false;
+      return;
+    }
+
+    saveActiveConversationSnapshot();
+    safeAbort();
+    clearConversation();
+    documentTopics = '';
+    clearAllData(sessionId);
+    conversationId = conversation.id;
+    sessionId = conversation.sessionId || generateSessionId();
+    messages = conversation.messages;
+    rag = {
+      ...clearRagState(),
+      uploadStatus: conversation.documents.length > 0 ? 'done' : 'idle',
+      uploadedFileName: conversation.documents.at(-1)?.filename ?? '',
+      documents: conversation.documents,
+    };
+    documentSources = {};
+    clearDocumentToolState();
+    artifactQueue.clear();
+    for (const entry of conversation.artifacts) {
+      artifactQueue.push(entry);
+    }
+    activeArtifactEntry = artifactQueue.entries[0] ?? null;
+    artifactError = null;
+    pendingArtifactRepair = null;
+    liveOutage = null;
+    isLiveMode = false;
+    chatPath = conversation.chatPath ?? null;
+    conversationHistoryOpen = false;
+    if (fileInput) fileInput.value = '';
   }
 
   function rememberDocumentSource(documentId: string, source: DocumentSource) {
@@ -331,11 +408,13 @@
   }
 
   function newChat() {
+    saveActiveConversationSnapshot();
     safeAbort();
     clearConversation();
     documentTopics = '';
     clearAllData(sessionId);
     sessionId = generateSessionId();
+    conversationId = generateConversationId();
     messages = [{ role: 'assistant', content: 'Fresh session started. My memory is now clear. What would you like to work on?' }];
     rag = clearRagState();
     documentSources = {};
@@ -347,6 +426,7 @@
     liveOutage = null;
     isLiveMode = false;
     chatPath = null;
+    conversationHistoryOpen = false;
     if (fileInput) fileInput.value = '';
   }
 
@@ -355,6 +435,7 @@
     clearConversation();
     documentTopics = '';
     clearAllData(sessionId);
+    conversationId = generateConversationId();
     messages = [{ role: 'assistant', content: 'Chat cleared. My memory has been wiped. What would you like to work on?' }];
     rag = clearRagState();
     documentSources = {};
@@ -364,7 +445,9 @@
     artifactError = null;
     pendingArtifactRepair = null;
     liveOutage = null;
+    isLiveMode = false;
     chatPath = null;
+    conversationHistoryOpen = false;
     if (fileInput) fileInput.value = '';
   }
 
@@ -476,11 +559,13 @@
       return;
     }
 
+    saveActiveConversationSnapshot();
     safeAbort();
     clearConversation();
     documentTopics = '';
     clearAllData(sessionId);
     sessionId = generateSessionId();
+    conversationId = generateConversationId();
     messages = parsed.payload.messages;
     rag = {
       ...clearRagState(),
@@ -500,6 +585,7 @@
     liveOutage = null;
     isLiveMode = false;
     chatPath = parsed.payload.chatPath ?? null;
+    conversationHistoryOpen = false;
     if (fileInput) fileInput.value = '';
     input.value = '';
   }
@@ -948,6 +1034,37 @@
         </a>
       </div>
       <div class="flex items-center gap-0.5 shrink-0">
+        <div class="relative">
+          <button type="button" onclick={toggleConversationHistory} aria-expanded={conversationHistoryOpen} aria-controls="conversation-history-panel" class="text-[10px] md:text-xs text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 px-2 md:px-3 py-1 md:py-1.5 rounded-lg transition-all flex items-center gap-1" title="History">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 md:h-3.5 md:w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-3.18-6.87M21 3v6h-6"/></svg>
+            <span class="hidden sm:inline">History</span>
+            {#if visibleConversations.length > 0}
+              <span class="min-w-4 rounded-full bg-stone-200 px-1 text-center text-[9px] leading-4 text-stone-500">{visibleConversations.length}</span>
+            {/if}
+          </button>
+          {#if conversationHistoryOpen}
+            <div id="conversation-history-panel" class="absolute right-0 top-full mt-2 w-72 max-w-[calc(100vw-1rem)] overflow-hidden rounded-lg border border-stone-200 bg-white text-stone-700 shadow-xl">
+              <div class="border-b border-stone-100 px-3 py-2 text-[11px] font-semibold uppercase text-stone-400">Session History</div>
+              {#if visibleConversations.length === 0}
+                <div class="px-3 py-3 text-xs text-stone-500">No saved conversations in this open session</div>
+              {:else}
+                <div class="max-h-72 overflow-y-auto py-1">
+                  {#each visibleConversations as conversation}
+                    <button
+                      type="button"
+                      onclick={() => restoreConversation(conversation)}
+                      aria-current={conversation.id === conversationId ? 'true' : undefined}
+                      class="block w-full px-3 py-2 text-left text-xs transition-colors hover:bg-stone-50 aria-[current=true]:bg-amber-50"
+                    >
+                      <span class="block truncate font-medium text-stone-700">{conversation.title}</span>
+                      <span class="mt-0.5 block text-[10px] text-stone-400">{conversation.messages.length} messages / {conversation.artifacts.length} artifacts</span>
+                    </button>
+                  {/each}
+                </div>
+              {/if}
+            </div>
+          {/if}
+        </div>
         <button onclick={exportSession} class="text-[10px] md:text-xs text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 px-2 md:px-3 py-1 md:py-1.5 rounded-lg transition-all flex items-center gap-1" title="Export session">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 md:h-3.5 md:w-3.5" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a1 1 0 011 1v7.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4A1 1 0 016.707 8.293L9 10.586V3a1 1 0 011-1z"/><path d="M3 14a1 1 0 011-1h2.5a1 1 0 110 2H5v1h10v-1h-1.5a1 1 0 110-2H16a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1v-3z"/></svg>
           <span class="hidden sm:inline">Export</span>

@@ -16,6 +16,13 @@ function source(path: string): string {
   return readFileSync(join(process.cwd(), path), 'utf8');
 }
 
+function functionBlock(file: string, name: string): string {
+  const start = file.indexOf(`function ${name}(`);
+  expect(start, `${name} should exist`).toBeGreaterThanOrEqual(0);
+  const next = file.indexOf('\n  function ', start + 1);
+  return next === -1 ? file.slice(start) : file.slice(start, next);
+}
+
 const artifact: ArtifactEntry = {
   messageIdx: 2,
   ts: 2000,
@@ -117,5 +124,31 @@ describe('active-session conversation history foundation', () => {
     expect(helper).not.toContain('indexedDB');
     expect(helper).not.toContain('fetch(');
     expect(helper).not.toContain('.put(');
+  });
+
+  it('wires an active-session conversation list into ChatIsland without durable retention', () => {
+    const island = source('src/components/ChatIsland.svelte');
+    const newChat = functionBlock(island, 'newChat');
+
+    expect(island).toContain("from '../lib/conversation-session'");
+    expect(island).toContain('type ConversationSnapshot');
+    expect(island).toContain('let conversationId = $state');
+    expect(island).toContain('let conversationRecords = $state<ConversationSnapshot[]>');
+    expect(island).toContain('let conversationHistoryOpen = $state(false)');
+    expect(island).toContain('visibleConversations');
+    expect(island).toContain('listVisibleConversations(conversationRecords)');
+    expect(island).toContain('function saveActiveConversationSnapshot()');
+    expect(island).toContain('createConversationSnapshot');
+    expect(island).toContain('upsertConversationSnapshot');
+    expect(island).toContain('function restoreConversation(conversation: ConversationSnapshot)');
+    expect(island).toContain('id="conversation-history-panel"');
+    expect(island).toContain('aria-expanded={conversationHistoryOpen}');
+    expect(island).toContain('onclick={toggleConversationHistory}');
+    expect(island).toContain('onclick={() => restoreConversation(conversation)}');
+    expect(island).not.toContain('localStorage.setItem');
+    expect(island).not.toContain('sessionStorage.setItem');
+
+    expect(newChat).toContain('saveActiveConversationSnapshot()');
+    expect(newChat.indexOf('saveActiveConversationSnapshot()')).toBeLessThan(newChat.indexOf('clearAllData(sessionId)'));
   });
 });
