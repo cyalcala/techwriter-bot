@@ -42,12 +42,14 @@ session boundary:
   sanitized in-memory records, derive deterministic three-word fallback titles,
   and support list/upsert/rename/archive/delete operations without durable
   storage or network writes.
-- Current checkpoint: code commit `dd48f5a` is accepted on production via docs
-  commit `aeeb932` and GitHub Actions run `26778481083`. The local tracked
-  graph is 800 nodes and 1298 edges from `dd48f5a`; the production runtime
-  graph is 904 nodes and 1378 edges.
-- Next slice: continue the next Phase 3 export workflow. Do not add durable
-  automatic chat retention.
+- Current local checkpoint: code commit `8355b4f` implements user-invoked
+  single-response Markdown export; production acceptance is pending. The local
+  tracked graph is 803 nodes and 1307 edges from `8355b4f`; the latest accepted
+  production checkpoint remains `dd48f5a` via docs commit `aeeb932` with
+  runtime graph 904 nodes and 1378 edges.
+- Next slice: deploy and accept the single-response Markdown export checkpoint,
+  then continue the next Phase 3 export workflow. Do not add durable automatic
+  chat retention.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -207,6 +209,7 @@ Documentation Tooling Agent direction.
   - `3e64dcb` in-memory conversation history management controls.
   - `3deff30` metadata-only restored document note.
   - `dd48f5a` active-session Markdown chat export.
+  - `8355b4f` individual assistant response Markdown export.
 
 ## In Progress
 
@@ -1180,14 +1183,38 @@ Latest incremental verification on 2026-06-01:
   `createChatMarkdownExport` returns `src/lib/chat-markdown-export.ts:L14` and
   `CreateChatMarkdownExportInput` from the 904-node runtime graph with
   `Cache-Control: no-store, private`.
+- Added user-invoked single-response Markdown export in code commit `8355b4f`:
+  each non-streaming assistant message now exposes a `Markdown` action that
+  downloads only that response as clean `.md`, preserving response timestamps,
+  provider/search metadata, document citations in message text, and source
+  links. The export helper removes common model disclaimer boilerplate without
+  collapsing Markdown headings or line breaks, and it does not add automatic
+  durable chat retention, Slack export, webhook delivery, or browser package
+  runtimes.
+- Red-green coverage confirmed the previous missing helper/UI path first:
+  `npm.cmd test -- --run src/tests/chat-markdown-export.test.ts` failed because
+  `createSingleMessageMarkdownExport`, `singleMessageMarkdownExportFilename`,
+  and `exportMessageMarkdown` did not exist, then passed after implementation.
+  Verification passed after this export slice:
+  `npm.cmd test -- --run src/tests/chat-markdown-export.test.ts` (6 tests),
+  `npm.cmd test -- --run src/tests/chat-markdown-export.test.ts src/tests/session-transfer.test.ts src/tests/conversation-session.test.ts src/tests/privacy-first.test.ts` (4 files, 28 tests),
+  `npm.cmd test` (34 files, 165 tests),
+  `npm.cmd audit --omit=dev --audit-level=high` (0 vulnerabilities),
+  `git diff --check` (only known CRLF conversion warnings), and the recorded
+  `build:local` command (passed with the known non-failing `punycode` and
+  Wrangler local-AI warnings).
+- `graphify update .` refreshed tracked local Graphify artifacts from commit
+  `8355b4f`: 803 nodes and 1307 edges. Community-count wording remains
+  non-blocking.
 
 ## Next Task
 
 Continue with Phase 3 Conversation Management in small slices:
 
-- Continue the next export slice: single response to clean Markdown or
-  Slack-format copy, still active-session-first unless the user explicitly
-  exports JSON and later imports it.
+- Push and production-accept the single-response Markdown export checkpoint if
+  this docs entry is still pending acceptance. After acceptance, continue the
+  next export slice: Slack-format copy, still active-session-first unless the
+  user explicitly exports JSON and later imports it.
 - Preserve active-session privacy boundaries: page refresh/navigation clearly
   ends active-session content unless the user explicitly exports a JSON backup
   file and later imports it.
