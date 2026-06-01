@@ -15,6 +15,7 @@
   import { createArtifactRegenerationPrompt, createArtifactRepairTarget, planArtifactRepairReplacement, type ArtifactRepairTarget } from '../lib/artifact-repair';
   import { createLiveOutageState, hasVisibleLiveResponse, type LiveOutageState } from '../lib/session-continuity';
   import { createSessionExport, parseSessionImport, sessionExportFilename } from '../lib/session-transfer';
+  import { createChatMarkdownExport, chatMarkdownExportFilename } from '../lib/chat-markdown-export';
   import {
     archiveConversation,
     createConversationSnapshot,
@@ -33,6 +34,7 @@
   interface Message {
     role: 'user' | 'assistant' | 'system';
     content: string;
+    createdAt?: string;
     provider?: string;
     sources?: { title: string; url: string }[];
     searchTier?: 'none' | 'basic' | 'enhanced';
@@ -84,6 +86,10 @@
     return `Hi! I'm ${name}. I help with writing, research, diagrams, and code. What can I create for you?`;
   }
 
+  function createChatMessage(message: Message): Message {
+    return { createdAt: new Date().toISOString(), ...message };
+  }
+
   const visiblePersonaName = $derived(cleanPersonaName(personaName));
   const visibleSuggestedPrompts = $derived(
     (Array.isArray(suggestedPrompts) ? suggestedPrompts : [])
@@ -92,7 +98,7 @@
       .slice(0, 3),
   );
 
-  let messages = $state<Message[]>([{ role: 'assistant', content: personaGreeting(visiblePersonaName) }]);
+  let messages = $state<Message[]>([createChatMessage({ role: 'assistant', content: personaGreeting(visiblePersonaName) })]);
   let inputMessage = $state('');
   let isLoading = $state(false);
   let isStreaming = $state(false);
@@ -252,7 +258,7 @@
     } : null);
     if (prompt && activeArtifactEntry) {
       pendingArtifactRepair = createArtifactRepairTarget(activeArtifactEntry);
-      messages = [...messages, { role: 'user', content: prompt }];
+      messages = [...messages, createChatMessage({ role: 'user', content: prompt })];
       artifactError = null;
       doSend();
     }
@@ -347,7 +353,7 @@
     clearAllData(sessionId);
     conversationId = conversation.id;
     sessionId = conversation.sessionId || generateSessionId();
-    messages = conversation.messages;
+    messages = conversation.messages.map(createChatMessage);
     rag = {
       ...clearRagState(),
       uploadStatus: conversation.documents.length > 0 ? 'done' : 'idle',
@@ -452,7 +458,7 @@
     clearAllData(sessionId);
     sessionId = generateSessionId();
     conversationId = generateConversationId();
-    messages = [{ role: 'assistant', content: 'Fresh session started. My memory is now clear. What would you like to work on?' }];
+    messages = [createChatMessage({ role: 'assistant', content: 'Fresh session started. My memory is now clear. What would you like to work on?' })];
     rag = clearRagState();
     ragMetadataOnly = false;
     documentSources = {};
@@ -474,7 +480,7 @@
     documentTopics = '';
     clearAllData(sessionId);
     conversationId = generateConversationId();
-    messages = [{ role: 'assistant', content: 'Chat cleared. My memory has been wiped. What would you like to work on?' }];
+    messages = [createChatMessage({ role: 'assistant', content: 'Chat cleared. My memory has been wiped. What would you like to work on?' })];
     rag = clearRagState();
     ragMetadataOnly = false;
     documentSources = {};
@@ -538,7 +544,7 @@
         rag.documents = [...rag.documents, result.document];
         if (result.sourceText) rememberDocumentSource(result.document.id, { name: file.name, text: result.sourceText });
       }
-      messages = [...messages, { role: 'assistant', content: result.message }];
+      messages = [...messages, createChatMessage({ role: 'assistant', content: result.message })];
       try {
         const vectors2 = await getStoredVectors(sessionId);
         if (vectors2.length >= 3) {
@@ -551,7 +557,7 @@
         }
       } catch {}
     } else {
-      messages = [...messages, { role: 'assistant', content: result.message }];
+      messages = [...messages, createChatMessage({ role: 'assistant', content: result.message })];
     }
   }
 
@@ -581,6 +587,25 @@
     URL.revokeObjectURL(url);
   }
 
+  function exportMarkdown() {
+    const exportedAt = new Date();
+    const markdown = createChatMarkdownExport({
+      personaName: visiblePersonaName,
+      messages,
+      artifacts: artifactQueue.entries,
+      documents: rag.documents,
+      chatPath,
+      now: exportedAt,
+    });
+    const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = chatMarkdownExportFilename(exportedAt);
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function onSessionImportSelected(event: Event) {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
@@ -590,14 +615,14 @@
     try {
       raw = await file.text();
     } catch {
-      messages = [...messages, { role: 'assistant', content: 'Session import failed: I could not read that file.' }];
+      messages = [...messages, createChatMessage({ role: 'assistant', content: 'Session import failed: I could not read that file.' })];
       input.value = '';
       return;
     }
 
     const parsed = parseSessionImport(raw);
     if (!parsed.ok) {
-      messages = [...messages, { role: 'assistant', content: `Session import failed: ${parsed.message}` }];
+      messages = [...messages, createChatMessage({ role: 'assistant', content: `Session import failed: ${parsed.message}` })];
       input.value = '';
       return;
     }
@@ -609,7 +634,7 @@
     clearAllData(sessionId);
     sessionId = generateSessionId();
     conversationId = generateConversationId();
-    messages = parsed.payload.messages;
+    messages = parsed.payload.messages.map(createChatMessage);
     rag = {
       ...clearRagState(),
       uploadStatus: parsed.payload.documents.length > 0 ? 'done' : 'idle',
@@ -637,7 +662,7 @@
   async function reembedDocument(documentId: string) {
     const source = documentSources[documentId];
     if (!source) {
-      messages = [...messages, { role: 'assistant', content: 'Re-embed is unavailable because the document source is no longer in this open session.' }];
+      messages = [...messages, createChatMessage({ role: 'assistant', content: 'Re-embed is unavailable because the document source is no longer in this open session.' })];
       return;
     }
 
@@ -664,7 +689,7 @@
   async function saveEdit(idx: number) {
     if (!editText.trim()) return;
     messages = messages.slice(0, idx);
-    messages = [...messages, { role: 'user', content: editText.trim() }];
+    messages = [...messages, createChatMessage({ role: 'user', content: editText.trim() })];
     editingMessageIdx = null; editText = '';
     await doSend();
   }
@@ -701,7 +726,7 @@
     if (now - sseDropWindow > SSE_DROP_WINDOW_MS) { sseDropCount = 0; sseDropWindow = now; }
     sseDropCount++;
     if (sseDropCount >= SSE_MAX_DROPS) {
-      messages = [...messages, { role: 'assistant', content: '*Connection unstable. Please wait a moment.*' }];
+      messages = [...messages, createChatMessage({ role: 'assistant', content: '*Connection unstable. Please wait a moment.*' })];
       chatState = 'idle'; isLoading = false;
       setTimeout(() => { sseDropCount = 0; }, 10_000);
       return false;
@@ -736,11 +761,11 @@
       if (messageQueue.length < MAX_QUEUE) {
         messageQueue.push({ content: inputMessage.trim(), timestamp: Date.now() });
         inputMessage = '';
-        messages = [...messages, { role: 'assistant', content: `Message queued (${messageQueue.length}/${MAX_QUEUE}). We will process after the current response.` }];
+        messages = [...messages, createChatMessage({ role: 'assistant', content: `Message queued (${messageQueue.length}/${MAX_QUEUE}). We will process after the current response.` })];
       }
       return;
     }
-    messages = [...messages, { role: 'user', content: inputMessage.trim() }];
+    messages = [...messages, createChatMessage({ role: 'user', content: inputMessage.trim() })];
     inputMessage = '';
     await doSend();
   }
@@ -773,7 +798,7 @@
     const totalEst = messagesToSend.reduce((s, m) => s + estimateTokens(m.content || ''), 0);
 
     if (totalEst > 5000) {
-      messages = [...messages, { role: 'assistant', content: 'This conversation is getting long. Consider starting a new chat for optimal performance.' }];
+      messages = [...messages, createChatMessage({ role: 'assistant', content: 'This conversation is getting long. Consider starting a new chat for optimal performance.' })];
       const summaryMsg = messagesToSend.length > 8 ? await (async () => {
         try { const res = await fetch('/api/summarize', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: messagesToSend.slice(1, -8) }) }); if (res.ok) { const d = await res.json(); return d.summary || ''; } } catch {} return '';
       })() : '';
@@ -804,7 +829,7 @@
             const ctx = formatRagContext(chunks);
             if (ctx) messagesToSend = [{ role: 'system', content: `Use these uploaded document excerpts. Cite every document-backed claim with [Doc: filename, line n]. If the answer is not supported by these excerpts, say "I don't have enough context in the uploaded document to answer that."\n\n${ctx}` }, ...messagesToSend];
           } else {
-            messages = [...messages, { role: 'assistant', content: createRagRetrievalMessage({ embedFailed }) }];
+            messages = [...messages, createChatMessage({ role: 'assistant', content: createRagRetrievalMessage({ embedFailed }) })];
             return;
           }
         }
@@ -863,7 +888,7 @@
       const reader = stream.getReader();
       const decoder = new TextDecoder();
 
-      messages = [...messages, { role: 'assistant', content: '', provider: providerName, sources: sourcesFromHeaders, searchTier: msgSearchTier, liveResponse: true }];
+      messages = [...messages, createChatMessage({ role: 'assistant', content: '', provider: providerName, sources: sourcesFromHeaders, searchTier: msgSearchTier, liveResponse: true })];
       msgIdx = messages.length - 1;
 
       checkpointContent = '';
@@ -976,7 +1001,7 @@
         if (checkpointContent && !abortController?.signal.aborted) {
           messages[msgIdx] = { ...messages[msgIdx], content: checkpointContent + '\n\n*[Connection interrupted. Send again to continue.]*' };
         } else {
-          messages = [...messages, { role: 'assistant', content: `Connection Error: ${error.message}` }];
+          messages = [...messages, createChatMessage({ role: 'assistant', content: `Connection Error: ${error.message}` })];
         }
       }
     } finally {
@@ -994,7 +1019,7 @@
         setTimeout(() => {
           if (chatState === 'idle' && messageQueue.length > 0) {
             const next = messageQueue.shift()!;
-            messages = [...messages, { role: 'user', content: next.content }];
+            messages = [...messages, createChatMessage({ role: 'user', content: next.content })];
             doSend();
           }
         }, 100);
@@ -1015,7 +1040,7 @@
     activeArtifactEntry = updatedEntry || entry;
     pendingArtifactRepair = createArtifactRepairTarget(entry);
     artifactError = null;
-    messages = [...messages, { role: 'user', content: createArtifactRegenerationPrompt(entry) }];
+    messages = [...messages, createChatMessage({ role: 'user', content: createArtifactRegenerationPrompt(entry) })];
     doSend();
   }
 
@@ -1138,6 +1163,10 @@
             </div>
           {/if}
         </div>
+        <button onclick={exportMarkdown} class="text-[10px] md:text-xs text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 px-2 md:px-3 py-1 md:py-1.5 rounded-lg transition-all flex items-center gap-1" title="Export chat as Markdown">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 md:h-3.5 md:w-3.5" viewBox="0 0 20 20" fill="currentColor"><path d="M4 2.5A1.5 1.5 0 015.5 1h5.879a1.5 1.5 0 011.06.44l3.122 3.12A1.5 1.5 0 0116 5.622V17.5a1.5 1.5 0 01-1.5 1.5h-9A1.5 1.5 0 014 17.5v-15zM11 2.75V5a1 1 0 001 1h2.25L11 2.75z"/><path d="M6.75 9.25a.75.75 0 000 1.5h6.5a.75.75 0 000-1.5h-6.5zm0 3a.75.75 0 000 1.5h6.5a.75.75 0 000-1.5h-6.5z"/></svg>
+          <span class="hidden sm:inline">Markdown</span>
+        </button>
         <button onclick={exportSession} class="text-[10px] md:text-xs text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 px-2 md:px-3 py-1 md:py-1.5 rounded-lg transition-all flex items-center gap-1" title="Export session">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 md:h-3.5 md:w-3.5" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a1 1 0 011 1v7.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4A1 1 0 016.707 8.293L9 10.586V3a1 1 0 011-1z"/><path d="M3 14a1 1 0 011-1h2.5a1 1 0 110 2H5v1h10v-1h-1.5a1 1 0 110-2H16a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1v-3z"/></svg>
           <span class="hidden sm:inline">Export</span>

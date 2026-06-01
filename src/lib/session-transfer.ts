@@ -7,6 +7,7 @@ export const SESSION_EXPORT_VERSION = 1;
 export type SessionExportMessage = {
   role: 'user' | 'assistant' | 'system';
   content: string;
+  createdAt?: string;
   provider?: string;
   sources?: { title: string; url: string }[];
   searchTier?: 'none' | 'basic' | 'enhanced';
@@ -123,6 +124,8 @@ function cloneMessage(input: unknown): SessionExportMessage | null {
     role: input.role as SessionExportMessage['role'],
     content: input.content,
   };
+  const createdAt = cleanOptionalString(input.createdAt);
+  if (createdAt) message.createdAt = createdAt;
   const provider = cleanOptionalString(input.provider);
   if (provider) message.provider = provider;
   const sources = cloneSources(input.sources);

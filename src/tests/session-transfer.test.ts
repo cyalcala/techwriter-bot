@@ -39,7 +39,7 @@ describe('explicit session transfer', () => {
       now: new Date('2026-05-31T10:11:12.000Z'),
       chatPath: 'heavy',
       messages: [
-        { role: 'user', content: 'Review this doc', provider: 'ignored-extra' },
+        { role: 'user', content: 'Review this doc', createdAt: '2026-05-31T10:10:00.000Z', provider: 'ignored-extra' },
         {
           role: 'assistant',
           content: 'Looks clear. [Doc: api.md, line 4]',
@@ -65,6 +65,7 @@ describe('explicit session transfer', () => {
     expect(payload.version).toBe(SESSION_EXPORT_VERSION);
     expect(payload.exportedAt).toBe('2026-05-31T10:11:12.000Z');
     expect(payload.messages).toHaveLength(2);
+    expect(payload.messages[0]?.createdAt).toBe('2026-05-31T10:10:00.000Z');
     expect(payload.artifacts).toEqual([artifact]);
     expect(payload.documents).toEqual([{ id: 'doc-api', filename: 'api.md', chunkCount: 3 }]);
     expect(JSON.stringify(payload)).not.toContain('private source text');
