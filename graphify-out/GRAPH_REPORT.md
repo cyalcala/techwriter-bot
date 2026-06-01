@@ -1,7 +1,7 @@
 # Graph Report - techwriter-bot  (2026-06-01)
 
 ## Corpus Check
-- 114 files · ~73,274 words
+- 114 files · ~74,212 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `fd16c755`
+- Built from commit: `3e64dcbc`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -137,12 +137,12 @@ Cohesion: 0.16
 Nodes (14): artifactEntryKey(), chipBases, copySource(), currentEntry, currentError, downloadPng(), downloadSvg(), getSelectedSvgMarkup() (+6 more)
 
 ### Community 15 - "Community 15"
-Cohesion: 0.15
-Nodes (13): ../lib/artifact-detector, extractArtifactTitle(), generateArtifactId(), isArtifactUpdate(), simpleHash(), artifact, artifacts, base (+5 more)
-
-### Community 16 - "Community 16"
 Cohesion: 0.19
 Nodes (7): ArtifactPlacement, ArtifactStreamParser, ArtifactType, isPotentialArtifactTagPrefix(), ParserState, trailingArtifactTagPrefixLength(), trailingMarkerPrefixLength()
+
+### Community 16 - "Community 16"
+Cohesion: 0.15
+Nodes (13): ../lib/artifact-detector, extractArtifactTitle(), generateArtifactId(), isArtifactUpdate(), simpleHash(), artifact, artifacts, base (+5 more)
 
 ### Community 17 - "Community 17"
 Cohesion: 0.12

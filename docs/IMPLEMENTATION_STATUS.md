@@ -42,11 +42,13 @@ session boundary:
   sanitized in-memory records, derive deterministic three-word fallback titles,
   and support list/upsert/rename/archive/delete operations without durable
   storage or network writes.
-- Current checkpoint: code commit `fd16c75` is accepted on production via docs
-  commit `81ab6af`; the local tracked graph is 790 nodes and 1278 edges, and
-  the production runtime graph is 891 nodes and 1348 edges.
-- Next slice: continue Conversation Management with small tested UI controls for
-  rename/archive/delete or a restore-state note. Do not add durable automatic
+- Current checkpoint: code commit `3e64dcb` adds in-memory rename/archive/delete
+  controls for saved conversation snapshots and is locally verified; the local
+  tracked graph is 790 nodes and 1278 edges. Production acceptance for this
+  slice is pending GitHub Actions deployment after the docs/Graphify checkpoint
+  is pushed.
+- Next slice: after deployment acceptance, continue Conversation Management with
+  a restore-state note or the next export workflow. Do not add durable automatic
   chat retention.
 - Relay-safe documentation updates after each meaningful step.
 
@@ -204,6 +206,7 @@ Documentation Tooling Agent direction.
     isolation tests.
   - `58d9e1c` active-session conversation snapshot/list helper foundation.
   - `fd16c75` active-session conversation history UI wiring.
+  - `3e64dcb` in-memory conversation history management controls.
 
 ## In Progress
 
@@ -272,6 +275,13 @@ Documentation Tooling Agent direction.
   fetch, KV, or automatic durable chat retention. This checkpoint is locally
   verified and accepted on production alias `https://tw-bot.pages.dev` through
   docs commit `81ab6af`.
+- The next `ChatIsland` conversation history UI slice is implemented in code
+  commit `3e64dcb`: saved in-memory history rows can be renamed inline, archived
+  from the visible list, or deleted from the active page-memory list. Archive
+  and delete guard the currently active conversation, while saved snapshots
+  preserve any custom title, created timestamp, and archived flag across later
+  active-session snapshot updates. This checkpoint is locally verified and
+  awaiting GitHub deployment acceptance.
 
 ## Blockers And Notes
 
@@ -1060,15 +1070,38 @@ Latest incremental verification on 2026-06-01:
   matching app version, and no version mismatch. Bounded graph lookup for
   `createConversationSnapshot` returns `src/lib/conversation-session.ts:L45`
   from the 891-node runtime graph with `Cache-Control: no-store, private`.
+- Added in-memory history management controls in
+  `src/components/ChatIsland.svelte` and
+  `src/tests/conversation-session.test.ts`: each saved history row can be
+  renamed inline, archived from the visible list, or deleted from the open
+  page-memory list. Archive/delete return early for the currently active
+  conversation, and subsequent snapshot saves preserve custom titles, created
+  timestamps, and archived flags.
+- Red-green coverage confirmed the previous management-control gap: the new
+  source test first failed because `archiveConversationRecord` did not exist,
+  then passed after implementation. Verification passed after this UI slice:
+  `npm.cmd test -- --run src/tests/conversation-session.test.ts` (6 tests),
+  `npm.cmd test -- --run src/tests/conversation-session.test.ts src/tests/session-transfer.test.ts src/tests/privacy-first.test.ts src/tests/artifact-gallery.test.ts` (4 files, 28 tests),
+  `npm.cmd test` (33 files, 158 tests),
+  `npm.cmd audit --omit=dev --audit-level=high` (0 vulnerabilities),
+  `git diff --check` (only known CRLF conversion warnings), and the recorded
+  `build:local` command (passed with the known non-failing `punycode` and
+  Wrangler local-AI warnings).
+- `graphify update .` refreshed tracked local Graphify artifacts from commit
+  `3e64dcb`: 790 nodes and 1278 edges. Community-count wording remains
+  non-blocking.
 
 ## Next Task
 
 Continue with Phase 3 Conversation Management in small slices:
 
-- Add the next small tested Conversation Management control: rename/archive/delete
-  UI for in-memory snapshots, or a restore-state note if that is safer first.
-  Keep it active-session-first unless the user explicitly exports JSON and later
-  imports it.
+- Push the docs/Graphify checkpoint for `3e64dcb`, watch GitHub Actions, and
+  record production acceptance with immutable Cloudflare URL plus production
+  smoke evidence.
+- After deployment acceptance, add a small restore-state note for imported or
+  restored document metadata if needed, or start the next Phase 3 export
+  workflow. Keep it active-session-first unless the user explicitly exports JSON
+  and later imports it.
 - Preserve active-session privacy boundaries: page refresh/navigation clearly
   ends active-session content unless the user explicitly exports a JSON backup
   file and later imports it.

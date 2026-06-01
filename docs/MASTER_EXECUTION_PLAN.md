@@ -76,7 +76,7 @@ The current tracked code graph was refreshed with `graphify update .` on
 - Graph: `graphify-out/graph.json`
 - Summary: 790 nodes, 1278 edges
 - Extraction confidence: 95% EXTRACTED, 5% INFERRED, 0% AMBIGUOUS
-- Built from code at commit: `fd16c755`
+- Built from code at commit: `3e64dcbc`
 - The generated report currently disagrees with itself on total community
   count; use node/edge counts and targeted graph queries for acceptance until
   that reporting discrepancy is reconciled.
@@ -144,6 +144,9 @@ The current tracked code graph was refreshed with `graphify update .` on
   the current open conversation before starting a new chat, lists in-memory
   conversation snapshots, and restores messages, artifacts, and uploaded
   document metadata without durable automatic chat retention.
+- The in-memory History control now has bounded rename, archive, and delete
+  controls for saved snapshots. Archive/delete are guarded for the currently
+  active conversation so the visible chat is not silently removed.
 
 Before broad architecture work, read `graphify-out/GRAPH_REPORT.md` first.
 When the graph may be stale, run:
