@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import type { ArtifactEntry } from '../lib/artifact-queue';
 import {
   createChatMarkdownExport,
+  createSlackMessageCopy,
   createSingleMessageMarkdownExport,
   chatMarkdownExportFilename,
   singleMessageMarkdownExportFilename,
@@ -125,6 +126,29 @@ describe('active-session Markdown chat export', () => {
     expect(markdown).not.toContain('## Documents');
   });
 
+  it('creates Slack-ready copy for one assistant response without full transcript metadata', () => {
+    const slack = createSlackMessageCopy({
+      index: 1,
+      message: {
+        role: 'assistant',
+        content: 'Please note that my knowledge ended in 2024.\n\nShip this. [Doc: api.md, line 4]',
+        createdAt: '2026-06-02T01:00:05.000Z',
+        provider: 'groq-fast',
+        sources: [{ title: 'API Guide [v2]', url: 'https://example.com/api' }],
+        searchTier: 'basic',
+      },
+    });
+
+    expect(slack).toContain('*Assistant response 2*');
+    expect(slack).toContain('_groq-fast / basic_');
+    expect(slack).toContain('Ship this. [Doc: api.md, line 4]');
+    expect(slack).toContain('Sources:\n- API Guide [v2]: https://example.com/api');
+    expect(slack).not.toContain('Please note');
+    expect(slack).not.toContain('Technical Writer Chat Export');
+    expect(slack).not.toContain('## Conversation');
+    expect(slack).not.toContain('## Documents');
+  });
+
   it('keeps the Markdown export helper free of durable storage and network writes', () => {
     const helper = source('src/lib/chat-markdown-export.ts');
 
@@ -174,5 +198,27 @@ describe('active-session Markdown chat export', () => {
     expect(exportMessageMarkdown).toContain('text/markdown;charset=utf-8');
     expect(exportMessageMarkdown).not.toContain('localStorage');
     expect(exportMessageMarkdown).not.toContain('sessionStorage');
+  });
+
+  it('wires a user-invoked Slack copy action without durable retention', () => {
+    const island = source('src/components/ChatIsland.svelte');
+    const messages = source('src/components/ChatMessages.svelte');
+    const copyMessageForSlack = functionBlock(island, 'copyMessageForSlack');
+
+    expect(island).toContain('createSlackMessageCopy');
+    expect(island).toContain('let copiedSlackMessageIdx = $state<number | null>(null)');
+    expect(island).toContain('async function copyMessageForSlack(idx: number)');
+    expect(island).toContain('navigator.clipboard.writeText(createSlackMessageCopy');
+    expect(island).toContain('onCopySlackMessage={copyMessageForSlack}');
+    expect(island).toContain('{copiedSlackMessageIdx}');
+    expect(messages).toContain('onCopySlackMessage: (idx: number) => void');
+    expect(messages).toContain('copiedSlackMessageIdx: number | null');
+    expect(messages).toContain('onclick={() => onCopySlackMessage(i)}');
+    expect(messages).toContain('title="Copy response for Slack"');
+    expect(copyMessageForSlack).toContain('const message = messages[idx]');
+    expect(copyMessageForSlack).toContain("if (!message || message.role !== 'assistant')");
+    expect(copyMessageForSlack).toContain('createSlackMessageCopy');
+    expect(copyMessageForSlack).not.toContain('localStorage');
+    expect(copyMessageForSlack).not.toContain('sessionStorage');
   });
 });

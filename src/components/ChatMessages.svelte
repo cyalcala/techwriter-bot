@@ -12,6 +12,7 @@
     activeArtifactId: string | null;
     onChipClick: (entry: ArtifactEntry) => void;
     onCopyMessage: (idx: number) => void;
+    onCopySlackMessage: (idx: number) => void;
     onExportMessageMarkdown: (idx: number) => void;
     onRetryMessage: () => void;
     onEditMessage: (idx: number) => void;
@@ -21,14 +22,15 @@
     onSaveEdit: (idx: number) => void;
     onCancelEdit: () => void;
     copiedMessageIdx: number | null;
+    copiedSlackMessageIdx: number | null;
     chatPath: string | null;
   }
 
   let {
     messages, queue, isStreaming, isLoading, activeMessageIdx, activeArtifactId,
-    onChipClick, onCopyMessage, onExportMessageMarkdown, onRetryMessage, onEditMessage,
+    onChipClick, onCopyMessage, onCopySlackMessage, onExportMessageMarkdown, onRetryMessage, onEditMessage,
     editingMessageIdx, editText, onEditTextChange, onSaveEdit, onCancelEdit,
-    copiedMessageIdx, chatPath,
+    copiedMessageIdx, copiedSlackMessageIdx, chatPath,
   }: Props = $props();
 
   let artifactEntries = $state<ArtifactEntry[]>([]);
@@ -57,6 +59,9 @@
               </button>
               <button onclick={() => onExportMessageMarkdown(i)} title="Export response as Markdown" class="text-[11px] px-2 py-0.5 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 transition-all">
                 Markdown
+              </button>
+              <button onclick={() => onCopySlackMessage(i)} title="Copy response for Slack" class="text-[11px] px-2 py-0.5 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 transition-all">
+                {copiedSlackMessageIdx === i ? 'Slack copied' : 'Slack'}
               </button>
               {#if i === messages.length - 1}
                 <button onclick={onRetryMessage} class="text-[11px] px-2 py-0.5 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 transition-all">Retry</button>

@@ -17,6 +17,7 @@
   import { createSessionExport, parseSessionImport, sessionExportFilename } from '../lib/session-transfer';
   import {
     createChatMarkdownExport,
+    createSlackMessageCopy,
     createSingleMessageMarkdownExport,
     chatMarkdownExportFilename,
     singleMessageMarkdownExportFilename,
@@ -134,6 +135,7 @@
   let editingMessageIdx = $state<number | null>(null);
   let editText = $state('');
   let copiedMessageIdx = $state<number | null>(null);
+  let copiedSlackMessageIdx = $state<number | null>(null);
   let chatPath = $state<string | null>(null);
   let tokenDisplay = $state<{ in: number; graph: number; cached?: boolean } | null>(null);
   let failoverEvents = $state<FailoverEvent[]>([]);
@@ -707,6 +709,17 @@
     try { await navigator.clipboard.writeText(messages[idx].content); copiedMessageIdx = idx; setTimeout(() => { copiedMessageIdx = null; }, 1500); } catch {}
   }
 
+  async function copyMessageForSlack(idx: number) {
+    const message = messages[idx];
+    if (!message || message.role !== 'assistant') return;
+
+    try {
+      await navigator.clipboard.writeText(createSlackMessageCopy({ index: idx, message }));
+      copiedSlackMessageIdx = idx;
+      setTimeout(() => { copiedSlackMessageIdx = null; }, 1500);
+    } catch {}
+  }
+
   function startEdit(idx: number) { editingMessageIdx = idx; editText = messages[idx].content; }
   function cancelEdit() { editingMessageIdx = null; editText = ''; }
 
@@ -1227,6 +1240,7 @@
       activeArtifactId={activeArtifactEntry?.artifact.id ?? null}
       onChipClick={handleChipClick}
       onCopyMessage={copyMessage}
+      onCopySlackMessage={copyMessageForSlack}
       onExportMessageMarkdown={exportMessageMarkdown}
       onRetryMessage={regenerate}
       onEditMessage={startEdit}
@@ -1236,6 +1250,7 @@
       onSaveEdit={saveEdit}
       onCancelEdit={cancelEdit}
       {copiedMessageIdx}
+      {copiedSlackMessageIdx}
       {chatPath}
     />
 

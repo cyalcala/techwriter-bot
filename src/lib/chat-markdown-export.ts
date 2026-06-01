@@ -17,6 +17,11 @@ interface CreateSingleMessageMarkdownExportInput {
   now?: Date;
 }
 
+interface CreateSlackMessageCopyInput {
+  index: number;
+  message: SessionExportMessage;
+}
+
 export function createChatMarkdownExport(input: CreateChatMarkdownExportInput): string {
   const payload = createSessionExport(input);
   const lines: string[] = [
@@ -112,6 +117,37 @@ export function createSingleMessageMarkdownExport(input: CreateSingleMessageMark
     lines.push('', 'Sources:');
     for (const source of message.sources) {
       lines.push(`- [${escapeLinkText(source.title)}](${source.url})`);
+    }
+  }
+
+  return `${lines.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd()}\n`;
+}
+
+export function createSlackMessageCopy(input: CreateSlackMessageCopyInput): string {
+  const payload = createSessionExport({
+    messages: [input.message],
+    artifacts: [],
+    documents: [],
+  });
+  const message = payload.messages[0];
+  const lines = [`*Assistant response ${input.index + 1}*`];
+
+  if (!message) {
+    lines.push('', '_No response content._');
+    return `${lines.join('\n').trimEnd()}\n`;
+  }
+
+  const metadata = [cleanInline(message.provider), message.searchTier && message.searchTier !== 'none' ? message.searchTier : '']
+    .filter(Boolean)
+    .join(' / ');
+  if (metadata) lines.push(`_${metadata}_`);
+
+  lines.push('', cleanResponseMarkdown(message.content) || '_No response content._');
+
+  if (message.sources && message.sources.length > 0) {
+    lines.push('', 'Sources:');
+    for (const source of message.sources) {
+      lines.push(`- ${cleanInline(source.title) || 'Source'}: ${source.url}`);
     }
   }
 
