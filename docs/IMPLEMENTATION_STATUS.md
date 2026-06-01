@@ -38,13 +38,11 @@ session boundary:
   active messages, artifacts, and uploaded document metadata only. It does not
   export uploaded source text, vectors, document tool findings, or add automatic
   durable chat retention.
-- Current checkpoint: code commit `58d9e1c` is locally verified as an
-  active-session conversation history foundation. The local tracked graph is
-  789 nodes and 1277 edges, built from `58d9e1cd`. Production acceptance is
-  pending the docs/Graphify checkpoint push and GitHub Actions deployment.
-- Next slice: finish deployment acceptance for `58d9e1c`, then wire the
-  in-memory conversation list into `ChatIsland` in small tested steps. Do not
-  add durable automatic chat retention.
+- Current checkpoint: code commit `58d9e1c` is accepted on production via docs
+  commit `095c850`; the local tracked graph is 789 nodes and 1277 edges, and
+  the production runtime graph is 889 nodes and 1346 edges.
+- Next slice: wire the in-memory conversation list into `ChatIsland` in small
+  tested steps. Do not add durable automatic chat retention.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -227,8 +225,8 @@ Documentation Tooling Agent direction.
   active-session deterministic document review and a bounded read-only
   `src/` reference lookup with no generic fallback output.
 - Published a production runtime graph through the authorized GitHub Actions
-  path; the latest accepted runtime extraction from `ebd8c38` contains 873
-  nodes and 1301 edges and is available only through the bounded `src/` lookup
+  path; the latest accepted runtime extraction from `095c850` contains 889
+  nodes and 1346 edges and is available only through the bounded `src/` lookup
   surface.
 - Safe provider fault-injection coverage, renderer-preload warning cleanup,
   Phase 2 renderer boundaries, Kroki/server-render coverage, active-session
@@ -257,7 +255,9 @@ Documentation Tooling Agent direction.
   `src/lib/conversation-session.ts`: it creates sanitized active-session
   snapshots, derives a deterministic three-word fallback title, and supports
   in-memory upsert, list, rename, archive, and delete operations for the future
-  conversation list UI without durable storage or network writes.
+  conversation list UI without durable storage or network writes. This slice is
+  accepted on production alias `https://tw-bot.pages.dev` through docs commit
+  `095c850`.
 
 ## Blockers And Notes
 
@@ -997,17 +997,27 @@ Latest incremental verification on 2026-06-01:
 - `graphify update .` refreshed tracked local Graphify artifacts from commit
   `58d9e1c`: 789 nodes and 1277 edges. Community-count wording remains
   non-blocking.
+- The active-session conversation helper deploy passed in GitHub Actions run
+  `26749012893` from docs commit `095c850` with immutable URL
+  `https://7d0cf692.tw-bot.pages.dev`. The production runtime graph reports
+  889 nodes and 1346 edges. The CI build passed in this run; the earlier local
+  `build:local` attempts were interrupted and remain unclaimed.
+- Production probes confirmed both `https://tw-bot.pages.dev/` and
+  `https://7d0cf692.tw-bot.pages.dev/` return `200`, contain the default
+  `Technical Writer` persona, and preserve the explicit Export session UI.
+  Production `/api/health` returns `200` with request id
+  `a537eccf-eef9-4314-ad73-ef910a240723`, four active providers out of six,
+  matching app version, and no version mismatch. Bounded graph lookup for
+  `createConversationSnapshot` returns `src/lib/conversation-session.ts:L45`
+  from the 889-node runtime graph with `Cache-Control: no-store, private`.
 
 ## Next Task
 
 Continue with Phase 3 Conversation Management in small slices:
 
-- Push the docs/Graphify checkpoint for `58d9e1c`, watch GitHub Actions, and
-  record production acceptance with immutable URL, `/api/health` request id,
-  production alias smoke, and runtime graph counts.
-- After acceptance, wire the in-memory conversation list into `ChatIsland` in
-  small tested steps. Keep it active-session-first unless the user explicitly
-  exports JSON and later imports it.
+- Wire the in-memory conversation list into `ChatIsland` in small tested steps.
+  Keep it active-session-first unless the user explicitly exports JSON and
+  later imports it.
 - Preserve active-session privacy boundaries: page refresh/navigation clearly
   ends active-session content unless the user explicitly exports a JSON backup
   file and later imports it.
