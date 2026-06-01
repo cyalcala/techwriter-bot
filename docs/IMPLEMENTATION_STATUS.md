@@ -42,14 +42,11 @@ session boundary:
   sanitized in-memory records, derive deterministic three-word fallback titles,
   and support list/upsert/rename/archive/delete operations without durable
   storage or network writes.
-- Current checkpoint: code commit `3e64dcb` adds in-memory rename/archive/delete
-  controls for saved conversation snapshots and is locally verified; the local
-  tracked graph is 790 nodes and 1278 edges. Production acceptance for this
-  slice is pending GitHub Actions deployment after the docs/Graphify checkpoint
-  is pushed.
-- Next slice: after deployment acceptance, continue Conversation Management with
-  a restore-state note or the next export workflow. Do not add durable automatic
-  chat retention.
+- Current checkpoint: code commit `3e64dcb` is accepted on production via docs
+  commit `7703085`; the local tracked graph is 790 nodes and 1278 edges, and
+  the production runtime graph is 891 nodes and 1348 edges.
+- Next slice: continue Conversation Management with a restore-state note or the
+  next export workflow. Do not add durable automatic chat retention.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -281,7 +278,8 @@ Documentation Tooling Agent direction.
   and delete guard the currently active conversation, while saved snapshots
   preserve any custom title, created timestamp, and archived flag across later
   active-session snapshot updates. This checkpoint is locally verified and
-  awaiting GitHub deployment acceptance.
+  accepted on production alias `https://tw-bot.pages.dev` through docs commit
+  `7703085`.
 
 ## Blockers And Notes
 
@@ -1090,18 +1088,28 @@ Latest incremental verification on 2026-06-01:
 - `graphify update .` refreshed tracked local Graphify artifacts from commit
   `3e64dcb`: 790 nodes and 1278 edges. Community-count wording remains
   non-blocking.
+- The in-memory history management controls deploy passed in GitHub Actions run
+  `26751033807` from docs commit `7703085` with immutable URL
+  `https://2c260689.tw-bot.pages.dev`. The production runtime graph reports
+  891 nodes and 1348 edges.
+- Production probes confirmed both `https://tw-bot.pages.dev/` and
+  `https://2c260689.tw-bot.pages.dev/` return `200`, contain the default
+  `Technical Writer` persona, and include the `History` UI string. The deployed
+  `ChatIsland` asset contains `Rename conversation`, `Archive conversation`,
+  and `Delete conversation`. Production `/api/health` returns `200` with
+  request id `5843316f-1f74-454e-aa56-b3d5df9ff463`, four active providers out
+  of six, matching app version, and no version mismatch. Bounded graph lookup
+  returns `renameConversation`, `archiveConversation`, and `deleteConversation`
+  from `src/lib/conversation-session.ts` in the 891-node runtime graph with
+  `Cache-Control: no-store, private`.
 
 ## Next Task
 
 Continue with Phase 3 Conversation Management in small slices:
 
-- Push the docs/Graphify checkpoint for `3e64dcb`, watch GitHub Actions, and
-  record production acceptance with immutable Cloudflare URL plus production
-  smoke evidence.
-- After deployment acceptance, add a small restore-state note for imported or
-  restored document metadata if needed, or start the next Phase 3 export
-  workflow. Keep it active-session-first unless the user explicitly exports JSON
-  and later imports it.
+- Add a small restore-state note for imported or restored document metadata if
+  needed, or start the next Phase 3 export workflow. Keep it active-session-first
+  unless the user explicitly exports JSON and later imports it.
 - Preserve active-session privacy boundaries: page refresh/navigation clearly
   ends active-session content unless the user explicitly exports a JSON backup
   file and later imports it.
