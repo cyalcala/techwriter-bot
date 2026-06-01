@@ -42,14 +42,12 @@ session boundary:
   sanitized in-memory records, derive deterministic three-word fallback titles,
   and support list/upsert/rename/archive/delete operations without durable
   storage or network writes.
-- Current local checkpoint: code commit `dd48f5a` implements user-invoked
-  active-session Markdown chat export; production acceptance is pending. The
-  local tracked graph is 800 nodes and 1298 edges from `dd48f5a`; the latest
-  accepted production checkpoint remains `3deff30` via docs commit `a751274`
-  with runtime graph 891 nodes and 1348 edges.
-- Next slice: deploy and accept the Markdown export checkpoint, then continue
-  the next Phase 3 export workflow. Do not add durable automatic chat
-  retention.
+- Current checkpoint: code commit `dd48f5a` is accepted on production via docs
+  commit `aeeb932` and GitHub Actions run `26778481083`. The local tracked
+  graph is 800 nodes and 1298 edges from `dd48f5a`; the production runtime
+  graph is 904 nodes and 1378 edges.
+- Next slice: continue the next Phase 3 export workflow. Do not add durable
+  automatic chat retention.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -1169,16 +1167,27 @@ Latest incremental verification on 2026-06-01:
 - `graphify update .` refreshed tracked local Graphify artifacts from commit
   `dd48f5a`: 800 nodes and 1298 edges. Community-count wording remains
   non-blocking.
+- The active-session Markdown chat export deploy passed in GitHub Actions run
+  `26778481083` from docs commit `aeeb932` with immutable URL
+  `https://29122e9b.tw-bot.pages.dev`. The production runtime graph reports
+  904 nodes and 1378 edges.
+- Production probes confirmed both `https://tw-bot.pages.dev/` and
+  `https://29122e9b.tw-bot.pages.dev/` return `200`, contain the default
+  `Technical Writer` persona, and include the `Markdown` UI string. Production
+  `/api/health` returns `200` with request id
+  `2876a217-325b-4958-8f00-beeb49dcb3c8`, four active providers out of six,
+  matching app version, and no version mismatch. Bounded graph lookup for
+  `createChatMarkdownExport` returns `src/lib/chat-markdown-export.ts:L14` and
+  `CreateChatMarkdownExportInput` from the 904-node runtime graph with
+  `Cache-Control: no-store, private`.
 
 ## Next Task
 
 Continue with Phase 3 Conversation Management in small slices:
 
-- Push and production-accept the Markdown chat export checkpoint if this docs
-  entry is still pending acceptance. After acceptance, continue the next export
-  slice: single response to clean Markdown or Slack-format copy, still
-  active-session-first unless the user explicitly exports JSON and later
-  imports it.
+- Continue the next export slice: single response to clean Markdown or
+  Slack-format copy, still active-session-first unless the user explicitly
+  exports JSON and later imports it.
 - Preserve active-session privacy boundaries: page refresh/navigation clearly
   ends active-session content unless the user explicitly exports a JSON backup
   file and later imports it.
