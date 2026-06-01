@@ -62,6 +62,14 @@
     nodeCount: number;
   }
 
+  type WebhookDeliveryState = {
+    messageIdx: number;
+    status: 'sending' | 'sent' | 'failed';
+    attempts?: number;
+    error?: string;
+    requestId?: string;
+  };
+
   interface DocumentSource {
     name: string;
     text: string;
@@ -136,6 +144,8 @@
   let editText = $state('');
   let copiedMessageIdx = $state<number | null>(null);
   let copiedSlackMessageIdx = $state<number | null>(null);
+  let webhookUrl = $state('');
+  let webhookDelivery = $state<WebhookDeliveryState | null>(null);
   let chatPath = $state<string | null>(null);
   let tokenDisplay = $state<{ in: number; graph: number; cached?: boolean } | null>(null);
   let failoverEvents = $state<FailoverEvent[]>([]);
@@ -720,6 +730,53 @@
     } catch {}
   }
 
+  async function exportMessageWebhook(idx: number) {
+    const message = messages[idx];
+    if (!message || message.role !== 'assistant') return;
+
+    const targetUrl = webhookUrl || window.prompt('Webhook URL')?.trim() || '';
+    if (!targetUrl) return;
+    webhookUrl = targetUrl;
+    webhookDelivery = { messageIdx: idx, status: 'sending' };
+
+    try {
+      const response = await fetch('/api/webhook-export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ webhookUrl: targetUrl, index: idx, message }),
+      });
+      const data = await response.json().catch(() => ({}));
+      const requestId = response.headers.get('x-request-id') || '';
+
+      if (!response.ok) {
+        webhookDelivery = {
+          messageIdx: idx,
+          status: 'failed',
+          error: String(data.error || 'Webhook export failed.'),
+          requestId,
+        };
+        return;
+      }
+
+      webhookDelivery = {
+        messageIdx: idx,
+        status: 'sent',
+        attempts: Number(data.attempts || 1),
+        requestId,
+      };
+    } catch {
+      webhookDelivery = {
+        messageIdx: idx,
+        status: 'failed',
+        error: 'Webhook export failed.',
+      };
+    }
+  }
+
+  async function retryWebhookExport(idx: number) {
+    await exportMessageWebhook(idx);
+  }
+
   function startEdit(idx: number) { editingMessageIdx = idx; editText = messages[idx].content; }
   function cancelEdit() { editingMessageIdx = null; editText = ''; }
 
@@ -1242,6 +1299,8 @@
       onCopyMessage={copyMessage}
       onCopySlackMessage={copyMessageForSlack}
       onExportMessageMarkdown={exportMessageMarkdown}
+      onExportMessageWebhook={exportMessageWebhook}
+      onRetryWebhookExport={retryWebhookExport}
       onRetryMessage={regenerate}
       onEditMessage={startEdit}
       {editingMessageIdx}
@@ -1251,6 +1310,7 @@
       onCancelEdit={cancelEdit}
       {copiedMessageIdx}
       {copiedSlackMessageIdx}
+      {webhookDelivery}
       {chatPath}
     />
 

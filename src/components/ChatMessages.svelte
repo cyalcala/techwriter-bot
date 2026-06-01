@@ -3,6 +3,14 @@
   import type { ArtifactQueue, ArtifactEntry } from '../lib/artifact-queue';
   import ChatArtifactChip from './ChatArtifactChip.svelte';
 
+  type WebhookDeliveryState = {
+    messageIdx: number;
+    status: 'sending' | 'sent' | 'failed';
+    attempts?: number;
+    error?: string;
+    requestId?: string;
+  };
+
   interface Props {
     messages: { role: string; content: string; provider?: string; sources?: { title: string; url: string }[]; searchTier?: string; empty?: boolean }[];
     queue: ArtifactQueue;
@@ -14,6 +22,8 @@
     onCopyMessage: (idx: number) => void;
     onCopySlackMessage: (idx: number) => void;
     onExportMessageMarkdown: (idx: number) => void;
+    onExportMessageWebhook: (idx: number) => void;
+    onRetryWebhookExport: (idx: number) => void;
     onRetryMessage: () => void;
     onEditMessage: (idx: number) => void;
     editingMessageIdx: number | null;
@@ -23,14 +33,15 @@
     onCancelEdit: () => void;
     copiedMessageIdx: number | null;
     copiedSlackMessageIdx: number | null;
+    webhookDelivery: WebhookDeliveryState | null;
     chatPath: string | null;
   }
 
   let {
     messages, queue, isStreaming, isLoading, activeMessageIdx, activeArtifactId,
-    onChipClick, onCopyMessage, onCopySlackMessage, onExportMessageMarkdown, onRetryMessage, onEditMessage,
+    onChipClick, onCopyMessage, onCopySlackMessage, onExportMessageMarkdown, onExportMessageWebhook, onRetryWebhookExport, onRetryMessage, onEditMessage,
     editingMessageIdx, editText, onEditTextChange, onSaveEdit, onCancelEdit,
-    copiedMessageIdx, copiedSlackMessageIdx, chatPath,
+    copiedMessageIdx, copiedSlackMessageIdx, webhookDelivery, chatPath,
   }: Props = $props();
 
   let artifactEntries = $state<ArtifactEntry[]>([]);
@@ -63,10 +74,27 @@
               <button onclick={() => onCopySlackMessage(i)} title="Copy response for Slack" class="text-[11px] px-2 py-0.5 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 transition-all">
                 {copiedSlackMessageIdx === i ? 'Slack copied' : 'Slack'}
               </button>
+              <button onclick={() => onExportMessageWebhook(i)} title="Send response to webhook" class="text-[11px] px-2 py-0.5 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 transition-all">
+                Webhook
+              </button>
               {#if i === messages.length - 1}
                 <button onclick={onRetryMessage} class="text-[11px] px-2 py-0.5 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 transition-all">Retry</button>
               {/if}
             </div>
+            {#if webhookDelivery?.messageIdx === i}
+              <div role="status" class="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] text-stone-500">
+                {#if webhookDelivery.status === 'sending'}
+                  <span>Sending to webhook...</span>
+                {:else if webhookDelivery.status === 'sent'}
+                  <span>Webhook sent{webhookDelivery.attempts ? ` after ${webhookDelivery.attempts} attempt(s)` : ''}.</span>
+                {:else}
+                  <span class="text-amber-700">{webhookDelivery.error || 'Webhook export failed.'}</span>
+                  <button type="button" onclick={() => onRetryWebhookExport(i)} title="Retry webhook export" class="rounded-md border border-amber-200 bg-amber-50 px-2 py-0.5 font-medium text-amber-800 hover:bg-amber-100">
+                    Retry
+                  </button>
+                {/if}
+              </div>
+            {/if}
           {/if}
           {#if msg.sources && msg.sources.length > 0 && !isStreaming}
             <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">

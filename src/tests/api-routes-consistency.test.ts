@@ -14,6 +14,7 @@ const apiFiles = [
   'summarize.ts',
   'version.ts',
   'tool-graph-lookup.ts',
+  'webhook-export.ts',
 ];
 
 describe('API route response consistency', () => {
