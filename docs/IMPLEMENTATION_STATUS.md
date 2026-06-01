@@ -42,11 +42,14 @@ session boundary:
   sanitized in-memory records, derive deterministic three-word fallback titles,
   and support list/upsert/rename/archive/delete operations without durable
   storage or network writes.
-- Current checkpoint: code commit `3deff30` is accepted on production via docs
-  commit `a751274`; the local tracked graph is 790 nodes and 1278 edges, and
-  the production runtime graph is 891 nodes and 1348 edges.
-- Next slice: continue the next Phase 3 export workflow. Do not add durable
-  automatic chat retention.
+- Current local checkpoint: code commit `dd48f5a` implements user-invoked
+  active-session Markdown chat export; production acceptance is pending. The
+  local tracked graph is 800 nodes and 1298 edges from `dd48f5a`; the latest
+  accepted production checkpoint remains `3deff30` via docs commit `a751274`
+  with runtime graph 891 nodes and 1348 edges.
+- Next slice: deploy and accept the Markdown export checkpoint, then continue
+  the next Phase 3 export workflow. Do not add durable automatic chat
+  retention.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -205,6 +208,7 @@ Documentation Tooling Agent direction.
   - `fd16c75` active-session conversation history UI wiring.
   - `3e64dcb` in-memory conversation history management controls.
   - `3deff30` metadata-only restored document note.
+  - `dd48f5a` active-session Markdown chat export.
 
 ## In Progress
 
@@ -1143,13 +1147,38 @@ Latest incremental verification on 2026-06-01:
   again`, and `ragMetadataOnly`. Production `/api/health` returns `200` with
   request id `793c5fe2-ecc0-42b8-a895-47c04e1656f9`, four active providers out
   of six, matching app version, and no version mismatch.
+- Added active-session Markdown chat export in code commit `dd48f5a`:
+  `src/lib/chat-markdown-export.ts` creates a readable `.md` transcript with
+  export metadata, per-message `createdAt` timestamps when available,
+  citation-preserving message text, source links, uploaded-document metadata,
+  and artifact code blocks with adaptive fences. `ChatIsland` now timestamps
+  newly created active-session messages and exposes a user-invoked `Markdown`
+  download button. This does not add automatic durable chat retention,
+  webhook delivery, Slack export, or browser package runtimes.
+- Red-green coverage confirmed the previous missing helper first:
+  `npm.cmd test -- --run src/tests/chat-markdown-export.test.ts` failed because
+  `../lib/chat-markdown-export` did not exist, then passed after
+  implementation. Verification passed after this export slice:
+  `npm.cmd test -- --run src/tests/chat-markdown-export.test.ts src/tests/session-transfer.test.ts` (2 files, 11 tests),
+  `npm.cmd test -- --run src/tests/chat-markdown-export.test.ts src/tests/session-transfer.test.ts src/tests/conversation-session.test.ts src/tests/privacy-first.test.ts` (4 files, 26 tests),
+  `npm.cmd test` (34 files, 163 tests),
+  `npm.cmd audit --omit=dev --audit-level=high` (0 vulnerabilities),
+  `git diff --check` (only known CRLF conversion warnings), and the recorded
+  `build:local` command (passed with the known non-failing `punycode` and
+  Wrangler local-AI warnings).
+- `graphify update .` refreshed tracked local Graphify artifacts from commit
+  `dd48f5a`: 800 nodes and 1298 edges. Community-count wording remains
+  non-blocking.
 
 ## Next Task
 
 Continue with Phase 3 Conversation Management in small slices:
 
-- Start the next Phase 3 export workflow. Keep it active-session-first unless
-  the user explicitly exports JSON and later imports it.
+- Push and production-accept the Markdown chat export checkpoint if this docs
+  entry is still pending acceptance. After acceptance, continue the next export
+  slice: single response to clean Markdown or Slack-format copy, still
+  active-session-first unless the user explicitly exports JSON and later
+  imports it.
 - Preserve active-session privacy boundaries: page refresh/navigation clearly
   ends active-session content unless the user explicitly exports a JSON backup
   file and later imports it.

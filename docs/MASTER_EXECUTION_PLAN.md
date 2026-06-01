@@ -70,13 +70,13 @@ Do not add these unless the product strategy changes in writing:
 ## Graphify Reference
 
 The current tracked code graph was refreshed with `graphify update .` on
-2026-06-01:
+2026-06-02:
 
 - Report: `graphify-out/GRAPH_REPORT.md`
 - Graph: `graphify-out/graph.json`
-- Summary: 790 nodes, 1278 edges
+- Summary: 800 nodes, 1298 edges
 - Extraction confidence: 95% EXTRACTED, 5% INFERRED, 0% AMBIGUOUS
-- Built from code at commit: `3deff307`
+- Built from code at commit: `dd48f5a2`
 - The generated report currently disagrees with itself on total community
   count; use node/edge counts and targeted graph queries for acceptance until
   that reporting discrepancy is reconciled.
@@ -150,6 +150,9 @@ The current tracked code graph was refreshed with `graphify update .` on
 - Imported or restored document records now show a metadata-only note when the
   source text and vectors are not present in the open page memory, prompting
   the user to upload the source file again before relying on document context.
+- Active-session Markdown chat export is implemented as a user-invoked download
+  with message timestamps, inline citations preserved in message text, source
+  links, artifact code blocks, and uploaded-document metadata only.
 
 Before broad architecture work, read `graphify-out/GRAPH_REPORT.md` first.
 When the graph may be stale, run:
