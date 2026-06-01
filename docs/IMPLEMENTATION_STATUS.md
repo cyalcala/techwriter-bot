@@ -42,16 +42,13 @@ session boundary:
   sanitized in-memory records, derive deterministic three-word fallback titles,
   and support list/upsert/rename/archive/delete operations without durable
   storage or network writes.
-- Current checkpoint: code commit `bdbd53c` implements user-invoked webhook
-  export for individual assistant responses and is locally verified. The local
-  tracked graph is 818 nodes and 1348 edges from `bdbd53c`; production
-  acceptance is pending. The previous accepted production checkpoint remains
-  Slack-format response copy from code commit `5c8a076` via docs commit
-  `406d5f5` and GitHub Actions run `26781247475`, with production runtime
-  graph 910 nodes and 1396 edges.
-- Next slice: finish GitHub Actions deployment and production smoke acceptance
-  for webhook export before starting the next Phase 3 workflow. Do not add
-  durable automatic chat retention.
+- Current checkpoint: code commit `bdbd53c` is accepted on production via docs
+  commit `8aac8b4` and GitHub Actions run `26782597569`. The local tracked
+  graph is 818 nodes and 1348 edges from `bdbd53c`; the production runtime
+  graph is 931 nodes and 1446 edges.
+- Next slice: continue the next Phase 3 workflow with client transparency
+  metadata/footer or a narrow stats endpoint. Keep durable telemetry
+  content-free and do not add complex dashboards.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -1284,18 +1281,30 @@ Latest incremental verification on 2026-06-01:
 - `graphify update .` refreshed tracked local Graphify artifacts from commit
   `bdbd53c`: 818 nodes and 1348 edges. Community-count wording remains
   non-blocking.
+- The webhook export deploy passed in GitHub Actions run `26782597569` from
+  docs commit `8aac8b4` with immutable URL
+  `https://d6de7dde.tw-bot.pages.dev`. The production runtime graph reports
+  931 nodes and 1446 edges.
+- Production probes confirmed both `https://tw-bot.pages.dev/` and
+  `https://d6de7dde.tw-bot.pages.dev/` return `200`, contain the default
+  `Technical Writer` persona, and include the new `Webhook` UI string.
+  Production `/api/health` returns `200` with request id
+  `b4be985d-3da8-4af0-8de1-c292fd72edb2`, three active providers out of six,
+  expected/stored app version `0.0.1`, and no version mismatch. Bounded graph
+  lookup for `sendWebhookExport` returns `src/lib/webhook-export.ts:L86` and
+  `SendWebhookExportInput` from the 931-node runtime graph with
+  `Cache-Control: no-store, private`. A production invalid webhook export probe
+  using an allowed `Origin` rejected an `http://` webhook URL with `400`,
+  request id `80da0898-d2c6-4aec-a1f9-fc90dd6016eb`, and
+  `Cache-Control: no-store, private`.
 
 ## Next Task
 
 Continue with Phase 3 Conversation Management in small slices:
 
-- Finish GitHub Actions deployment and production smoke acceptance for
-  webhook export. Record the run id, immutable URL, production health request
-  id, and bounded graph lookup for `sendWebhookExport` or
-  `createWebhookExportPayload`.
-- After webhook export is accepted on production, continue the next Phase 3
-  workflow slice: client transparency metadata/footer or a narrow stats
-  endpoint, keeping any durable telemetry content-free.
+- Continue the next Phase 3 workflow slice: client transparency
+  metadata/footer or a narrow stats endpoint, keeping any durable telemetry
+  content-free and avoiding complex dashboards.
 - Preserve active-session privacy boundaries: page refresh/navigation clearly
   ends active-session content unless the user explicitly exports a JSON backup
   file and later imports it.
