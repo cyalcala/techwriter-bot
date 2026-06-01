@@ -2,7 +2,12 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { ArtifactEntry } from '../lib/artifact-queue';
-import { createChatMarkdownExport, chatMarkdownExportFilename } from '../lib/chat-markdown-export';
+import {
+  createChatMarkdownExport,
+  createSingleMessageMarkdownExport,
+  chatMarkdownExportFilename,
+  singleMessageMarkdownExportFilename,
+} from '../lib/chat-markdown-export';
 
 function source(path: string): string {
   return readFileSync(join(process.cwd(), path), 'utf8');
@@ -88,6 +93,36 @@ describe('active-session Markdown chat export', () => {
     expect(chatMarkdownExportFilename(new Date('2026-06-02T01:02:03.000Z'))).toBe(
       'techwriter-chat-2026-06-02T01-02-03.md',
     );
+    expect(singleMessageMarkdownExportFilename(2, new Date('2026-06-02T01:02:03.000Z'))).toBe(
+      'techwriter-response-2-2026-06-02T01-02-03.md',
+    );
+  });
+
+  it('creates clean Markdown for one assistant response without full transcript metadata', () => {
+    const markdown = createSingleMessageMarkdownExport({
+      index: 1,
+      message: {
+        role: 'assistant',
+        content: 'Please note that my knowledge ended in 2024.\n\n## Answer\nShip this. [Doc: api.md, line 4]',
+        createdAt: '2026-06-02T01:00:05.000Z',
+        provider: 'groq-fast',
+        sources: [{ title: 'API Guide [v2]', url: 'https://example.com/api' }],
+        searchTier: 'basic',
+      },
+      now: new Date('2026-06-02T01:02:03.000Z'),
+    });
+
+    expect(markdown).toContain('# Assistant Response Export');
+    expect(markdown).toContain('Exported: 2026-06-02T01:02:03.000Z');
+    expect(markdown).toContain('Message: 2');
+    expect(markdown).toContain('Time: 2026-06-02T01:00:05.000Z');
+    expect(markdown).toContain('Provider: groq-fast');
+    expect(markdown).toContain('Search tier: basic');
+    expect(markdown).toContain('## Answer\nShip this. [Doc: api.md, line 4]');
+    expect(markdown).toContain('Sources:\n- [API Guide \\[v2\\]](https://example.com/api)');
+    expect(markdown).not.toContain('Please note');
+    expect(markdown).not.toContain('## Conversation');
+    expect(markdown).not.toContain('## Documents');
   });
 
   it('keeps the Markdown export helper free of durable storage and network writes', () => {
@@ -119,5 +154,25 @@ describe('active-session Markdown chat export', () => {
     expect(exportMarkdown).toContain('visiblePersonaName');
     expect(exportMarkdown).not.toContain('localStorage');
     expect(exportMarkdown).not.toContain('sessionStorage');
+  });
+
+  it('wires a user-invoked single-response Markdown download without durable retention', () => {
+    const island = source('src/components/ChatIsland.svelte');
+    const messages = source('src/components/ChatMessages.svelte');
+    const exportMessageMarkdown = functionBlock(island, 'exportMessageMarkdown');
+
+    expect(island).toContain('createSingleMessageMarkdownExport');
+    expect(island).toContain('singleMessageMarkdownExportFilename');
+    expect(island).toContain('function exportMessageMarkdown(idx: number)');
+    expect(island).toContain('onExportMessageMarkdown={exportMessageMarkdown}');
+    expect(messages).toContain('onExportMessageMarkdown: (idx: number) => void');
+    expect(messages).toContain('onclick={() => onExportMessageMarkdown(i)}');
+    expect(messages).toContain('title="Export response as Markdown"');
+    expect(exportMessageMarkdown).toContain('const message = messages[idx]');
+    expect(exportMessageMarkdown).toContain("if (!message || message.role !== 'assistant')");
+    expect(exportMessageMarkdown).toContain('createSingleMessageMarkdownExport');
+    expect(exportMessageMarkdown).toContain('text/markdown;charset=utf-8');
+    expect(exportMessageMarkdown).not.toContain('localStorage');
+    expect(exportMessageMarkdown).not.toContain('sessionStorage');
   });
 });

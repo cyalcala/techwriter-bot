@@ -15,7 +15,12 @@
   import { createArtifactRegenerationPrompt, createArtifactRepairTarget, planArtifactRepairReplacement, type ArtifactRepairTarget } from '../lib/artifact-repair';
   import { createLiveOutageState, hasVisibleLiveResponse, type LiveOutageState } from '../lib/session-continuity';
   import { createSessionExport, parseSessionImport, sessionExportFilename } from '../lib/session-transfer';
-  import { createChatMarkdownExport, chatMarkdownExportFilename } from '../lib/chat-markdown-export';
+  import {
+    createChatMarkdownExport,
+    createSingleMessageMarkdownExport,
+    chatMarkdownExportFilename,
+    singleMessageMarkdownExportFilename,
+  } from '../lib/chat-markdown-export';
   import {
     archiveConversation,
     createConversationSnapshot,
@@ -602,6 +607,25 @@
     const anchor = document.createElement('a');
     anchor.href = url;
     anchor.download = chatMarkdownExportFilename(exportedAt);
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function exportMessageMarkdown(idx: number) {
+    const message = messages[idx];
+    if (!message || message.role !== 'assistant') return;
+
+    const exportedAt = new Date();
+    const markdown = createSingleMessageMarkdownExport({
+      index: idx,
+      message,
+      now: exportedAt,
+    });
+    const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = singleMessageMarkdownExportFilename(idx + 1, exportedAt);
     anchor.click();
     URL.revokeObjectURL(url);
   }
@@ -1203,6 +1227,7 @@
       activeArtifactId={activeArtifactEntry?.artifact.id ?? null}
       onChipClick={handleChipClick}
       onCopyMessage={copyMessage}
+      onExportMessageMarkdown={exportMessageMarkdown}
       onRetryMessage={regenerate}
       onEditMessage={startEdit}
       {editingMessageIdx}

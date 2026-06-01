@@ -12,6 +12,7 @@
     activeArtifactId: string | null;
     onChipClick: (entry: ArtifactEntry) => void;
     onCopyMessage: (idx: number) => void;
+    onExportMessageMarkdown: (idx: number) => void;
     onRetryMessage: () => void;
     onEditMessage: (idx: number) => void;
     editingMessageIdx: number | null;
@@ -25,7 +26,7 @@
 
   let {
     messages, queue, isStreaming, isLoading, activeMessageIdx, activeArtifactId,
-    onChipClick, onCopyMessage, onRetryMessage, onEditMessage,
+    onChipClick, onCopyMessage, onExportMessageMarkdown, onRetryMessage, onEditMessage,
     editingMessageIdx, editText, onEditTextChange, onSaveEdit, onCancelEdit,
     copiedMessageIdx, chatPath,
   }: Props = $props();
@@ -53,6 +54,9 @@
             <div class="flex items-center gap-2 mt-1.5 opacity-100 md:opacity-0 md:hover:opacity-100 transition-opacity duration-150">
               <button onclick={() => onCopyMessage(i)} class="text-[11px] px-2 py-0.5 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 transition-all">
                 {copiedMessageIdx === i ? 'Copied' : 'Copy'}
+              </button>
+              <button onclick={() => onExportMessageMarkdown(i)} title="Export response as Markdown" class="text-[11px] px-2 py-0.5 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 transition-all">
+                Markdown
               </button>
               {#if i === messages.length - 1}
                 <button onclick={onRetryMessage} class="text-[11px] px-2 py-0.5 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 transition-all">Retry</button>

@@ -11,6 +11,12 @@ interface CreateChatMarkdownExportInput {
   now?: Date;
 }
 
+interface CreateSingleMessageMarkdownExportInput {
+  index: number;
+  message: SessionExportMessage;
+  now?: Date;
+}
+
 export function createChatMarkdownExport(input: CreateChatMarkdownExportInput): string {
   const payload = createSessionExport(input);
   const lines: string[] = [
@@ -77,6 +83,47 @@ export function chatMarkdownExportFilename(date: Date = new Date()): string {
   return `techwriter-chat-${stamp}.md`;
 }
 
+export function createSingleMessageMarkdownExport(input: CreateSingleMessageMarkdownExportInput): string {
+  const payload = createSessionExport({
+    messages: [input.message],
+    artifacts: [],
+    documents: [],
+    now: input.now,
+  });
+  const message = payload.messages[0];
+  const lines: string[] = [
+    '# Assistant Response Export',
+    '',
+    `Exported: ${payload.exportedAt}`,
+    `Message: ${input.index + 1}`,
+  ];
+
+  if (!message) {
+    lines.push('', '_No response content._');
+    return `${lines.join('\n').trimEnd()}\n`;
+  }
+
+  lines.push(`Time: ${message.createdAt || `${payload.exportedAt} (export time fallback)`}`);
+  if (message.provider) lines.push(`Provider: ${cleanInline(message.provider)}`);
+  if (message.searchTier && message.searchTier !== 'none') lines.push(`Search tier: ${message.searchTier}`);
+  lines.push('', cleanResponseMarkdown(message.content) || '_No response content._');
+
+  if (message.sources && message.sources.length > 0) {
+    lines.push('', 'Sources:');
+    for (const source of message.sources) {
+      lines.push(`- [${escapeLinkText(source.title)}](${source.url})`);
+    }
+  }
+
+  return `${lines.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd()}\n`;
+}
+
+export function singleMessageMarkdownExportFilename(messageNumber: number, date: Date = new Date()): string {
+  const stamp = date.toISOString().replace(/\.\d{3}Z$/, '').replace(/:/g, '-');
+  const safeNumber = Number.isFinite(messageNumber) && messageNumber > 0 ? Math.floor(messageNumber) : 1;
+  return `techwriter-response-${safeNumber}-${stamp}.md`;
+}
+
 function roleLabel(role: SessionExportMessage['role']): string {
   if (role === 'user') return 'User';
   if (role === 'assistant') return 'Assistant';
@@ -85,6 +132,16 @@ function roleLabel(role: SessionExportMessage['role']): string {
 
 function cleanInline(value: unknown): string {
   return typeof value === 'string' ? value.replace(/\s+/g, ' ').trim() : '';
+}
+
+function cleanResponseMarkdown(value: string): string {
+  return value
+    .replace(/\bPlease note that\s+(my|our)\s+(knowledge|training|information).*?(?=\n{2,}|$)/gis, '')
+    .replace(/\b(my|our)\s+(training data|knowledge)\s+(only goes|ended|cutoff).*?(20\d{2}|20\d{2}\.)/gi, '')
+    .replace(/\[Pre-2023 knowledge\]/gi, '')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 function escapeLinkText(value: string): string {
