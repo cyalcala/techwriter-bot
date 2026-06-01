@@ -45,6 +45,7 @@ Do not add these unless the product strategy changes in writing:
 - Kubernetes
 - Redis
 - Complex admin dashboards
+- WebContainer or arbitrary browser package runtime tooling
 
 ## Execution Rules
 
@@ -69,13 +70,13 @@ Do not add these unless the product strategy changes in writing:
 ## Graphify Reference
 
 The current tracked code graph was refreshed with `graphify update .` on
-2026-05-31:
+2026-06-01:
 
 - Report: `graphify-out/GRAPH_REPORT.md`
 - Graph: `graphify-out/graph.json`
-- Summary: 789 nodes, 1277 edges
+- Summary: 790 nodes, 1278 edges
 - Extraction confidence: 95% EXTRACTED, 5% INFERRED, 0% AMBIGUOUS
-- Built from code at commit: `58d9e1cd`
+- Built from code at commit: `fd16c755`
 - The generated report currently disagrees with itself on total community
   count; use node/edge counts and targeted graph queries for acceptance until
   that reporting discrepancy is reconciled.
@@ -139,6 +140,10 @@ The current tracked code graph was refreshed with `graphify update .` on
   fallback, in-memory list/upsert/rename/archive/delete operations, and reuse
   the JSON export sanitizer so future UI history work does not accidentally
   retain document source text.
+- `ChatIsland` now exposes a compact active-session History control that saves
+  the current open conversation before starting a new chat, lists in-memory
+  conversation snapshots, and restores messages, artifacts, and uploaded
+  document metadata without durable automatic chat retention.
 
 Before broad architecture work, read `graphify-out/GRAPH_REPORT.md` first.
 When the graph may be stale, run:

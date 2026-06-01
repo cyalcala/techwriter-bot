@@ -38,11 +38,17 @@ session boundary:
   active messages, artifacts, and uploaded document metadata only. It does not
   export uploaded source text, vectors, document tool findings, or add automatic
   durable chat retention.
-- Current checkpoint: code commit `58d9e1c` is accepted on production via docs
-  commit `095c850`; the local tracked graph is 789 nodes and 1277 edges, and
-  the production runtime graph is 889 nodes and 1346 edges.
-- Next slice: wire the in-memory conversation list into `ChatIsland` in small
-  tested steps. Do not add durable automatic chat retention.
+- Accepted baseline: active-session conversation snapshot helpers create
+  sanitized in-memory records, derive deterministic three-word fallback titles,
+  and support list/upsert/rename/archive/delete operations without durable
+  storage or network writes.
+- Current checkpoint: code commit `fd16c75` wires the in-memory conversation
+  list into `ChatIsland` and is locally verified; the local tracked graph is
+  790 nodes and 1278 edges. Production acceptance for this slice is pending
+  GitHub Actions deployment after the docs/Graphify checkpoint is pushed.
+- Next slice: after deployment acceptance, continue Conversation Management with
+  small tested UI controls for rename/archive/delete or a restore-state note.
+  Do not add durable automatic chat retention.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -198,6 +204,7 @@ Documentation Tooling Agent direction.
   - `a6ea3f7` explicit user-invoked session export/import and fresh-session
     isolation tests.
   - `58d9e1c` active-session conversation snapshot/list helper foundation.
+  - `fd16c75` active-session conversation history UI wiring.
 
 ## In Progress
 
@@ -258,6 +265,13 @@ Documentation Tooling Agent direction.
   conversation list UI without durable storage or network writes. This slice is
   accepted on production alias `https://tw-bot.pages.dev` through docs commit
   `095c850`.
+- The first `ChatIsland` conversation history UI slice is implemented in code
+  commit `fd16c75`: the header now has a compact History control, the current
+  active conversation is snapshotted in memory before New chat or successful
+  Import, and selecting a history row restores messages, active artifacts, and
+  uploaded-document metadata without localStorage, sessionStorage, IndexedDB,
+  fetch, KV, or automatic durable chat retention. This checkpoint is locally
+  verified and awaiting GitHub deployment acceptance.
 
 ## Blockers And Notes
 
@@ -1010,14 +1024,42 @@ Latest incremental verification on 2026-06-01:
   matching app version, and no version mismatch. Bounded graph lookup for
   `createConversationSnapshot` returns `src/lib/conversation-session.ts:L45`
   from the 889-node runtime graph with `Cache-Control: no-store, private`.
+- Added the first `ChatIsland` active-session conversation history UI in
+  `src/components/ChatIsland.svelte` and
+  `src/tests/conversation-session.test.ts`: the History header control saves
+  the current open conversation into page memory, lists visible in-memory
+  snapshots, restores messages/artifacts/uploaded-document metadata, snapshots
+  before New chat and successful Import, and does not introduce durable browser
+  storage, network writes, KV retention, OAuth, billing, multi-tenancy, email,
+  autonomous agents, complex dashboards, or WebContainer tooling.
+- Red-green coverage confirmed the previous UI wiring gap: the new source test
+  first failed because `ChatIsland` did not import
+  `../lib/conversation-session`, then passed after implementation.
+  Verification passed after this UI slice:
+  `npm.cmd test -- --run src/tests/conversation-session.test.ts` (5 tests),
+  `npm.cmd test -- --run src/tests/conversation-session.test.ts src/tests/session-transfer.test.ts src/tests/privacy-first.test.ts src/tests/artifact-gallery.test.ts` (4 files, 27 tests),
+  `npm.cmd test` (33 files, 157 tests),
+  `npm.cmd audit --omit=dev --audit-level=high` (0 vulnerabilities),
+  `git diff --check` (only known CRLF conversion warnings), and the recorded
+  `build:local` command (passed with the known non-failing `punycode` and
+  Wrangler local-AI warnings). A local `astro preview` smoke was attempted but
+  is not counted as acceptance evidence because the existing Cloudflare preview
+  config rejects the reserved Pages `ASSETS` binding.
+- `graphify update .` refreshed tracked local Graphify artifacts from commit
+  `fd16c75`: 790 nodes and 1278 edges. Community-count wording remains
+  non-blocking.
 
 ## Next Task
 
 Continue with Phase 3 Conversation Management in small slices:
 
-- Wire the in-memory conversation list into `ChatIsland` in small tested steps.
-  Keep it active-session-first unless the user explicitly exports JSON and
-  later imports it.
+- Push the docs/Graphify checkpoint for `fd16c75`, watch GitHub Actions, and
+  record production acceptance with immutable Cloudflare URL plus production
+  smoke evidence.
+- After deployment acceptance, add the next small tested Conversation
+  Management control: rename/archive/delete UI for in-memory snapshots, or a
+  restore-state note if that is safer first. Keep it active-session-first unless
+  the user explicitly exports JSON and later imports it.
 - Preserve active-session privacy boundaries: page refresh/navigation clearly
   ends active-session content unless the user explicitly exports a JSON backup
   file and later imports it.
