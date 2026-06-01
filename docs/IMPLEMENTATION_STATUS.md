@@ -42,13 +42,11 @@ session boundary:
   sanitized in-memory records, derive deterministic three-word fallback titles,
   and support list/upsert/rename/archive/delete operations without durable
   storage or network writes.
-- Current checkpoint: code commit `3deff30` adds a metadata-only restore note
-  for imported/restored document records and is locally verified; the local
-  tracked graph is 790 nodes and 1278 edges. Production acceptance for this
-  slice is pending GitHub Actions deployment after the docs/Graphify checkpoint
-  is pushed.
-- Next slice: after deployment acceptance, continue the next Phase 3 export
-  workflow. Do not add durable automatic chat retention.
+- Current checkpoint: code commit `3deff30` is accepted on production via docs
+  commit `a751274`; the local tracked graph is 790 nodes and 1278 edges, and
+  the production runtime graph is 891 nodes and 1348 edges.
+- Next slice: continue the next Phase 3 export workflow. Do not add durable
+  automatic chat retention.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -289,7 +287,8 @@ Documentation Tooling Agent direction.
   `ChatInput`, making clear that source text and vectors were not retained and
   the source file should be uploaded again before relying on document context.
   Successful uploads clear that note. This checkpoint is locally verified and
-  awaiting GitHub deployment acceptance.
+  accepted on production alias `https://tw-bot.pages.dev` through docs commit
+  `a751274`.
 
 ## Blockers And Notes
 
@@ -1133,17 +1132,24 @@ Latest incremental verification on 2026-06-01:
 - `graphify update .` refreshed tracked local Graphify artifacts from commit
   `3deff30`: 790 nodes and 1278 edges. Community-count wording remains
   non-blocking.
+- The metadata-only restore note deploy passed in GitHub Actions run
+  `26751661252` from docs commit `a751274` with immutable URL
+  `https://6a532d50.tw-bot.pages.dev`. The production runtime graph reports
+  891 nodes and 1348 edges.
+- Production probes confirmed both `https://tw-bot.pages.dev/` and
+  `https://6a532d50.tw-bot.pages.dev/` return `200`, contain the default
+  `Technical Writer` persona, and include the `History` UI string. The deployed
+  `ChatIsland` asset contains `Document metadata only`, `Upload the source file
+  again`, and `ragMetadataOnly`. Production `/api/health` returns `200` with
+  request id `793c5fe2-ecc0-42b8-a895-47c04e1656f9`, four active providers out
+  of six, matching app version, and no version mismatch.
 
 ## Next Task
 
 Continue with Phase 3 Conversation Management in small slices:
 
-- Push the docs/Graphify checkpoint for `3deff30`, watch GitHub Actions, and
-  record production acceptance with immutable Cloudflare URL plus production
-  smoke evidence.
-- After deployment acceptance, start the next Phase 3 export workflow. Keep it
-  active-session-first unless the user explicitly exports JSON and later imports
-  it.
+- Start the next Phase 3 export workflow. Keep it active-session-first unless
+  the user explicitly exports JSON and later imports it.
 - Preserve active-session privacy boundaries: page refresh/navigation clearly
   ends active-session content unless the user explicitly exports a JSON backup
   file and later imports it.
