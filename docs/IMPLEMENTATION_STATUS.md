@@ -42,13 +42,16 @@ session boundary:
   sanitized in-memory records, derive deterministic three-word fallback titles,
   and support list/upsert/rename/archive/delete operations without durable
   storage or network writes.
-- Current checkpoint: code commit `5c8a076` is accepted on production via docs
-  commit `406d5f5` and GitHub Actions run `26781247475`. The local tracked
-  graph is 804 nodes and 1312 edges from `5c8a076`; the production runtime
-  graph is 910 nodes and 1396 edges.
-- Next slice: continue the next Phase 3 export workflow with user-invoked
-  webhook export and visible retry/manual retry behavior. Do not add durable
-  automatic chat retention.
+- Current checkpoint: code commit `bdbd53c` implements user-invoked webhook
+  export for individual assistant responses and is locally verified. The local
+  tracked graph is 818 nodes and 1348 edges from `bdbd53c`; production
+  acceptance is pending. The previous accepted production checkpoint remains
+  Slack-format response copy from code commit `5c8a076` via docs commit
+  `406d5f5` and GitHub Actions run `26781247475`, with production runtime
+  graph 910 nodes and 1396 edges.
+- Next slice: finish GitHub Actions deployment and production smoke acceptance
+  for webhook export before starting the next Phase 3 workflow. Do not add
+  durable automatic chat retention.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -210,6 +213,7 @@ Documentation Tooling Agent direction.
   - `dd48f5a` active-session Markdown chat export.
   - `8355b4f` individual assistant response Markdown export.
   - `5c8a076` Slack-format assistant response copy.
+  - `bdbd53c` user-invoked webhook response export.
 
 ## In Progress
 
@@ -1255,13 +1259,43 @@ Latest incremental verification on 2026-06-01:
   `src/lib/chat-markdown-export.ts:L126` and
   `CreateSlackMessageCopyInput` from the 910-node runtime graph with
   `Cache-Control: no-store, private`.
+- Added user-invoked webhook response export in code commit `bdbd53c`:
+  each non-streaming assistant message now exposes a `Webhook` action. The app
+  keeps the webhook URL and delivery state only in active page memory, posts
+  one sanitized assistant-response payload to `/api/webhook-export`, and shows
+  visible sending/sent/failed state with manual retry while the response remains
+  in the open session. The API route requires a trusted same-origin request,
+  accepts HTTPS webhook URLs only, rejects local/private targets, retries
+  transient delivery failures with `1s`, `5s`, and `15s` backoff, returns only
+  delivery metadata, and uses `Cache-Control: no-store, private` without KV,
+  localStorage, sessionStorage, IndexedDB, or exported-content retention.
+- Red-green coverage confirmed the previous missing helper/API/UI path first:
+  `npm.cmd test -- --run src/tests/webhook-export.test.ts src/tests/api-routes-consistency.test.ts`
+  failed because `../lib/webhook-export` and
+  `src/pages/api/webhook-export.ts` did not exist, then passed after
+  implementation. Verification passed after this export slice:
+  `npm.cmd test -- --run src/tests/webhook-export.test.ts src/tests/api-routes-consistency.test.ts` (2 files, 17 tests),
+  `npm.cmd test -- --run src/tests/webhook-export.test.ts src/tests/chat-markdown-export.test.ts src/tests/session-transfer.test.ts src/tests/conversation-session.test.ts src/tests/privacy-first.test.ts src/tests/api-routes-consistency.test.ts` (6 files, 47 tests),
+  `npm.cmd test` (35 files, 173 tests),
+  `npm.cmd audit --omit=dev --audit-level=high` (0 vulnerabilities),
+  `git diff --check` (only known CRLF conversion warnings), and the recorded
+  `build:local` command (passed with the known non-failing `punycode` and
+  Wrangler local-AI warnings).
+- `graphify update .` refreshed tracked local Graphify artifacts from commit
+  `bdbd53c`: 818 nodes and 1348 edges. Community-count wording remains
+  non-blocking.
 
 ## Next Task
 
 Continue with Phase 3 Conversation Management in small slices:
 
-- Continue the next export slice: user-invoked webhook export with visible
-  retry/manual retry behavior and no durable exported-content retention.
+- Finish GitHub Actions deployment and production smoke acceptance for
+  webhook export. Record the run id, immutable URL, production health request
+  id, and bounded graph lookup for `sendWebhookExport` or
+  `createWebhookExportPayload`.
+- After webhook export is accepted on production, continue the next Phase 3
+  workflow slice: client transparency metadata/footer or a narrow stats
+  endpoint, keeping any durable telemetry content-free.
 - Preserve active-session privacy boundaries: page refresh/navigation clearly
   ends active-session content unless the user explicitly exports a JSON backup
   file and later imports it.

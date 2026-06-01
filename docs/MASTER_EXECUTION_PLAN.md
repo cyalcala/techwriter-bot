@@ -74,9 +74,9 @@ The current tracked code graph was refreshed with `graphify update .` on
 
 - Report: `graphify-out/GRAPH_REPORT.md`
 - Graph: `graphify-out/graph.json`
-- Summary: 804 nodes, 1312 edges
-- Extraction confidence: 95% EXTRACTED, 5% INFERRED, 0% AMBIGUOUS
-- Built from code at commit: `5c8a076b`
+- Summary: 818 nodes, 1348 edges
+- Extraction confidence: 94% EXTRACTED, 6% INFERRED, 0% AMBIGUOUS
+- Built from code at commit: `bdbd53cf`
 - The generated report currently disagrees with itself on total community
   count; use node/edge counts and targeted graph queries for acceptance until
   that reporting discrepancy is reconciled.
@@ -159,6 +159,9 @@ The current tracked code graph was refreshed with `graphify update .` on
 - Individual assistant responses can also be copied in compact Slack-ready
   formatting from the active chat controls, preserving response citations and
   source links without exporting the full conversation.
+- Individual assistant responses can be sent to a user-provided HTTPS webhook
+  through an explicit in-session action with transient retry/backoff and
+  visible manual retry state, without durable exported-content retention.
 
 Before broad architecture work, read `graphify-out/GRAPH_REPORT.md` first.
 When the graph may be stale, run:
