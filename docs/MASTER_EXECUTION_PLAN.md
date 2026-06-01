@@ -73,9 +73,9 @@ The current tracked code graph was refreshed with `graphify update .` on
 
 - Report: `graphify-out/GRAPH_REPORT.md`
 - Graph: `graphify-out/graph.json`
-- Summary: 776 nodes, 1247 edges
+- Summary: 789 nodes, 1277 edges
 - Extraction confidence: 95% EXTRACTED, 5% INFERRED, 0% AMBIGUOUS
-- Built from code at commit: `a6ea3f70`
+- Built from code at commit: `58d9e1cd`
 - The generated report currently disagrees with itself on total community
   count; use node/edge counts and targeted graph queries for acceptance until
   that reporting discrepancy is reconciled.
@@ -135,6 +135,10 @@ The current tracked code graph was refreshed with `graphify update .` on
   session export/import for active messages, artifacts, and document metadata.
   It does not add automatic durable chat retention or exported document source
   text.
+- Active-session conversation snapshot helpers now support deterministic title
+  fallback, in-memory list/upsert/rename/archive/delete operations, and reuse
+  the JSON export sanitizer so future UI history work does not accidentally
+  retain document source text.
 
 Before broad architecture work, read `graphify-out/GRAPH_REPORT.md` first.
 When the graph may be stale, run:

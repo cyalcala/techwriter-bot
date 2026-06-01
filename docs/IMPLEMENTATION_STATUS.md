@@ -38,12 +38,13 @@ session boundary:
   active messages, artifacts, and uploaded document metadata only. It does not
   export uploaded source text, vectors, document tool findings, or add automatic
   durable chat retention.
-- Current checkpoint: code commit `a6ea3f7` is accepted on production via docs
-  commit `ebd8c38`; the local tracked graph is 776 nodes and 1247 edges, and
-  the production runtime graph is 873 nodes and 1301 edges.
-- Next slice: continue Phase 3 in small conversation-management slices. Prefer
-  in-open-session conversation history/list planning and tests next; do not add
-  durable automatic chat retention.
+- Current checkpoint: code commit `58d9e1c` is locally verified as an
+  active-session conversation history foundation. The local tracked graph is
+  789 nodes and 1277 edges, built from `58d9e1cd`. Production acceptance is
+  pending the docs/Graphify checkpoint push and GitHub Actions deployment.
+- Next slice: finish deployment acceptance for `58d9e1c`, then wire the
+  in-memory conversation list into `ChatIsland` in small tested steps. Do not
+  add durable automatic chat retention.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -198,6 +199,7 @@ Documentation Tooling Agent direction.
   - `6ab6be3` Cloudflare env access fix for the brand page route.
   - `a6ea3f7` explicit user-invoked session export/import and fresh-session
     isolation tests.
+  - `58d9e1c` active-session conversation snapshot/list helper foundation.
 
 ## In Progress
 
@@ -251,6 +253,11 @@ Documentation Tooling Agent direction.
   controls and clears old active-session state before applying an imported
   session. This slice is accepted on production alias `https://tw-bot.pages.dev`
   through docs commit `ebd8c38`.
+- The next Phase 3 foundation helper is implemented in
+  `src/lib/conversation-session.ts`: it creates sanitized active-session
+  snapshots, derives a deterministic three-word fallback title, and supports
+  in-memory upsert, list, rename, archive, and delete operations for the future
+  conversation list UI without durable storage or network writes.
 
 ## Blockers And Notes
 
@@ -699,7 +706,7 @@ Latest incremental verification on 2026-05-29:
   version mismatch; bounded graph lookup for `downloadPng` returns
   `src/components/ArtifactSplitView.svelte:L122` with
   `Cache-Control: no-store, private`.
-Latest incremental verification on 2026-05-31:
+Latest incremental verification on 2026-06-01:
 
 - Added streaming parser hardening in `src/lib/stream-parser.ts` plus
   regression coverage in `src/tests/artifacts.test.ts`: case-varied artifact
@@ -971,14 +978,36 @@ Latest incremental verification on 2026-05-31:
   matching app version, and no version mismatch. Bounded graph lookup for
   `createSessionExport` returns `src/lib/session-transfer.ts:L57` from the
   873-node runtime graph with `Cache-Control: no-store, private`.
+- Added the active-session conversation history foundation in
+  `src/lib/conversation-session.ts` and
+  `src/tests/conversation-session.test.ts`: snapshots reuse the explicit JSON
+  session export sanitizer, keep only messages, artifacts, and document
+  metadata, derive a deterministic three-word title fallback from the first user
+  message, and support in-memory upsert/list/rename/archive/delete operations
+  without localStorage, sessionStorage, IndexedDB, fetch, or KV writes.
+- Red-green coverage confirmed the missing helper first, then passed after
+  implementation. Verification passed after this foundation slice:
+  `npm.cmd test -- --run src/tests/conversation-session.test.ts` (4 tests),
+  `npm.cmd test -- --run src/tests/conversation-session.test.ts src/tests/session-transfer.test.ts src/tests/privacy-first.test.ts` (3 files, 19 tests),
+  `npm.cmd test` (33 files, 156 tests),
+  `npm.cmd audit --omit=dev --audit-level=high` (0 vulnerabilities), and
+  `git diff --check`. The recorded `build:local` command is not claimed for
+  this helper-only checkpoint because it does not change production runtime UI;
+  interrupted build attempts were intentionally not counted as passing evidence.
+- `graphify update .` refreshed tracked local Graphify artifacts from commit
+  `58d9e1c`: 789 nodes and 1277 edges. Community-count wording remains
+  non-blocking.
 
 ## Next Task
 
 Continue with Phase 3 Conversation Management in small slices:
 
-- Continue with in-open-session conversation history/list planning and tests.
-  Keep it active-session-first unless the user explicitly exports JSON and
-  later imports it.
+- Push the docs/Graphify checkpoint for `58d9e1c`, watch GitHub Actions, and
+  record production acceptance with immutable URL, `/api/health` request id,
+  production alias smoke, and runtime graph counts.
+- After acceptance, wire the in-memory conversation list into `ChatIsland` in
+  small tested steps. Keep it active-session-first unless the user explicitly
+  exports JSON and later imports it.
 - Preserve active-session privacy boundaries: page refresh/navigation clearly
   ends active-session content unless the user explicitly exports a JSON backup
   file and later imports it.
