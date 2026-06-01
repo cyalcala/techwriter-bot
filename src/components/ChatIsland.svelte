@@ -16,8 +16,11 @@
   import { createLiveOutageState, hasVisibleLiveResponse, type LiveOutageState } from '../lib/session-continuity';
   import { createSessionExport, parseSessionImport, sessionExportFilename } from '../lib/session-transfer';
   import {
+    archiveConversation,
     createConversationSnapshot,
+    deleteConversation,
     listVisibleConversations,
+    renameConversation,
     upsertConversationSnapshot,
     type ConversationSnapshot,
   } from '../lib/conversation-session';
@@ -104,6 +107,8 @@
   let conversationId = $state('');
   let conversationRecords = $state<ConversationSnapshot[]>([]);
   let conversationHistoryOpen = $state(false);
+  let renamingConversationId = $state<string | null>(null);
+  let conversationRenameValue = $state('');
   const visibleConversations = $derived(listVisibleConversations(conversationRecords));
   let isUploading = $state(false);
   let rag = $state<RagState>(createDefaultRagState());
@@ -308,6 +313,7 @@
   function saveActiveConversationSnapshot() {
     if (!conversationId || !sessionId || !hasActiveConversationContent()) return;
 
+    const existingConversation = conversationRecords.find((conversation) => conversation.id === conversationId);
     const snapshot = createConversationSnapshot({
       id: conversationId,
       sessionId,
@@ -315,6 +321,9 @@
       artifacts: artifactQueue.entries,
       documents: rag.documents,
       chatPath,
+      title: existingConversation?.title,
+      createdAt: existingConversation?.createdAt,
+      archived: existingConversation?.archived,
     });
     conversationRecords = upsertConversationSnapshot(conversationRecords, snapshot);
   }
@@ -358,6 +367,32 @@
     chatPath = conversation.chatPath ?? null;
     conversationHistoryOpen = false;
     if (fileInput) fileInput.value = '';
+  }
+
+  function beginConversationRename(conversation: ConversationSnapshot) {
+    renamingConversationId = conversation.id;
+    conversationRenameValue = conversation.title;
+  }
+
+  function commitConversationRename(conversation: ConversationSnapshot) {
+    conversationRecords = renameConversation(conversationRecords, conversation.id, conversationRenameValue);
+    renamingConversationId = null;
+    conversationRenameValue = '';
+  }
+
+  function cancelConversationRename() {
+    renamingConversationId = null;
+    conversationRenameValue = '';
+  }
+
+  function archiveConversationRecord(conversation: ConversationSnapshot) {
+    if (conversation.id === conversationId) return;
+    conversationRecords = archiveConversation(conversationRecords, conversation.id, true);
+  }
+
+  function deleteConversationRecord(conversation: ConversationSnapshot) {
+    if (conversation.id === conversationId) return;
+    conversationRecords = deleteConversation(conversationRecords, conversation.id);
   }
 
   function rememberDocumentSource(documentId: string, source: DocumentSource) {
@@ -1050,15 +1085,43 @@
               {:else}
                 <div class="max-h-72 overflow-y-auto py-1">
                   {#each visibleConversations as conversation}
-                    <button
-                      type="button"
-                      onclick={() => restoreConversation(conversation)}
-                      aria-current={conversation.id === conversationId ? 'true' : undefined}
-                      class="block w-full px-3 py-2 text-left text-xs transition-colors hover:bg-stone-50 aria-[current=true]:bg-amber-50"
-                    >
-                      <span class="block truncate font-medium text-stone-700">{conversation.title}</span>
-                      <span class="mt-0.5 block text-[10px] text-stone-400">{conversation.messages.length} messages / {conversation.artifacts.length} artifacts</span>
-                    </button>
+                    <div class="flex items-center gap-1 px-2 py-1 text-xs transition-colors hover:bg-stone-50" aria-current={conversation.id === conversationId ? 'true' : undefined}>
+                      {#if renamingConversationId === conversation.id}
+                        <form
+                          class="flex min-w-0 flex-1 items-center gap-1"
+                          onsubmit={(event) => {
+                            event.preventDefault();
+                            commitConversationRename(conversation);
+                          }}
+                        >
+                          <input bind:value={conversationRenameValue} class="min-w-0 flex-1 rounded border border-stone-200 px-2 py-1 text-xs text-stone-700 outline-none focus:border-amber-300" aria-label="Conversation title" />
+                          <button type="submit" aria-label="Save conversation title" class="rounded p-1 text-stone-400 hover:bg-amber-50 hover:text-amber-700">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 5.29a1 1 0 010 1.42l-7.25 7.2a1 1 0 01-1.414-.006L4.296 10.16a1 1 0 011.414-1.414l3.04 3.04 6.546-6.5a1 1 0 011.408.004z" clip-rule="evenodd"/></svg>
+                          </button>
+                          <button type="button" onclick={cancelConversationRename} aria-label="Cancel conversation rename" class="rounded p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-700">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 5.23a.75.75 0 011.06 0L10 8.94l3.71-3.71a.75.75 0 111.06 1.06L11.06 10l3.71 3.71a.75.75 0 11-1.06 1.06L10 11.06l-3.71 3.71a.75.75 0 01-1.06-1.06L8.94 10 5.23 6.29a.75.75 0 010-1.06z" clip-rule="evenodd"/></svg>
+                          </button>
+                        </form>
+                      {:else}
+                        <button
+                          type="button"
+                          onclick={() => restoreConversation(conversation)}
+                          class="min-w-0 flex-1 rounded px-1 py-1 text-left transition-colors hover:bg-stone-100"
+                        >
+                          <span class="block truncate font-medium text-stone-700">{conversation.title}</span>
+                          <span class="mt-0.5 block text-[10px] text-stone-400">{conversation.messages.length} messages / {conversation.artifacts.length} artifacts</span>
+                        </button>
+                        <button type="button" onclick={() => beginConversationRename(conversation)} aria-label="Rename conversation" class="rounded p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-700">
+                          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path d="M13.586 2.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793z"/><path d="M11.379 4.793L3 13.172V17h3.828l8.379-8.379-3.828-3.828z"/></svg>
+                        </button>
+                        <button type="button" onclick={() => archiveConversationRecord(conversation)} disabled={conversation.id === conversationId} aria-label="Archive conversation" class="rounded p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-700 disabled:cursor-not-allowed disabled:opacity-30">
+                          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path d="M4 3a2 2 0 00-2 2v1.5A1.5 1.5 0 003.5 8H4v7a2 2 0 002 2h8a2 2 0 002-2V8h.5A1.5 1.5 0 0018 6.5V5a2 2 0 00-2-2H4zm1 5h10v7a1 1 0 01-1 1H6a1 1 0 01-1-1V8zm2.5 2a.5.5 0 000 1h5a.5.5 0 000-1h-5z"/></svg>
+                        </button>
+                        <button type="button" onclick={() => deleteConversationRecord(conversation)} disabled={conversation.id === conversationId} aria-label="Delete conversation" class="rounded p-1 text-stone-400 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-30">
+                          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.5 2a1.5 1.5 0 00-1.415 1H4.75a.75.75 0 000 1.5h10.5a.75.75 0 000-1.5h-2.335A1.5 1.5 0 0011.5 2h-3zM5.5 6a.75.75 0 01.75.75v8A2.25 2.25 0 008.5 17h3a2.25 2.25 0 002.25-2.25v-8a.75.75 0 011.5 0v8A3.75 3.75 0 0111.5 18.5h-3a3.75 3.75 0 01-3.75-3.75v-8A.75.75 0 015.5 6z" clip-rule="evenodd"/></svg>
+                        </button>
+                      {/if}
+                    </div>
                   {/each}
                 </div>
               {/if}

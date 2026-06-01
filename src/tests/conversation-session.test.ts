@@ -151,4 +151,39 @@ describe('active-session conversation history foundation', () => {
     expect(newChat).toContain('saveActiveConversationSnapshot()');
     expect(newChat.indexOf('saveActiveConversationSnapshot()')).toBeLessThan(newChat.indexOf('clearAllData(sessionId)'));
   });
+
+  it('exposes in-memory history management controls without durable retention', () => {
+    const island = source('src/components/ChatIsland.svelte');
+    const saveSnapshot = functionBlock(island, 'saveActiveConversationSnapshot');
+    const archiveRecord = functionBlock(island, 'archiveConversationRecord');
+    const deleteRecord = functionBlock(island, 'deleteConversationRecord');
+
+    expect(island).toContain('renameConversation');
+    expect(island).toContain('archiveConversation');
+    expect(island).toContain('deleteConversation');
+    expect(island).toContain('let renamingConversationId = $state<string | null>(null)');
+    expect(island).toContain("let conversationRenameValue = $state('')");
+    expect(saveSnapshot).toContain('const existingConversation = conversationRecords.find');
+    expect(saveSnapshot).toContain('title: existingConversation?.title');
+    expect(saveSnapshot).toContain('createdAt: existingConversation?.createdAt');
+    expect(saveSnapshot).toContain('archived: existingConversation?.archived');
+    expect(island).toContain('function beginConversationRename(conversation: ConversationSnapshot)');
+    expect(island).toContain('function commitConversationRename(conversation: ConversationSnapshot)');
+    expect(island).toContain('function cancelConversationRename()');
+    expect(island).toContain('function archiveConversationRecord(conversation: ConversationSnapshot)');
+    expect(island).toContain('function deleteConversationRecord(conversation: ConversationSnapshot)');
+    expect(island).toContain('aria-label="Rename conversation"');
+    expect(island).toContain('aria-label="Archive conversation"');
+    expect(island).toContain('aria-label="Delete conversation"');
+    expect(island).toContain('onclick={() => beginConversationRename(conversation)}');
+    expect(island).toContain('onclick={() => archiveConversationRecord(conversation)}');
+    expect(island).toContain('onclick={() => deleteConversationRecord(conversation)}');
+    expect(island).not.toContain('localStorage.setItem');
+    expect(island).not.toContain('sessionStorage.setItem');
+
+    expect(archiveRecord).toContain('if (conversation.id === conversationId) return;');
+    expect(archiveRecord).toContain('archiveConversation(conversationRecords, conversation.id, true)');
+    expect(deleteRecord).toContain('if (conversation.id === conversationId) return;');
+    expect(deleteRecord).toContain('deleteConversation(conversationRecords, conversation.id)');
+  });
 });
