@@ -74,9 +74,9 @@ The current tracked code graph was refreshed with `graphify update .` on
 
 - Report: `graphify-out/GRAPH_REPORT.md`
 - Graph: `graphify-out/graph.json`
-- Summary: 818 nodes, 1348 edges
+- Summary: 821 nodes, 1350 edges
 - Extraction confidence: 94% EXTRACTED, 6% INFERRED, 0% AMBIGUOUS
-- Built from code at commit: `bdbd53cf`
+- Built from code at commit: `78f6713e`
 - The generated report currently disagrees with itself on total community
   count; use node/edge counts and targeted graph queries for acceptance until
   that reporting discrepancy is reconciled.
@@ -162,6 +162,11 @@ The current tracked code graph was refreshed with `graphify update .` on
 - Individual assistant responses can be sent to a user-provided HTTPS webhook
   through an explicit in-session action with transient retry/backoff and
   visible manual retry state, without durable exported-content retention.
+- Client transparency footer metadata now shows content-free response details
+  for the latest active response: provider used, active routing-pool count,
+  input and graph token estimates, latency, chat path, and short request id.
+  This state stays in the open page session only and does not persist prompt,
+  answer, document, artifact, source, or webhook payload content.
 
 Before broad architecture work, read `graphify-out/GRAPH_REPORT.md` first.
 When the graph may be stale, run:

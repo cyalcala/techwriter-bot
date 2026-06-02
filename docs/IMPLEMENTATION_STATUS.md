@@ -42,13 +42,15 @@ session boundary:
   sanitized in-memory records, derive deterministic three-word fallback titles,
   and support list/upsert/rename/archive/delete operations without durable
   storage or network writes.
-- Current checkpoint: code commit `bdbd53c` is accepted on production via docs
-  commit `8aac8b4` and GitHub Actions run `26782597569`. The local tracked
-  graph is 818 nodes and 1348 edges from `bdbd53c`; the production runtime
-  graph is 931 nodes and 1446 edges.
-- Next slice: continue the next Phase 3 workflow with client transparency
-  metadata/footer or a narrow stats endpoint. Keep durable telemetry
-  content-free and do not add complex dashboards.
+- Current local checkpoint: code commit `78f6713` implements the first client
+  transparency footer slice and is locally verified. The local tracked graph is
+  821 nodes and 1350 edges from `78f6713`; production deployment acceptance is
+  pending for this checkpoint. The latest accepted production checkpoint remains
+  the webhook export slice via docs commit `943139f` and GitHub Actions run
+  `26782762564`.
+- Next slice: push and accept the client transparency footer deployment, then
+  continue with a narrow env-password-protected stats endpoint. Keep durable
+  telemetry content-free and do not add complex dashboards.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -211,6 +213,7 @@ Documentation Tooling Agent direction.
   - `8355b4f` individual assistant response Markdown export.
   - `5c8a076` Slack-format assistant response copy.
   - `bdbd53c` user-invoked webhook response export.
+  - `78f6713` response transparency metadata footer.
 
 ## In Progress
 
@@ -1297,13 +1300,44 @@ Latest incremental verification on 2026-06-01:
   using an allowed `Origin` rejected an `http://` webhook URL with `400`,
   request id `80da0898-d2c6-4aec-a1f9-fc90dd6016eb`, and
   `Cache-Control: no-store, private`.
+- Added the first client transparency footer slice in code commit `78f6713`:
+  `/api/chat` now returns `x-active-provider-count` alongside the existing
+  request id, provider, latency, token-usage, search, and chat-path headers.
+  `ChatIsland` captures those response headers into active page state only, and
+  `ChatInput` renders compact response details: provider used, active routing
+  pool count, latency, input-token estimate, graph-token estimate when present,
+  chat path, and short request id. This does not add durable storage,
+  automatic history retention, dashboards, WebContainer tooling, OAuth,
+  billing, multi-tenancy, or exported-content retention.
+- Red-green coverage confirmed the previous transparency gap first:
+  `npm.cmd test -- --run src/tests/client-transparency.test.ts` failed because
+  `x-active-provider-count`, `ResponseTransparency`, and
+  `captureResponseTransparency` did not exist, then passed after
+  implementation. Verification passed after this slice:
+  `npm.cmd test -- --run src/tests/client-transparency.test.ts` (1 file, 3 tests),
+  `npm.cmd test -- --run src/tests/client-transparency.test.ts src/tests/privacy-first.test.ts src/tests/session-transfer.test.ts src/tests/conversation-session.test.ts src/tests/chat-markdown-export.test.ts src/tests/webhook-export.test.ts src/tests/api-routes-consistency.test.ts src/tests/zen-router-failover.test.ts` (8 files, 54 tests),
+  `npm.cmd test` (36 files, 176 tests),
+  `npm.cmd audit --omit=dev --audit-level=high` (0 vulnerabilities),
+  `git diff --check` (only known CRLF conversion warnings), and the recorded
+  `build:local` command (passed with the known non-failing `punycode` and
+  Wrangler local-AI warnings).
+- `graphify update .` refreshed tracked local Graphify artifacts from commit
+  `78f6713`: 821 nodes and 1350 edges. Community-count wording remains
+  non-blocking.
+- Production deployment and smoke acceptance are pending for the client
+  transparency footer slice.
 
 ## Next Task
 
 Continue with Phase 3 Conversation Management in small slices:
 
-- Continue the next Phase 3 workflow slice: client transparency
-  metadata/footer or a narrow stats endpoint, keeping any durable telemetry
+- First finish the GitHub-backed acceptance loop for code commit `78f6713`:
+  commit the docs/Graphify checkpoint, push `main`, watch GitHub Actions,
+  smoke the production alias and immutable URL, query the bounded runtime graph
+  for `captureResponseTransparency` or `x-active-provider-count`, then record
+  production acceptance in this file.
+- After that, continue the next Phase 3 workflow slice as a narrow
+  env-password-protected `/api/stats` endpoint, keeping durable telemetry
   content-free and avoiding complex dashboards.
 - Preserve active-session privacy boundaries: page refresh/navigation clearly
   ends active-session content unless the user explicitly exports a JSON backup
