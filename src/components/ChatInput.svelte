@@ -7,6 +7,16 @@
     chatPath?: string;
   }
 
+  interface ResponseTransparency {
+    provider: string;
+    latencyMs: number | null;
+    activeProviderCount: number | null;
+    tokensIn: number | null;
+    graphTokens: number | null;
+    requestId: string;
+    chatPath: string | null;
+  }
+
   interface RagDocumentSummary {
     id: string;
     filename: string;
@@ -36,7 +46,8 @@
     onReembedDocument: (documentId: string) => void;
     toolsOpen: boolean;
     onToggleTools: () => void;
-    tokenDisplay: { in: number; cached?: boolean } | null;
+    tokenDisplay: { in: number; graph?: number; cached?: boolean } | null;
+    responseTransparency: ResponseTransparency | null;
     chatPath: string | null;
     failoverEvents?: FailoverEvent[];
     panelOpen: boolean;
@@ -47,7 +58,7 @@
     disabled, isStreaming, inputMessage, onInputChange, onSend, onStop,
     mode, onModeChange, enhancedCredits, onFileClick, isUploading,
     ragUploadedFileName = '', ragUploadStatus = 'idle', ragDegraded = false,
-    ragUploadProgress = null, ragDocuments = [], ragMetadataOnly = false, onRemoveFile, onDeleteDocument, onReembedDocument, toolsOpen, onToggleTools, tokenDisplay, chatPath, failoverEvents = [], panelOpen, isMobile,
+    ragUploadProgress = null, ragDocuments = [], ragMetadataOnly = false, onRemoveFile, onDeleteDocument, onReembedDocument, toolsOpen, onToggleTools, tokenDisplay, responseTransparency, chatPath, failoverEvents = [], panelOpen, isMobile,
   }: Props = $props();
   let privacyOpen = $state(false);
 
@@ -60,6 +71,16 @@
     const date = new Date(timestamp);
     if (Number.isNaN(date.getTime())) return 'recent';
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function formatLatency(ms: number | null): string {
+    if (ms == null) return 'latency n/a';
+    if (ms < 1000) return `${Math.round(ms)} ms`;
+    return `${(ms / 1000).toFixed(ms < 10000 ? 1 : 0)} s`;
+  }
+
+  function shortRequestId(requestId: string): string {
+    return requestId ? requestId.slice(0, 8) : 'n/a';
   }
 
   function closePrivacyOnEscape(e: KeyboardEvent) {
@@ -197,7 +218,27 @@
               class="px-2 md:px-2.5 py-1 rounded-md transition-all text-[10px] {mode === 'live' ? 'bg-stone-800 text-white font-medium' : (enhancedCredits.remaining <= 0 || enhancedCredits.budgetExhausted ? 'text-stone-300 cursor-not-allowed' : 'text-stone-400 hover:text-stone-600')}"
             >Live {enhancedCredits.remaining <= 0 ? '' : enhancedCredits.remaining}</button>
           </div>
-          {#if tokenDisplay}
+          {#if responseTransparency}
+            <span class="hidden min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] text-stone-300 sm:flex" aria-label="Response details">
+              <span>Provider {responseTransparency.provider}</span>
+              {#if responseTransparency.activeProviderCount != null}
+                <span>{responseTransparency.activeProviderCount} providers</span>
+              {/if}
+              <span>{formatLatency(responseTransparency.latencyMs)}</span>
+              {#if responseTransparency.tokensIn != null}
+                <span>{tokenDisplay?.cached ? 'cached' : `~${responseTransparency.tokensIn} tokens`}</span>
+              {/if}
+              {#if responseTransparency.graphTokens}
+                <span>{responseTransparency.graphTokens} graph</span>
+              {/if}
+              {#if responseTransparency.chatPath}
+                <span>{responseTransparency.chatPath}</span>
+              {/if}
+              {#if responseTransparency.requestId}
+                <span title={`Request ${responseTransparency.requestId}`}>req {shortRequestId(responseTransparency.requestId)}</span>
+              {/if}
+            </span>
+          {:else if tokenDisplay}
             <span class="text-[10px] text-stone-300 hidden sm:inline">{tokenDisplay.cached ? '⚡ cached' : `~${tokenDisplay.in} tokens`}{chatPath ? ` · ${chatPath}` : ''}</span>
           {/if}
         </div>

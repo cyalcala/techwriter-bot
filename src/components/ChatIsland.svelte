@@ -56,6 +56,16 @@
     chatPath?: string;
   }
 
+  interface ResponseTransparency {
+    provider: string;
+    latencyMs: number | null;
+    activeProviderCount: number | null;
+    tokensIn: number | null;
+    graphTokens: number | null;
+    requestId: string;
+    chatPath: string | null;
+  }
+
   interface GraphLookupResult {
     available: boolean;
     context: string;
@@ -148,6 +158,7 @@
   let webhookDelivery = $state<WebhookDeliveryState | null>(null);
   let chatPath = $state<string | null>(null);
   let tokenDisplay = $state<{ in: number; graph: number; cached?: boolean } | null>(null);
+  let responseTransparency = $state<ResponseTransparency | null>(null);
   let failoverEvents = $state<FailoverEvent[]>([]);
   let liveOutage = $state<LiveOutageState | null>(null);
   let isMobile = $state(false);
@@ -390,6 +401,7 @@
     liveOutage = null;
     isLiveMode = false;
     chatPath = conversation.chatPath ?? null;
+    responseTransparency = null;
     conversationHistoryOpen = false;
     if (fileInput) fileInput.value = '';
   }
@@ -487,6 +499,7 @@
     liveOutage = null;
     isLiveMode = false;
     chatPath = null;
+    responseTransparency = null;
     conversationHistoryOpen = false;
     if (fileInput) fileInput.value = '';
   }
@@ -509,6 +522,7 @@
     liveOutage = null;
     isLiveMode = false;
     chatPath = null;
+    responseTransparency = null;
     conversationHistoryOpen = false;
     if (fileInput) fileInput.value = '';
   }
@@ -690,6 +704,7 @@
     liveOutage = null;
     isLiveMode = false;
     chatPath = parsed.payload.chatPath ?? null;
+    responseTransparency = null;
     conversationHistoryOpen = false;
     if (fileInput) fileInput.value = '';
     input.value = '';
@@ -849,6 +864,28 @@
     } catch {}
   }
 
+  function finiteHeaderNumber(value: string | null): number | null {
+    const parsed = value == null ? NaN : Number(value);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+  }
+
+  function captureResponseTransparency(
+    headers: Headers,
+    provider: string,
+    tokens: { in?: number; graph?: number } | null,
+    path: string | null,
+  ): ResponseTransparency {
+    return {
+      provider,
+      latencyMs: finiteHeaderNumber(headers.get('x-latency-ms')),
+      activeProviderCount: finiteHeaderNumber(headers.get('x-active-provider-count')),
+      tokensIn: typeof tokens?.in === 'number' ? tokens.in : null,
+      graphTokens: typeof tokens?.graph === 'number' ? tokens.graph : null,
+      requestId: headers.get('x-request-id') || '',
+      chatPath: path,
+    };
+  }
+
   async function sendMessage() {
     if (!inputMessage.trim()) return;
     if (chatState !== 'idle') {
@@ -874,6 +911,7 @@
   async function doSend() {
     safeAbort();
     liveOutage = null;
+    responseTransparency = null;
     chatState = 'loading';
     isLoading = true;
     abortController = new AbortController();
@@ -974,6 +1012,7 @@
       const tokenUsageHeader = response.headers.get('x-token-usage');
       if (tokenUsageHeader) { try { tokenDisplay = JSON.parse(tokenUsageHeader); } catch {} } else { tokenDisplay = null; }
       if (response.headers.get('x-cached') === 'true' && tokenDisplay) tokenDisplay.cached = true;
+      responseTransparency = captureResponseTransparency(response.headers, providerName, tokenDisplay, chatPath);
 
       isStreaming = true;
       chatState = 'streaming';
@@ -1370,6 +1409,7 @@
       {toolsOpen}
       onToggleTools={() => { toolsOpen = !toolsOpen; }}
       {tokenDisplay}
+      {responseTransparency}
       {chatPath}
       {failoverEvents}
       panelOpen={!!activeArtifactEntry}
