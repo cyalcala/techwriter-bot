@@ -16,12 +16,18 @@
   const SWIPE_DISMISS_THRESHOLD = 96;
   const SWIPE_DISMISS_RESISTANCE = 0.7;
   const SWIPE_DISMISS_MAX_OFFSET = 180;
+  const PINCH_ZOOM_MIN_SCALE = 1;
+  const PINCH_ZOOM_MAX_SCALE = 3;
+  const zoomPointers = new Map<number, { x: number; y: number }>();
 
   let visible = $state(false);
   let copied = $state(false);
   let swipeStartY = $state<number | null>(null);
   let swipeOffsetY = $state(0);
   let swipeTracking = $state(false);
+  let zoomScale = $state(1);
+  let pinchStartDistance = 0;
+  let pinchStartScale = 1;
   let hasContent = $derived(!!svg || !!code);
   let overlayArtifact = $derived<Artifact | null>(hasContent ? {
     id: `overlay-${type}-${(svg || code).length}`,
@@ -30,6 +36,7 @@
     placement: 'modal',
     code: svg || code,
   } : null);
+  let zoomPercent = $derived(Math.round(zoomScale * 100));
 
   $effect(() => {
     if (hasContent) {
@@ -38,8 +45,14 @@
       if (!prev) window.history.pushState({ overlayOpen: true }, '');
     } else {
       resetSwipeDismiss();
+      resetPinchZoom();
       visible = false;
     }
+  });
+
+  $effect(() => {
+    overlayArtifact?.id;
+    resetPinchZoom();
   });
 
   function handlePopstate() {
@@ -53,6 +66,7 @@
 
   function closeOverlay() {
     resetSwipeDismiss();
+    resetPinchZoom();
     visible = false;
     if (window.history.state?.overlayOpen) window.history.back();
     setTimeout(() => onclose(), 300);
@@ -89,6 +103,54 @@
     swipeStartY = null;
     swipeOffsetY = 0;
     swipeTracking = false;
+  }
+
+  function startPinchZoom(e: PointerEvent) {
+    zoomPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch {}
+
+    if (zoomPointers.size === 2) {
+      const [first, second] = Array.from(zoomPointers.values());
+      pinchStartDistance = distanceBetween(first, second);
+      pinchStartScale = zoomScale;
+      e.preventDefault();
+    }
+  }
+
+  function trackPinchZoom(e: PointerEvent) {
+    if (!zoomPointers.has(e.pointerId)) return;
+    zoomPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (zoomPointers.size < 2 || pinchStartDistance <= 0) return;
+
+    const [first, second] = Array.from(zoomPointers.values());
+    const nextDistance = distanceBetween(first, second);
+    zoomScale = clampZoomScale(pinchStartScale * (nextDistance / pinchStartDistance));
+    e.preventDefault();
+  }
+
+  function finishPinchZoom(e: PointerEvent) {
+    zoomPointers.delete(e.pointerId);
+    try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch {}
+    if (zoomPointers.size < 2) {
+      pinchStartDistance = 0;
+      pinchStartScale = zoomScale;
+    }
+  }
+
+  function resetPinchZoom() {
+    zoomPointers.clear();
+    pinchStartDistance = 0;
+    pinchStartScale = 1;
+    zoomScale = 1;
+  }
+
+  function distanceBetween(first: { x: number; y: number }, second: { x: number; y: number }) {
+    return Math.hypot(first.x - second.x, first.y - second.y);
+  }
+
+  function clampZoomScale(value: number) {
+    if (!Number.isFinite(value)) return PINCH_ZOOM_MIN_SCALE;
+    return Math.min(PINCH_ZOOM_MAX_SCALE, Math.max(PINCH_ZOOM_MIN_SCALE, value));
   }
 
   const typeBadge: Record<string, string> = {
@@ -165,12 +227,24 @@
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
         </button>
       </div>
-      <div class="flex-1 bg-[#faf7f2] overflow-auto relative p-2">
-        {#if overlayArtifact}
-          {#key overlayArtifact.id}
-            <ArtifactPanel artifact={overlayArtifact} progressive={false} />
-          {/key}
-        {/if}
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div
+        class="flex-1 bg-[#faf7f2] overflow-auto relative p-2"
+        role="region"
+        aria-label="Pinch zoom artifact preview"
+        style="touch-action: pan-x pan-y;"
+        onpointerdown={startPinchZoom}
+        onpointermove={trackPinchZoom}
+        onpointerup={finishPinchZoom}
+        onpointercancel={finishPinchZoom}
+      >
+        <div class="mx-auto min-w-full transition-[width] duration-150" style:width={`${zoomPercent}%`}>
+          {#if overlayArtifact}
+            {#key overlayArtifact.id}
+              <ArtifactPanel artifact={overlayArtifact} progressive={false} />
+            {/key}
+          {/if}
+        </div>
       </div>
     </div>
   </div>

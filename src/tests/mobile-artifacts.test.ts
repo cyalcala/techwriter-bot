@@ -36,4 +36,23 @@ describe('mobile artifact overlay behavior', () => {
     expect(overlay).toContain('style:transform={`translateY(${visible ? swipeOffsetY : 32}px)`}');
     expect(overlay).toContain('aria-hidden="true"');
   });
+
+  it('supports pinch zoom inside the mobile artifact overlay surface', () => {
+    const overlay = source('src/components/ArtifactOverlay.svelte');
+
+    expect(overlay).toContain('const PINCH_ZOOM_MIN_SCALE = 1');
+    expect(overlay).toContain('const PINCH_ZOOM_MAX_SCALE = 3');
+    expect(overlay).toContain('const zoomPointers = new Map<number, { x: number; y: number }>()');
+    expect(overlay).toContain('function startPinchZoom(e: PointerEvent)');
+    expect(overlay).toContain('function trackPinchZoom(e: PointerEvent)');
+    expect(overlay).toContain('function finishPinchZoom(e: PointerEvent)');
+    expect(overlay).toContain('function resetPinchZoom()');
+    expect(overlay).toContain('function distanceBetween');
+    expect(overlay).toContain('function clampZoomScale');
+    expect(overlay).toContain('zoomScale = clampZoomScale(pinchStartScale * (nextDistance / pinchStartDistance))');
+    expect(overlay).toContain('style:width={`${zoomPercent}%`}');
+    expect(overlay).toContain('onpointerdown={startPinchZoom}');
+    expect(overlay).toContain('onpointermove={trackPinchZoom}');
+    expect(overlay).toContain('aria-label="Pinch zoom artifact preview"');
+  });
 });
