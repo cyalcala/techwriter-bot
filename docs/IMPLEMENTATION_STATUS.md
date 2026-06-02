@@ -41,16 +41,15 @@ transparency slices were accepted with privacy-first active-session boundaries:
   sanitized in-memory records, derive deterministic three-word fallback titles,
   and support list/upsert/rename/archive/delete operations without durable
   storage or network writes.
-- Current checkpoint: code commit `b815aa7` implements the first
-  white-label-without-code slice and is locally verified. The local tracked
+- Current checkpoint: code commit `b815aa7` is accepted on production via docs
+  commit `287fadb` and GitHub Actions run `26814812868`. The local tracked
   graph is 848 nodes and 1402 edges from `b815aa7`; the production runtime
-  graph remains 961 nodes and 1505 edges until the next deployment acceptance
-  pass.
-- Next slice: push the white-label code checkpoint plus this docs/Graphify
-  checkpoint, watch GitHub Actions, and run production smoke probes for default
-  fallback branding, health, and a bounded graph lookup. Do not add marketing
-  pages, auth, billing, multi-tenancy, autonomous agents, WebContainer/runtime
-  package tooling, or complex dashboards.
+  graph is 973 nodes and 1521 edges.
+- Next slice: continue Phase 4 with the smallest useful Onboarding Wow slice,
+  likely a user-invoked sample-data seed that can be cleared without retaining
+  client content. Do not add marketing pages, auth, billing, multi-tenancy,
+  autonomous agents, WebContainer/runtime package tooling, or complex
+  dashboards.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -1408,21 +1407,31 @@ Latest incremental verification on 2026-06-01:
 - `graphify update .` refreshed tracked local Graphify artifacts from commit
   `b815aa7`: 848 nodes and 1402 edges. Community-count wording remains
   non-blocking.
+- The white-label app chrome deploy passed in GitHub Actions run `26814812868`
+  from docs commit `287fadb` with immutable URL
+  `https://12e710f7.tw-bot.pages.dev`. The production runtime graph reports
+  973 nodes and 1521 edges.
+- Production probes confirmed both `https://tw-bot.pages.dev/` and
+  `https://12e710f7.tw-bot.pages.dev/` return `200` and show the default
+  fallback `Technical Writer` branding plus footer fallback text. Production
+  `/api/health` returns `200` with request id
+  `01f8322a-cdc3-400e-bc44-00698cf27278`, four active providers out of six,
+  expected/stored app version `0.0.1`, and no version mismatch. Bounded graph
+  lookup for `readWhiteLabelConfig` returns `src/lib/white-label.ts:L43` from
+  the 973-node runtime graph with `Cache-Control: no-store, private`.
 
 ## Next Task
 
 Continue with Phase 4 Polish And Degrade in small slices:
 
-- Push the `b815aa7` white-label code checkpoint plus this docs/Graphify
-  checkpoint to GitHub, then watch the GitHub Actions deployment.
-- Run production smoke probes after the deploy finishes: root and immutable URL
-  should return `200`, default fallback branding should still show
-  `Technical Writer`, `/api/health` should return sanitized availability with a
-  request id and matching app version, and a bounded graph lookup for
-  `readWhiteLabelConfig` should resolve to `src/lib/white-label.ts`.
-- After production acceptance, continue Phase 4 with the smallest useful
-  Onboarding Wow slice, likely a user-invoked sample-data seed that can be
-  cleared without retaining client content.
+- Continue Phase 4 with the smallest useful Onboarding Wow slice, likely a
+  user-invoked sample-data seed that can be cleared without retaining client
+  content.
+- Start with focused tests for a sample-data helper and compact UI wiring in
+  `ChatIsland`, then implement only a visible, explicit "Try sample data"
+  action that seeds safe dummy documentation metadata/content in the active
+  page session. Do not add automatic durable storage or client-content
+  retention.
 - Keep the UI compact and internal-tool focused. Do not add marketing pages,
   OAuth, Stripe, multi-tenancy, email, autonomous agents, Kubernetes, Redis,
   WebContainer/runtime package tooling, or complex dashboards.
