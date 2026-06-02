@@ -81,7 +81,7 @@ The current tracked code graph was refreshed with `graphify update .` on
   count; use node/edge counts and targeted graph queries for acceptance until
   that reporting discrepancy is reconciled.
 - The production runtime graph is published by the GitHub Actions extraction
-  pipeline and currently reports 982 nodes and 1527 edges.
+  pipeline and currently reports 984 nodes and 1528 edges.
 - Controlled provider fault injection is available only when
   `PROVIDER_FAULT_INJECTION_TOKEN` is configured and matched by request
   headers, allowing failover/outage acceptance without disabling real provider
@@ -188,9 +188,9 @@ The current tracked code graph was refreshed with `graphify update .` on
   two-pointer distance tracking, a 1x-3x clamped scale, and width-based zoom
   that preserves the existing active-session scroll surface without adding a
   gesture dependency.
-- Phase 4 graceful degradation has begun locally with a visible initial-session
-  notice that refresh or navigation clears active-session chat content unless
-  the user explicitly exports and later imports a JSON backup.
+- Phase 4 graceful degradation has begun with a visible initial-session notice
+  that refresh or navigation clears active-session chat content unless the user
+  explicitly exports and later imports a JSON backup.
 
 Before broad architecture work, read `graphify-out/GRAPH_REPORT.md` first.
 When the graph may be stale, run:

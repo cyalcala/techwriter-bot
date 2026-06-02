@@ -41,18 +41,19 @@ transparency slices were accepted with privacy-first active-session boundaries:
   sanitized in-memory records, derive deterministic three-word fallback titles,
   and support list/upsert/rename/archive/delete operations without durable
   storage or network writes.
-- Current local checkpoint: code commit `721867f` adds the first Phase 4
-  Graceful Degradation slice: a visible initial-session notice that refresh or
-  navigation clears active-session chat unless the user exported and later
-  imports a JSON backup. The local tracked graph is 856 nodes and 1406 edges
-  from `721867f5`. Production acceptance is pending; the last accepted
-  production checkpoint remains mobile pinch zoom via docs commit `94c9248`
-  and GitHub Actions run `26841200035`, with the production runtime graph at
-  982 nodes and 1527 edges.
-- Next slice: push the graceful-degradation docs/Graphify checkpoint, watch
-  deployment, and record production smoke plus graph lookup acceptance. Do not
-  add marketing pages, auth, billing, multi-tenancy, autonomous agents,
-  WebContainer/runtime package tooling, or complex dashboards.
+- Current checkpoint: code commit `721867f` adds the first Phase 4 Graceful
+  Degradation slice and is accepted on production via docs commit `47c076a` and
+  GitHub Actions run `26842666865`: the initial session now visibly explains
+  that refresh or navigation clears active-session chat unless the user exported
+  and later imports a JSON backup. The local tracked graph is 856 nodes and
+  1406 edges from `721867f5`; the production runtime graph is 984 nodes and
+  1528 edges.
+- Next slice: continue Phase 4 Graceful Degradation with the next smallest
+  visible failure-mode slice. Recommended target: embedding service down should
+  skip document context, continue with non-document context when available, and
+  show a clear user-facing warning. Do not add marketing pages, auth, billing,
+  multi-tenancy, autonomous agents, WebContainer/runtime package tooling, or
+  complex dashboards.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -1592,16 +1593,29 @@ Latest incremental verification on 2026-06-01:
 - `graphify update .` refreshed tracked local Graphify artifacts from commit
   `721867f`: 856 nodes and 1406 edges. Community-count wording remains
   non-blocking.
+- The page-refresh/navigation graceful-degradation deploy passed in GitHub
+  Actions run `26842666865` from docs commit `47c076a` with immutable URL
+  `https://21221c4f.tw-bot.pages.dev`. The production runtime graph reports
+  984 nodes and 1528 edges.
+- Production probes confirmed both `https://tw-bot.pages.dev/` and
+  `https://21221c4f.tw-bot.pages.dev/` return `200`, include the default
+  `Technical Writer` branding plus `Try sample data`, and include the new
+  `Refresh or navigation clears this open-session chat` notice. Production
+  `/api/health` returns `200` with request id
+  `925c0b13-4775-488c-8b6a-3d80b3e67492`, three active providers out of six,
+  expected/stored app version `0.0.1`, and no version mismatch. Bounded graph
+  lookup for `graceful degradation` returns
+  `src/tests/graceful-degradation.test.ts:L1` from the 984-node runtime graph
+  with `Cache-Control: no-store, private`.
 
 ## Next Task
 
 Continue with Phase 4 Polish And Degrade in small slices:
 
-- Push the page-refresh/navigation graceful-degradation docs/Graphify
-  checkpoint, watch GitHub Actions deployment, and record production smoke plus
-  bounded graph lookup acceptance for code commit `721867f`.
-- After this slice is accepted on production, continue Phase 4 Graceful
-  Degradation with the next smallest visible failure-mode slice.
+- Continue Phase 4 Graceful Degradation with the next smallest visible
+  failure-mode slice. Recommended target: embedding service down should skip
+  document context, continue with non-document context when available, and show
+  a clear warning to the user.
 - If local browser smoke remains blocked by the Cloudflare local preview issue,
   record that caveat and rely on build plus production smoke after deployment.
 - Keep the UI compact and internal-tool focused. Do not add marketing pages,
