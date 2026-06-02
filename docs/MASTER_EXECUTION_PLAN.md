@@ -74,9 +74,9 @@ The current tracked code graph was refreshed with `graphify update .` on
 
 - Report: `graphify-out/GRAPH_REPORT.md`
 - Graph: `graphify-out/graph.json`
-- Summary: 856 nodes, 1406 edges
+- Summary: 857 nodes, 1407 edges
 - Extraction confidence: 94% EXTRACTED, 6% INFERRED, 0% AMBIGUOUS
-- Built from code at commit: `721867f5`
+- Built from code at commit: `579983f1`
 - The generated report currently disagrees with itself on total community
   count; use node/edge counts and targeted graph queries for acceptance until
   that reporting discrepancy is reconciled.
@@ -191,6 +191,9 @@ The current tracked code graph was refreshed with `graphify update .` on
 - Phase 4 graceful degradation has begun with a visible initial-session notice
   that refresh or navigation clears active-session chat content unless the user
   explicitly exports and later imports a JSON backup.
+- Embedding-service outage handling now skips uploaded-document context for
+  that send, continues the chat with non-document context, and shows a compact
+  Knowledge Base warning instead of blocking the response path.
 
 Before broad architecture work, read `graphify-out/GRAPH_REPORT.md` first.
 When the graph may be stale, run:
