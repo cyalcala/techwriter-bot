@@ -41,18 +41,15 @@ transparency slices were accepted with privacy-first active-session boundaries:
   sanitized in-memory records, derive deterministic three-word fallback titles,
   and support list/upsert/rename/archive/delete operations without durable
   storage or network writes.
-- Current local checkpoint: code commit `f7b5600` adds mobile artifact body
-  scroll lock and is locally verified. The local tracked graph is 854 nodes
-  and 1405 edges from `f7b56004`; production acceptance is pending the next
-  GitHub Actions deployment. The last accepted production checkpoint remains
-  sample data via docs commit `4532960` and GitHub Actions run `26815394439`,
-  with production runtime graph 980 nodes and 1526 edges.
-- Next slice: push the mobile scroll-lock docs/Graphify checkpoint, watch
-  GitHub Actions deployment, record production smoke/graph lookup acceptance,
-  then continue Mobile Artifacts with the next narrow item: swipe-down dismiss
-  or pinch zoom. Do not add marketing pages, auth, billing, multi-tenancy,
-  autonomous agents, WebContainer/runtime package tooling, or complex
-  dashboards.
+- Current checkpoint: code commit `f7b5600` adds mobile artifact body scroll
+  lock and is accepted on production via docs commit `576e93c` and GitHub
+  Actions run `26839770892`. The local tracked graph is 854 nodes and 1405
+  edges from `f7b56004`; the production runtime graph is 982 nodes and 1527
+  edges.
+- Next slice: continue Mobile Artifacts with the next narrow item: swipe-down
+  dismiss or pinch zoom. Do not add marketing pages, auth, billing,
+  multi-tenancy, autonomous agents, WebContainer/runtime package tooling, or
+  complex dashboards.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -1483,17 +1480,27 @@ Latest incremental verification on 2026-06-01:
 - `graphify update .` refreshed tracked local Graphify artifacts from commit
   `f7b5600`: 854 nodes and 1405 edges. Community-count wording remains
   non-blocking.
+- The mobile artifact scroll-lock deploy passed in GitHub Actions run
+  `26839770892` from docs commit `576e93c` with immutable URL
+  `https://62d3d9f1.tw-bot.pages.dev`. The production runtime graph reports
+  982 nodes and 1527 edges.
+- Production probes confirmed both `https://tw-bot.pages.dev/` and
+  `https://62d3d9f1.tw-bot.pages.dev/` return `200` and include the default
+  `Technical Writer` branding plus the existing `Try sample data` action.
+  Production `/api/health` returns `200` with request id
+  `3536d878-c0ae-4b68-a3b5-5742dc1d5f07`, four active providers out of six,
+  expected/stored app version `0.0.1`, and no version mismatch. Bounded graph
+  lookup for `mobile artifact` returns `src/tests/mobile-artifacts.test.ts:L1`
+  plus artifact overlay/panel context from the 982-node runtime graph with
+  `Cache-Control: no-store, private`.
 
 ## Next Task
 
 Continue with Phase 4 Polish And Degrade in small slices:
 
-- Push the mobile artifact scroll-lock docs/Graphify checkpoint, watch the
-  GitHub Actions deployment, then record production smoke acceptance for code
-  commit `f7b5600`.
-- After production acceptance, continue Mobile Artifacts with the next narrow
-  item: swipe-down dismiss or pinch zoom. Keep it focused with source tests
-  first and the smallest `ArtifactOverlay`/`ArtifactPanel` wiring.
+- Continue Mobile Artifacts with the next narrow item: swipe-down dismiss or
+  pinch zoom. Keep it focused with source tests first and the smallest
+  `ArtifactOverlay`/`ArtifactPanel` wiring.
 - If local browser smoke remains blocked by the Cloudflare local preview issue,
   record that caveat and rely on build plus production smoke after deployment.
 - Keep the UI compact and internal-tool focused. Do not add marketing pages,
