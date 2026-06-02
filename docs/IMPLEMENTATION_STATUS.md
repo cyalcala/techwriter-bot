@@ -41,17 +41,15 @@ transparency slices were accepted with privacy-first active-session boundaries:
   sanitized in-memory records, derive deterministic three-word fallback titles,
   and support list/upsert/rename/archive/delete operations without durable
   storage or network writes.
-- Current local checkpoint: code commit `2d4867d` adds pinch zoom inside the
-  mobile artifact overlay preview and is locally verified. The local tracked
-  graph is 854 nodes and 1405 edges from `2d4867df`. Production acceptance is
-  pending; the last accepted production checkpoint remains swipe-down dismissal
-  via docs commit `8339d4e` and GitHub Actions run `26840485822`, with the
-  production runtime graph at 982 nodes and 1527 edges.
-- Next slice: push the pinch-zoom docs/Graphify checkpoint, watch deployment,
-  record production smoke and graph lookup acceptance, then continue Phase 4
-  Graceful Degradation in small slices. Do not add marketing pages, auth,
-  billing, multi-tenancy, autonomous agents, WebContainer/runtime package
-  tooling, or complex dashboards.
+- Current checkpoint: code commit `2d4867d` adds pinch zoom inside the mobile
+  artifact overlay preview and is accepted on production via docs commit
+  `94c9248` and GitHub Actions run `26841200035`. The local tracked graph is
+  854 nodes and 1405 edges from `2d4867df`; the production runtime graph is
+  982 nodes and 1527 edges.
+- Next slice: continue Phase 4 Graceful Degradation in small, visible
+  failure-mode slices. Do not add marketing pages, auth, billing,
+  multi-tenancy, autonomous agents, WebContainer/runtime package tooling, or
+  complex dashboards.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -1554,16 +1552,29 @@ Latest incremental verification on 2026-06-01:
 - `graphify update .` refreshed tracked local Graphify artifacts from commit
   `2d4867d`: 854 nodes and 1405 edges. Community-count wording remains
   non-blocking.
+- The mobile artifact pinch-zoom deploy passed in GitHub Actions run
+  `26841200035` from docs commit `94c9248` with immutable URL
+  `https://b9c6e961.tw-bot.pages.dev`. The production runtime graph reports
+  982 nodes and 1527 edges.
+- Production probes confirmed both `https://tw-bot.pages.dev/` and
+  `https://b9c6e961.tw-bot.pages.dev/` return `200` and include the default
+  `Technical Writer` branding plus the existing `Try sample data` action.
+  Production `/api/health` returns `200` with request id
+  `15abc4f5-4473-4774-bd8e-656eeebf8296`, four active providers out of six,
+  expected/stored app version `0.0.1`, and no version mismatch. Bounded graph
+  lookup for `mobile artifact` returns `src/tests/mobile-artifacts.test.ts:L1`
+  plus `src/components/ArtifactOverlay.svelte:L1` and artifact panel context
+  from the 982-node runtime graph with `Cache-Control: no-store, private`;
+  lookup for `ArtifactOverlay` returns the overlay component node directly.
 
 ## Next Task
 
 Continue with Phase 4 Polish And Degrade in small slices:
 
-- Push the mobile artifact pinch-zoom docs/Graphify checkpoint, watch GitHub
-  Actions deployment, and record production smoke plus bounded graph lookup
-  acceptance for code commit `2d4867d`.
-- After pinch zoom is accepted on production, continue Phase 4 Graceful
-  Degradation with the smallest visible failure-mode slice first.
+- Continue Phase 4 Graceful Degradation with the smallest visible failure-mode
+  slice first. Recommended next target: page refresh/navigation should clearly
+  communicate that active-session content has ended unless the user explicitly
+  exported and re-imported a JSON backup.
 - If local browser smoke remains blocked by the Cloudflare local preview issue,
   record that caveat and rely on build plus production smoke after deployment.
 - Keep the UI compact and internal-tool focused. Do not add marketing pages,
