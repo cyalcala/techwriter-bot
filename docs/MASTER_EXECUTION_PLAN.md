@@ -76,7 +76,7 @@ The current tracked code graph was refreshed with `graphify update .` on
 - Graph: `graphify-out/graph.json`
 - Summary: 854 nodes, 1405 edges
 - Extraction confidence: 94% EXTRACTED, 6% INFERRED, 0% AMBIGUOUS
-- Built from code at commit: `5b3e279a`
+- Built from code at commit: `2d4867df`
 - The generated report currently disagrees with itself on total community
   count; use node/edge counts and targeted graph queries for acceptance until
   that reporting discrepancy is reconciled.
@@ -184,6 +184,10 @@ The current tracked code graph was refreshed with `graphify update .` on
 - Mobile artifact overlay dismissal now also supports a downward swipe gesture
   on the overlay chrome, using pointer events and a bounded drag threshold
   without adding a gesture library.
+- Mobile artifact overlay preview now supports focused pinch zoom with
+  two-pointer distance tracking, a 1x-3x clamped scale, and width-based zoom
+  that preserves the existing active-session scroll surface without adding a
+  gesture dependency.
 
 Before broad architecture work, read `graphify-out/GRAPH_REPORT.md` first.
 When the graph may be stale, run:
