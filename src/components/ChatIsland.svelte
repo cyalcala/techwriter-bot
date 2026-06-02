@@ -153,6 +153,7 @@
       && !isLoading
       && !isStreaming,
   );
+  const showActiveSessionResetNotice = $derived(showSuggestedPrompts);
   let sessionId = $state('');
   let conversationId = $state('');
   let conversationRecords = $state<ConversationSnapshot[]>([]);
@@ -1430,6 +1431,15 @@
       {webhookDelivery}
       {chatPath}
     />
+
+    {#if showActiveSessionResetNotice}
+      <div class="px-4 md:px-8 pb-2">
+        <div role="status" aria-live="polite" aria-label="Active session refresh notice" class="mx-auto max-w-3xl rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900">
+          <span class="font-semibold">Refresh or navigation clears this open-session chat.</span>
+          <span class="ml-1">Export session before leaving. Import session to restore messages, artifacts, and document metadata.</span>
+        </div>
+      </div>
+    {/if}
 
     {#if showSuggestedPrompts}
       <div class="px-4 md:px-8 pb-2">
