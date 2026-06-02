@@ -74,9 +74,9 @@ The current tracked code graph was refreshed with `graphify update .` on
 
 - Report: `graphify-out/GRAPH_REPORT.md`
 - Graph: `graphify-out/graph.json`
-- Summary: 854 nodes, 1405 edges
+- Summary: 856 nodes, 1406 edges
 - Extraction confidence: 94% EXTRACTED, 6% INFERRED, 0% AMBIGUOUS
-- Built from code at commit: `2d4867df`
+- Built from code at commit: `721867f5`
 - The generated report currently disagrees with itself on total community
   count; use node/edge counts and targeted graph queries for acceptance until
   that reporting discrepancy is reconciled.
@@ -188,6 +188,9 @@ The current tracked code graph was refreshed with `graphify update .` on
   two-pointer distance tracking, a 1x-3x clamped scale, and width-based zoom
   that preserves the existing active-session scroll surface without adding a
   gesture dependency.
+- Phase 4 graceful degradation has begun locally with a visible initial-session
+  notice that refresh or navigation clears active-session chat content unless
+  the user explicitly exports and later imports a JSON backup.
 
 Before broad architecture work, read `graphify-out/GRAPH_REPORT.md` first.
 When the graph may be stale, run:

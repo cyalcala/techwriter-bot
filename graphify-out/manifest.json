@@ -76,8 +76,8 @@
     "hash": "883a7823817acf92a7873f41c3e8ee97"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\components\\ChatIsland.svelte": {
-    "mtime": 1780424284.688445,
-    "hash": "86422d7759ca869d0a3a43eecd32e1c6"
+    "mtime": 1780427801.199733,
+    "hash": "55b7cd09b32daef905061e65eb4e3e89"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\components\\ChatMessages.svelte": {
     "mtime": 1780348224.7090464,
@@ -411,6 +411,10 @@
     "mtime": 1779964536.7840743,
     "hash": "0f7834d5c8ff8c637bd17f0a871d6840"
   },
+  "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\tests\\graceful-degradation.test.ts": {
+    "mtime": 1780427764.9859095,
+    "hash": "f780e9a37a98ac2cd2ad8f6ecaee4bdf"
+  },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\tests\\kroki-renderer.test.ts": {
     "mtime": 1779967880.9699893,
     "hash": "a4ff76467f775fc7c05e331434706d93"
@@ -536,12 +540,12 @@
     "hash": "5659010e5262e9fd04cd89f4b9b3191e"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\IMPLEMENTATION_STATUS.md": {
-    "mtime": 1780425717.1891518,
-    "hash": "9c670c2e01fef3e2c9c06f04fb7102b7"
+    "mtime": 1780426557.291995,
+    "hash": "86ef07d68380f9a0ece7e3d61070fa2d"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\MASTER_EXECUTION_PLAN.md": {
-    "mtime": 1780425538.0513363,
-    "hash": "21427c380d24ad03b30158dcdc0cd9ed"
+    "mtime": 1780426332.985713,
+    "hash": "c7249aca5b8727eda376f132cd49581e"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\PRODUCT_MARKETING.md": {
     "mtime": 1779964536.6182373,

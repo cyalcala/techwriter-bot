@@ -41,15 +41,18 @@ transparency slices were accepted with privacy-first active-session boundaries:
   sanitized in-memory records, derive deterministic three-word fallback titles,
   and support list/upsert/rename/archive/delete operations without durable
   storage or network writes.
-- Current checkpoint: code commit `2d4867d` adds pinch zoom inside the mobile
-  artifact overlay preview and is accepted on production via docs commit
-  `94c9248` and GitHub Actions run `26841200035`. The local tracked graph is
-  854 nodes and 1405 edges from `2d4867df`; the production runtime graph is
+- Current local checkpoint: code commit `721867f` adds the first Phase 4
+  Graceful Degradation slice: a visible initial-session notice that refresh or
+  navigation clears active-session chat unless the user exported and later
+  imports a JSON backup. The local tracked graph is 856 nodes and 1406 edges
+  from `721867f5`. Production acceptance is pending; the last accepted
+  production checkpoint remains mobile pinch zoom via docs commit `94c9248`
+  and GitHub Actions run `26841200035`, with the production runtime graph at
   982 nodes and 1527 edges.
-- Next slice: continue Phase 4 Graceful Degradation in small, visible
-  failure-mode slices. Do not add marketing pages, auth, billing,
-  multi-tenancy, autonomous agents, WebContainer/runtime package tooling, or
-  complex dashboards.
+- Next slice: push the graceful-degradation docs/Graphify checkpoint, watch
+  deployment, and record production smoke plus graph lookup acceptance. Do not
+  add marketing pages, auth, billing, multi-tenancy, autonomous agents,
+  WebContainer/runtime package tooling, or complex dashboards.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -1566,15 +1569,39 @@ Latest incremental verification on 2026-06-01:
   plus `src/components/ArtifactOverlay.svelte:L1` and artifact panel context
   from the 982-node runtime graph with `Cache-Control: no-store, private`;
   lookup for `ArtifactOverlay` returns the overlay component node directly.
+- Added the first Phase 4 Graceful Degradation slice in code commit `721867f`:
+  `ChatIsland` now shows a compact initial-session notice explaining that
+  refresh or navigation clears the open-session chat, and that users should
+  export a JSON backup before leaving if they need to restore messages,
+  artifacts, and document metadata later. The notice is tied to the same empty
+  initial-session state as suggested prompts and does not use localStorage,
+  sessionStorage, IndexedDB, KV writes, dashboards, auth, billing,
+  multi-tenancy, autonomous agents, or browser package runtimes.
+- Red-green coverage confirmed the previous page-refresh/navigation gap first:
+  `npm.cmd test -- --run src/tests/graceful-degradation.test.ts` failed because
+  `showActiveSessionResetNotice` and the refresh/navigation notice did not
+  exist, then passed after implementation. Verification passed after this
+  slice: `npm.cmd test -- --run src/tests/graceful-degradation.test.ts`
+  (1 file, 1 test),
+  `npm.cmd test -- --run src/tests/graceful-degradation.test.ts src/tests/session-transfer.test.ts src/tests/conversation-session.test.ts src/tests/privacy-first.test.ts src/tests/sample-data.test.ts src/tests/chat-markdown-export.test.ts`
+  (6 files, 33 tests), `npm.cmd test` (41 files, 189 tests),
+  `npm.cmd audit --omit=dev --audit-level=high` (0 vulnerabilities),
+  `git diff --check` (only known CRLF conversion warnings), and the recorded
+  `build:local` command (passed with the known non-failing `punycode` and
+  Wrangler local-AI warnings).
+- `graphify update .` refreshed tracked local Graphify artifacts from commit
+  `721867f`: 856 nodes and 1406 edges. Community-count wording remains
+  non-blocking.
 
 ## Next Task
 
 Continue with Phase 4 Polish And Degrade in small slices:
 
-- Continue Phase 4 Graceful Degradation with the smallest visible failure-mode
-  slice first. Recommended next target: page refresh/navigation should clearly
-  communicate that active-session content has ended unless the user explicitly
-  exported and re-imported a JSON backup.
+- Push the page-refresh/navigation graceful-degradation docs/Graphify
+  checkpoint, watch GitHub Actions deployment, and record production smoke plus
+  bounded graph lookup acceptance for code commit `721867f`.
+- After this slice is accepted on production, continue Phase 4 Graceful
+  Degradation with the next smallest visible failure-mode slice.
 - If local browser smoke remains blocked by the Cloudflare local preview issue,
   record that caveat and rely on build plus production smoke after deployment.
 - Keep the UI compact and internal-tool focused. Do not add marketing pages,
