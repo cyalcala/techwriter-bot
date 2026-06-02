@@ -75,7 +75,9 @@ describe('RAG citations and retrieval guard', () => {
   it('wires document retrieval guards into the chat path', () => {
     const island = source('src/components/ChatIsland.svelte');
 
-    expect(island).toContain('createRagRetrievalMessage({ embedFailed })');
+    expect(island).toContain('ragRetrievalUnavailable = true');
+    expect(island).toContain('createRagRetrievalMessage({ embedFailed: false })');
+    expect(island).not.toContain('createRagRetrievalMessage({ embedFailed })');
     expect(island).toContain('Cite every document-backed claim with [Doc: filename, line n]');
   });
 });

@@ -165,6 +165,7 @@
   let isUploading = $state(false);
   let rag = $state<RagState>(createDefaultRagState());
   let ragMetadataOnly = $state(false);
+  let ragRetrievalUnavailable = $state(false);
   let fileInput: HTMLInputElement;
   let sessionImportInput: HTMLInputElement;
   let isThinkingMode = $state(false);
@@ -445,6 +446,7 @@
       documents: conversation.documents,
     };
     ragMetadataOnly = conversation.documents.length > 0;
+    ragRetrievalUnavailable = false;
     documentSources = {};
     clearDocumentToolState();
     artifactQueue.clear();
@@ -546,6 +548,7 @@
     messages = [createChatMessage({ role: 'assistant', content: 'Fresh session started. My memory is now clear. What would you like to work on?' })];
     rag = clearRagState();
     ragMetadataOnly = false;
+    ragRetrievalUnavailable = false;
     documentSources = {};
     clearDocumentToolState();
     artifactQueue.clear();
@@ -569,6 +572,7 @@
     messages = [createChatMessage({ role: 'assistant', content: 'Chat cleared. My memory has been wiped. What would you like to work on?' })];
     rag = clearRagState();
     ragMetadataOnly = false;
+    ragRetrievalUnavailable = false;
     documentSources = {};
     clearDocumentToolState();
     artifactQueue.clear();
@@ -587,6 +591,7 @@
     clearSessionVectors(sessionId).catch(() => {});
     rag = clearRagState();
     ragMetadataOnly = false;
+    ragRetrievalUnavailable = false;
     documentSources = {};
     documentTopics = '';
     clearDocumentToolState();
@@ -599,10 +604,12 @@
     const remaining = rag.documents.filter((document) => document.id !== documentId);
     rag.documents = remaining;
     ragMetadataOnly = ragMetadataOnly && remaining.length > 0;
+    ragRetrievalUnavailable = false;
 
     if (remaining.length === 0) {
       rag = clearRagState();
       ragMetadataOnly = false;
+      ragRetrievalUnavailable = false;
       documentTopics = '';
       clearDocumentToolState();
       if (fileInput) fileInput.value = '';
@@ -626,6 +633,7 @@
     }
     if (result.success) {
       ragMetadataOnly = false;
+      ragRetrievalUnavailable = false;
       rag.ragDegraded = result.degraded;
       if (result.document) {
         rag.documents = [...rag.documents, result.document];
@@ -767,6 +775,7 @@
       documents: parsed.payload.documents,
     };
     ragMetadataOnly = parsed.payload.documents.length > 0;
+    ragRetrievalUnavailable = false;
     documentSources = {};
     clearDocumentToolState();
     artifactQueue.clear();
@@ -798,6 +807,7 @@
       forgetDocumentSource(documentId);
       rag.documents = rag.documents.filter((document) => document.id !== documentId);
       ragMetadataOnly = false;
+      ragRetrievalUnavailable = false;
       const file = new File([source.text], source.name, { type: 'text/plain' });
       await processFileUpload(file);
     } finally {
@@ -1022,21 +1032,24 @@
 
     let msgIdx = -1;
     try {
-      if (documentTopics) {
-        messagesToSend = [{ role: 'system', content: `DOCUMENT CONTEXT — Key topics: ${documentTopics}` }, ...messagesToSend];
-      }
-
       const hasDocument = rag.documents.length > 0 || rag.uploadStatus === 'done';
       if (hasDocument) {
         const lastUserMsg = [...messagesToSend].reverse().find((m: any) => m.role === 'user');
         if (lastUserMsg?.content) {
           const { chunks, embedFailed } = await searchDocumentChunks(sessionId, lastUserMsg.content);
-          if (embedFailed) rag.ragDegraded = true;
-          if (chunks.length > 0) {
+          if (embedFailed) {
+            rag.ragDegraded = true;
+            ragRetrievalUnavailable = true;
+          } else if (chunks.length > 0) {
+            ragRetrievalUnavailable = false;
+            if (documentTopics) {
+              messagesToSend = [{ role: 'system', content: `DOCUMENT CONTEXT — Key topics: ${documentTopics}` }, ...messagesToSend];
+            }
             const ctx = formatRagContext(chunks);
             if (ctx) messagesToSend = [{ role: 'system', content: `Use these uploaded document excerpts. Cite every document-backed claim with [Doc: filename, line n]. If the answer is not supported by these excerpts, say "I don't have enough context in the uploaded document to answer that."\n\n${ctx}` }, ...messagesToSend];
           } else {
-            messages = [...messages, createChatMessage({ role: 'assistant', content: createRagRetrievalMessage({ embedFailed }) })];
+            ragRetrievalUnavailable = false;
+            messages = [...messages, createChatMessage({ role: 'assistant', content: createRagRetrievalMessage({ embedFailed: false }) })];
             return;
           }
         }
@@ -1497,6 +1510,7 @@
       ragUploadProgress={rag.uploadProgress}
       ragDocuments={rag.documents}
       {ragMetadataOnly}
+      {ragRetrievalUnavailable}
       onRemoveFile={removeFile}
       onDeleteDocument={removeDocument}
       onReembedDocument={reembedDocument}
