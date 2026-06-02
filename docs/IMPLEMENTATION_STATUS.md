@@ -41,15 +41,15 @@ transparency slices were accepted with privacy-first active-session boundaries:
   sanitized in-memory records, derive deterministic three-word fallback titles,
   and support list/upsert/rename/archive/delete operations without durable
   storage or network writes.
-- Current checkpoint: code commit `40cab20` implements the first Onboarding Wow
-  sample-data seed and is locally verified. The local tracked graph is 852
-  nodes and 1404 edges from `40cab20`; the production runtime graph remains
-  973 nodes and 1521 edges until the next deployment acceptance pass.
-- Next slice: push the sample-data code checkpoint plus this docs/Graphify
-  checkpoint, watch GitHub Actions, and run production smoke probes for the
-  visible `Try sample data` action, health, and a bounded graph lookup. Do not
-  add marketing pages, auth, billing, multi-tenancy, autonomous agents,
-  WebContainer/runtime package tooling, or complex dashboards.
+- Current checkpoint: code commit `40cab20` is accepted on production via docs
+  commit `4532960` and GitHub Actions run `26815394439`. The local tracked
+  graph is 852 nodes and 1404 edges from `40cab20`; the production runtime
+  graph is 980 nodes and 1526 edges.
+- Next slice: continue Phase 4 with the next narrow Mobile Artifacts polish
+  task, starting with body scroll lock while the artifact overlay/split view is
+  open on mobile. Do not add marketing pages, auth, billing, multi-tenancy,
+  autonomous agents, WebContainer/runtime package tooling, or complex
+  dashboards.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -1444,21 +1444,28 @@ Latest incremental verification on 2026-06-01:
 - `graphify update .` refreshed tracked local Graphify artifacts from commit
   `40cab20`: 852 nodes and 1404 edges. Community-count wording remains
   non-blocking.
+- The sample-data onboarding deploy passed in GitHub Actions run `26815394439`
+  from docs commit `4532960` with immutable URL
+  `https://8de110a2.tw-bot.pages.dev`. The production runtime graph reports
+  980 nodes and 1526 edges.
+- Production probes confirmed both `https://tw-bot.pages.dev/` and
+  `https://8de110a2.tw-bot.pages.dev/` return `200` and include the default
+  `Technical Writer` branding plus the new `Try sample data` action.
+  Production `/api/health` returns `200` with request id
+  `f39cf00a-257a-4673-b796-980843603491`, three active providers out of six,
+  expected/stored app version `0.0.1`, and no version mismatch. Bounded graph
+  lookup for `createSampleDataFiles` returns `src/lib/sample-data.ts:L46` from
+  the 980-node runtime graph with `Cache-Control: no-store, private`.
 
 ## Next Task
 
 Continue with Phase 4 Polish And Degrade in small slices:
 
-- Push the `40cab20` sample-data code checkpoint plus this docs/Graphify
-  checkpoint to GitHub, then watch the GitHub Actions deployment.
-- Run production smoke probes after the deploy finishes: root and immutable URL
-  should return `200`, the default empty-chat UI should include `Try sample
-  data`, `/api/health` should return sanitized availability with a request id
-  and matching app version, and a bounded graph lookup for
-  `createSampleDataFiles` should resolve to `src/lib/sample-data.ts`.
-- After production acceptance, continue Phase 4 with a narrow clear-sample-data
-  polish pass only if needed by smoke findings; otherwise move to the next
-  graceful-degradation row.
+- Continue with Mobile Artifacts by starting with body scroll lock while the
+  artifact overlay/split view is open on mobile. Keep it narrow and reversible:
+  focused source tests first, then the smallest `ChatIsland`/overlay wiring.
+- If local browser smoke remains blocked by the Cloudflare local preview issue,
+  record that caveat and rely on build plus production smoke after deployment.
 - Keep the UI compact and internal-tool focused. Do not add marketing pages,
   OAuth, Stripe, multi-tenancy, email, autonomous agents, Kubernetes, Redis,
   WebContainer/runtime package tooling, or complex dashboards.
