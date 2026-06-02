@@ -42,12 +42,15 @@ session boundary:
   sanitized in-memory records, derive deterministic three-word fallback titles,
   and support list/upsert/rename/archive/delete operations without durable
   storage or network writes.
-- Current checkpoint: code commit `78f6713` is accepted on production via docs
-  commit `aa3a2f8` and GitHub Actions run `26812676384`. The local tracked
-  graph is 821 nodes and 1350 edges from `78f6713`; the production runtime
-  graph is 935 nodes and 1450 edges.
-- Next slice: continue with a narrow env-password-protected stats endpoint.
-  Keep durable telemetry content-free and do not add complex dashboards.
+- Current checkpoint: code commit `e977bb8` implements the narrow
+  env-password-protected stats endpoint and is locally verified. The local
+  tracked graph is 841 nodes and 1394 edges from `e977bb8`; the production
+  runtime graph remains 935 nodes and 1450 edges until the next deployment
+  acceptance pass.
+- Next slice: push the stats endpoint checkpoint, watch GitHub Actions, and
+  run production smoke probes for no-auth stats protection, health, root, and a
+  bounded graph lookup. Keep durable telemetry content-free and do not add
+  complex dashboards.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -211,6 +214,7 @@ Documentation Tooling Agent direction.
   - `5c8a076` Slack-format assistant response copy.
   - `bdbd53c` user-invoked webhook response export.
   - `78f6713` response transparency metadata footer.
+  - `e977bb8` protected operational stats endpoint.
 
 ## In Progress
 
@@ -1336,19 +1340,46 @@ Latest incremental verification on 2026-06-01:
   `{"in":38,"graph":0}`, and chat path `fast`. Bounded graph lookup for
   `ChatInput` returns `src/components/ChatInput.svelte:L1` from the 935-node
   runtime graph with `Cache-Control: no-store, private`.
+- Added the protected operational stats endpoint in code commit `e977bb8`:
+  `src/pages/api/stats.ts` returns only content-free aggregates from existing
+  provider telemetry: requests in the last 24 hours, successes, failures,
+  average latency, tokens used, top provider, and per-provider aggregates.
+  The route requires `STATS_PASSWORD`, accepts either `Authorization: Bearer`
+  or `x-stats-password`, rejects missing/wrong passwords, stays disabled when
+  the password is not configured, uses `Cache-Control: no-store, private`, and
+  performs no durable writes. `.env.template`, `src/lib/env-reader.ts`, and the
+  GitHub deployment workflow now carry the optional `STATS_PASSWORD` setting.
+- Red-green coverage confirmed the previous stats endpoint gap first:
+  `npm.cmd test -- --run src/tests/client-stats.test.ts src/tests/api-routes-consistency.test.ts`
+  failed because `../lib/stats` and `src/pages/api/stats.ts` did not exist,
+  then passed after implementation. Verification passed after this stats slice:
+  `npm.cmd test -- --run src/tests/client-stats.test.ts src/tests/api-routes-consistency.test.ts`
+  (2 files, 16 tests),
+  `npm.cmd test -- --run src/tests/client-stats.test.ts src/tests/provider-telemetry.test.ts src/tests/privacy-first.test.ts src/tests/api-routes-consistency.test.ts src/tests/api-response.test.ts src/tests/client-transparency.test.ts src/tests/provider-health.test.ts`
+  (7 files, 36 tests), `npm.cmd test` (37 files, 180 tests),
+  `npm.cmd audit --omit=dev --audit-level=high` (0 vulnerabilities),
+  `git diff --check` (only known CRLF conversion warnings), and the recorded
+  `build:local` command (passed with the known non-failing `punycode` and
+  Wrangler local-AI warnings).
+- `graphify update .` refreshed tracked local Graphify artifacts from commit
+  `e977bb8`: 841 nodes and 1394 edges. Community-count wording remains
+  non-blocking.
 
 ## Next Task
 
 Continue with Phase 3 Conversation Management in small slices:
 
-- Continue the next Phase 3 workflow slice as a narrow env-password-protected
-  `/api/stats` endpoint, keeping durable telemetry content-free and avoiding
-  complex dashboards.
-- Include only non-content operational aggregates: requests in the last 24
-  hours, average latency, tokens used, and top provider. Reject missing or
-  wrong passwords and keep responses `Cache-Control: no-store, private`.
-  Reuse existing provider telemetry rather than creating a new content store.
-  Avoid search-credit dashboards unless the user explicitly reprioritizes that.
+- Push the `e977bb8` stats endpoint code checkpoint plus this docs/Graphify
+  checkpoint to GitHub, then watch the GitHub Actions deployment.
+- Run production smoke probes after the deploy finishes: root and immutable URL
+  should return `200`, `/api/health` should return sanitized availability with
+  a request id and matching app version, `/api/stats` without auth should
+  reject with either `401 STATS_AUTH_REQUIRED` when `STATS_PASSWORD` is
+  configured or `503 STATS_UNAVAILABLE` when it is not, and responses should
+  include `Cache-Control: no-store, private`.
+- Run a bounded graph lookup for `collectOperationalStats` or
+  `src/pages/api/stats.ts` and record the production runtime graph counts.
+- Avoid search-credit dashboards unless the user explicitly reprioritizes that.
 - Keep future transparency UI compact; do not create a complex dashboard.
 - Preserve active-session privacy boundaries: page refresh/navigation clearly
   ends active-session content unless the user explicitly exports a JSON backup
