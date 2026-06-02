@@ -41,13 +41,16 @@ transparency slices were accepted with privacy-first active-session boundaries:
   sanitized in-memory records, derive deterministic three-word fallback titles,
   and support list/upsert/rename/archive/delete operations without durable
   storage or network writes.
-- Current checkpoint: code commit `40cab20` is accepted on production via docs
-  commit `4532960` and GitHub Actions run `26815394439`. The local tracked
-  graph is 852 nodes and 1404 edges from `40cab20`; the production runtime
-  graph is 980 nodes and 1526 edges.
-- Next slice: continue Phase 4 with the next narrow Mobile Artifacts polish
-  task, starting with body scroll lock while the artifact overlay/split view is
-  open on mobile. Do not add marketing pages, auth, billing, multi-tenancy,
+- Current local checkpoint: code commit `f7b5600` adds mobile artifact body
+  scroll lock and is locally verified. The local tracked graph is 854 nodes
+  and 1405 edges from `f7b56004`; production acceptance is pending the next
+  GitHub Actions deployment. The last accepted production checkpoint remains
+  sample data via docs commit `4532960` and GitHub Actions run `26815394439`,
+  with production runtime graph 980 nodes and 1526 edges.
+- Next slice: push the mobile scroll-lock docs/Graphify checkpoint, watch
+  GitHub Actions deployment, record production smoke/graph lookup acceptance,
+  then continue Mobile Artifacts with the next narrow item: swipe-down dismiss
+  or pinch zoom. Do not add marketing pages, auth, billing, multi-tenancy,
   autonomous agents, WebContainer/runtime package tooling, or complex
   dashboards.
 - Relay-safe documentation updates after each meaningful step.
@@ -1456,14 +1459,41 @@ Latest incremental verification on 2026-06-01:
   expected/stored app version `0.0.1`, and no version mismatch. Bounded graph
   lookup for `createSampleDataFiles` returns `src/lib/sample-data.ts:L46` from
   the 980-node runtime graph with `Cache-Control: no-store, private`.
+- Added the first Mobile Artifacts polish slice in code commit `f7b5600`:
+  `ChatIsland` now locks document/body scrolling when `isMobile` and
+  `activeArtifactEntry` are both true, then restores the previous inline
+  scroll styles when the overlay closes, the viewport leaves mobile, or the
+  component unmounts. The change is active-session-only UI behavior and does
+  not add durable storage, marketing pages, dashboards, auth, billing,
+  multi-tenancy, autonomous agents, or browser package runtimes.
+- Red-green coverage confirmed the previous mobile scroll-lock gap first:
+  `npm.cmd test -- --run src/tests/mobile-artifacts.test.ts` failed because
+  `setMobileArtifactScrollLock` and the mobile artifact lock effect did not
+  exist, then passed after implementation. Verification passed after this
+  mobile slice: `npm.cmd test -- --run src/tests/mobile-artifacts.test.ts`
+  (1 file, 1 test),
+  `npm.cmd test -- --run src/tests/mobile-artifacts.test.ts src/tests/artifact-gallery.test.ts src/tests/artifact-error-boundary.test.ts src/tests/artifact-repair-flow.test.ts src/tests/privacy-first.test.ts src/tests/session-transfer.test.ts`
+  (6 files, 30 tests), `npm.cmd test` (40 files, 186 tests),
+  `npm.cmd audit --omit=dev --audit-level=high` (0 vulnerabilities),
+  `git diff --check` (only known CRLF conversion warning), and the recorded
+  `build:local` command (passed with the known non-failing `punycode` and
+  Wrangler local-AI warnings). A local `astro dev` smoke on port 4329 started
+  Vite output but did not return a usable health probe before timeout, so
+  deployment smoke remains the acceptance path for this Cloudflare-local setup.
+- `graphify update .` refreshed tracked local Graphify artifacts from commit
+  `f7b5600`: 854 nodes and 1405 edges. Community-count wording remains
+  non-blocking.
 
 ## Next Task
 
 Continue with Phase 4 Polish And Degrade in small slices:
 
-- Continue with Mobile Artifacts by starting with body scroll lock while the
-  artifact overlay/split view is open on mobile. Keep it narrow and reversible:
-  focused source tests first, then the smallest `ChatIsland`/overlay wiring.
+- Push the mobile artifact scroll-lock docs/Graphify checkpoint, watch the
+  GitHub Actions deployment, then record production smoke acceptance for code
+  commit `f7b5600`.
+- After production acceptance, continue Mobile Artifacts with the next narrow
+  item: swipe-down dismiss or pinch zoom. Keep it focused with source tests
+  first and the smallest `ArtifactOverlay`/`ArtifactPanel` wiring.
 - If local browser smoke remains blocked by the Cloudflare local preview issue,
   record that caveat and rely on build plus production smoke after deployment.
 - Keep the UI compact and internal-tool focused. Do not add marketing pages,
