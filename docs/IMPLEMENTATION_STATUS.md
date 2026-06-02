@@ -42,15 +42,13 @@ session boundary:
   sanitized in-memory records, derive deterministic three-word fallback titles,
   and support list/upsert/rename/archive/delete operations without durable
   storage or network writes.
-- Current checkpoint: code commit `e977bb8` implements the narrow
-  env-password-protected stats endpoint and is locally verified. The local
-  tracked graph is 841 nodes and 1394 edges from `e977bb8`; the production
-  runtime graph remains 935 nodes and 1450 edges until the next deployment
-  acceptance pass.
-- Next slice: push the stats endpoint checkpoint, watch GitHub Actions, and
-  run production smoke probes for no-auth stats protection, health, root, and a
-  bounded graph lookup. Keep durable telemetry content-free and do not add
-  complex dashboards.
+- Current checkpoint: code commit `e977bb8` is accepted on production via docs
+  commit `b0d0526` and GitHub Actions run `26813722968`. The local tracked
+  graph is 841 nodes and 1394 edges from `e977bb8`; the production runtime
+  graph is 961 nodes and 1505 edges.
+- Next slice: begin Phase 4 white-label-without-code work in a narrow env-var
+  slice. Do not add marketing pages, auth, billing, multi-tenancy, autonomous
+  agents, WebContainer/runtime package tooling, or complex dashboards.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -1364,23 +1362,39 @@ Latest incremental verification on 2026-06-01:
 - `graphify update .` refreshed tracked local Graphify artifacts from commit
   `e977bb8`: 841 nodes and 1394 edges. Community-count wording remains
   non-blocking.
+- The protected stats endpoint deploy passed in GitHub Actions run
+  `26813722968` from docs commit `b0d0526` with immutable URL
+  `https://0ba52a6c.tw-bot.pages.dev`. The production runtime graph reports
+  961 nodes and 1505 edges.
+- Production probes confirmed both `https://tw-bot.pages.dev/` and
+  `https://0ba52a6c.tw-bot.pages.dev/` return `200`; the production alias
+  contains the default `Technical Writer` persona and the existing `History`
+  UI string. Production `/api/health` returns `200` with request id
+  `a737fadf-f4c7-4aa7-8079-aba1d85f0746`, four active providers out of six,
+  expected/stored app version `0.0.1`, and no version mismatch. The deployment
+  log showed `STATS_PASSWORD` was blank, so the expected production stats
+  behavior is fail-closed disabled mode: unauthenticated `/api/stats` returned
+  `503 STATS_UNAVAILABLE`, request id
+  `f66e2bff-cbec-441b-a957-162231791b0d`,
+  `Cache-Control: no-store, private`, and no content fields. Bounded graph
+  lookup for `collectOperationalStats` returns `src/lib/stats.ts:L133` from
+  the 961-node runtime graph with `Cache-Control: no-store, private`.
 
 ## Next Task
 
-Continue with Phase 3 Conversation Management in small slices:
+Continue with Phase 4 Polish And Degrade in small slices:
 
-- Push the `e977bb8` stats endpoint code checkpoint plus this docs/Graphify
-  checkpoint to GitHub, then watch the GitHub Actions deployment.
-- Run production smoke probes after the deploy finishes: root and immutable URL
-  should return `200`, `/api/health` should return sanitized availability with
-  a request id and matching app version, `/api/stats` without auth should
-  reject with either `401 STATS_AUTH_REQUIRED` when `STATS_PASSWORD` is
-  configured or `503 STATS_UNAVAILABLE` when it is not, and responses should
-  include `Cache-Control: no-store, private`.
-- Run a bounded graph lookup for `collectOperationalStats` or
-  `src/pages/api/stats.ts` and record the production runtime graph counts.
-- Avoid search-credit dashboards unless the user explicitly reprioritizes that.
-- Keep future transparency UI compact; do not create a complex dashboard.
+- Start White-Label Without Code with env-driven `APP_TITLE`, `APP_LOGO_URL`,
+  `PRIMARY_COLOR`, and `FOOTER_TEXT`, keeping defaults clean when values are
+  missing.
+- Begin with focused tests for env parsing and UI fallback behavior, then wire
+  the smallest useful UI surface. Use the recorded `build:local` command for
+  verification because this changes visible behavior.
+- Keep the UI compact and internal-tool focused. Do not add marketing pages,
+  OAuth, Stripe, multi-tenancy, email, autonomous agents, Kubernetes, Redis,
+  WebContainer/runtime package tooling, or complex dashboards.
+- The Phase 3 search-credit dashboard remains deferred unless the user
+  explicitly reprioritizes it; avoid broad dashboards.
 - Preserve active-session privacy boundaries: page refresh/navigation clearly
   ends active-session content unless the user explicitly exports a JSON backup
   file and later imports it.
@@ -1393,5 +1407,5 @@ Continue with Phase 3 Conversation Management in small slices:
 Use this in a new chat if the session stops:
 
 ```text
-Continue from C:\Users\admin\Desktop\techwriter-bot. Read docs\MASTER_EXECUTION_PLAN.md, docs\IMPLEMENTATION_STATUS.md, docs\AI_RECOVERY_TRAIL.md, and graphify-out\GRAPH_REPORT.md first. Then continue Phase 3 from docs\IMPLEMENTATION_STATUS.md Next Task. Use the build verification command recorded there. Preserve GitHub backups after each coherent slice. Do not rebuild OAuth, Stripe, multi-tenancy, email, marketing pages, autonomous agents, Kubernetes, Redis, complex dashboards, or WebContainer/runtime package tooling.
+Continue from C:\Users\admin\Desktop\techwriter-bot. Read docs\MASTER_EXECUTION_PLAN.md, docs\IMPLEMENTATION_STATUS.md, docs\AI_RECOVERY_TRAIL.md, and graphify-out\GRAPH_REPORT.md first. Then continue from docs\IMPLEMENTATION_STATUS.md Next Task. Use the build verification command recorded there when behavior changes. Preserve GitHub backups after each coherent slice. Do not rebuild OAuth, Stripe, multi-tenancy, email, marketing pages, autonomous agents, Kubernetes, Redis, complex dashboards, or WebContainer/runtime package tooling.
 ```
