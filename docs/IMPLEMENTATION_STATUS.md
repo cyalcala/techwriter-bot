@@ -13,11 +13,10 @@ Then continue from the "Next Task" section below.
 
 ## Current Focus
 
-Phase 3: Workflow And Trust.
+Phase 4: Polish And Degrade.
 
-The active slice has begun Phase 3 Conversation Management with explicit
-user-invoked session export/import while preserving the privacy-first active
-session boundary:
+The active work has moved into Phase 4 after Phase 3 conversation/export/client
+transparency slices were accepted with privacy-first active-session boundaries:
 
 - Accepted baseline: in-session filename, heading, and line metadata for
   uploaded document chunks.
@@ -42,13 +41,16 @@ session boundary:
   sanitized in-memory records, derive deterministic three-word fallback titles,
   and support list/upsert/rename/archive/delete operations without durable
   storage or network writes.
-- Current checkpoint: code commit `e977bb8` is accepted on production via docs
-  commit `b0d0526` and GitHub Actions run `26813722968`. The local tracked
-  graph is 841 nodes and 1394 edges from `e977bb8`; the production runtime
-  graph is 961 nodes and 1505 edges.
-- Next slice: begin Phase 4 white-label-without-code work in a narrow env-var
-  slice. Do not add marketing pages, auth, billing, multi-tenancy, autonomous
-  agents, WebContainer/runtime package tooling, or complex dashboards.
+- Current checkpoint: code commit `b815aa7` implements the first
+  white-label-without-code slice and is locally verified. The local tracked
+  graph is 848 nodes and 1402 edges from `b815aa7`; the production runtime
+  graph remains 961 nodes and 1505 edges until the next deployment acceptance
+  pass.
+- Next slice: push the white-label code checkpoint plus this docs/Graphify
+  checkpoint, watch GitHub Actions, and run production smoke probes for default
+  fallback branding, health, and a bounded graph lookup. Do not add marketing
+  pages, auth, billing, multi-tenancy, autonomous agents, WebContainer/runtime
+  package tooling, or complex dashboards.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -213,6 +215,7 @@ Documentation Tooling Agent direction.
   - `bdbd53c` user-invoked webhook response export.
   - `78f6713` response transparency metadata footer.
   - `e977bb8` protected operational stats endpoint.
+  - `b815aa7` env-driven white-label app chrome.
 
 ## In Progress
 
@@ -1379,17 +1382,47 @@ Latest incremental verification on 2026-06-01:
   `Cache-Control: no-store, private`, and no content fields. Bounded graph
   lookup for `collectOperationalStats` returns `src/lib/stats.ts:L133` from
   the 961-node runtime graph with `Cache-Control: no-store, private`.
+- Added the first Phase 4 White-Label Without Code slice in code commit
+  `b815aa7`: `src/lib/white-label.ts` sanitizes `APP_TITLE`, `APP_LOGO_URL`,
+  `PRIMARY_COLOR`, and `FOOTER_TEXT`; `src/pages/index.astro` reads those
+  values from Cloudflare runtime env with local fallback; `ChatIsland` and
+  `ChatInput` render the compact title/logo/accent/footer text while preserving
+  the existing `PERSONA_NAME` greeting behavior. `.env.template`,
+  `src/lib/env-reader.ts`, and the GitHub deployment workflow now carry the
+  optional white-label keys without creating marketing pages or dashboards.
+- Red-green coverage confirmed the previous white-label gap first:
+  `npm.cmd test -- --run src/tests/white-label.test.ts` failed because
+  `../lib/white-label` and the app/footer/env wiring did not exist, then passed
+  after implementation. Verification passed after this white-label slice:
+  `npm.cmd test -- --run src/tests/white-label.test.ts src/tests/brand-voice.test.ts`
+  (2 files, 8 tests),
+  `npm.cmd test -- --run src/tests/white-label.test.ts src/tests/brand-voice.test.ts src/tests/client-transparency.test.ts src/tests/privacy-first.test.ts src/tests/session-transfer.test.ts src/tests/chat-markdown-export.test.ts src/tests/api-routes-consistency.test.ts`
+  (7 files, 48 tests), `npm.cmd test` (38 files, 183 tests),
+  `npm.cmd audit --omit=dev --audit-level=high` (0 vulnerabilities),
+  `git diff --check` (only known CRLF conversion warnings), and the recorded
+  `build:local` command (passed with the known non-failing `punycode` and
+  Wrangler local-AI warnings). Local browser smoke was attempted but blocked by
+  existing local server tooling: `astro dev` did not bind to the requested port,
+  and `astro preview` failed on the known Cloudflare Pages `ASSETS` binding
+  preview issue; deployment smoke remains the acceptance path.
+- `graphify update .` refreshed tracked local Graphify artifacts from commit
+  `b815aa7`: 848 nodes and 1402 edges. Community-count wording remains
+  non-blocking.
 
 ## Next Task
 
 Continue with Phase 4 Polish And Degrade in small slices:
 
-- Start White-Label Without Code with env-driven `APP_TITLE`, `APP_LOGO_URL`,
-  `PRIMARY_COLOR`, and `FOOTER_TEXT`, keeping defaults clean when values are
-  missing.
-- Begin with focused tests for env parsing and UI fallback behavior, then wire
-  the smallest useful UI surface. Use the recorded `build:local` command for
-  verification because this changes visible behavior.
+- Push the `b815aa7` white-label code checkpoint plus this docs/Graphify
+  checkpoint to GitHub, then watch the GitHub Actions deployment.
+- Run production smoke probes after the deploy finishes: root and immutable URL
+  should return `200`, default fallback branding should still show
+  `Technical Writer`, `/api/health` should return sanitized availability with a
+  request id and matching app version, and a bounded graph lookup for
+  `readWhiteLabelConfig` should resolve to `src/lib/white-label.ts`.
+- After production acceptance, continue Phase 4 with the smallest useful
+  Onboarding Wow slice, likely a user-invoked sample-data seed that can be
+  cleared without retaining client content.
 - Keep the UI compact and internal-tool focused. Do not add marketing pages,
   OAuth, Stripe, multi-tenancy, email, autonomous agents, Kubernetes, Redis,
   WebContainer/runtime package tooling, or complex dashboards.

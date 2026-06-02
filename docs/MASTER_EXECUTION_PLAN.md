@@ -74,9 +74,9 @@ The current tracked code graph was refreshed with `graphify update .` on
 
 - Report: `graphify-out/GRAPH_REPORT.md`
 - Graph: `graphify-out/graph.json`
-- Summary: 841 nodes, 1394 edges
+- Summary: 848 nodes, 1402 edges
 - Extraction confidence: 94% EXTRACTED, 6% INFERRED, 0% AMBIGUOUS
-- Built from code at commit: `e977bb8d`
+- Built from code at commit: `b815aa70`
 - The generated report currently disagrees with itself on total community
   count; use node/edge counts and targeted graph queries for acceptance until
   that reporting discrepancy is reconciled.
@@ -171,6 +171,9 @@ The current tracked code graph was refreshed with `graphify update .` on
   existing content-free provider telemetry only, returns no-store/private
   operational aggregates, and stays disabled when the password is not
   configured.
+- Phase 4 white-label app chrome has begun locally: `APP_TITLE`,
+  `APP_LOGO_URL`, `PRIMARY_COLOR`, and `FOOTER_TEXT` are sanitized and wired
+  through the compact app header/footer without marketing pages or dashboards.
 
 Before broad architecture work, read `graphify-out/GRAPH_REPORT.md` first.
 When the graph may be stale, run:
