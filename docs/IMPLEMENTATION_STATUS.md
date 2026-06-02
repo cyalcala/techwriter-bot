@@ -42,15 +42,12 @@ session boundary:
   sanitized in-memory records, derive deterministic three-word fallback titles,
   and support list/upsert/rename/archive/delete operations without durable
   storage or network writes.
-- Current local checkpoint: code commit `78f6713` implements the first client
-  transparency footer slice and is locally verified. The local tracked graph is
-  821 nodes and 1350 edges from `78f6713`; production deployment acceptance is
-  pending for this checkpoint. The latest accepted production checkpoint remains
-  the webhook export slice via docs commit `943139f` and GitHub Actions run
-  `26782762564`.
-- Next slice: push and accept the client transparency footer deployment, then
-  continue with a narrow env-password-protected stats endpoint. Keep durable
-  telemetry content-free and do not add complex dashboards.
+- Current checkpoint: code commit `78f6713` is accepted on production via docs
+  commit `aa3a2f8` and GitHub Actions run `26812676384`. The local tracked
+  graph is 821 nodes and 1350 edges from `78f6713`; the production runtime
+  graph is 935 nodes and 1450 edges.
+- Next slice: continue with a narrow env-password-protected stats endpoint.
+  Keep durable telemetry content-free and do not add complex dashboards.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -1324,21 +1321,35 @@ Latest incremental verification on 2026-06-01:
 - `graphify update .` refreshed tracked local Graphify artifacts from commit
   `78f6713`: 821 nodes and 1350 edges. Community-count wording remains
   non-blocking.
-- Production deployment and smoke acceptance are pending for the client
-  transparency footer slice.
+- The client transparency footer deploy passed in GitHub Actions run
+  `26812676384` from docs commit `aa3a2f8` with immutable URL
+  `https://02780d73.tw-bot.pages.dev`. The production runtime graph reports
+  935 nodes and 1450 edges.
+- Production probes confirmed both `https://tw-bot.pages.dev/` and
+  `https://02780d73.tw-bot.pages.dev/` return `200` and contain the default
+  `Technical Writer` persona. Production `/api/health` returns `200` with
+  request id `b537481a-a839-4115-b7ba-b20c7bad1718`, three active providers
+  out of six, expected/stored app version `0.0.1`, and no version mismatch. A
+  minimal production `/api/chat` smoke request returned `200` SSE with request
+  id `b9e29272-8880-4e93-beb0-1fe07e97fdd6`, provider `groq-fast`, latency
+  `300` ms, `x-active-provider-count: 4`, token usage
+  `{"in":38,"graph":0}`, and chat path `fast`. Bounded graph lookup for
+  `ChatInput` returns `src/components/ChatInput.svelte:L1` from the 935-node
+  runtime graph with `Cache-Control: no-store, private`.
 
 ## Next Task
 
 Continue with Phase 3 Conversation Management in small slices:
 
-- First finish the GitHub-backed acceptance loop for code commit `78f6713`:
-  commit the docs/Graphify checkpoint, push `main`, watch GitHub Actions,
-  smoke the production alias and immutable URL, query the bounded runtime graph
-  for `captureResponseTransparency` or `x-active-provider-count`, then record
-  production acceptance in this file.
-- After that, continue the next Phase 3 workflow slice as a narrow
-  env-password-protected `/api/stats` endpoint, keeping durable telemetry
-  content-free and avoiding complex dashboards.
+- Continue the next Phase 3 workflow slice as a narrow env-password-protected
+  `/api/stats` endpoint, keeping durable telemetry content-free and avoiding
+  complex dashboards.
+- Include only non-content operational aggregates: requests in the last 24
+  hours, average latency, tokens used, and top provider. Reject missing or
+  wrong passwords and keep responses `Cache-Control: no-store, private`.
+  Reuse existing provider telemetry rather than creating a new content store.
+  Avoid search-credit dashboards unless the user explicitly reprioritizes that.
+- Keep future transparency UI compact; do not create a complex dashboard.
 - Preserve active-session privacy boundaries: page refresh/navigation clearly
   ends active-session content unless the user explicitly exports a JSON backup
   file and later imports it.
