@@ -41,19 +41,18 @@ transparency slices were accepted with privacy-first active-session boundaries:
   sanitized in-memory records, derive deterministic three-word fallback titles,
   and support list/upsert/rename/archive/delete operations without durable
   storage or network writes.
-- Current local checkpoint: code commit `579983f` adds the next Phase 4
-  Graceful Degradation slice: if embedding retrieval fails during a document
-  question, the app skips uploaded-document context for that send, continues the
-  chat with non-document context, and shows a compact Knowledge Base warning.
-  The local tracked graph is 857 nodes and 1407 edges from `579983f1`.
-  Deployment acceptance is pending until the docs/Graphify checkpoint is pushed
-  and GitHub Actions completes.
-- Next slice after deployment acceptance: continue Phase 4 Graceful
-  Degradation with the next smallest visible failure-mode slice. Recommended
-  target: all search APIs fail should continue without live results and show a
-  clear warning. Do not add marketing pages, auth, billing, multi-tenancy,
-  autonomous agents, WebContainer/runtime package tooling, or complex
-  dashboards.
+- Current checkpoint: code commit `579983f` adds the next Phase 4 Graceful
+  Degradation slice and is accepted on production via docs commit `b862a67` and
+  GitHub Actions run `26844370877`: if embedding retrieval fails during a
+  document question, the app skips uploaded-document context for that send,
+  continues the chat with non-document context, and shows a compact Knowledge
+  Base warning. The local tracked graph is 857 nodes and 1407 edges from
+  `579983f1`; the production runtime graph is 985 nodes and 1529 edges.
+- Next slice: continue Phase 4 Graceful Degradation with the next smallest
+  visible failure-mode slice. Recommended target: all search APIs fail should
+  continue without live results and show a clear warning. Do not add marketing
+  pages, auth, billing, multi-tenancy, autonomous agents, WebContainer/runtime
+  package tooling, or complex dashboards.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -1631,18 +1630,30 @@ Latest incremental verification on 2026-06-01:
   Wrangler local-AI warnings).
 - `graphify update .` refreshed tracked local Graphify artifacts from commit
   `579983f`: 857 nodes and 1407 edges. Community-count wording remains
-  non-blocking. Deployment acceptance is pending until this docs/Graphify
-  checkpoint is pushed and GitHub Actions completes.
+  non-blocking.
+- The embedding-retrieval graceful-degradation deploy passed in GitHub Actions
+  run `26844370877` from docs commit `b862a67` with immutable URL
+  `https://84436500.tw-bot.pages.dev`. The production runtime graph reports
+  985 nodes and 1529 edges.
+- Production probes confirmed both `https://tw-bot.pages.dev/` and
+  `https://84436500.tw-bot.pages.dev/` return `200`, include the default
+  `Technical Writer` branding plus `Try sample data`, and retain the existing
+  `Refresh or navigation clears this open-session chat` notice. The new
+  embedding warning is intentionally not visible on first paint because it only
+  appears after an active-session embedding retrieval failure. Production
+  `/api/health` returns `200` with request id
+  `b2338635-8c40-4ff4-8beb-2be6622e4475`, four active providers, expected and
+  stored app version `0.0.1`, and no version mismatch. Bounded graph lookup for
+  `embedding retrieval` returns `createRagRetrievalMessage()` from
+  `src/lib/rag-client.ts:L119`; lookup for
+  `Document context temporarily unavailable` returns 12 nodes from the
+  985-node runtime graph, both with `Cache-Control: no-store, private`.
 
 ## Next Task
 
 Continue with Phase 4 Polish And Degrade in small slices:
 
-- First, if deployment acceptance for code commit `579983f` has not yet been
-  recorded, push the docs/Graphify checkpoint, watch GitHub Actions, run
-  production smoke checks, and record the run id, immutable URL, runtime graph,
-  and bounded graph lookup evidence.
-- Then continue Phase 4 Graceful Degradation with the next smallest visible
+- Continue Phase 4 Graceful Degradation with the next smallest visible
   failure-mode slice. Recommended target: all search APIs fail should continue
   without live results and show a clear warning to the user.
 - If local browser smoke remains blocked by the Cloudflare local preview issue,
