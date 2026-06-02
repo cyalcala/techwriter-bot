@@ -218,6 +218,40 @@
   let activeArtifactEntry = $state<ArtifactEntry | null>(null);
   let artifactError = $state<string | null>(null);
   let pendingArtifactRepair = $state<ArtifactRepairTarget | null>(null);
+  let unlockMobileArtifactScroll: (() => void) | null = null;
+
+  function setMobileArtifactScrollLock(locked: boolean) {
+    if (typeof document === 'undefined') return;
+
+    if (!locked) {
+      unlockMobileArtifactScroll?.();
+      unlockMobileArtifactScroll = null;
+      return;
+    }
+
+    if (unlockMobileArtifactScroll) return;
+
+    const previousDocumentOverflow = document.documentElement.style.overflow;
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousBodyOverscrollBehavior = document.body.style.overscrollBehavior;
+
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    document.body.style.overscrollBehavior = 'contain';
+
+    unlockMobileArtifactScroll = () => {
+      document.documentElement.style.overflow = previousDocumentOverflow;
+      document.body.style.overflow = previousBodyOverflow;
+      document.body.style.overscrollBehavior = previousBodyOverscrollBehavior;
+    };
+  }
+
+  $effect(() => {
+    const shouldLockMobileArtifactScroll = isMobile && !!activeArtifactEntry;
+    setMobileArtifactScrollLock(shouldLockMobileArtifactScroll);
+
+    return () => setMobileArtifactScrollLock(false);
+  });
 
   async function resolveArtifact(art: Artifact, msgIdx: number) {
     let code = art.code;
