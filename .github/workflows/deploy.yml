@@ -89,6 +89,7 @@ jobs:
             EXA_API_KEY: process.env.EXA_API_KEY,
             TURNSTILE_SECRET_KEY: process.env.TURNSTILE_SECRET_KEY,
             DEV_IPS: process.env.DEV_IPS,
+            STATS_PASSWORD: process.env.STATS_PASSWORD,
             SYSTEM_PROMPT: process.env.SYSTEM_PROMPT,
             PERSONA_NAME: process.env.PERSONA_NAME,
           };
@@ -134,6 +135,7 @@ jobs:
           EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
           TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
           DEV_IPS: ${{ secrets.DEV_IPS }}
+          STATS_PASSWORD: ${{ secrets.STATS_PASSWORD }}
           SYSTEM_PROMPT: ${{ secrets.SYSTEM_PROMPT }}
           PERSONA_NAME: ${{ vars.PERSONA_NAME || secrets.PERSONA_NAME }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
