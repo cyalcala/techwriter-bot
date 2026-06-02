@@ -20,4 +20,20 @@ describe('mobile artifact overlay behavior', () => {
     expect(island).toContain('previousBodyOverflow');
     expect(island).toContain('previousBodyOverscrollBehavior');
   });
+
+  it('lets mobile users swipe down on the artifact overlay chrome to dismiss it', () => {
+    const overlay = source('src/components/ArtifactOverlay.svelte');
+
+    expect(overlay).toContain('const SWIPE_DISMISS_THRESHOLD = 96');
+    expect(overlay).toContain('function startSwipeDismiss(e: PointerEvent)');
+    expect(overlay).toContain('function trackSwipeDismiss(e: PointerEvent)');
+    expect(overlay).toContain('function finishSwipeDismiss(e: PointerEvent)');
+    expect(overlay).toContain('function resetSwipeDismiss()');
+    expect(overlay).toContain('if (deltaY >= SWIPE_DISMISS_THRESHOLD) closeOverlay()');
+    expect(overlay).toContain('onpointerdown={startSwipeDismiss}');
+    expect(overlay).toContain('onpointermove={trackSwipeDismiss}');
+    expect(overlay).toContain('onpointerup={finishSwipeDismiss}');
+    expect(overlay).toContain('style:transform={`translateY(${visible ? swipeOffsetY : 32}px)`}');
+    expect(overlay).toContain('aria-hidden="true"');
+  });
 });

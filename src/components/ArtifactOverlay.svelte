@@ -13,8 +13,15 @@
 
   let { svg = '', code = '', type = '', title = '', onclose = () => {} }: Props = $props();
 
+  const SWIPE_DISMISS_THRESHOLD = 96;
+  const SWIPE_DISMISS_RESISTANCE = 0.7;
+  const SWIPE_DISMISS_MAX_OFFSET = 180;
+
   let visible = $state(false);
   let copied = $state(false);
+  let swipeStartY = $state<number | null>(null);
+  let swipeOffsetY = $state(0);
+  let swipeTracking = $state(false);
   let hasContent = $derived(!!svg || !!code);
   let overlayArtifact = $derived<Artifact | null>(hasContent ? {
     id: `overlay-${type}-${(svg || code).length}`,
@@ -30,6 +37,7 @@
       const prev = window.history.state?.overlayOpen;
       if (!prev) window.history.pushState({ overlayOpen: true }, '');
     } else {
+      resetSwipeDismiss();
       visible = false;
     }
   });
@@ -44,9 +52,43 @@
   });
 
   function closeOverlay() {
+    resetSwipeDismiss();
     visible = false;
     if (window.history.state?.overlayOpen) window.history.back();
     setTimeout(() => onclose(), 300);
+  }
+
+  function startSwipeDismiss(e: PointerEvent) {
+    swipeStartY = e.clientY;
+    swipeOffsetY = 0;
+    swipeTracking = true;
+    try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch {}
+  }
+
+  function trackSwipeDismiss(e: PointerEvent) {
+    if (!swipeTracking || swipeStartY === null) return;
+    const deltaY = Math.max(0, e.clientY - swipeStartY);
+    if (deltaY > 8) e.preventDefault();
+    swipeOffsetY = Math.min(SWIPE_DISMISS_MAX_OFFSET, Math.round(deltaY * SWIPE_DISMISS_RESISTANCE));
+  }
+
+  function finishSwipeDismiss(e: PointerEvent) {
+    if (!swipeTracking) return;
+    const deltaY = swipeStartY === null ? 0 : e.clientY - swipeStartY;
+    try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch {}
+    resetSwipeDismiss();
+    if (deltaY >= SWIPE_DISMISS_THRESHOLD) closeOverlay();
+  }
+
+  function cancelSwipeDismiss(e: PointerEvent) {
+    try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch {}
+    resetSwipeDismiss();
+  }
+
+  function resetSwipeDismiss() {
+    swipeStartY = null;
+    swipeOffsetY = 0;
+    swipeTracking = false;
   }
 
   const typeBadge: Record<string, string> = {
@@ -87,11 +129,21 @@
   >
     <div class="absolute inset-0 bg-stone-900/90 backdrop-blur-sm"></div>
     <div
-      class="relative flex flex-col flex-1 m-2 rounded-lg bg-stone-800 overflow-hidden transition-transform duration-300 {visible ? 'translate-y-0' : 'translate-y-8'}"
+      class="relative flex flex-col flex-1 m-2 rounded-lg bg-stone-800 overflow-hidden transition-transform {swipeTracking ? 'duration-75' : 'duration-300'}"
+      style:transform={`translateY(${visible ? swipeOffsetY : 32}px)`}
       onclick={(e) => e.stopPropagation()}
       onkeydown={(e) => e.stopPropagation()}
     >
-      <div class="flex items-center justify-between px-4 py-3 bg-stone-800/90 shrink-0 border-b border-stone-700">
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div
+        class="relative flex items-center justify-between px-4 py-3 bg-stone-800/90 shrink-0 border-b border-stone-700"
+        style="touch-action: none;"
+        onpointerdown={startSwipeDismiss}
+        onpointermove={trackSwipeDismiss}
+        onpointerup={finishSwipeDismiss}
+        onpointercancel={cancelSwipeDismiss}
+      >
+        <div aria-hidden="true" class="absolute left-1/2 top-1 h-1 w-10 -translate-x-1/2 rounded-full bg-stone-500/70"></div>
         <button onclick={closeOverlay} class="flex items-center gap-1.5 text-stone-300 hover:text-white transition-colors" aria-label="Back to chat">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
           <span class="text-sm font-medium">Chat</span>
