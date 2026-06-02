@@ -52,6 +52,8 @@
     failoverEvents?: FailoverEvent[];
     panelOpen: boolean;
     isMobile: boolean;
+    primaryColor?: string;
+    footerText?: string;
   }
 
   let {
@@ -59,6 +61,8 @@
     mode, onModeChange, enhancedCredits, onFileClick, isUploading,
     ragUploadedFileName = '', ragUploadStatus = 'idle', ragDegraded = false,
     ragUploadProgress = null, ragDocuments = [], ragMetadataOnly = false, onRemoveFile, onDeleteDocument, onReembedDocument, toolsOpen, onToggleTools, tokenDisplay, responseTransparency, chatPath, failoverEvents = [], panelOpen, isMobile,
+    primaryColor = '#16a34a',
+    footerText = 'AI can make mistakes. Verify important info.',
   }: Props = $props();
   let privacyOpen = $state(false);
 
@@ -91,7 +95,7 @@
 <svelte:window onkeydown={closePrivacyOnEscape} />
 
 {#if !(panelOpen && isMobile)}
-  <footer class="p-3 md:p-4 bg-[#faf7f2]/90 backdrop-blur-xl border-t border-stone-200/60 transition-all">
+  <footer class="p-3 md:p-4 bg-[#faf7f2]/90 backdrop-blur-xl border-t border-stone-200/60 transition-all" style:--brand-primary={primaryColor}>
     <div class="max-w-3xl mx-auto">
       {#if ragDocuments.length > 0}
         <div class="mb-2 flex flex-wrap items-center gap-1.5 text-[10px] text-stone-600" aria-label="Knowledge Base">
@@ -171,7 +175,7 @@
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><rect x="3" y="3" width="14" height="14" rx="2"/></svg>
           </button>
         {:else}
-          <button onclick={onSend} disabled={disabled || !inputMessage.trim()} class="bg-stone-800 hover:bg-stone-700 text-white p-2.5 rounded-xl transition-all active:scale-95 disabled:opacity-20 shrink-0" aria-label="Send message">
+          <button onclick={onSend} disabled={disabled || !inputMessage.trim()} class="text-white p-2.5 rounded-xl transition-all active:scale-95 disabled:opacity-20 shrink-0" style:background-color={primaryColor} aria-label="Send message">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/></svg>
           </button>
         {/if}
@@ -243,7 +247,7 @@
           {/if}
         </div>
         <div class="flex items-center gap-2 shrink-0">
-          <span class="hidden sm:inline">AI can make mistakes. Verify important info.</span>
+          <span class="hidden sm:inline">{footerText}</span>
           <button
             type="button"
             onclick={onToggleTools}

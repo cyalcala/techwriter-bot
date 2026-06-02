@@ -92,6 +92,10 @@ jobs:
             STATS_PASSWORD: process.env.STATS_PASSWORD,
             SYSTEM_PROMPT: process.env.SYSTEM_PROMPT,
             PERSONA_NAME: process.env.PERSONA_NAME,
+            APP_TITLE: process.env.APP_TITLE,
+            APP_LOGO_URL: process.env.APP_LOGO_URL,
+            PRIMARY_COLOR: process.env.PRIMARY_COLOR,
+            FOOTER_TEXT: process.env.FOOTER_TEXT,
           };
           const body = JSON.stringify({
             deployment_configs: { [process.env.DEPLOYMENT_ENV]: { env_vars: Object.fromEntries(
@@ -138,6 +142,10 @@ jobs:
           STATS_PASSWORD: ${{ secrets.STATS_PASSWORD }}
           SYSTEM_PROMPT: ${{ secrets.SYSTEM_PROMPT }}
           PERSONA_NAME: ${{ vars.PERSONA_NAME || secrets.PERSONA_NAME }}
+          APP_TITLE: ${{ vars.APP_TITLE || secrets.APP_TITLE }}
+          APP_LOGO_URL: ${{ vars.APP_LOGO_URL || secrets.APP_LOGO_URL }}
+          PRIMARY_COLOR: ${{ vars.PRIMARY_COLOR || secrets.PRIMARY_COLOR }}
+          FOOTER_TEXT: ${{ vars.FOOTER_TEXT || secrets.FOOTER_TEXT }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
 

@@ -2,9 +2,16 @@
 import '../styles/global.css';
 import ChatIsland from '../components/ChatIsland.svelte';
 import { deriveSuggestedPrompts } from '../lib/prompts';
+import { readWhiteLabelConfig } from '../lib/white-label';
 import { env as cfGlobalEnv } from 'cloudflare:workers';
 
 const runtimeEnv = cfGlobalEnv as Record<string, unknown>;
+function readRuntimeValue(key: string): string | undefined {
+  return typeof runtimeEnv[key] === 'string'
+    ? runtimeEnv[key] as string
+    : import.meta.env[key];
+}
+
 const rawPersonaName = typeof runtimeEnv.PERSONA_NAME === 'string'
   ? runtimeEnv.PERSONA_NAME
   : import.meta.env.PERSONA_NAME;
@@ -13,6 +20,12 @@ const rawSystemPrompt = typeof runtimeEnv.SYSTEM_PROMPT === 'string'
   : import.meta.env.SYSTEM_PROMPT;
 const personaName = (rawPersonaName || 'Technical Writer').trim() || 'Technical Writer';
 const suggestedPrompts = deriveSuggestedPrompts(rawSystemPrompt);
+const whiteLabel = readWhiteLabelConfig({
+  APP_TITLE: readRuntimeValue('APP_TITLE'),
+  APP_LOGO_URL: readRuntimeValue('APP_LOGO_URL'),
+  PRIMARY_COLOR: readRuntimeValue('PRIMARY_COLOR'),
+  FOOTER_TEXT: readRuntimeValue('FOOTER_TEXT'),
+}, { personaName });
 ---
 
 <html lang="en">
@@ -21,13 +34,21 @@ const suggestedPrompts = deriveSuggestedPrompts(rawSystemPrompt);
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
   <meta name="generator" content={Astro.generator} />
-  <title>{personaName}</title>
+  <title>{whiteLabel.appTitle}</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500&display=swap" rel="stylesheet">
 </head>
 <body class="bg-[#fcfaf6] text-[#2e2e2e] m-0 p-0 overflow-hidden">
-  <ChatIsland client:load personaName={personaName} suggestedPrompts={suggestedPrompts} />
+  <ChatIsland
+    client:load
+    personaName={personaName}
+    suggestedPrompts={suggestedPrompts}
+    appTitle={whiteLabel.appTitle}
+    logoUrl={whiteLabel.logoUrl}
+    primaryColor={whiteLabel.primaryColor}
+    footerText={whiteLabel.footerText}
+  />
 </body>
 </html>

@@ -20,10 +20,14 @@ export function readEnvKeys(baseEnv: Record<string, any>): void {
   set('STATS_PASSWORD', import.meta.env.STATS_PASSWORD);
   set('SYSTEM_PROMPT', import.meta.env.SYSTEM_PROMPT);
   set('PERSONA_NAME', import.meta.env.PERSONA_NAME);
+  set('APP_TITLE', import.meta.env.APP_TITLE);
+  set('APP_LOGO_URL', import.meta.env.APP_LOGO_URL);
+  set('PRIMARY_COLOR', import.meta.env.PRIMARY_COLOR);
+  set('FOOTER_TEXT', import.meta.env.FOOTER_TEXT);
 }
 
 export function checkEnvKeys(env: Record<string, any>): Record<string, boolean> {
-  const keyNames = ['GROQ_API_KEY', 'CEREBRAS_API_KEY', 'GEMINI_API_KEY', 'NVIDIA_API_KEY', 'OPENROUTER_API_KEY', 'TAVILY_API_KEY', 'EXA_API_KEY', 'TURNSTILE_SECRET_KEY', 'DEV_IPS', 'PROJECT_NAME', 'APP_VERSION', 'RATE_LIMIT_PER_MINUTE', 'RATE_LIMIT_PER_DAY', 'CHAT_MAX_CHARS', 'MAX_REQUEST_BODY_BYTES', 'HEALTH_PING_TIMEOUT_MS', 'PROVIDER_FAULT_INJECTION_TOKEN', 'STATS_PASSWORD', 'SYSTEM_PROMPT', 'PERSONA_NAME'];
+  const keyNames = ['GROQ_API_KEY', 'CEREBRAS_API_KEY', 'GEMINI_API_KEY', 'NVIDIA_API_KEY', 'OPENROUTER_API_KEY', 'TAVILY_API_KEY', 'EXA_API_KEY', 'TURNSTILE_SECRET_KEY', 'DEV_IPS', 'PROJECT_NAME', 'APP_VERSION', 'RATE_LIMIT_PER_MINUTE', 'RATE_LIMIT_PER_DAY', 'CHAT_MAX_CHARS', 'MAX_REQUEST_BODY_BYTES', 'HEALTH_PING_TIMEOUT_MS', 'PROVIDER_FAULT_INJECTION_TOKEN', 'STATS_PASSWORD', 'SYSTEM_PROMPT', 'PERSONA_NAME', 'APP_TITLE', 'APP_LOGO_URL', 'PRIMARY_COLOR', 'FOOTER_TEXT'];
   const keys: Record<string, boolean> = {};
   for (const k of keyNames) {
     keys[k] = typeof env[k] === 'string' && (env[k] as string).trim().length > 0;

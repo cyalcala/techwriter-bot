@@ -31,6 +31,7 @@
     upsertConversationSnapshot,
     type ConversationSnapshot,
   } from '../lib/conversation-session';
+  import { DEFAULT_FOOTER_TEXT, DEFAULT_PRIMARY_COLOR, readWhiteLabelConfig } from '../lib/white-label';
   import { reviewDocument, type DocumentFinding, type TerminologyRule } from '../lib/document-review';
   import ChatMessages from './ChatMessages.svelte';
   import ChatInput from './ChatInput.svelte';
@@ -88,6 +89,10 @@
   interface Props {
     personaName?: string;
     suggestedPrompts?: string[];
+    appTitle?: string;
+    logoUrl?: string;
+    primaryColor?: string;
+    footerText?: string;
   }
 
   const DEFAULT_PERSONA_NAME = 'Technical Writer';
@@ -100,6 +105,10 @@
   let {
     personaName = DEFAULT_PERSONA_NAME,
     suggestedPrompts = DEFAULT_SUGGESTED_PROMPTS,
+    appTitle = '',
+    logoUrl = '',
+    primaryColor = DEFAULT_PRIMARY_COLOR,
+    footerText = DEFAULT_FOOTER_TEXT,
   }: Props = $props();
 
   function cleanPersonaName(name?: string): string {
@@ -115,6 +124,16 @@
   }
 
   const visiblePersonaName = $derived(cleanPersonaName(personaName));
+  const visibleWhiteLabel = $derived(readWhiteLabelConfig({
+    APP_TITLE: appTitle,
+    APP_LOGO_URL: logoUrl,
+    PRIMARY_COLOR: primaryColor,
+    FOOTER_TEXT: footerText,
+  }, { personaName: visiblePersonaName }));
+  const visibleAppTitle = $derived(visibleWhiteLabel.appTitle);
+  const visibleLogoUrl = $derived(visibleWhiteLabel.logoUrl);
+  const visiblePrimaryColor = $derived(visibleWhiteLabel.primaryColor);
+  const visibleFooterText = $derived(visibleWhiteLabel.footerText);
   const visibleSuggestedPrompts = $derived(
     (Array.isArray(suggestedPrompts) ? suggestedPrompts : [])
       .map((prompt) => prompt.trim())
@@ -1204,7 +1223,7 @@
 
 <svelte:window onkeydown={handleGlobalKeydown} />
 
-<div class="flex h-dvh bg-[#faf7f2] text-stone-800 font-['Inter'] selection:bg-amber-200/50 overflow-hidden">
+<div class="flex h-dvh bg-[#faf7f2] text-stone-800 font-['Inter'] selection:bg-amber-200/50 overflow-hidden" style:--brand-primary={visiblePrimaryColor}>
   <div class="flex flex-col flex-1 min-w-0 transition-all duration-300">
     {#if !isOnline}
       <div class="bg-amber-600 text-white text-center text-xs py-1.5 font-medium tracking-wide">You're offline. Reconnecting...</div>
@@ -1225,8 +1244,12 @@
     <header class="px-3 md:px-6 py-2.5 bg-[#faf7f2]/90 backdrop-blur-xl border-b border-stone-200/60 flex justify-between items-center z-20">
       <div class="flex items-center gap-2 md:gap-3 min-w-0">
         <div class="flex items-center gap-1.5 shrink-0">
-          <div class="w-2 h-2 md:w-2.5 md:h-2.5 rounded-full bg-green-600 animate-pulse shadow-[0_0_6px_rgba(22,163,74,0.4)]"></div>
-          <h1 class="text-xs md:text-sm font-semibold tracking-tight text-stone-800 whitespace-nowrap">{visiblePersonaName}</h1>
+          {#if visibleLogoUrl}
+            <img src={visibleLogoUrl} alt="" class="h-5 w-5 rounded object-contain" loading="eager" decoding="async" referrerpolicy="no-referrer" />
+          {:else}
+            <div class="w-2 h-2 md:w-2.5 md:h-2.5 rounded-full animate-pulse" style:background-color={visiblePrimaryColor} style:box-shadow={`0 0 6px ${visiblePrimaryColor}66`}></div>
+          {/if}
+          <h1 class="text-xs md:text-sm font-semibold tracking-tight text-stone-800 whitespace-nowrap" title={visiblePersonaName}>{visibleAppTitle}</h1>
         </div>
         <span class="text-stone-300 hidden sm:inline">/</span>
         <a href="https://www.linkedin.com/in/cyrusalcala/" target="_blank" rel="noopener" class="hidden sm:flex items-center gap-1 text-[10px] md:text-[11px] text-stone-400 hover:text-stone-600 transition-colors font-medium">
@@ -1414,6 +1437,8 @@
       {failoverEvents}
       panelOpen={!!activeArtifactEntry}
       {isMobile}
+      primaryColor={visiblePrimaryColor}
+      footerText={visibleFooterText}
     />
   </div>
 
