@@ -41,15 +41,18 @@ transparency slices were accepted with privacy-first active-session boundaries:
   sanitized in-memory records, derive deterministic three-word fallback titles,
   and support list/upsert/rename/archive/delete operations without durable
   storage or network writes.
-- Current checkpoint: code commit `f7b5600` adds mobile artifact body scroll
-  lock and is accepted on production via docs commit `576e93c` and GitHub
-  Actions run `26839770892`. The local tracked graph is 854 nodes and 1405
-  edges from `f7b56004`; the production runtime graph is 982 nodes and 1527
-  edges.
-- Next slice: continue Mobile Artifacts with the next narrow item: swipe-down
-  dismiss or pinch zoom. Do not add marketing pages, auth, billing,
-  multi-tenancy, autonomous agents, WebContainer/runtime package tooling, or
-  complex dashboards.
+- Current local checkpoint: code commit `5b3e279` adds swipe-down dismissal
+  for the mobile artifact overlay and is locally verified. The local tracked
+  graph is 854 nodes and 1405 edges from `5b3e279a`; production acceptance is
+  pending the next GitHub Actions deployment. The last accepted production
+  checkpoint remains mobile body scroll lock via docs commit `576e93c` and
+  GitHub Actions run `26839770892`, with production runtime graph 982 nodes
+  and 1527 edges.
+- Next slice: push the swipe-dismiss docs/Graphify checkpoint, watch GitHub
+  Actions deployment, record production smoke/graph lookup acceptance, then
+  continue Mobile Artifacts with pinch zoom. Do not add marketing pages, auth,
+  billing, multi-tenancy, autonomous agents, WebContainer/runtime package
+  tooling, or complex dashboards.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -1493,13 +1496,39 @@ Latest incremental verification on 2026-06-01:
   lookup for `mobile artifact` returns `src/tests/mobile-artifacts.test.ts:L1`
   plus artifact overlay/panel context from the 982-node runtime graph with
   `Cache-Control: no-store, private`.
+- Added the second Mobile Artifacts polish slice in code commit `5b3e279`:
+  `ArtifactOverlay` now supports swipe-down dismissal on the mobile overlay
+  chrome. Pointer handlers capture the start/move/end gesture, move the overlay
+  downward with bounded resistance, close only after a 96 px downward threshold,
+  and snap back for smaller drags. The change stays inside the active-session
+  overlay UI and does not add durable storage, marketing pages, dashboards,
+  auth, billing, multi-tenancy, autonomous agents, browser package runtimes, or
+  a gesture dependency.
+- Red-green coverage confirmed the previous swipe-dismiss gap first:
+  `npm.cmd test -- --run src/tests/mobile-artifacts.test.ts` failed because
+  `SWIPE_DISMISS_THRESHOLD`, swipe pointer handlers, and the overlay transform
+  wiring did not exist, then passed after implementation. Verification passed
+  after this mobile slice: `npm.cmd test -- --run src/tests/mobile-artifacts.test.ts`
+  (1 file, 2 tests),
+  `npm.cmd test -- --run src/tests/mobile-artifacts.test.ts src/tests/artifact-gallery.test.ts src/tests/artifact-error-boundary.test.ts src/tests/artifact-repair-flow.test.ts src/tests/privacy-first.test.ts src/tests/session-transfer.test.ts`
+  (6 files, 31 tests), `npm.cmd test` (40 files, 187 tests),
+  `npm.cmd audit --omit=dev --audit-level=high` (0 vulnerabilities),
+  `git diff --check` (only known CRLF conversion warnings), and the recorded
+  `build:local` command (passed with the known non-failing `punycode` and
+  Wrangler local-AI warnings).
+- `graphify update .` refreshed tracked local Graphify artifacts from commit
+  `5b3e279`: 854 nodes and 1405 edges. Community-count wording remains
+  non-blocking.
 
 ## Next Task
 
 Continue with Phase 4 Polish And Degrade in small slices:
 
-- Continue Mobile Artifacts with the next narrow item: swipe-down dismiss or
-  pinch zoom. Keep it focused with source tests first and the smallest
+- Push the swipe-down dismiss docs/Graphify checkpoint, watch the GitHub
+  Actions deployment, then record production smoke acceptance for code commit
+  `5b3e279`.
+- After production acceptance, continue Mobile Artifacts with pinch zoom. Keep
+  it focused with source tests first and the smallest
   `ArtifactOverlay`/`ArtifactPanel` wiring.
 - If local browser smoke remains blocked by the Cloudflare local preview issue,
   record that caveat and rely on build plus production smoke after deployment.

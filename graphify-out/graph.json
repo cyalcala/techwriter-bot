@@ -20292,9 +20292,9 @@
       "source_file": "src/tests/mobile-artifacts.test.ts",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "src_tests_mobile_artifacts_test_ts",
-      "target": "tests_mobile_artifacts_test_source",
-      "confidence_score": 1.0
+      "target": "tests_mobile_artifacts_test_source"
     },
     {
       "relation": "contains",
@@ -22331,5 +22331,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "f7b56004fa15c36861db386d8d9d7627f80c6068"
+  "built_at_commit": "5b3e279a63bdff379f2091bbdf80dc7224be1e74"
 }

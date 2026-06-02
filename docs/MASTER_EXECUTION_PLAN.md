@@ -76,7 +76,7 @@ The current tracked code graph was refreshed with `graphify update .` on
 - Graph: `graphify-out/graph.json`
 - Summary: 854 nodes, 1405 edges
 - Extraction confidence: 94% EXTRACTED, 6% INFERRED, 0% AMBIGUOUS
-- Built from code at commit: `f7b56004`
+- Built from code at commit: `5b3e279a`
 - The generated report currently disagrees with itself on total community
   count; use node/edge counts and targeted graph queries for acceptance until
   that reporting discrepancy is reconciled.
@@ -181,6 +181,9 @@ The current tracked code graph was refreshed with `graphify update .` on
   the artifact overlay/split view is open on mobile. The lock preserves and
   restores previous document/body inline scroll styles and stays tied to
   active-session artifact state.
+- Mobile artifact overlay dismissal now also supports a downward swipe gesture
+  on the overlay chrome, using pointer events and a bounded drag threshold
+  without adding a gesture library.
 
 Before broad architecture work, read `graphify-out/GRAPH_REPORT.md` first.
 When the graph may be stale, run:
