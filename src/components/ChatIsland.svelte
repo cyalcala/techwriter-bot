@@ -32,6 +32,7 @@
     type ConversationSnapshot,
   } from '../lib/conversation-session';
   import { DEFAULT_FOOTER_TEXT, DEFAULT_PRIMARY_COLOR, readWhiteLabelConfig } from '../lib/white-label';
+  import { createSampleDataFiles, SAMPLE_DATA_PROMPT, SAMPLE_DATA_READY_MESSAGE } from '../lib/sample-data';
   import { reviewDocument, type DocumentFinding, type TerminologyRule } from '../lib/document-review';
   import ChatMessages from './ChatMessages.svelte';
   import ChatInput from './ChatInput.svelte';
@@ -159,6 +160,7 @@
   let renamingConversationId = $state<string | null>(null);
   let conversationRenameValue = $state('');
   const visibleConversations = $derived(listVisibleConversations(conversationRecords));
+  let sampleDataLoading = $state(false);
   let isUploading = $state(false);
   let rag = $state<RagState>(createDefaultRagState());
   let ragMetadataOnly = $state(false);
@@ -619,6 +621,25 @@
       await processFileUpload(file);
     }
     isUploading = false;
+  }
+
+  async function loadSampleData() {
+    if (isUploading || sampleDataLoading) return;
+
+    sampleDataLoading = true;
+    isUploading = true;
+    inputMessage = SAMPLE_DATA_PROMPT;
+    clearDocumentToolState();
+
+    try {
+      for (const file of createSampleDataFiles()) {
+        await processFileUpload(file);
+      }
+      messages = [...messages, createChatMessage({ role: 'assistant', content: SAMPLE_DATA_READY_MESSAGE })];
+    } finally {
+      sampleDataLoading = false;
+      isUploading = false;
+    }
   }
 
   function exportSession() {
@@ -1387,6 +1408,12 @@
               class="max-w-full rounded-lg border border-stone-200 bg-white/70 px-3 py-2 text-left text-xs font-medium text-stone-600 shadow-sm transition-colors hover:border-amber-200 hover:bg-amber-50 hover:text-stone-800 disabled:opacity-50"
             >{prompt}</button>
           {/each}
+          <button
+            type="button"
+            onclick={loadSampleData}
+            disabled={isUploading || sampleDataLoading}
+            class="max-w-full rounded-lg border border-stone-200 bg-white/70 px-3 py-2 text-left text-xs font-medium text-stone-600 shadow-sm transition-colors hover:border-green-200 hover:bg-green-50 hover:text-stone-800 disabled:opacity-50"
+          >{sampleDataLoading ? 'Loading sample data...' : 'Try sample data'}</button>
         </div>
       </div>
     {/if}
