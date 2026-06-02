@@ -76,8 +76,8 @@
     "hash": "883a7823817acf92a7873f41c3e8ee97"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\components\\ChatIsland.svelte": {
-    "mtime": 1780396550.0725658,
-    "hash": "bf8c8e7acbd5ac5a66f256bc7888291c"
+    "mtime": 1780397630.363989,
+    "hash": "ef6823725dd3851b35e71257783476e9"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\components\\ChatMessages.svelte": {
     "mtime": 1780348224.7090464,
@@ -230,6 +230,10 @@
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\lib\\runtime-interval.ts": {
     "mtime": 1779964536.725224,
     "hash": "ee337ab2d761c01ba6b4fe6a8c38bca6"
+  },
+  "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\lib\\sample-data.ts": {
+    "mtime": 1780397610.6180618,
+    "hash": "439995e6b69e9f6f3a1c6fd8b753a624"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\lib\\search-enhanced.ts": {
     "mtime": 1779964536.7282252,
@@ -463,6 +467,10 @@
     "mtime": 1779964536.8030868,
     "hash": "b074aba56f908ed21a5570b9a7320649"
   },
+  "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\tests\\sample-data.test.ts": {
+    "mtime": 1780397561.5275958,
+    "hash": "1fc0de0a781ac50f0cc453b50b44f23b"
+  },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\tests\\security-headers.test.ts": {
     "mtime": 1779964536.8040867,
     "hash": "65a8c74d62a751da75e42ed493f9d13f"
@@ -524,12 +532,12 @@
     "hash": "5659010e5262e9fd04cd89f4b9b3191e"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\IMPLEMENTATION_STATUS.md": {
-    "mtime": 1780396105.962469,
-    "hash": "acbaa78cefee008e17a3cde564611869"
+    "mtime": 1780397397.1411095,
+    "hash": "684a163a504654aead2ee36b95423f03"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\MASTER_EXECUTION_PLAN.md": {
-    "mtime": 1780396059.3158236,
-    "hash": "1bbece09b9336a6c1a58e1e2504e0193"
+    "mtime": 1780397363.7648435,
+    "hash": "b00c17006bf208599810849a6999b167"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\PRODUCT_MARKETING.md": {
     "mtime": 1779964536.6182373,

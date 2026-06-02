@@ -41,15 +41,15 @@ transparency slices were accepted with privacy-first active-session boundaries:
   sanitized in-memory records, derive deterministic three-word fallback titles,
   and support list/upsert/rename/archive/delete operations without durable
   storage or network writes.
-- Current checkpoint: code commit `b815aa7` is accepted on production via docs
-  commit `287fadb` and GitHub Actions run `26814812868`. The local tracked
-  graph is 848 nodes and 1402 edges from `b815aa7`; the production runtime
-  graph is 973 nodes and 1521 edges.
-- Next slice: continue Phase 4 with the smallest useful Onboarding Wow slice,
-  likely a user-invoked sample-data seed that can be cleared without retaining
-  client content. Do not add marketing pages, auth, billing, multi-tenancy,
-  autonomous agents, WebContainer/runtime package tooling, or complex
-  dashboards.
+- Current checkpoint: code commit `40cab20` implements the first Onboarding Wow
+  sample-data seed and is locally verified. The local tracked graph is 852
+  nodes and 1404 edges from `40cab20`; the production runtime graph remains
+  973 nodes and 1521 edges until the next deployment acceptance pass.
+- Next slice: push the sample-data code checkpoint plus this docs/Graphify
+  checkpoint, watch GitHub Actions, and run production smoke probes for the
+  visible `Try sample data` action, health, and a bounded graph lookup. Do not
+  add marketing pages, auth, billing, multi-tenancy, autonomous agents,
+  WebContainer/runtime package tooling, or complex dashboards.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -215,6 +215,7 @@ Documentation Tooling Agent direction.
   - `78f6713` response transparency metadata footer.
   - `e977bb8` protected operational stats endpoint.
   - `b815aa7` env-driven white-label app chrome.
+  - `40cab20` active-session sample data seed.
 
 ## In Progress
 
@@ -1419,19 +1420,45 @@ Latest incremental verification on 2026-06-01:
   expected/stored app version `0.0.1`, and no version mismatch. Bounded graph
   lookup for `readWhiteLabelConfig` returns `src/lib/white-label.ts:L43` from
   the 973-node runtime graph with `Cache-Control: no-store, private`.
+- Added the first Onboarding Wow sample-data slice in code commit `40cab20`:
+  `src/lib/sample-data.ts` defines two safe dummy documentation files,
+  `sample-openapi.md` and `sample-release-process.md`, and `ChatIsland`
+  exposes an explicit `Try sample data` action in the empty-chat area. The
+  action routes generated `File` objects through the existing active-session
+  upload/indexing path, pre-fills a useful sample prompt, and relies on the
+  existing Clear/New controls to remove the active page-memory data. It does
+  not add automatic durable sample storage, marketing pages, dashboards, auth,
+  billing, multi-tenancy, autonomous agents, or browser package runtimes.
+- Red-green coverage confirmed the previous onboarding gap first:
+  `npm.cmd test -- --run src/tests/sample-data.test.ts` failed because
+  `../lib/sample-data` and the `Try sample data` UI path did not exist, then
+  passed after implementation. Verification passed after this sample-data
+  slice: `npm.cmd test -- --run src/tests/sample-data.test.ts` (1 file,
+  2 tests),
+  `npm.cmd test -- --run src/tests/sample-data.test.ts src/tests/rag-document-registry.test.ts src/tests/privacy-first.test.ts src/tests/session-transfer.test.ts src/tests/white-label.test.ts src/tests/brand-voice.test.ts`
+  (6 files, 31 tests), `npm.cmd test` (39 files, 185 tests),
+  `npm.cmd audit --omit=dev --audit-level=high` (0 vulnerabilities),
+  `git diff --check` (only known CRLF conversion warnings), and the recorded
+  `build:local` command (passed with the known non-failing `punycode` and
+  Wrangler local-AI warnings).
+- `graphify update .` refreshed tracked local Graphify artifacts from commit
+  `40cab20`: 852 nodes and 1404 edges. Community-count wording remains
+  non-blocking.
 
 ## Next Task
 
 Continue with Phase 4 Polish And Degrade in small slices:
 
-- Continue Phase 4 with the smallest useful Onboarding Wow slice, likely a
-  user-invoked sample-data seed that can be cleared without retaining client
-  content.
-- Start with focused tests for a sample-data helper and compact UI wiring in
-  `ChatIsland`, then implement only a visible, explicit "Try sample data"
-  action that seeds safe dummy documentation metadata/content in the active
-  page session. Do not add automatic durable storage or client-content
-  retention.
+- Push the `40cab20` sample-data code checkpoint plus this docs/Graphify
+  checkpoint to GitHub, then watch the GitHub Actions deployment.
+- Run production smoke probes after the deploy finishes: root and immutable URL
+  should return `200`, the default empty-chat UI should include `Try sample
+  data`, `/api/health` should return sanitized availability with a request id
+  and matching app version, and a bounded graph lookup for
+  `createSampleDataFiles` should resolve to `src/lib/sample-data.ts`.
+- After production acceptance, continue Phase 4 with a narrow clear-sample-data
+  polish pass only if needed by smoke findings; otherwise move to the next
+  graceful-degradation row.
 - Keep the UI compact and internal-tool focused. Do not add marketing pages,
   OAuth, Stripe, multi-tenancy, email, autonomous agents, Kubernetes, Redis,
   WebContainer/runtime package tooling, or complex dashboards.
