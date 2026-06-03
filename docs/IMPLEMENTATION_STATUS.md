@@ -9,16 +9,17 @@ When starting a new chat, read these files first:
 3. `docs/AI_RECOVERY_TRAIL.md`
 4. `docs/SELLABLE_READINESS_HANDOFF.md`
 5. `docs/CLIENT_DEPLOYMENT_KIT.md`
-6. `graphify-out/GRAPH_REPORT.md`
+6. `docs/superpowers/specs/2026-06-04-bounded-documentation-tool-pack.md`
+7. `graphify-out/GRAPH_REPORT.md`
 
 Then continue from the "Next Task" section below.
 
 ## Current Focus
 
-Phase 4: Polish And Degrade.
+Phase 5B: Bounded Documentation Tool Pack.
 
-The active work has moved into Phase 4 after Phase 3 conversation/export/client
-transparency slices were accepted with privacy-first active-session boundaries:
+The accepted Phase 4 work followed Phase 3 conversation/export/client
+transparency slices with privacy-first active-session boundaries:
 
 - Accepted baseline: in-session filename, heading, and line metadata for
   uploaded document chunks.
@@ -67,10 +68,29 @@ transparency slices were accepted with privacy-first active-session boundaries:
   URL returned `200`, showed the expected `Technical Writer`, `Try sample data`,
   active-session, and privacy notices, and returned `ok` health with 4 active
   providers out of 6 plus matching app version `0.0.1`.
-- Next slice: Phase 4 should be considered closed unless the user explicitly
-  asks for a new product phase. Recommended next work is Phase 5A Client
-  Deployment Kit if the user says to proceed with the recommendation; otherwise
-  ask which strategic phase to start next.
+- Current Phase 5B local checkpoint: code commit `8bce438` adds the bounded
+  Documentation Tool Pack design reference and upgrades `Review Document` into
+  a glossary-compliance slice. Users can paste multiple active-session glossary
+  lines such as `whitelist -> allowlist`; `parseTerminologyRules()` bounds and
+  de-duplicates those rules locally, and the existing deterministic
+  `reviewDocument()` path applies them only after the user clicks `Review`.
+  No network call, KV write, localStorage, IndexedDB, autonomous execution, or
+  WebContainer/runtime package tooling was added.
+- Local verification for `8bce438`: red-green focused tests passed after the
+  implementation (`src/tests/document-review.test.ts` and
+  `src/tests/document-tools-ui.test.ts`, 11 tests), adjacent privacy/document
+  tests passed (5 files, 32 tests), full `npm.cmd test` passed (42 files, 197
+  tests), `npm.cmd audit --omit=dev --audit-level=high` found 0
+  vulnerabilities, `git diff --check` reported only known CRLF warnings, and
+  the recorded `build:local` command passed with known non-failing `punycode`
+  and Cloudflare local AI-binding warnings.
+- Local Graphify after the Phase 5B glossary slice: 865 nodes and 1426 edges
+  from code commit `8bce4389`; `parseTerminologyRules()` now appears with
+  `reviewDocument()` in the document-review community.
+- Next slice: push the Phase 5B glossary and docs/Graphify checkpoints to
+  GitHub, watch deployment, then record production acceptance. After
+  production acceptance, the next bounded Phase 5B candidate is an API
+  reference consistency checker unless the user redirects.
   Do not add marketing pages, auth, billing, multi-tenancy, autonomous agents,
   WebContainer/runtime package tooling, or complex dashboards.
 - Relay-safe documentation updates after each meaningful step.
@@ -1808,22 +1828,18 @@ Latest incremental verification on 2026-06-01:
 
 ## Next Task
 
-Continue from the Phase 4 closure into Phase 5 selection:
+Continue Phase 5B in bounded, user-invoked tool slices:
 
-- Phase 4 is closure-verified and accepted. The final readiness handoff now
-  lives in `docs/SELLABLE_READINESS_HANDOFF.md`.
-- If the user asks what percentage the project is at, use the readiness
-  framing: approved Phase 1 through Phase 4 roadmap is 100% accepted; paid
-  pilot readiness is about 90%; broader tooling-agent expansion is the next
-  strategic phase, not a blocker for the current sellable baseline.
-- If the user says to proceed with the recommendation, start Phase 5A Client
-  Deployment Kit as a documentation/runbook slice before any new product
-  feature. The first kit draft now lives in
-  `docs/CLIENT_DEPLOYMENT_KIT.md`.
-- Next safe follow-up: use the kit for a real client-owned Cloudflare
-  deployment when client credentials are available. Without a real client
-  account, ask the user whether to continue with Phase 5B Bounded Documentation
-  Tool Pack or Phase 5C Portfolio And Buyer Narrative.
+- Phase 1 through Phase 4 are closure-verified and accepted. Phase 5A Client
+  Deployment Kit and self-client dry run are complete enough for pilot
+  packaging until real client credentials are available.
+- Current Phase 5B glossary-compliance slice is locally implemented and
+  verified in code commit `8bce438`; local graph is refreshed to 865 nodes and
+  1426 edges.
+- Next safe follow-up: push the Phase 5B glossary and docs/Graphify
+  checkpoints to GitHub, watch deployment, smoke production, and record
+  acceptance. After acceptance, continue Phase 5B with an API reference
+  consistency checker unless the user redirects.
 - If local browser smoke remains blocked by the Cloudflare local preview issue,
   record that caveat and rely on build plus production smoke after deployment.
 - Keep the UI compact and internal-tool focused. Do not add marketing pages,
@@ -1843,5 +1859,5 @@ Continue from the Phase 4 closure into Phase 5 selection:
 Use this in a new chat if the session stops:
 
 ```text
-Continue from C:\Users\admin\Desktop\techwriter-bot. Read docs\MASTER_EXECUTION_PLAN.md, docs\IMPLEMENTATION_STATUS.md, docs\AI_RECOVERY_TRAIL.md, and graphify-out\GRAPH_REPORT.md first. Then continue from docs\IMPLEMENTATION_STATUS.md Next Task. Use the build verification command recorded there when behavior changes. Preserve GitHub backups after each coherent slice. Do not rebuild OAuth, Stripe, multi-tenancy, email, marketing pages, autonomous agents, Kubernetes, Redis, complex dashboards, or WebContainer/runtime package tooling.
+Continue from C:\Users\admin\Desktop\techwriter-bot. Read docs\MASTER_EXECUTION_PLAN.md, docs\IMPLEMENTATION_STATUS.md, docs\AI_RECOVERY_TRAIL.md, docs\SELLABLE_READINESS_HANDOFF.md, docs\CLIENT_DEPLOYMENT_KIT.md, docs\superpowers\specs\2026-06-04-bounded-documentation-tool-pack.md, and graphify-out\GRAPH_REPORT.md first. Then continue from docs\IMPLEMENTATION_STATUS.md Next Task. Use the build verification command recorded there when behavior changes. Preserve GitHub backups after each coherent slice. Do not rebuild OAuth, Stripe, multi-tenancy, email, marketing pages, autonomous agents, Kubernetes, Redis, complex dashboards, or WebContainer/runtime package tooling.
 ```

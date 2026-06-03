@@ -84,8 +84,8 @@
     "hash": "d763ccaef22f77126401caa4a7e0a0b2"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\components\\DocumentToolsPanel.svelte": {
-    "mtime": 1779964536.6712265,
-    "hash": "7682daf016dce4a3d3463a01c3403370"
+    "mtime": 1780521079.018037,
+    "hash": "7e802cfb6c2003dc1c337ba036e0c578"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\lib\\api-response.ts": {
     "mtime": 1779964536.6742237,
@@ -144,8 +144,8 @@
     "hash": "011432a467a8fff9828a5866c6517882"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\lib\\document-review.ts": {
-    "mtime": 1779964536.688224,
-    "hash": "a7d9621ff0b0c4846ab7cdaa6aba90e1"
+    "mtime": 1780521052.544035,
+    "hash": "2328d70618c13d60325cae7c3a1b2ede"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\lib\\embed-pipeline.ts": {
     "mtime": 1779964536.693224,
@@ -404,12 +404,12 @@
     "hash": "1ed36d10b73b3da651a1a70819c4a773"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\tests\\document-review.test.ts": {
-    "mtime": 1779964536.7798605,
-    "hash": "256f3f5f99b16207f2e33c35e855a5fe"
+    "mtime": 1780521002.365324,
+    "hash": "2ff20322aef8a52895c91f27158269e2"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\tests\\document-tools-ui.test.ts": {
-    "mtime": 1779964536.78186,
-    "hash": "29780f80bd1aeab8b230f467ffd84538"
+    "mtime": 1780521011.1292837,
+    "hash": "f32a0114b79ada8fa5542543452b668a"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\tests\\embed-pipeline-security.test.ts": {
     "mtime": 1779964536.7840743,
@@ -536,24 +536,28 @@
     "hash": "dc56ef38864abedac2567cb33217534a"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\AI_RECOVERY_TRAIL.md": {
-    "mtime": 1780198454.3983204,
-    "hash": "8b4d11e1c328dbec5a5353a603e5ec0a"
+    "mtime": 1780488912.6438205,
+    "hash": "0dd833415151e7173ae91b7ea4bb9ec8"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\antigravity-cloudflare-api-rotation-strategy.md": {
     "mtime": 1777703379.898451,
     "hash": "14d484c57e9c082d34ebd950ffa6ec77"
+  },
+  "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\CLIENT_DEPLOYMENT_KIT.md": {
+    "mtime": 1780488883.0086546,
+    "hash": "7900dbdea81fc22202de31b51946716e"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\COMPLETE_DOCUMENTATION.md": {
     "mtime": 1779964536.605232,
     "hash": "5659010e5262e9fd04cd89f4b9b3191e"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\IMPLEMENTATION_STATUS.md": {
-    "mtime": 1780484870.0076704,
-    "hash": "efaf3b1ece11ebd9b552d0e439457fab"
+    "mtime": 1780488897.9462125,
+    "hash": "4434798a5f597e237d08961f692a8dd9"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\MASTER_EXECUTION_PLAN.md": {
-    "mtime": 1780484845.1944354,
-    "hash": "0cef3db7dc61d727aca8aae0840a3bd7"
+    "mtime": 1780520960.0140553,
+    "hash": "fcc3a75c8ae7de678a7734e23010b74b"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\PRODUCT_MARKETING.md": {
     "mtime": 1779964536.6182373,
@@ -562,6 +566,10 @@
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\RESILIENCE_PLAN.md": {
     "mtime": 1778071353.7458165,
     "hash": "88c3c124402974d126bed4c2d24bd7cb"
+  },
+  "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\SELLABLE_READINESS_HANDOFF.md": {
+    "mtime": 1780488307.9517212,
+    "hash": "27f2416fb75d63d7180ca0c4be28f2d0"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\SYSTEM_SAVEPOINT.md": {
     "mtime": 1778071267.657884,
@@ -582,6 +590,10 @@
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\superpowers\\specs\\2026-05-27-documentation-tooling-agent-foundation-design.md": {
     "mtime": 1779964536.625234,
     "hash": "02b1019e453c99c879738ec479e0e40b"
+  },
+  "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\superpowers\\specs\\2026-06-04-bounded-documentation-tool-pack.md": {
+    "mtime": 1780520950.7913742,
+    "hash": "c3989f11d3d95fc459a6b5a99a96fabe"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\public\\favicon.svg": {
     "mtime": 1777703379.914454,

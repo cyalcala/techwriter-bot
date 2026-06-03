@@ -31,6 +31,9 @@ explicit non-goals.
   run `26883926741`.
 - Phase 5B design reference:
   `docs/superpowers/specs/2026-06-04-bounded-documentation-tool-pack.md`.
+- Phase 5B first implementation slice: `Review Document` now supports multiple
+  active-session glossary rules parsed from compact `avoid -> prefer` lines,
+  bounded locally and applied only when the user clicks `Review`.
 - Current completion estimate: approved Phase 1 through Phase 4 roadmap is
   closure-verified and accepted; paid-pilot readiness for the per-client
   Cloudflare deployment is about 90%, with remaining work focused on client
@@ -84,13 +87,13 @@ Do not add these unless the product strategy changes in writing:
 ## Graphify Reference
 
 The current tracked code graph was refreshed with `graphify update .` on
-2026-06-03:
+2026-06-04:
 
 - Report: `graphify-out/GRAPH_REPORT.md`
 - Graph: `graphify-out/graph.json`
-- Summary: 863 nodes, 1422 edges
+- Summary: 865 nodes, 1426 edges
 - Extraction confidence: 93% EXTRACTED, 7% INFERRED, 0% AMBIGUOUS
-- Built from code at commit: `b27ecffd`
+- Built from code at commit: `8bce4389`
 - The generated report currently disagrees with itself on total community
   count; use node/edge counts and targeted graph queries for acceptance until
   that reporting discrepancy is reconciled.

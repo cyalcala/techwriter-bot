@@ -22,7 +22,8 @@ Start every recovery pass by reading, in this order:
 3. `docs/AI_RECOVERY_TRAIL.md`
 4. `docs/SELLABLE_READINESS_HANDOFF.md`
 5. `docs/CLIENT_DEPLOYMENT_KIT.md`
-6. `graphify-out/GRAPH_REPORT.md`
+6. `docs/superpowers/specs/2026-06-04-bounded-documentation-tool-pack.md`
+7. `graphify-out/GRAPH_REPORT.md`
 
 These files are the standing handoff packet. Chat transcripts are useful, but
 GitHub is the source of truth.
@@ -92,7 +93,7 @@ Unless the user explicitly changes strategy in writing, do not rebuild:
 
 ## Latest Checkpoint
 
-As of 2026-06-03:
+As of 2026-06-04:
 
 - Latest behavior code backup: `b27ecff` (`fix: shed telemetry writes when KV
   is unavailable`), pushed to `origin/main`. The subsequent Phase 4 closure
@@ -149,16 +150,34 @@ As of 2026-06-03:
   private`; Graphviz render smoke returned SVG with `Cache-Control: no-store,
   private`. The immutable URL also returned `200` and `ok` health with matching
   app version.
-- Next safe task: use the kit for a real client-owned Cloudflare deployment
-  when client credentials are available. Without a real client account, ask the
-  user whether to continue with Phase 5B Bounded Documentation Tool Pack or
-  Phase 5C Portfolio And Buyer Narrative. Do not start a new product feature
-  without next-phase direction.
+- Phase 5B local code checkpoint: `8bce438` (`feat: add glossary review
+  rules`) starts the Bounded Documentation Tool Pack with a deterministic
+  glossary-compliance upgrade to `Review Document`. The new
+  `parseTerminologyRules()` helper parses compact `avoid -> prefer`,
+  `avoid => prefer`, or `avoid | prefer` lines, bounds the active-session rules,
+  de-duplicates avoided terms, and reuses `reviewDocument()` only after the
+  user clicks `Review`.
+- Verification for `8bce438`: focused document review/tool UI tests passed
+  after red-green implementation (2 files, 11 tests); adjacent
+  privacy/document tests passed (5 files, 32 tests); full `npm.cmd test` passed
+  (42 files, 197 tests); `npm.cmd audit --omit=dev --audit-level=high` found 0
+  vulnerabilities; `git diff --check` had only known CRLF warnings; and the
+  recorded `build:local` command passed with known non-failing `punycode` and
+  Cloudflare local AI-binding warnings.
+- Local Graphify after `8bce438`: 865 nodes and 1426 edges from commit
+  `8bce4389`; `parseTerminologyRules()` now appears in the document-review
+  community with `reviewDocument()`.
+- Next safe task: push the Phase 5B glossary and docs/Graphify checkpoints to
+  GitHub, watch deployment, and record production acceptance. After acceptance,
+  continue Phase 5B with an API reference consistency checker unless the user
+  redirects. Do not start autonomous/background tools, WebContainer/runtime
+  package tooling, auth, billing, multi-tenancy, email, marketing pages,
+  Kubernetes, Redis, or complex dashboards.
 
 ## Recovery Prompt
 
 Use this prompt when handing work to another AI agent:
 
 ```text
-Continue from C:\Users\admin\Desktop\techwriter-bot. Read docs\MASTER_EXECUTION_PLAN.md, docs\IMPLEMENTATION_STATUS.md, docs\AI_RECOVERY_TRAIL.md, docs\SELLABLE_READINESS_HANDOFF.md, docs\CLIENT_DEPLOYMENT_KIT.md, and graphify-out\GRAPH_REPORT.md first. Continue only from docs\IMPLEMENTATION_STATUS.md Next Task. Use the recorded build verification command when behavior changes. Preserve GitHub backups after each coherent slice. Do not rebuild OAuth, Stripe, multi-tenancy, email, marketing pages, autonomous agents, Kubernetes, Redis, complex dashboards, or WebContainer/runtime package tooling.
+Continue from C:\Users\admin\Desktop\techwriter-bot. Read docs\MASTER_EXECUTION_PLAN.md, docs\IMPLEMENTATION_STATUS.md, docs\AI_RECOVERY_TRAIL.md, docs\SELLABLE_READINESS_HANDOFF.md, docs\CLIENT_DEPLOYMENT_KIT.md, docs\superpowers\specs\2026-06-04-bounded-documentation-tool-pack.md, and graphify-out\GRAPH_REPORT.md first. Continue only from docs\IMPLEMENTATION_STATUS.md Next Task. Use the recorded build verification command when behavior changes. Preserve GitHub backups after each coherent slice. Do not rebuild OAuth, Stripe, multi-tenancy, email, marketing pages, autonomous agents, Kubernetes, Redis, complex dashboards, or WebContainer/runtime package tooling.
 ```
