@@ -34,6 +34,9 @@ explicit non-goals.
 - Phase 5B first implementation slice: `Review Document` now supports multiple
   active-session glossary rules parsed from compact `avoid -> prefer` lines,
   bounded locally and applied only when the user clicks `Review`.
+- Phase 5B glossary slice deployed successfully in GitHub Actions run
+  `26913659132`, immutable URL `https://6bff987e.tw-bot.pages.dev`; production
+  smoke confirmed the Tools panel exposes the new glossary control.
 - Current completion estimate: approved Phase 1 through Phase 4 roadmap is
   closure-verified and accepted; paid-pilot readiness for the per-client
   Cloudflare deployment is about 90%, with remaining work focused on client

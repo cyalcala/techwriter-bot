@@ -167,12 +167,23 @@ As of 2026-06-04:
 - Local Graphify after `8bce438`: 865 nodes and 1426 edges from commit
   `8bce4389`; `parseTerminologyRules()` now appears in the document-review
   community with `reviewDocument()`.
-- Next safe task: push the Phase 5B glossary and docs/Graphify checkpoints to
-  GitHub, watch deployment, and record production acceptance. After acceptance,
-  continue Phase 5B with an API reference consistency checker unless the user
-  redirects. Do not start autonomous/background tools, WebContainer/runtime
-  package tooling, auth, billing, multi-tenancy, email, marketing pages,
-  Kubernetes, Redis, or complex dashboards.
+- Phase 5B glossary production acceptance: docs/Graphify checkpoint `148c100`
+  deployed successfully in GitHub Actions run `26913659132`, immutable URL
+  `https://6bff987e.tw-bot.pages.dev`; Graphify CI uploaded the runtime graph.
+  Production alias and immutable URL returned `200`, `/api/health` returned
+  `ok` with 4 active providers out of 6 and matching app version `0.0.1`, and
+  bounded graph lookup for `parseTerminologyRules` returned 1 node with
+  `Cache-Control: no-store, private`. A real Playwright CLI smoke opened the
+  immutable production app, clicked `Try sample data`, opened `Tools`,
+  confirmed the `Glossary rules` textarea, filled `whitelist -> allowlist`,
+  clicked `Review`, and saw `1 glossary rule applied.` plus `No findings.`
+  The sample-data click also showed two embedding-failure messages before
+  loading `sample-release-process.md`; this did not block the glossary flow and
+  should be treated as a graceful-degradation demo caveat.
+- Next safe task: continue Phase 5B with an API reference consistency checker
+  unless the user redirects. Do not start autonomous/background tools,
+  WebContainer/runtime package tooling, auth, billing, multi-tenancy, email,
+  marketing pages, Kubernetes, Redis, or complex dashboards.
 
 ## Recovery Prompt
 

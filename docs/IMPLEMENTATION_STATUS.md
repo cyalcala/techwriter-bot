@@ -87,10 +87,21 @@ transparency slices with privacy-first active-session boundaries:
 - Local Graphify after the Phase 5B glossary slice: 865 nodes and 1426 edges
   from code commit `8bce4389`; `parseTerminologyRules()` now appears with
   `reviewDocument()` in the document-review community.
-- Next slice: push the Phase 5B glossary and docs/Graphify checkpoints to
-  GitHub, watch deployment, then record production acceptance. After
-  production acceptance, the next bounded Phase 5B candidate is an API
-  reference consistency checker unless the user redirects.
+- Phase 5B glossary production acceptance: docs/Graphify checkpoint `148c100`
+  deployed successfully in GitHub Actions run `26913659132`, immutable URL
+  `https://6bff987e.tw-bot.pages.dev`; Graphify CI uploaded the runtime graph.
+  Production alias and immutable URL returned `200`, `/api/health` returned
+  `ok` with 4 active providers out of 6 and matching app version `0.0.1`, and
+  bounded graph lookup for `parseTerminologyRules` returned 1 node with
+  `Cache-Control: no-store, private`. A real Playwright CLI smoke opened the
+  immutable production app, clicked `Try sample data`, opened `Tools`,
+  confirmed the `Glossary rules` textarea, filled `whitelist -> allowlist`,
+  clicked `Review`, and saw `1 glossary rule applied.` plus `No findings.`
+  The sample-data click also showed two embedding-failure messages before
+  loading `sample-release-process.md`, which is a non-blocking reminder that
+  embedding-service graceful degradation may appear during demos.
+- Next slice: continue Phase 5B with an API reference consistency checker
+  unless the user redirects.
   Do not add marketing pages, auth, billing, multi-tenancy, autonomous agents,
   WebContainer/runtime package tooling, or complex dashboards.
 - Relay-safe documentation updates after each meaningful step.
@@ -1836,10 +1847,8 @@ Continue Phase 5B in bounded, user-invoked tool slices:
 - Current Phase 5B glossary-compliance slice is locally implemented and
   verified in code commit `8bce438`; local graph is refreshed to 865 nodes and
   1426 edges.
-- Next safe follow-up: push the Phase 5B glossary and docs/Graphify
-  checkpoints to GitHub, watch deployment, smoke production, and record
-  acceptance. After acceptance, continue Phase 5B with an API reference
-  consistency checker unless the user redirects.
+- Next safe follow-up: continue Phase 5B with an API reference consistency
+  checker unless the user redirects.
 - If local browser smoke remains blocked by the Cloudflare local preview issue,
   record that caveat and rely on build plus production smoke after deployment.
 - Keep the UI compact and internal-tool focused. Do not add marketing pages,
