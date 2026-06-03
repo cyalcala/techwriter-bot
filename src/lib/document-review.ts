@@ -10,12 +10,21 @@ export interface TerminologyRule {
   prefer: string;
 }
 
+export interface ParsedTerminologyRules {
+  rules: TerminologyRule[];
+  ignoredLines: number;
+}
+
 export interface DocumentFinding {
   rule: DocumentFindingRule;
   severity: 'warning' | 'error';
   line: number;
   message: string;
 }
+
+export const MAX_TERMINOLOGY_RULES = 25;
+const TERMINOLOGY_DELIMITERS = ['->', '=>', '|'];
+const MAX_TERMINOLOGY_TERM_LENGTH = 80;
 
 interface OpenFence {
   character: '`' | '~';
@@ -51,6 +60,48 @@ function containsTerm(line: string, term: string): boolean {
 
   const escaped = escapeRegExp(term.trim());
   return new RegExp(`(^|\\W)${escaped}(?=\\W|$)`, 'i').test(line);
+}
+
+function cleanTerminologyTerm(value: string): string {
+  return value.trim().replace(/\s+/g, ' ').slice(0, MAX_TERMINOLOGY_TERM_LENGTH);
+}
+
+export function parseTerminologyRules(input: string): ParsedTerminologyRules {
+  const rules: TerminologyRule[] = [];
+  const seenAvoidTerms = new Set<string>();
+  let ignoredLines = 0;
+  const lines = input.replace(/\r\n?/g, '\n').split('\n');
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    if (rules.length >= MAX_TERMINOLOGY_RULES) {
+      ignoredLines++;
+      continue;
+    }
+
+    const delimiter = TERMINOLOGY_DELIMITERS.find((candidate) => trimmed.includes(candidate));
+    if (!delimiter) {
+      ignoredLines++;
+      continue;
+    }
+
+    const [avoidRaw, ...preferParts] = trimmed.split(delimiter);
+    const avoid = cleanTerminologyTerm(avoidRaw);
+    const prefer = cleanTerminologyTerm(preferParts.join(delimiter));
+    const avoidKey = avoid.toLocaleLowerCase();
+
+    if (!avoid || !prefer || avoidKey === prefer.toLocaleLowerCase()) {
+      ignoredLines++;
+      continue;
+    }
+    if (seenAvoidTerms.has(avoidKey)) continue;
+
+    seenAvoidTerms.add(avoidKey);
+    rules.push({ avoid, prefer });
+  }
+
+  return { rules, ignoredLines };
 }
 
 export function reviewDocument(

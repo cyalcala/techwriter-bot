@@ -21,7 +21,7 @@ describe('document review tool UI boundary', () => {
     expect(rag).not.toContain('indexedDB');
   });
 
-  it('exposes review through an explicit panel action with session terminology', () => {
+  it('exposes review through an explicit panel action with session glossary rules', () => {
     const input = source('src/components/ChatInput.svelte');
     const panel = source('src/components/DocumentToolsPanel.svelte');
     const island = source('src/components/ChatIsland.svelte');
@@ -29,8 +29,8 @@ describe('document review tool UI boundary', () => {
     expect(input).toContain('onToggleTools');
     expect(input).toContain('aria-controls="document-tools-panel"');
     expect(panel).toContain('Review Document');
-    expect(panel).toContain('Avoid term');
-    expect(panel).toContain('Preferred term');
+    expect(panel).toContain('Glossary rules');
+    expect(panel).toContain('parseTerminologyRules');
     expect(panel).toContain('onReview');
     expect(island).toContain('runDocumentReview');
     expect(island).not.toContain('$effect(() => runDocumentReview');

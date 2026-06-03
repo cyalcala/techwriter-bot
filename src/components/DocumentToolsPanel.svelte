@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { DocumentFinding, TerminologyRule } from '../lib/document-review';
+  import { parseTerminologyRules, type DocumentFinding, type TerminologyRule } from '../lib/document-review';
 
   interface Props {
     documentName: string;
@@ -15,16 +15,17 @@
 
   let { documentName, findings, hasRun, onReview, graphResult, graphLoading, graphError, onLookup, onClose }: Props = $props();
   let activeTool = $state<'review' | 'references'>('review');
-  let avoidTerm = $state('');
-  let preferredTerm = $state('');
+  let glossaryRules = $state('');
+  let glossaryNotice = $state('');
   let lookupTerm = $state('');
   let copied = $state(false);
 
   function submitReview() {
-    const avoid = avoidTerm.trim();
-    const prefer = preferredTerm.trim();
-    const rules = avoid && prefer ? [{ avoid, prefer }] : [];
-    onReview(rules);
+    const parsed = parseTerminologyRules(glossaryRules);
+    glossaryNotice = parsed.rules.length || parsed.ignoredLines
+      ? `${parsed.rules.length} glossary rule${parsed.rules.length === 1 ? '' : 's'} applied${parsed.ignoredLines ? `, ${parsed.ignoredLines} ignored` : ''}.`
+      : '';
+    onReview(parsed.rules);
   }
 
   async function copyReferences() {
@@ -84,23 +85,20 @@
         >Review</button>
       </div>
 
-      <div class="grid grid-cols-1 gap-2 py-3 sm:grid-cols-2">
+      <div class="py-3">
         <label class="text-[11px] font-medium text-stone-500">
-          Avoid term
-          <input
-            value={avoidTerm}
-            oninput={(event) => { avoidTerm = (event.target as HTMLInputElement).value; }}
-            class="mt-1 w-full rounded-lg border border-stone-200 bg-stone-50 px-2.5 py-2 text-xs text-stone-800 outline-none transition-colors focus:border-amber-300"
-          />
+          Glossary rules
+          <textarea
+            value={glossaryRules}
+            oninput={(event) => { glossaryRules = (event.target as HTMLTextAreaElement).value; }}
+            placeholder="whitelist -> allowlist"
+            rows="3"
+            class="mt-1 w-full resize-y rounded-lg border border-stone-200 bg-stone-50 px-2.5 py-2 text-xs text-stone-800 outline-none transition-colors focus:border-amber-300"
+          ></textarea>
         </label>
-        <label class="text-[11px] font-medium text-stone-500">
-          Preferred term
-          <input
-            value={preferredTerm}
-            oninput={(event) => { preferredTerm = (event.target as HTMLInputElement).value; }}
-            class="mt-1 w-full rounded-lg border border-stone-200 bg-stone-50 px-2.5 py-2 text-xs text-stone-800 outline-none transition-colors focus:border-amber-300"
-          />
-        </label>
+        {#if glossaryNotice}
+          <p class="mt-1 text-[11px] text-stone-500">{glossaryNotice}</p>
+        {/if}
       </div>
 
       {#if hasRun}

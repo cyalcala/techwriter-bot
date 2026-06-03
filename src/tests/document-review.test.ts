@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { reviewDocument } from '../lib/document-review';
+import { parseTerminologyRules, reviewDocument } from '../lib/document-review';
 
 describe('reviewDocument', () => {
   it('returns no findings for a structurally clean document', () => {
@@ -33,6 +33,34 @@ describe('reviewDocument', () => {
       expect.objectContaining({ rule: 'terminology', line: 1 }),
     );
     expect(reviewDocument('The whitelist is configured.')).toEqual([]);
+  });
+
+  it('parses bounded glossary rules for a single active review', () => {
+    expect(parseTerminologyRules([
+      'whitelist -> allowlist',
+      'blacklist => denylist',
+      'master | primary',
+      'whitelist -> permitted list',
+      'missing delimiter',
+      ' -> preferred',
+    ].join('\n'))).toEqual({
+      rules: [
+        { avoid: 'whitelist', prefer: 'allowlist' },
+        { avoid: 'blacklist', prefer: 'denylist' },
+        { avoid: 'master', prefer: 'primary' },
+      ],
+      ignoredLines: 2,
+    });
+  });
+
+  it('applies multiple parsed glossary rules in one review', () => {
+    const parsed = parseTerminologyRules('whitelist -> allowlist\nblacklist -> denylist');
+    const findings = reviewDocument('Whitelist access is separate from blacklist handling.', parsed.rules);
+
+    expect(findings).toEqual(expect.arrayContaining([
+      expect.objectContaining({ rule: 'terminology', line: 1, message: 'Prefer "allowlist" instead of "whitelist".' }),
+      expect.objectContaining({ rule: 'terminology', line: 1, message: 'Prefer "denylist" instead of "blacklist".' }),
+    ]));
   });
 
   it('does not review structure or terminology inside fenced code blocks', () => {
