@@ -24,6 +24,8 @@ explicit non-goals.
   tools; do not depend on arbitrary in-browser Node/package environments.
 - Post-Phase-4 readiness reference:
   `docs/SELLABLE_READINESS_HANDOFF.md`.
+- Phase 5A client deployment reference:
+  `docs/CLIENT_DEPLOYMENT_KIT.md`.
 - Current completion estimate: approved Phase 1 through Phase 4 roadmap is
   closure-verified and accepted; paid-pilot readiness for the per-client
   Cloudflare deployment is about 90%, with remaining work focused on client

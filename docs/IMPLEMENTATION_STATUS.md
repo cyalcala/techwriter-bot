@@ -8,7 +8,8 @@ When starting a new chat, read these files first:
 2. `docs/IMPLEMENTATION_STATUS.md`
 3. `docs/AI_RECOVERY_TRAIL.md`
 4. `docs/SELLABLE_READINESS_HANDOFF.md`
-5. `graphify-out/GRAPH_REPORT.md`
+5. `docs/CLIENT_DEPLOYMENT_KIT.md`
+6. `graphify-out/GRAPH_REPORT.md`
 
 Then continue from the "Next Task" section below.
 
@@ -55,6 +56,10 @@ transparency slices were accepted with privacy-first active-session boundaries:
   what is sellable now, what remains intentionally out of scope, the current
   completion estimate, employability impact, and recommended strategic Phase 5
   options.
+- Current Phase 5A checkpoint: `docs/CLIENT_DEPLOYMENT_KIT.md` records the
+  client deployment checklist, environment setup guide, per-client `deploy.sh`
+  path, existing GitHub Actions caveat, acceptance runbook, demo script,
+  troubleshooting map, and support/privacy boundary for pilots.
 - Next slice: Phase 4 should be considered closed unless the user explicitly
   asks for a new product phase. Recommended next work is Phase 5A Client
   Deployment Kit if the user says to proceed with the recommendation; otherwise
@@ -98,6 +103,8 @@ Documentation Tooling Agent direction.
 - Added `docs/SELLABLE_READINESS_HANDOFF.md` as the post-Phase-4 readiness
   packet for sellability, scope exclusions, tooling-agent status, employability
   positioning, and Phase 5 options.
+- Added `docs/CLIENT_DEPLOYMENT_KIT.md` as the Phase 5A deployment/runbook
+  packet for repeatable client-owned Cloudflare pilots.
 - Added shared API response helpers in `src/lib/api-response.ts`.
 - Migrated `src/pages/api/chat.ts` GET/POST responses to include `x-request-id` and standardized API error envelopes on the main chat paths.
 - Added env-configurable request limits in `src/lib/request-limits.ts`:
@@ -1804,7 +1811,13 @@ Continue from the Phase 4 closure into Phase 5 selection:
   strategic phase, not a blocker for the current sellable baseline.
 - If the user says to proceed with the recommendation, start Phase 5A Client
   Deployment Kit as a documentation/runbook slice before any new product
-  feature. If the user chooses a different strategic phase, follow that choice.
+  feature. The first kit draft now lives in
+  `docs/CLIENT_DEPLOYMENT_KIT.md`.
+- Next safe Phase 5A follow-up: perform a self-client dry run against the
+  existing `https://tw-bot.pages.dev` production deployment using the kit's
+  production acceptance runbook, then record the evidence. If a real client
+  Cloudflare account is available, use `deploy.sh` for that client instead.
+  If the user chooses a different strategic phase, follow that choice.
 - If local browser smoke remains blocked by the Cloudflare local preview issue,
   record that caveat and rely on build plus production smoke after deployment.
 - Keep the UI compact and internal-tool focused. Do not add marketing pages,
