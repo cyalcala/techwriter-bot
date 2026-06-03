@@ -41,19 +41,20 @@ transparency slices were accepted with privacy-first active-session boundaries:
   sanitized in-memory records, derive deterministic three-word fallback titles,
   and support list/upsert/rename/archive/delete operations without durable
   storage or network writes.
-- Current local checkpoint: code commit `8823a41` adds the next Phase 4
-  Graceful Degradation slice: if live search attempts return no usable context,
-  the app marks search unavailable, continues the chat without live results,
-  adds a no-live-results instruction to the prompt, and shows a compact
-  active-session warning. The local tracked graph is 858 nodes and 1409 edges
-  from `8823a41a`. Deployment acceptance is pending until the docs/Graphify
-  checkpoint is pushed and GitHub Actions completes.
-- Next slice after deployment acceptance: continue Phase 4 Graceful
-  Degradation with the next smallest visible failure-mode slice. Recommended
-  target: KV-full/non-content telemetry writes should shed gracefully and notify
-  the operator without persisting user content. Do not add marketing pages,
-  auth, billing, multi-tenancy, autonomous agents, WebContainer/runtime package
-  tooling, or complex dashboards.
+- Current checkpoint: code commit `8823a41` adds the next Phase 4 Graceful
+  Degradation slice and is accepted on production via docs commit `ddd6672` and
+  GitHub Actions run `26880669139`: if live search attempts return no usable
+  context, the app marks search unavailable, continues the chat without live
+  results, adds a no-live-results instruction to the prompt, and shows a
+  compact active-session warning. The local tracked graph is 858 nodes and 1409
+  edges from `8823a41a`; the production runtime graph is 986 nodes and 1533
+  edges.
+- Next slice: continue Phase 4 Graceful Degradation with the next smallest
+  visible failure-mode slice. Recommended target: KV-full/non-content telemetry
+  writes should shed gracefully and notify the operator without persisting user
+  content. Do not add marketing pages, auth, billing, multi-tenancy,
+  autonomous agents, WebContainer/runtime package tooling, or complex
+  dashboards.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -1674,18 +1675,28 @@ Latest incremental verification on 2026-06-01:
   Wrangler local-AI warnings).
 - `graphify update .` refreshed tracked local Graphify artifacts from commit
   `8823a41`: 858 nodes and 1409 edges. Community-count wording remains
-  non-blocking. Deployment acceptance is pending until this docs/Graphify
-  checkpoint is pushed and GitHub Actions completes.
+  non-blocking.
+- The live-search graceful-degradation deploy passed in GitHub Actions run
+  `26880669139` from docs commit `ddd6672` with immutable URL
+  `https://b56313aa.tw-bot.pages.dev`. The production runtime graph reports
+  986 nodes and 1533 edges.
+- Production probes confirmed both `https://tw-bot.pages.dev/` and
+  `https://b56313aa.tw-bot.pages.dev/` return `200`, include the default
+  `Technical Writer` branding plus `Try sample data`, and retain the existing
+  `Refresh or navigation clears this open-session chat` notice. The new live
+  search warning is intentionally not visible on first paint because it only
+  appears after an active-session live-search outage. Production `/api/health`
+  returns `200` with request id `2afb3d27-4b20-4450-9b7b-1eb57394219b`, three
+  active providers, expected and stored app version `0.0.1`, and no version
+  mismatch. Bounded graph lookup for `Live search temporarily unavailable`
+  returns 12 nodes from the 986-node runtime graph with
+  `Cache-Control: no-store, private`.
 
 ## Next Task
 
 Continue with Phase 4 Polish And Degrade in small slices:
 
-- First, if deployment acceptance for code commit `8823a41` has not yet been
-  recorded, push the docs/Graphify checkpoint, watch GitHub Actions, run
-  production smoke checks, and record the run id, immutable URL, runtime graph,
-  and bounded graph lookup evidence.
-- Then continue Phase 4 Graceful Degradation with the next smallest visible
+- Continue Phase 4 Graceful Degradation with the next smallest visible
   failure-mode slice. Recommended target: KV-full/non-content telemetry writes
   should shed gracefully and notify the operator without persisting user
   content.
