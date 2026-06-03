@@ -7,7 +7,8 @@ When starting a new chat, read these files first:
 1. `docs/MASTER_EXECUTION_PLAN.md`
 2. `docs/IMPLEMENTATION_STATUS.md`
 3. `docs/AI_RECOVERY_TRAIL.md`
-4. `graphify-out/GRAPH_REPORT.md`
+4. `docs/SELLABLE_READINESS_HANDOFF.md`
+5. `graphify-out/GRAPH_REPORT.md`
 
 Then continue from the "Next Task" section below.
 
@@ -50,9 +51,14 @@ transparency slices were accepted with privacy-first active-session boundaries:
   `de89ee3` deployed successfully in GitHub Actions run `26883014551`; the
   local tracked graph is 863 nodes and 1422 edges from `b27ecffd`; the latest
   production runtime graph reports 999 nodes and 1559 edges.
+- Current readiness checkpoint: `docs/SELLABLE_READINESS_HANDOFF.md` records
+  what is sellable now, what remains intentionally out of scope, the current
+  completion estimate, employability impact, and recommended strategic Phase 5
+  options.
 - Next slice: Phase 4 should be considered closed unless the user explicitly
-  asks for a new product phase. Recommended next work is a user-facing final
-  handoff/readiness discussion, not another feature build.
+  asks for a new product phase. Recommended next work is Phase 5A Client
+  Deployment Kit if the user says to proceed with the recommendation; otherwise
+  ask which strategic phase to start next.
   Do not add marketing pages, auth, billing, multi-tenancy, autonomous agents,
   WebContainer/runtime package tooling, or complex dashboards.
 - Relay-safe documentation updates after each meaningful step.
@@ -89,6 +95,9 @@ Documentation Tooling Agent direction.
 - Added `docs/AI_RECOVERY_TRAIL.md` as the GitHub-backed recovery protocol so
   future AI agents and maintainers can reconstruct decisions, verification, and
   next steps from the repository alone.
+- Added `docs/SELLABLE_READINESS_HANDOFF.md` as the post-Phase-4 readiness
+  packet for sellability, scope exclusions, tooling-agent status, employability
+  positioning, and Phase 5 options.
 - Added shared API response helpers in `src/lib/api-response.ts`.
 - Migrated `src/pages/api/chat.ts` GET/POST responses to include `x-request-id` and standardized API error envelopes on the main chat paths.
 - Added env-configurable request limits in `src/lib/request-limits.ts`:
@@ -1785,13 +1794,17 @@ Latest incremental verification on 2026-06-01:
 
 ## Next Task
 
-Continue with Phase 4 Polish And Degrade in small slices:
+Continue from the Phase 4 closure into Phase 5 selection:
 
-- Phase 4 is closure-verified and accepted. Next recommended work is a
-  user-facing final handoff/readiness discussion: summarize what is now
-  sellable, what remains intentionally out of scope, and what strategic phase
-  the user wants next. Do not start another feature build without a fresh user
-  direction.
+- Phase 4 is closure-verified and accepted. The final readiness handoff now
+  lives in `docs/SELLABLE_READINESS_HANDOFF.md`.
+- If the user asks what percentage the project is at, use the readiness
+  framing: approved Phase 1 through Phase 4 roadmap is 100% accepted; paid
+  pilot readiness is about 90%; broader tooling-agent expansion is the next
+  strategic phase, not a blocker for the current sellable baseline.
+- If the user says to proceed with the recommendation, start Phase 5A Client
+  Deployment Kit as a documentation/runbook slice before any new product
+  feature. If the user chooses a different strategic phase, follow that choice.
 - If local browser smoke remains blocked by the Cloudflare local preview issue,
   record that caveat and rely on build plus production smoke after deployment.
 - Keep the UI compact and internal-tool focused. Do not add marketing pages,

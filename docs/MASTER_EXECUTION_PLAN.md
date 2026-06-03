@@ -22,6 +22,13 @@ explicit non-goals.
   Agent with bounded, user-invoked tools; do not build autonomous execution.
 - Runtime boundary: support controlled documentation renderers and explicit
   tools; do not depend on arbitrary in-browser Node/package environments.
+- Post-Phase-4 readiness reference:
+  `docs/SELLABLE_READINESS_HANDOFF.md`.
+- Current completion estimate: approved Phase 1 through Phase 4 roadmap is
+  closure-verified and accepted; paid-pilot readiness for the per-client
+  Cloudflare deployment is about 90%, with remaining work focused on client
+  onboarding, repeatable acceptance runbooks, and next-phase strategy rather
+  than missing core product behavior.
 - First tooling design reference:
   `docs/superpowers/specs/2026-05-27-documentation-tooling-agent-foundation-design.md`.
 - First tooling implementation plan:

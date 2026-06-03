@@ -20,7 +20,8 @@ Start every recovery pass by reading, in this order:
 1. `docs/MASTER_EXECUTION_PLAN.md`
 2. `docs/IMPLEMENTATION_STATUS.md`
 3. `docs/AI_RECOVERY_TRAIL.md`
-4. `graphify-out/GRAPH_REPORT.md`
+4. `docs/SELLABLE_READINESS_HANDOFF.md`
+5. `graphify-out/GRAPH_REPORT.md`
 
 These files are the standing handoff packet. Chat transcripts are useful, but
 GitHub is the source of truth.
@@ -127,14 +128,20 @@ As of 2026-06-03:
   `https://4a3cfc7d.tw-bot.pages.dev`; final production smoke returned `200`
   for the app shell and `ok` health with four active providers, app version
   `0.0.1`, and no version mismatch.
-- Next safe task: Phase 4 is closure-verified and accepted. Discuss final
-  readiness/sellability and ask the user what strategic phase they want next;
-  do not start another feature build without fresh user direction.
+- Readiness handoff: `docs/SELLABLE_READINESS_HANDOFF.md` now records the
+  post-Phase-4 sellability summary, intentional exclusions, tooling-agent
+  status, employability positioning, and Phase 5 options. Use this framing for
+  progress updates: approved Phase 1 through Phase 4 roadmap is 100% accepted;
+  paid-pilot readiness is about 90%.
+- Next safe task: if the user says to proceed with the recommendation, start
+  Phase 5A Client Deployment Kit as a documentation/runbook slice. If the user
+  chooses a different strategic phase, follow that choice. Do not start a new
+  product feature without that next-phase direction.
 
 ## Recovery Prompt
 
 Use this prompt when handing work to another AI agent:
 
 ```text
-Continue from C:\Users\admin\Desktop\techwriter-bot. Read docs\MASTER_EXECUTION_PLAN.md, docs\IMPLEMENTATION_STATUS.md, docs\AI_RECOVERY_TRAIL.md, and graphify-out\GRAPH_REPORT.md first. Continue only from docs\IMPLEMENTATION_STATUS.md Next Task. Use the recorded build verification command when behavior changes. Preserve GitHub backups after each coherent slice. Do not rebuild OAuth, Stripe, multi-tenancy, email, marketing pages, autonomous agents, Kubernetes, Redis, complex dashboards, or WebContainer/runtime package tooling.
+Continue from C:\Users\admin\Desktop\techwriter-bot. Read docs\MASTER_EXECUTION_PLAN.md, docs\IMPLEMENTATION_STATUS.md, docs\AI_RECOVERY_TRAIL.md, docs\SELLABLE_READINESS_HANDOFF.md, and graphify-out\GRAPH_REPORT.md first. Continue only from docs\IMPLEMENTATION_STATUS.md Next Task. Use the recorded build verification command when behavior changes. Preserve GitHub backups after each coherent slice. Do not rebuild OAuth, Stripe, multi-tenancy, email, marketing pages, autonomous agents, Kubernetes, Redis, complex dashboards, or WebContainer/runtime package tooling.
 ```
