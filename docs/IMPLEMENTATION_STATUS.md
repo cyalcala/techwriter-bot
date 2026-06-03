@@ -41,20 +41,23 @@ transparency slices were accepted with privacy-first active-session boundaries:
   sanitized in-memory records, derive deterministic three-word fallback titles,
   and support list/upsert/rename/archive/delete operations without durable
   storage or network writes.
-- Current checkpoint: code commit `8823a41` adds the next Phase 4 Graceful
-  Degradation slice and is accepted on production via docs commit `ddd6672` and
-  GitHub Actions run `26880669139`: if live search attempts return no usable
-  context, the app marks search unavailable, continues the chat without live
-  results, adds a no-live-results instruction to the prompt, and shows a
-  compact active-session warning. The local tracked graph is 858 nodes and 1409
-  edges from `8823a41a`; the production runtime graph is 986 nodes and 1533
-  edges.
-- Next slice: continue Phase 4 Graceful Degradation with the next smallest
-  visible failure-mode slice. Recommended target: KV-full/non-content telemetry
-  writes should shed gracefully and notify the operator without persisting user
-  content. Do not add marketing pages, auth, billing, multi-tenancy,
-  autonomous agents, WebContainer/runtime package tooling, or complex
-  dashboards.
+- Current checkpoint: code commit `b27ecff` adds the next Phase 4 Graceful
+  Degradation slice and is accepted on production via GitHub Actions run
+  `26881378900`: KV-full/non-content telemetry writes now shed gracefully.
+  Provider telemetry and aggregate token counter write failures return a
+  content-free `TELEMETRY_SHED` result and emit a content-free operator warning;
+  the protected stats collector reports `telemetryAvailable: false` with the
+  same operator notice instead of throwing when telemetry KV is unavailable.
+  The local tracked graph is 863 nodes and 1422 edges from `b27ecffd`; the
+  production runtime graph is 998 nodes and 1558 edges.
+- Next slice: Phase 4 Graceful Degradation rows for page refresh/navigation,
+  embedding retrieval, live search, and KV-full telemetry now have verified
+  slices. Recommended target: audit the remaining Kroki/artifact-renderer-down
+  behavior against the existing artifact fallback coverage and either record
+  the already-covered manual reproduction or add one narrow visible inline
+  guidance test if a gap remains. Do not add marketing pages, auth, billing,
+  multi-tenancy, autonomous agents, WebContainer/runtime package tooling, or
+  complex dashboards.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -1691,15 +1694,53 @@ Latest incremental verification on 2026-06-01:
   mismatch. Bounded graph lookup for `Live search temporarily unavailable`
   returns 12 nodes from the 986-node runtime graph with
   `Cache-Control: no-store, private`.
+- Added the fourth Phase 4 Graceful Degradation slice in code commit
+  `b27ecff`: `src/lib/telemetry-degradation.ts` defines a shared
+  content-free `TELEMETRY_SHED` operator notice and write-result shape.
+  `recordProviderTelemetry()` and `logTokenUsage()` now return successful,
+  skipped, or shed write results. When KV rejects a non-content telemetry write,
+  they emit a content-free operator warning and do not persist user content or
+  failure details. `collectOperationalStats()` now returns empty protected
+  stats with `telemetryAvailable: false` and the same notice if telemetry KV is
+  unavailable, instead of bubbling a stats outage for KV list failures.
+- Red-green coverage confirmed the KV-full telemetry gap first:
+  `npm.cmd test -- --run src/tests/provider-telemetry.test.ts src/tests/token-counter.test.ts src/tests/client-stats.test.ts`
+  failed because the telemetry writers returned `undefined` and stats
+  collection threw on KV listing failures. After implementation, verification
+  passed:
+  `npm.cmd test -- --run src/tests/provider-telemetry.test.ts src/tests/token-counter.test.ts src/tests/client-stats.test.ts`
+  (3 files, 8 tests),
+  `npm.cmd test -- --run src/tests/client-stats.test.ts src/tests/provider-telemetry.test.ts src/tests/token-counter.test.ts src/tests/privacy-first.test.ts src/tests/api-routes-consistency.test.ts`
+  (5 files, 30 tests), `npm.cmd test` (42 files, 195 tests),
+  `npm.cmd audit --omit=dev --audit-level=high` (0 vulnerabilities),
+  `git diff --check` (only known CRLF conversion warnings), and the recorded
+  `build:local` command (passed with the known non-failing `punycode` and
+  Wrangler local-AI warnings; `T:` was already substituted).
+- `graphify update .` refreshed tracked local Graphify artifacts from commit
+  `b27ecff`: 863 nodes and 1422 edges. Community-count wording remains
+  non-blocking.
+- The KV-full telemetry graceful-degradation deploy passed in GitHub Actions
+  run `26881378900` from code commit `b27ecff` with immutable URL
+  `https://d29e72c2.tw-bot.pages.dev`. The production runtime graph reports
+  998 nodes and 1558 edges.
+- Production probes confirmed both `https://tw-bot.pages.dev/` and
+  `https://d29e72c2.tw-bot.pages.dev/` return `200`, include the default
+  `Technical Writer` branding plus `Try sample data`, and retain the existing
+  `Refresh or navigation clears this open-session chat` notice. Production
+  `/api/health` returns `200` with status `ok`, four active providers out of
+  six, expected and stored app version `0.0.1`, and no version mismatch.
+  Bounded graph lookup for `telemetry` returns 12 nodes from the 998-node
+  runtime graph, including `src/lib/telemetry-degradation.ts:L27`, with
+  `Cache-Control: no-store, private`.
 
 ## Next Task
 
 Continue with Phase 4 Polish And Degrade in small slices:
 
-- Continue Phase 4 Graceful Degradation with the next smallest visible
-  failure-mode slice. Recommended target: KV-full/non-content telemetry writes
-  should shed gracefully and notify the operator without persisting user
-  content.
+- Audit the remaining Kroki/artifact-renderer-down graceful-degradation row
+  against the existing artifact fallback coverage. If it is already covered,
+  record the manual reproduction evidence; if there is a gap, add one narrow
+  visible inline guidance test and the smallest implementation needed.
 - If local browser smoke remains blocked by the Cloudflare local preview issue,
   record that caveat and rely on build plus production smoke after deployment.
 - Keep the UI compact and internal-tool focused. Do not add marketing pages,

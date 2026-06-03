@@ -188,8 +188,8 @@
     "hash": "dc37157fbf33a52c32837204e6c4c53f"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\lib\\provider-telemetry.ts": {
-    "mtime": 1779964536.7092364,
-    "hash": "45921f0a38265014f2a716c29f277409"
+    "mtime": 1780485335.7767863,
+    "hash": "1f07b4b229324ee724632258d5c53b67"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\lib\\providers.ts": {
     "mtime": 1777913727.1618042,
@@ -268,12 +268,16 @@
     "hash": "ac65bf0611403ae5a536989d8a33e202"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\lib\\stats.ts": {
-    "mtime": 1780395459.3879597,
-    "hash": "63e2297b0cc3200fd246fe3f142fa25b"
+    "mtime": 1780485367.6349013,
+    "hash": "5f0dfae6c45d4db02ddbf8d41b4e8c21"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\lib\\stream-parser.ts": {
     "mtime": 1780197002.9388554,
     "hash": "00e59713d51c243c33a04af5fbe1ddb8"
+  },
+  "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\lib\\telemetry-degradation.ts": {
+    "mtime": 1780485324.9647832,
+    "hash": "ec9f88b1569b2f92f098b2d0856deb4f"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\lib\\tool-graph-lookup.ts": {
     "mtime": 1779964536.7442324,
@@ -384,8 +388,8 @@
     "hash": "de2b197c49c0c21d2a069a594e82e7aa"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\tests\\client-stats.test.ts": {
-    "mtime": 1780395249.5367017,
-    "hash": "8cf699b61ea505b30cce3a8ead71f277"
+    "mtime": 1780485277.3886569,
+    "hash": "9c677c5c73b02ab35344f89b3946e13d"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\tests\\client-transparency.test.ts": {
     "mtime": 1780394073.5917907,
@@ -440,8 +444,8 @@
     "hash": "9f7c54639281060c323bbd8beee4a11c"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\tests\\provider-telemetry.test.ts": {
-    "mtime": 1779964536.7910874,
-    "hash": "409b3aac45e63aa9f0d84e700a60277d"
+    "mtime": 1780485248.5660315,
+    "hash": "9fb738b42970cf5eeacaa2467f1faa81"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\src\\tests\\public-diagnostics.test.ts": {
     "mtime": 1779964536.7930865,
@@ -544,12 +548,12 @@
     "hash": "5659010e5262e9fd04cd89f4b9b3191e"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\IMPLEMENTATION_STATUS.md": {
-    "mtime": 1780430287.8703623,
-    "hash": "20b47a0630385628d0ded5922e42312a"
+    "mtime": 1780484870.0076704,
+    "hash": "efaf3b1ece11ebd9b552d0e439457fab"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\MASTER_EXECUTION_PLAN.md": {
-    "mtime": 1780430257.81497,
-    "hash": "dffc3127753a0b11b527529920fe3d94"
+    "mtime": 1780484845.1944354,
+    "hash": "0cef3db7dc61d727aca8aae0840a3bd7"
   },
   "C:\\Users\\admin\\Desktop\\techwriter-bot\\docs\\PRODUCT_MARKETING.md": {
     "mtime": 1779964536.6182373,

@@ -88,6 +88,31 @@ Unless the user explicitly changes strategy in writing, do not rebuild:
 - Complex dashboards
 - WebContainer or arbitrary browser package runtime tooling
 
+## Latest Checkpoint
+
+As of 2026-06-03:
+
+- Latest behavior code backup: `b27ecff` (`fix: shed telemetry writes when KV
+  is unavailable`), pushed to `origin/main`.
+- Behavior added: provider telemetry and aggregate token counter KV write
+  failures shed with a content-free `TELEMETRY_SHED` operator notice; protected
+  stats returns `telemetryAvailable: false` with the same notice when telemetry
+  KV is unavailable.
+- Verification evidence: focused red-green telemetry/stats tests, adjacent
+  privacy/API guardrails, full `npm.cmd test` (42 files, 195 tests),
+  production audit with 0 high vulnerabilities, `git diff --check`, and the
+  recorded `build:local` command all passed.
+- Deployment evidence: GitHub Actions run `26881378900` succeeded, immutable
+  URL `https://d29e72c2.tw-bot.pages.dev` returned `200`, production health was
+  `ok` with app version `0.0.1`, and bounded graph lookup for `telemetry`
+  returned 12 nodes with `Cache-Control: no-store, private`.
+- Local Graphify after the code slice: 863 nodes and 1422 edges from
+  `b27ecffd`; production runtime graph from the deployment reported 998 nodes
+  and 1558 edges.
+- Next safe task: audit Kroki/artifact-renderer-down graceful degradation and
+  either record existing fallback evidence or add one narrow visible inline
+  guidance test.
+
 ## Recovery Prompt
 
 Use this prompt when handing work to another AI agent:

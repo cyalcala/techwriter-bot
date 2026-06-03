@@ -197,6 +197,9 @@ The current tracked code graph was refreshed with `graphify update .` on
 - Live-search outage handling now marks search as unavailable when no live
   context is retrieved, continues the chat without live results, and shows a
   compact active-session warning instead of failing the response path.
+- KV-full telemetry handling now sheds content-free provider/token telemetry
+  writes with a `TELEMETRY_SHED` operator notice, and protected stats reports
+  telemetry unavailable instead of throwing or storing failure details.
 
 Before broad architecture work, read `graphify-out/GRAPH_REPORT.md` first.
 When the graph may be stale, run:
