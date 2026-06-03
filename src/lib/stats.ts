@@ -1,4 +1,5 @@
 import { kvKey } from './kv-prefix';
+import { createTelemetryShedNotice, type TelemetryOperatorNotice } from './telemetry-degradation';
 
 interface ProviderTelemetryBucket {
   requests?: number;
@@ -21,6 +22,8 @@ export interface ProviderOperationalStats {
 export interface OperationalStats {
   generatedAt: string;
   windowHours: number;
+  telemetryAvailable: boolean;
+  operatorNotice?: TelemetryOperatorNotice;
   requestsLast24h: number;
   successes: number;
   failures: number;
@@ -44,10 +47,12 @@ interface ProviderAccumulator {
   tokensUsed: number;
 }
 
-function emptyStats(now: Date, hours: number): OperationalStats {
+function emptyStats(now: Date, hours: number, operatorNotice?: TelemetryOperatorNotice): OperationalStats {
   return {
     generatedAt: now.toISOString(),
     windowHours: hours,
+    telemetryAvailable: !operatorNotice,
+    ...(operatorNotice ? { operatorNotice } : {}),
     requestsLast24h: 0,
     successes: 0,
     failures: 0,
@@ -120,6 +125,7 @@ function finalizeStats(now: Date, hours: number, providers: Map<string, Provider
   return {
     generatedAt: now.toISOString(),
     windowHours: hours,
+    telemetryAvailable: true,
     requestsLast24h: totals.requests,
     successes: totals.successes,
     failures: totals.failures,
@@ -137,40 +143,44 @@ export async function collectOperationalStats(
 ): Promise<OperationalStats> {
   const now = options.now || new Date();
   const hours = Math.max(1, Math.min(168, asCount(options.hours || 24)));
-  if (!kv) return emptyStats(now, hours);
+  if (!kv) return emptyStats(now, hours, createTelemetryShedNotice());
 
   const providers = new Map<string, ProviderAccumulator>();
 
-  for (let offset = 0; offset < hours; offset++) {
-    const prefix = kvKey(env, `telemetry:provider:${hourPrefix(shiftHours(now, offset))}:`);
-    const keys = await listKeys(kv, prefix);
+  try {
+    for (let offset = 0; offset < hours; offset++) {
+      const prefix = kvKey(env, `telemetry:provider:${hourPrefix(shiftHours(now, offset))}:`);
+      const keys = await listKeys(kv, prefix);
 
-    for (const key of keys) {
-      const parsed = parseTelemetryKey(key, prefix);
-      if (!parsed) continue;
+      for (const key of keys) {
+        const parsed = parseTelemetryKey(key, prefix);
+        if (!parsed) continue;
 
-      const bucket = await kv.get(key, 'json').catch(() => null) as ProviderTelemetryBucket | null;
-      if (!bucket) continue;
+        const bucket = await kv.get(key, 'json').catch(() => null) as ProviderTelemetryBucket | null;
+        if (!bucket) continue;
 
-      const requests = asCount(bucket.requests);
-      if (requests === 0) continue;
+        const requests = asCount(bucket.requests);
+        if (requests === 0) continue;
 
-      const current = providers.get(parsed.provider) || {
-        provider: parsed.provider,
-        requests: 0,
-        successes: 0,
-        failures: 0,
-        totalLatencyMs: 0,
-        tokensUsed: 0,
-      };
+        const current = providers.get(parsed.provider) || {
+          provider: parsed.provider,
+          requests: 0,
+          successes: 0,
+          failures: 0,
+          totalLatencyMs: 0,
+          tokensUsed: 0,
+        };
 
-      current.requests += requests;
-      current.successes += asCount(bucket.successes);
-      current.failures += asCount(bucket.failures);
-      current.totalLatencyMs += asCount(bucket.totalLatencyMs);
-      current.tokensUsed += asCount(bucket.inputTokens) + asCount(bucket.requestedOutputTokens);
-      providers.set(parsed.provider, current);
+        current.requests += requests;
+        current.successes += asCount(bucket.successes);
+        current.failures += asCount(bucket.failures);
+        current.totalLatencyMs += asCount(bucket.totalLatencyMs);
+        current.tokensUsed += asCount(bucket.inputTokens) + asCount(bucket.requestedOutputTokens);
+        providers.set(parsed.provider, current);
+      }
     }
+  } catch {
+    return emptyStats(now, hours, createTelemetryShedNotice());
   }
 
   return finalizeStats(now, hours, providers);

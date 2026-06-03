@@ -1,4 +1,5 @@
 import { kvKey } from './kv-prefix';
+import { completedTelemetryWrite, shedTelemetryWrite, skippedTelemetryWrite, type TelemetryWriteResult } from './telemetry-degradation';
 
 export const MAX_SYSTEM_PROMPT_TOKENS = 2048;
 export const MAX_TOTAL_REQUEST_TOKENS = 4096;
@@ -59,8 +60,8 @@ export async function logTokenUsage(
   provider: string,
   inputTokens: number,
   outputTokens: number,
-): Promise<void> {
-  if (!kv) return;
+): Promise<TelemetryWriteResult> {
+  if (!kv) return skippedTelemetryWrite();
   const today = new Date().toISOString().slice(0, 10);
   const hour = new Date().getHours().toString().padStart(2, '0');
   const key = kvKey(env, `tk:${today}:${hour}`);
@@ -69,7 +70,10 @@ export async function logTokenUsage(
     existing.total += (inputTokens + outputTokens);
     existing.providers[provider] = (existing.providers[provider] || 0) + (inputTokens + outputTokens);
     await kv.put(key, JSON.stringify(existing), { expirationTtl: 86400 * 7 });
-  } catch {}
+    return completedTelemetryWrite();
+  } catch {
+    return shedTelemetryWrite('token-usage-telemetry');
+  }
 }
 
 export interface TokenStats {

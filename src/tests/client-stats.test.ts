@@ -78,6 +78,40 @@ describe('client operational stats', () => {
     expect(JSON.stringify(stats)).not.toContain('old-provider');
   });
 
+  it('returns a content-free operator notice when telemetry KV listing is unavailable', async () => {
+    const { collectOperationalStats } = await import('../lib/stats');
+    const now = new Date('2026-06-03T10:30:00.000Z');
+    const kv = {
+      async list() {
+        throw new Error('KV quota exceeded after private prompt text');
+      },
+      async get() {
+        throw new Error('private response text should not be queried');
+      },
+    };
+
+    const stats = await collectOperationalStats(kv, { PROJECT_NAME: 'Acme Docs' }, { now, hours: 24 });
+
+    expect(stats).toMatchObject({
+      windowHours: 24,
+      requestsLast24h: 0,
+      successes: 0,
+      failures: 0,
+      averageLatencyMs: 0,
+      tokensUsed: 0,
+      topProvider: null,
+      providers: [],
+      telemetryAvailable: false,
+      operatorNotice: {
+        code: 'TELEMETRY_SHED',
+        severity: 'warning',
+      },
+    });
+    expect(stats.operatorNotice?.message).toContain('telemetry');
+    expect(JSON.stringify(stats)).not.toContain('private prompt');
+    expect(JSON.stringify(stats)).not.toContain('private response');
+  });
+
   it('authorizes stats with an env password from bearer or explicit header only', async () => {
     const { isStatsAuthorized } = await import('../lib/stats');
     const env = { STATS_PASSWORD: 'correct horse battery staple' };

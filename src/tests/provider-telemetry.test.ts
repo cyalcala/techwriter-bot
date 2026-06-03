@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 function createKV() {
   const data = new Map<string, string>();
@@ -58,5 +58,47 @@ describe('provider telemetry', () => {
     });
     expect(JSON.stringify(stored)).not.toContain('prompt');
     expect(JSON.stringify(stored)).not.toContain('response');
+  });
+
+  it('sheds provider telemetry write failures with a content-free operator notice', async () => {
+    const { recordProviderTelemetry } = await import('../lib/provider-telemetry');
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const now = new Date('2026-06-03T10:00:00.000Z');
+    const writeAttempts: string[] = [];
+    const kv = {
+      async get() { return null; },
+      async put(key: string, value: string) {
+        writeAttempts.push(`${key}:${value}`);
+        throw new Error('KV quota exceeded while handling private prompt text');
+      },
+    };
+
+    try {
+      const result = await recordProviderTelemetry(kv, { PROJECT_NAME: 'Acme Docs' }, {
+        provider: 'groq-fast',
+        chatPath: 'fast',
+        outcome: 'provider_error',
+        latencyMs: 250,
+        status: 503,
+        inputTokens: 42,
+        requestedOutputTokens: 256,
+      }, now);
+
+      expect(result).toMatchObject({
+        recorded: false,
+        shed: true,
+        operatorNotice: {
+          code: 'TELEMETRY_SHED',
+          severity: 'warning',
+        },
+      });
+      expect(result.operatorNotice?.message).toContain('telemetry');
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('TELEMETRY_SHED'));
+      expect(writeAttempts).toHaveLength(1);
+      expect(JSON.stringify(result)).not.toContain('private prompt');
+      expect(JSON.stringify(warn.mock.calls)).not.toContain('private prompt');
+    } finally {
+      warn.mockRestore();
+    }
   });
 });

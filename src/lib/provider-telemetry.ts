@@ -1,4 +1,5 @@
 import { kvKey } from './kv-prefix';
+import { completedTelemetryWrite, shedTelemetryWrite, skippedTelemetryWrite, type TelemetryWriteResult } from './telemetry-degradation';
 
 export type TelemetryChatPath = 'fast' | 'balanced' | 'heavy';
 export type ProviderOutcome = 'success' | 'http_error' | 'provider_error' | 'missing_api_key';
@@ -61,8 +62,8 @@ export async function recordProviderTelemetry(
   env: Record<string, unknown>,
   event: ProviderTelemetryEvent,
   now: Date = new Date(),
-): Promise<void> {
-  if (!kv) return;
+): Promise<TelemetryWriteResult> {
+  if (!kv) return skippedTelemetryWrite();
 
   const hour = now.toISOString().slice(0, 13);
   const key = kvKey(env, `telemetry:provider:${hour}:${safeDimension(event.provider)}:${event.chatPath}`);
@@ -87,5 +88,8 @@ export async function recordProviderTelemetry(
     bucket.updatedAt = now.toISOString();
 
     await kv.put(key, JSON.stringify(bucket), { expirationTtl: 86400 * 30 });
-  } catch {}
+    return completedTelemetryWrite();
+  } catch {
+    return shedTelemetryWrite('provider-telemetry');
+  }
 }
