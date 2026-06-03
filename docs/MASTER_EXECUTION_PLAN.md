@@ -74,14 +74,14 @@ The current tracked code graph was refreshed with `graphify update .` on
 
 - Report: `graphify-out/GRAPH_REPORT.md`
 - Graph: `graphify-out/graph.json`
-- Summary: 858 nodes, 1409 edges
-- Extraction confidence: 94% EXTRACTED, 6% INFERRED, 0% AMBIGUOUS
-- Built from code at commit: `8823a41a`
+- Summary: 863 nodes, 1422 edges
+- Extraction confidence: 93% EXTRACTED, 7% INFERRED, 0% AMBIGUOUS
+- Built from code at commit: `b27ecffd`
 - The generated report currently disagrees with itself on total community
   count; use node/edge counts and targeted graph queries for acceptance until
   that reporting discrepancy is reconciled.
 - The production runtime graph is published by the GitHub Actions extraction
-  pipeline and currently reports 986 nodes and 1533 edges.
+  pipeline and currently reports 999 nodes and 1559 edges.
 - Controlled provider fault injection is available only when
   `PROVIDER_FAULT_INJECTION_TOKEN` is configured and matched by request
   headers, allowing failover/outage acceptance without disabling real provider
@@ -204,6 +204,10 @@ The current tracked code graph was refreshed with `graphify update .` on
   diagram failures return private standardized envelopes, transient Kroki
   failures retry once, permanent syntax failures do not retry, and the artifact
   UI keeps visible source plus retry/View code recovery controls.
+- Phase 4 closure audit is verified: white-label, onboarding, mobile artifact,
+  and graceful-degradation rows have focused tests or fresh browser/production
+  smoke evidence, including a real mobile overlay import/pinch/swipe-dismiss
+  smoke through the production app.
 
 Before broad architecture work, read `graphify-out/GRAPH_REPORT.md` first.
 When the graph may be stale, run:

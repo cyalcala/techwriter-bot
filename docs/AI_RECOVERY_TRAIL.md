@@ -93,7 +93,8 @@ Unless the user explicitly changes strategy in writing, do not rebuild:
 As of 2026-06-03:
 
 - Latest behavior code backup: `b27ecff` (`fix: shed telemetry writes when KV
-  is unavailable`), pushed to `origin/main`.
+  is unavailable`), pushed to `origin/main`. The subsequent Phase 4 closure
+  audit required no code changes.
 - Behavior added: provider telemetry and aggregate token counter KV write
   failures shed with a content-free `TELEMETRY_SHED` operator notice; protected
   stats returns `telemetryAvailable: false` with the same notice when telemetry
@@ -115,8 +116,16 @@ As of 2026-06-03:
   render API smoke cover private standardized route failures, transient Kroki
   retry, permanent syntax no-retry, sanitized SVG success, and visible
   retry/View code artifact recovery controls.
-- Next safe task: perform a Phase 4 closure audit across white-label,
-  onboarding, mobile artifacts, and graceful-degradation verification rows.
+- Phase 4 closure audit: focused Phase 4 tests, full test suite, production
+  audit, `git diff --check`, the recorded `build:local` command, production
+  app/health smoke, bounded graph lookups, and a real mobile overlay
+  import/pinch/swipe smoke all passed. The real mobile smoke used Playwright
+  CLI against production at 390x844 with a synthetic session artifact and left
+  no local helper files behind.
+- Next safe task: preserve the closure checkpoint in GitHub, watch the
+  docs-only deployment, and record final acceptance evidence. After that,
+  Phase 4 should be considered closed unless the user explicitly starts a new
+  product phase.
 
 ## Recovery Prompt
 

@@ -41,23 +41,17 @@ transparency slices were accepted with privacy-first active-session boundaries:
   sanitized in-memory records, derive deterministic three-word fallback titles,
   and support list/upsert/rename/archive/delete operations without durable
   storage or network writes.
-- Current checkpoint: code commit `b27ecff` adds the next Phase 4 Graceful
-  Degradation slice and is accepted on production via GitHub Actions run
-  `26881378900`: KV-full/non-content telemetry writes now shed gracefully.
-  Provider telemetry and aggregate token counter write failures return a
-  content-free `TELEMETRY_SHED` result and emit a content-free operator warning;
-  the protected stats collector reports `telemetryAvailable: false` with the
-  same operator notice instead of throwing when telemetry KV is unavailable.
-  The follow-up Kroki/artifact-renderer-down audit found the remaining
-  graceful-degradation row already covered by existing renderer tests, route
-  behavior, and visible artifact recovery controls. The local tracked graph is
+- Current checkpoint: Phase 4 closure audit is complete without code changes.
+  White-label, onboarding, mobile artifact, and graceful-degradation rows are
+  verified by focused tests, full-suite/build gates, production smoke, bounded
+  graph lookups, and a real mobile browser smoke of the artifact overlay. The
+  latest behavior code checkpoint remains `b27ecff`; the local tracked graph is
   863 nodes and 1422 edges from `b27ecffd`; the latest production runtime graph
   reports 999 nodes and 1559 edges.
-- Next slice: perform a Phase 4 closure audit across the completed
-  white-label, onboarding, mobile artifact, and graceful-degradation rows.
-  Prefer evidence collection and documentation over new code. Only add a narrow
-  fix if a required verification row is genuinely missing. Do not add
-  marketing pages, auth, billing, multi-tenancy, autonomous agents,
+- Next slice: preserve this closure checkpoint in GitHub, watch the docs-only
+  deploy, and record final acceptance evidence. After that, Phase 4 should be
+  considered closed unless the user explicitly asks for a new product phase.
+  Do not add marketing pages, auth, billing, multi-tenancy, autonomous agents,
   WebContainer/runtime package tooling, or complex dashboards.
 - Relay-safe documentation updates after each meaningful step.
 
@@ -1755,15 +1749,36 @@ Latest incremental verification on 2026-06-01:
   1559 edges. Production page smoke returned `200`, production `/api/health`
   returned status `ok`, four active providers out of six, expected/stored app
   version `0.0.1`, and no version mismatch.
+- Completed the Phase 4 closure audit without code changes. Fresh focused
+  Phase 4 verification passed:
+  `npm.cmd test -- --run src/tests/white-label.test.ts src/tests/brand-voice.test.ts src/tests/sample-data.test.ts src/tests/mobile-artifacts.test.ts src/tests/graceful-degradation.test.ts src/tests/search-graceful-degradation.test.ts src/tests/rag-citations.test.ts src/tests/client-stats.test.ts src/tests/provider-telemetry.test.ts src/tests/token-counter.test.ts src/tests/kroki-renderer.test.ts src/tests/artifact-error-boundary.test.ts`
+  (12 files, 38 tests). Full verification also passed: `npm.cmd test`
+  (42 files, 195 tests), `npm.cmd audit --omit=dev --audit-level=high`
+  (0 vulnerabilities), `git diff --check` (clean), and the recorded
+  `build:local` command (passed with the known non-failing `punycode` and
+  Wrangler local-AI warnings; `T:` was already substituted).
+- Closure production smoke passed: `https://tw-bot.pages.dev/` returned `200`
+  with `Technical Writer`, `Try sample data`, the active-session refresh
+  notice, and the privacy notice; `/api/health` returned `200`, request id
+  `8a8e64bd-3b8d-4ddc-a30b-0c7cfaf0a647`, status `ok`, four active providers
+  out of six, expected/stored app version `0.0.1`, and no version mismatch.
+  Bounded graph lookups returned `Cache-Control: no-store, private` for
+  `whiteLabel` (4 nodes), `sampleData` (2 nodes), `mobile artifact`
+  (12 nodes), and `graceful degradation` (12 nodes).
+- Real mobile browser smoke passed through the production app using Playwright
+  CLI at a 390x844 viewport and a synthetic session-import artifact, with no
+  local source files left behind. The imported `Mobile Smoke Diagram` SVG
+  opened the mobile artifact overlay, body and document scroll styles changed
+  to `hidden`, pinch zoom changed the preview width from `100%` to `185%`, and
+  swipe-down dismiss removed the dialog and restored both scroll styles.
 
 ## Next Task
 
 Continue with Phase 4 Polish And Degrade in small slices:
 
-- Perform a Phase 4 closure audit across the completed white-label,
-  onboarding, mobile artifact, and graceful-degradation rows. Prefer evidence
-  collection and documentation; only add a narrow fix if a required
-  verification row is genuinely missing.
+- Preserve this Phase 4 closure checkpoint in GitHub, watch the docs-only
+  deployment, and record final acceptance evidence. After that, Phase 4 should
+  be treated as closed unless the user explicitly asks for a new product phase.
 - If local browser smoke remains blocked by the Cloudflare local preview issue,
   record that caveat and rely on build plus production smoke after deployment.
 - Keep the UI compact and internal-tool focused. Do not add marketing pages,
