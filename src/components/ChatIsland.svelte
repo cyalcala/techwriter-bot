@@ -184,6 +184,7 @@
   let responseTransparency = $state<ResponseTransparency | null>(null);
   let failoverEvents = $state<FailoverEvent[]>([]);
   let liveOutage = $state<LiveOutageState | null>(null);
+  let liveSearchUnavailable = $state(false);
   let isMobile = $state(false);
   let documentTopics = $state('');
   let documentSources = $state<Record<string, DocumentSource>>({});
@@ -457,6 +458,7 @@
     artifactError = null;
     pendingArtifactRepair = null;
     liveOutage = null;
+    liveSearchUnavailable = false;
     isLiveMode = false;
     chatPath = conversation.chatPath ?? null;
     responseTransparency = null;
@@ -556,6 +558,7 @@
     artifactError = null;
     pendingArtifactRepair = null;
     liveOutage = null;
+    liveSearchUnavailable = false;
     isLiveMode = false;
     chatPath = null;
     responseTransparency = null;
@@ -580,6 +583,7 @@
     artifactError = null;
     pendingArtifactRepair = null;
     liveOutage = null;
+    liveSearchUnavailable = false;
     isLiveMode = false;
     chatPath = null;
     responseTransparency = null;
@@ -786,6 +790,7 @@
     artifactError = null;
     pendingArtifactRepair = null;
     liveOutage = null;
+    liveSearchUnavailable = false;
     isLiveMode = false;
     chatPath = parsed.payload.chatPath ?? null;
     responseTransparency = null;
@@ -1090,6 +1095,7 @@
       if (sourcesRaw) { try { sourcesFromHeaders = JSON.parse(sourcesRaw); } catch {} }
       const responseSearchTier = response.headers.get('x-search-tier') as 'basic' | 'enhanced' | 'none' | null;
       if (responseSearchTier) msgSearchTier = responseSearchTier;
+      liveSearchUnavailable = response.headers.get('x-search-unavailable') === 'true';
       const responseSearchRemaining = response.headers.get('x-search-remaining');
       if (responseSearchRemaining != null) {
         const remaining = responseSearchRemaining === 'unlimited' ? -1 : parseInt(responseSearchRemaining, 10);
@@ -1520,6 +1526,7 @@
       {responseTransparency}
       {chatPath}
       {failoverEvents}
+      {liveSearchUnavailable}
       panelOpen={!!activeArtifactEntry}
       {isMobile}
       primaryColor={visiblePrimaryColor}

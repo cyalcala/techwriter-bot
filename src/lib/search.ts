@@ -34,6 +34,7 @@ export interface SearchResult {
   sources: { title: string; url: string; provider?: string }[];
   searchTier: 'none' | 'basic' | 'enhanced';
   searchAttempted: boolean;
+  searchUnavailable?: boolean;
   enhancedRemaining?: number;
 }
 
@@ -115,7 +116,7 @@ export async function searchRouter(
 
   const classified = classifyQuery(query);
   if (classified === 'greeting' || classified === 'conversational') {
-    return { contextParts, sources, searchTier: 'none', searchAttempted: false };
+    return { contextParts, sources, searchTier: 'none', searchAttempted: false, searchUnavailable: false };
   }
 
   searchAttempted = true;
@@ -255,5 +256,12 @@ export async function searchRouter(
     }
   }
 
-  return { contextParts, sources, searchTier, searchAttempted, enhancedRemaining };
+  return {
+    contextParts,
+    sources,
+    searchTier,
+    searchAttempted,
+    searchUnavailable: searchAttempted && contextParts.length === 0,
+    enhancedRemaining,
+  };
 }

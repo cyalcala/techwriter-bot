@@ -48,4 +48,20 @@ describe('graceful degradation notices', () => {
     expect(island).not.toContain('localStorage.setItem');
     expect(island).not.toContain('sessionStorage.setItem');
   });
+
+  it('continues without live results when search is unavailable and shows a warning', () => {
+    const chatRoute = source('src/pages/api/chat.ts');
+    const island = source('src/components/ChatIsland.svelte');
+    const input = source('src/components/ChatInput.svelte');
+
+    expect(chatRoute).toContain("headers.set('x-search-unavailable', 'true')");
+    expect(island).toContain('let liveSearchUnavailable = $state(false)');
+    expect(island).toContain("response.headers.get('x-search-unavailable') === 'true'");
+    expect(island).toContain('{liveSearchUnavailable}');
+    expect(input).toContain('liveSearchUnavailable?: boolean');
+    expect(input).toContain('Live search temporarily unavailable.');
+    expect(input).toContain('Continuing without live results.');
+    expect(island).not.toContain('localStorage.setItem');
+    expect(island).not.toContain('sessionStorage.setItem');
+  });
 });

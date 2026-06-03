@@ -6,6 +6,7 @@ export interface SearchResult {
   sources: { title: string; url: string; provider?: string }[];
   searchTier: 'none' | 'basic' | 'enhanced';
   searchAttempted: boolean;
+  searchUnavailable?: boolean;
   enhancedRemaining?: number;
 }
 
@@ -149,6 +150,11 @@ export function buildSystemPrompt(query: string, ctx: PromptContext): string {
       layers.push({
         priority: 1,
         content: 'Search returned no results for this query. Be honest: say you don\'t have current info yet. Only offer what you confidently know.',
+      });
+    } else if (searchResult.searchUnavailable) {
+      layers.push({
+        priority: 1,
+        content: 'Live search is temporarily unavailable. Continue without live results, be explicit that current external sources could not be checked, and answer only from reliable non-search context.',
       });
     } else if (searchResult.contextParts.length === 0 && searchResult.searchAttempted) {
       layers.push({

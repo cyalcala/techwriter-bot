@@ -51,6 +51,7 @@
     responseTransparency: ResponseTransparency | null;
     chatPath: string | null;
     failoverEvents?: FailoverEvent[];
+    liveSearchUnavailable?: boolean;
     panelOpen: boolean;
     isMobile: boolean;
     primaryColor?: string;
@@ -61,7 +62,7 @@
     disabled, isStreaming, inputMessage, onInputChange, onSend, onStop,
     mode, onModeChange, enhancedCredits, onFileClick, isUploading,
     ragUploadedFileName = '', ragUploadStatus = 'idle', ragDegraded = false,
-    ragUploadProgress = null, ragDocuments = [], ragMetadataOnly = false, ragRetrievalUnavailable = false, onRemoveFile, onDeleteDocument, onReembedDocument, toolsOpen, onToggleTools, tokenDisplay, responseTransparency, chatPath, failoverEvents = [], panelOpen, isMobile,
+    ragUploadProgress = null, ragDocuments = [], ragMetadataOnly = false, ragRetrievalUnavailable = false, onRemoveFile, onDeleteDocument, onReembedDocument, toolsOpen, onToggleTools, tokenDisplay, responseTransparency, chatPath, failoverEvents = [], liveSearchUnavailable = false, panelOpen, isMobile,
     primaryColor = '#16a34a',
     footerText = 'AI can make mistakes. Verify important info.',
   }: Props = $props();
@@ -158,6 +159,14 @@
               {event.provider} {failoverTime(event.timestamp)}
             </span>
           {/each}
+        </div>
+      {/if}
+
+      {#if liveSearchUnavailable}
+        <div class="mb-2 flex flex-wrap items-center gap-1.5 text-[10px] text-amber-800" role="status">
+          <span class="inline-flex max-w-full items-center rounded-lg border border-amber-200 bg-amber-50 px-2 py-1">
+            Live search temporarily unavailable. Continuing without live results.
+          </span>
         </div>
       {/if}
 

@@ -271,6 +271,7 @@ export const POST: APIRoute = async (ctx) => {
     headers.set('x-request-id', rid);
     headers.set('x-token-usage', JSON.stringify({ in: inputTokens, graph: graphTokens }));
     headers.set('x-active-provider-count', String(pool.length));
+    if (searchResult.searchUnavailable) headers.set('x-search-unavailable', 'true');
     if (graphContextStr) headers.set('x-graph-context', JSON.stringify({ available: true, tokens: graphTokens }));
 
     return new Response(response.body, { status: response.status, headers });
