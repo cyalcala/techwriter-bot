@@ -60,6 +60,13 @@ transparency slices were accepted with privacy-first active-session boundaries:
   client deployment checklist, environment setup guide, per-client `deploy.sh`
   path, existing GitHub Actions caveat, acceptance runbook, demo script,
   troubleshooting map, and support/privacy boundary for pilots.
+- Current Phase 5A acceptance evidence: the self-client dry run against the
+  existing production deployment passed after docs checkpoint `64d43e5`.
+  GitHub Actions run `26883926741` succeeded with immutable URL
+  `https://2482adc7.tw-bot.pages.dev`; both the production alias and immutable
+  URL returned `200`, showed the expected `Technical Writer`, `Try sample data`,
+  active-session, and privacy notices, and returned `ok` health with 4 active
+  providers out of 6 plus matching app version `0.0.1`.
 - Next slice: Phase 4 should be considered closed unless the user explicitly
   asks for a new product phase. Recommended next work is Phase 5A Client
   Deployment Kit if the user says to proceed with the recommendation; otherwise
@@ -1813,11 +1820,10 @@ Continue from the Phase 4 closure into Phase 5 selection:
   Deployment Kit as a documentation/runbook slice before any new product
   feature. The first kit draft now lives in
   `docs/CLIENT_DEPLOYMENT_KIT.md`.
-- Next safe Phase 5A follow-up: perform a self-client dry run against the
-  existing `https://tw-bot.pages.dev` production deployment using the kit's
-  production acceptance runbook, then record the evidence. If a real client
-  Cloudflare account is available, use `deploy.sh` for that client instead.
-  If the user chooses a different strategic phase, follow that choice.
+- Next safe follow-up: use the kit for a real client-owned Cloudflare
+  deployment when client credentials are available. Without a real client
+  account, ask the user whether to continue with Phase 5B Bounded Documentation
+  Tool Pack or Phase 5C Portfolio And Buyer Narrative.
 - If local browser smoke remains blocked by the Cloudflare local preview issue,
   record that caveat and rely on build plus production smoke after deployment.
 - Keep the UI compact and internal-tool focused. Do not add marketing pages,

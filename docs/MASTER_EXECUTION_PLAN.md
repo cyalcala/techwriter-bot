@@ -26,6 +26,9 @@ explicit non-goals.
   `docs/SELLABLE_READINESS_HANDOFF.md`.
 - Phase 5A client deployment reference:
   `docs/CLIENT_DEPLOYMENT_KIT.md`.
+- Phase 5A self-client dry run passed against the existing production alias and
+  immutable deployment `https://2482adc7.tw-bot.pages.dev` from GitHub Actions
+  run `26883926741`.
 - Current completion estimate: approved Phase 1 through Phase 4 roadmap is
   closure-verified and accepted; paid-pilot readiness for the per-client
   Cloudflare deployment is about 90%, with remaining work focused on client

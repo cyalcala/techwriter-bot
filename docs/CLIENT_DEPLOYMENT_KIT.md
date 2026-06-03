@@ -365,8 +365,46 @@ Add a docs checkpoint with:
 - Manual demo/browser checks completed.
 - Any caveats and next safe task.
 
+## Self-Client Dry Run Evidence
+
+Completed on 2026-06-03 after the first Phase 5A kit checkpoint
+`64d43e5` (`docs: add client deployment kit`).
+
+GitHub Actions:
+
+- Run `26883926741` completed successfully for `main`.
+- Immutable Cloudflare Pages URL:
+  `https://2482adc7.tw-bot.pages.dev`.
+- Graphify CI uploaded the runtime graph to KV.
+
+Production alias smoke:
+
+- Base URL: `https://tw-bot.pages.dev`.
+- App shell returned `200`.
+- Page contained `Technical Writer`, `Try sample data`, the active-session
+  export-before-leaving notice, and the privacy notice.
+- `/api/health` returned `ok`, generated at `2026-06-03T12:13:21.835Z`.
+- Provider status: 4 active providers out of 6 configured providers.
+- App version: expected `0.0.1`, stored `0.0.1`, mismatch `false`.
+- Bounded graph lookup for `sampleData` returned `200`,
+  `Cache-Control: no-store, private`, `available: true`, and 2 nodes.
+- Graphviz render smoke returned `200`, `Cache-Control: no-store, private`,
+  and SVG content.
+
+Immutable URL smoke:
+
+- Base URL: `https://2482adc7.tw-bot.pages.dev`.
+- App shell returned `200`.
+- Page contained `Technical Writer`, `Try sample data`, the active-session
+  export-before-leaving notice, and the privacy notice.
+- `/api/health` returned `ok` with 4 active providers out of 6.
+- App version: expected `0.0.1`, stored `0.0.1`, mismatch `false`.
+
 ## Next Safe Task
 
-Use this kit for the first client-style dry run. If no real client account is
-available, perform a self-client dry run against the existing `tw-bot`
-production deployment and record the evidence without changing product scope.
+Use this kit for the first real client-style Cloudflare deployment when a client
+account is available. Until then, the next strategic choice is between:
+
+- Phase 5B: Bounded Documentation Tool Pack.
+- Phase 5C: Portfolio And Buyer Narrative.
+- A real client deployment using Path B once client credentials are available.

@@ -138,11 +138,22 @@ As of 2026-06-03:
   client setup checklist, environment guide, per-client `deploy.sh` path,
   existing GitHub Actions caveat, production acceptance runbook, demo script,
   troubleshooting map, support boundary, and evidence checklist.
-- Next safe task: perform a self-client dry run against
-  `https://tw-bot.pages.dev` using the deployment kit's production acceptance
-  runbook, then record the evidence. If a real client Cloudflare account is
-  available, use `deploy.sh` for that client instead. Do not start a new
-  product feature without next-phase direction.
+- Phase 5A self-client dry run: docs checkpoint `64d43e5` deployed
+  successfully in GitHub Actions run `26883926741`, immutable URL
+  `https://2482adc7.tw-bot.pages.dev`; Graphify CI uploaded the runtime graph.
+  Production alias `https://tw-bot.pages.dev` returned `200`, contained
+  `Technical Writer`, `Try sample data`, the active-session notice, and the
+  privacy notice. `/api/health` returned `ok`, 4 active providers out of 6,
+  expected/stored app version `0.0.1`, and mismatch `false`. Bounded graph
+  lookup for `sampleData` returned 2 nodes with `Cache-Control: no-store,
+  private`; Graphviz render smoke returned SVG with `Cache-Control: no-store,
+  private`. The immutable URL also returned `200` and `ok` health with matching
+  app version.
+- Next safe task: use the kit for a real client-owned Cloudflare deployment
+  when client credentials are available. Without a real client account, ask the
+  user whether to continue with Phase 5B Bounded Documentation Tool Pack or
+  Phase 5C Portfolio And Buyer Narrative. Do not start a new product feature
+  without next-phase direction.
 
 ## Recovery Prompt
 
