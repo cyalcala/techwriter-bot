@@ -41,18 +41,19 @@ transparency slices were accepted with privacy-first active-session boundaries:
   sanitized in-memory records, derive deterministic three-word fallback titles,
   and support list/upsert/rename/archive/delete operations without durable
   storage or network writes.
-- Current checkpoint: code commit `579983f` adds the next Phase 4 Graceful
-  Degradation slice and is accepted on production via docs commit `b862a67` and
-  GitHub Actions run `26844370877`: if embedding retrieval fails during a
-  document question, the app skips uploaded-document context for that send,
-  continues the chat with non-document context, and shows a compact Knowledge
-  Base warning. The local tracked graph is 857 nodes and 1407 edges from
-  `579983f1`; the production runtime graph is 985 nodes and 1529 edges.
-- Next slice: continue Phase 4 Graceful Degradation with the next smallest
-  visible failure-mode slice. Recommended target: all search APIs fail should
-  continue without live results and show a clear warning. Do not add marketing
-  pages, auth, billing, multi-tenancy, autonomous agents, WebContainer/runtime
-  package tooling, or complex dashboards.
+- Current local checkpoint: code commit `8823a41` adds the next Phase 4
+  Graceful Degradation slice: if live search attempts return no usable context,
+  the app marks search unavailable, continues the chat without live results,
+  adds a no-live-results instruction to the prompt, and shows a compact
+  active-session warning. The local tracked graph is 858 nodes and 1409 edges
+  from `8823a41a`. Deployment acceptance is pending until the docs/Graphify
+  checkpoint is pushed and GitHub Actions completes.
+- Next slice after deployment acceptance: continue Phase 4 Graceful
+  Degradation with the next smallest visible failure-mode slice. Recommended
+  target: KV-full/non-content telemetry writes should shed gracefully and notify
+  the operator without persisting user content. Do not add marketing pages,
+  auth, billing, multi-tenancy, autonomous agents, WebContainer/runtime package
+  tooling, or complex dashboards.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -1648,14 +1649,46 @@ Latest incremental verification on 2026-06-01:
   `src/lib/rag-client.ts:L119`; lookup for
   `Document context temporarily unavailable` returns 12 nodes from the
   985-node runtime graph, both with `Cache-Control: no-store, private`.
+- Added the third Phase 4 Graceful Degradation slice in code commit
+  `8823a41`: `searchRouter` now returns a content-free `searchUnavailable`
+  flag when search was attempted but no live context was retrieved; the chat
+  API forwards that as `x-search-unavailable: true`; `ChatIsland` captures it
+  as active-session UI state; and `ChatInput` shows a compact
+  `Live search temporarily unavailable. Continuing without live results.`
+  warning. `buildSystemPrompt` also instructs the model to continue without
+  live results and be explicit that current external sources could not be
+  checked. The change does not persist search-result content and does not use
+  localStorage, sessionStorage, IndexedDB, KV content writes, dashboards, auth,
+  billing, multi-tenancy, autonomous agents, or browser package runtimes.
+- Red-green coverage confirmed the search-outage gap first:
+  `npm.cmd test -- --run src/tests/search-graceful-degradation.test.ts src/tests/graceful-degradation.test.ts`
+  failed because `searchUnavailable`, `x-search-unavailable`, and the footer
+  warning did not exist. After implementation, verification passed:
+  `npm.cmd test -- --run src/tests/search-graceful-degradation.test.ts src/tests/graceful-degradation.test.ts`
+  (2 files, 4 tests),
+  `npm.cmd test -- --run src/tests/search-graceful-degradation.test.ts src/tests/graceful-degradation.test.ts src/tests/client-transparency.test.ts src/tests/privacy-first.test.ts src/tests/chat-markdown-export.test.ts src/tests/session-transfer.test.ts`
+  (6 files, 31 tests), `npm.cmd test` (42 files, 192 tests),
+  `npm.cmd audit --omit=dev --audit-level=high` (0 vulnerabilities),
+  `git diff --check` (only known CRLF conversion warnings), and the recorded
+  `build:local` command (passed with the known non-failing `punycode` and
+  Wrangler local-AI warnings).
+- `graphify update .` refreshed tracked local Graphify artifacts from commit
+  `8823a41`: 858 nodes and 1409 edges. Community-count wording remains
+  non-blocking. Deployment acceptance is pending until this docs/Graphify
+  checkpoint is pushed and GitHub Actions completes.
 
 ## Next Task
 
 Continue with Phase 4 Polish And Degrade in small slices:
 
-- Continue Phase 4 Graceful Degradation with the next smallest visible
-  failure-mode slice. Recommended target: all search APIs fail should continue
-  without live results and show a clear warning to the user.
+- First, if deployment acceptance for code commit `8823a41` has not yet been
+  recorded, push the docs/Graphify checkpoint, watch GitHub Actions, run
+  production smoke checks, and record the run id, immutable URL, runtime graph,
+  and bounded graph lookup evidence.
+- Then continue Phase 4 Graceful Degradation with the next smallest visible
+  failure-mode slice. Recommended target: KV-full/non-content telemetry writes
+  should shed gracefully and notify the operator without persisting user
+  content.
 - If local browser smoke remains blocked by the Cloudflare local preview issue,
   record that caveat and rely on build plus production smoke after deployment.
 - Keep the UI compact and internal-tool focused. Do not add marketing pages,
