@@ -122,10 +122,14 @@ As of 2026-06-03:
   import/pinch/swipe smoke all passed. The real mobile smoke used Playwright
   CLI against production at 390x844 with a synthetic session artifact and left
   no local helper files behind.
-- Next safe task: preserve the closure checkpoint in GitHub, watch the
-  docs-only deployment, and record final acceptance evidence. After that,
-  Phase 4 should be considered closed unless the user explicitly starts a new
-  product phase.
+- Phase 4 closure acceptance: docs commit `de89ee3` deployed successfully in
+  GitHub Actions run `26883014551`, immutable URL
+  `https://4a3cfc7d.tw-bot.pages.dev`; final production smoke returned `200`
+  for the app shell and `ok` health with four active providers, app version
+  `0.0.1`, and no version mismatch.
+- Next safe task: Phase 4 is closure-verified and accepted. Discuss final
+  readiness/sellability and ask the user what strategic phase they want next;
+  do not start another feature build without fresh user direction.
 
 ## Recovery Prompt
 

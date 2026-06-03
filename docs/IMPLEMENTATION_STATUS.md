@@ -41,16 +41,18 @@ transparency slices were accepted with privacy-first active-session boundaries:
   sanitized in-memory records, derive deterministic three-word fallback titles,
   and support list/upsert/rename/archive/delete operations without durable
   storage or network writes.
-- Current checkpoint: Phase 4 closure audit is complete without code changes.
+- Current checkpoint: Phase 4 closure audit and acceptance are complete without
+  code changes.
   White-label, onboarding, mobile artifact, and graceful-degradation rows are
   verified by focused tests, full-suite/build gates, production smoke, bounded
   graph lookups, and a real mobile browser smoke of the artifact overlay. The
-  latest behavior code checkpoint remains `b27ecff`; the local tracked graph is
-  863 nodes and 1422 edges from `b27ecffd`; the latest production runtime graph
-  reports 999 nodes and 1559 edges.
-- Next slice: preserve this closure checkpoint in GitHub, watch the docs-only
-  deploy, and record final acceptance evidence. After that, Phase 4 should be
-  considered closed unless the user explicitly asks for a new product phase.
+  latest behavior code checkpoint remains `b27ecff`; docs checkpoint
+  `de89ee3` deployed successfully in GitHub Actions run `26883014551`; the
+  local tracked graph is 863 nodes and 1422 edges from `b27ecffd`; the latest
+  production runtime graph reports 999 nodes and 1559 edges.
+- Next slice: Phase 4 should be considered closed unless the user explicitly
+  asks for a new product phase. Recommended next work is a user-facing final
+  handoff/readiness discussion, not another feature build.
   Do not add marketing pages, auth, billing, multi-tenancy, autonomous agents,
   WebContainer/runtime package tooling, or complex dashboards.
 - Relay-safe documentation updates after each meaningful step.
@@ -1771,14 +1773,25 @@ Latest incremental verification on 2026-06-01:
   opened the mobile artifact overlay, body and document scroll styles changed
   to `hidden`, pinch zoom changed the preview width from `100%` to `185%`, and
   swipe-down dismiss removed the dialog and restored both scroll styles.
+- The Phase 4 closure audit docs checkpoint deployed successfully in GitHub
+  Actions run `26883014551` from docs commit `de89ee3`, immutable URL
+  `https://4a3cfc7d.tw-bot.pages.dev`, with runtime graph 999 nodes and
+  1559 edges. Final production smoke returned `200` for
+  `https://tw-bot.pages.dev/` with `Technical Writer`, `Try sample data`, the
+  active-session refresh notice, and the privacy notice. Production
+  `/api/health` returned `200`, request id
+  `73147f4b-b566-4f40-99e3-b59af7c47127`, status `ok`, four active providers
+  out of six, expected/stored app version `0.0.1`, and no version mismatch.
 
 ## Next Task
 
 Continue with Phase 4 Polish And Degrade in small slices:
 
-- Preserve this Phase 4 closure checkpoint in GitHub, watch the docs-only
-  deployment, and record final acceptance evidence. After that, Phase 4 should
-  be treated as closed unless the user explicitly asks for a new product phase.
+- Phase 4 is closure-verified and accepted. Next recommended work is a
+  user-facing final handoff/readiness discussion: summarize what is now
+  sellable, what remains intentionally out of scope, and what strategic phase
+  the user wants next. Do not start another feature build without a fresh user
+  direction.
 - If local browser smoke remains blocked by the Cloudflare local preview issue,
   record that caveat and rely on build plus production smoke after deployment.
 - Keep the UI compact and internal-tool focused. Do not add marketing pages,

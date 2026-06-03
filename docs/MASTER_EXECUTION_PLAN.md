@@ -208,6 +208,9 @@ The current tracked code graph was refreshed with `graphify update .` on
   and graceful-degradation rows have focused tests or fresh browser/production
   smoke evidence, including a real mobile overlay import/pinch/swipe-dismiss
   smoke through the production app.
+- Phase 4 closure acceptance deployed from docs commit `de89ee3` in GitHub
+  Actions run `26883014551`; the production app shell and health endpoint
+  passed final smoke with app version `0.0.1`.
 
 Before broad architecture work, read `graphify-out/GRAPH_REPORT.md` first.
 When the graph may be stale, run:
