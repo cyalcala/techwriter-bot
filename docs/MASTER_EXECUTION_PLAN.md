@@ -200,6 +200,10 @@ The current tracked code graph was refreshed with `graphify update .` on
 - KV-full telemetry handling now sheds content-free provider/token telemetry
   writes with a `TELEMETRY_SHED` operator notice, and protected stats reports
   telemetry unavailable instead of throwing or storing failure details.
+- Kroki/artifact-renderer-down handling has been re-audited: server-rendered
+  diagram failures return private standardized envelopes, transient Kroki
+  failures retry once, permanent syntax failures do not retry, and the artifact
+  UI keeps visible source plus retry/View code recovery controls.
 
 Before broad architecture work, read `graphify-out/GRAPH_REPORT.md` first.
 When the graph may be stale, run:

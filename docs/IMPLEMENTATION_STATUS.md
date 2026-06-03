@@ -48,16 +48,17 @@ transparency slices were accepted with privacy-first active-session boundaries:
   content-free `TELEMETRY_SHED` result and emit a content-free operator warning;
   the protected stats collector reports `telemetryAvailable: false` with the
   same operator notice instead of throwing when telemetry KV is unavailable.
-  The local tracked graph is 863 nodes and 1422 edges from `b27ecffd`; the
-  production runtime graph is 998 nodes and 1558 edges.
-- Next slice: Phase 4 Graceful Degradation rows for page refresh/navigation,
-  embedding retrieval, live search, and KV-full telemetry now have verified
-  slices. Recommended target: audit the remaining Kroki/artifact-renderer-down
-  behavior against the existing artifact fallback coverage and either record
-  the already-covered manual reproduction or add one narrow visible inline
-  guidance test if a gap remains. Do not add marketing pages, auth, billing,
-  multi-tenancy, autonomous agents, WebContainer/runtime package tooling, or
-  complex dashboards.
+  The follow-up Kroki/artifact-renderer-down audit found the remaining
+  graceful-degradation row already covered by existing renderer tests, route
+  behavior, and visible artifact recovery controls. The local tracked graph is
+  863 nodes and 1422 edges from `b27ecffd`; the latest production runtime graph
+  reports 999 nodes and 1559 edges.
+- Next slice: perform a Phase 4 closure audit across the completed
+  white-label, onboarding, mobile artifact, and graceful-degradation rows.
+  Prefer evidence collection and documentation over new code. Only add a narrow
+  fix if a required verification row is genuinely missing. Do not add
+  marketing pages, auth, billing, multi-tenancy, autonomous agents,
+  WebContainer/runtime package tooling, or complex dashboards.
 - Relay-safe documentation updates after each meaningful step.
 
 ## Approved Product Decision
@@ -1732,15 +1733,37 @@ Latest incremental verification on 2026-06-01:
   Bounded graph lookup for `telemetry` returns 12 nodes from the 998-node
   runtime graph, including `src/lib/telemetry-degradation.ts:L27`, with
   `Cache-Control: no-store, private`.
+- Audited the remaining Kroki/artifact-renderer-down Phase 4 graceful-
+  degradation row without code changes. Existing coverage already verifies the
+  required behavior: `renderViaKroki()` retries transient Kroki failures once,
+  does not retry permanent syntax errors, sanitizes returned SVG, and maps
+  Flowchart to Kroki Mermaid rendering; `POST /api/render-artifact` keeps every
+  response branch `Cache-Control: no-store, private`; `ArtifactPanel` formats
+  renderer failures with escaped inline guidance, `Retry renderer`, and `View
+  code`; `ChatIsland` stores server-render failures on the active artifact
+  entry and keeps the raw diagram code available instead of auto-reprompting or
+  persisting content. Verification passed:
+  `npm.cmd test -- --run src/tests/kroki-renderer.test.ts src/tests/artifact-error-boundary.test.ts src/tests/artifact-repair-flow.test.ts src/tests/artifacts.test.ts`
+  (4 files, 30 tests). Production render API smoke confirmed invalid Graphviz
+  returns `400 RENDER_FAILED`, `retryable:false`, and `Cache-Control:
+  no-store, private`; valid Graphviz returns `200` with SVG and the same cache
+  boundary. Bounded graph lookup for `kroki` returns 8 nodes with
+  `Cache-Control: no-store, private` from the latest runtime graph.
+- The docs/Graphify checkpoint deploy after the telemetry slice passed in
+  GitHub Actions run `26881676419` from docs commit `99e1410`, immutable URL
+  `https://ee867432.tw-bot.pages.dev`, with runtime graph 999 nodes and
+  1559 edges. Production page smoke returned `200`, production `/api/health`
+  returned status `ok`, four active providers out of six, expected/stored app
+  version `0.0.1`, and no version mismatch.
 
 ## Next Task
 
 Continue with Phase 4 Polish And Degrade in small slices:
 
-- Audit the remaining Kroki/artifact-renderer-down graceful-degradation row
-  against the existing artifact fallback coverage. If it is already covered,
-  record the manual reproduction evidence; if there is a gap, add one narrow
-  visible inline guidance test and the smallest implementation needed.
+- Perform a Phase 4 closure audit across the completed white-label,
+  onboarding, mobile artifact, and graceful-degradation rows. Prefer evidence
+  collection and documentation; only add a narrow fix if a required
+  verification row is genuinely missing.
 - If local browser smoke remains blocked by the Cloudflare local preview issue,
   record that caveat and rely on build plus production smoke after deployment.
 - Keep the UI compact and internal-tool focused. Do not add marketing pages,

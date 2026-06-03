@@ -103,15 +103,20 @@ As of 2026-06-03:
   production audit with 0 high vulnerabilities, `git diff --check`, and the
   recorded `build:local` command all passed.
 - Deployment evidence: GitHub Actions run `26881378900` succeeded, immutable
-  URL `https://d29e72c2.tw-bot.pages.dev` returned `200`, production health was
-  `ok` with app version `0.0.1`, and bounded graph lookup for `telemetry`
-  returned 12 nodes with `Cache-Control: no-store, private`.
+  URL `https://d29e72c2.tw-bot.pages.dev` returned `200`; the follow-up
+  docs/Graphify checkpoint deploy `26881676419` from `99e1410` also succeeded
+  at `https://ee867432.tw-bot.pages.dev`. Production health was `ok` with app
+  version `0.0.1`, and bounded graph lookup for `telemetry` returned 12 nodes
+  with `Cache-Control: no-store, private`.
 - Local Graphify after the code slice: 863 nodes and 1422 edges from
-  `b27ecffd`; production runtime graph from the deployment reported 998 nodes
-  and 1558 edges.
-- Next safe task: audit Kroki/artifact-renderer-down graceful degradation and
-  either record existing fallback evidence or add one narrow visible inline
-  guidance test.
+  `b27ecffd`; latest production runtime graph reported 999 nodes and 1559
+  edges.
+- Kroki/artifact-renderer-down audit: existing renderer tests and production
+  render API smoke cover private standardized route failures, transient Kroki
+  retry, permanent syntax no-retry, sanitized SVG success, and visible
+  retry/View code artifact recovery controls.
+- Next safe task: perform a Phase 4 closure audit across white-label,
+  onboarding, mobile artifacts, and graceful-degradation verification rows.
 
 ## Recovery Prompt
 
