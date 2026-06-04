@@ -1,9 +1,15 @@
 <script lang="ts">
-  import { parseTerminologyRules, type DocumentFinding, type TerminologyRule } from '../lib/document-review';
+  import {
+    parseTerminologyRules,
+    type DocumentFinding,
+    type OpenApiOperationSummary,
+    type TerminologyRule,
+  } from '../lib/document-review';
 
   interface Props {
     documentName: string;
     findings: DocumentFinding[];
+    openApiSummary: OpenApiOperationSummary | null;
     hasRun: boolean;
     onReview: (rules: TerminologyRule[]) => void;
     graphResult: { available: boolean; context: string; nodeCount: number } | null;
@@ -13,7 +19,18 @@
     onClose: () => void;
   }
 
-  let { documentName, findings, hasRun, onReview, graphResult, graphLoading, graphError, onLookup, onClose }: Props = $props();
+  let {
+    documentName,
+    findings,
+    openApiSummary,
+    hasRun,
+    onReview,
+    graphResult,
+    graphLoading,
+    graphError,
+    onLookup,
+    onClose,
+  }: Props = $props();
   let activeTool = $state<'review' | 'references'>('review');
   let glossaryRules = $state('');
   let glossaryNotice = $state('');
@@ -103,6 +120,29 @@
 
       {#if hasRun}
         <div aria-live="polite" class="border-t border-stone-200/70 pt-3">
+          {#if openApiSummary?.operations.length}
+            <div class="mb-3 border-b border-stone-200/70 pb-3">
+              <div class="mb-2 flex items-center justify-between gap-2">
+                <p class="text-xs font-medium text-stone-700">{openApiSummary.operations.length} OpenAPI operations</p>
+                {#if openApiSummary.truncated}
+                  <span class="text-[11px] text-stone-400">Limited view</span>
+                {/if}
+              </div>
+              <ol class="max-h-32 space-y-1.5 overflow-y-auto" aria-label="OpenAPI operation summary">
+                {#each openApiSummary.operations as operation}
+                  <li class="grid gap-1 text-xs text-stone-700 sm:grid-cols-[minmax(150px,0.65fr)_1fr]">
+                    <span class="font-mono text-[11px] font-medium text-stone-600">{operation.method} {operation.path}</span>
+                    <span class="min-w-0">
+                      {operation.summary || 'No summary'}
+                      {#if operation.deprecated}
+                        <span class="ml-1 text-amber-700">Deprecated</span>
+                      {/if}
+                    </span>
+                  </li>
+                {/each}
+              </ol>
+            </div>
+          {/if}
           {#if findings.length === 0}
             <p class="text-xs font-medium text-green-700">No findings.</p>
           {:else}

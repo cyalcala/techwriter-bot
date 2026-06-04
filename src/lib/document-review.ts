@@ -27,7 +27,21 @@ export interface DocumentFinding {
   message: string;
 }
 
+export interface OpenApiOperation {
+  method: string;
+  path: string;
+  line: number;
+  summary: string;
+  deprecated: boolean;
+}
+
+export interface OpenApiOperationSummary {
+  operations: OpenApiOperation[];
+  truncated: boolean;
+}
+
 export const MAX_TERMINOLOGY_RULES = 25;
+export const MAX_OPENAPI_SUMMARY_OPERATIONS = 8;
 const TERMINOLOGY_DELIMITERS = ['->', '=>', '|'];
 const MAX_TERMINOLOGY_TERM_LENGTH = 80;
 
@@ -65,6 +79,7 @@ const RELEASE_IDENTITY_PATTERN = /(?:\bv?\d+\.\d+(?:\.\d+)?\b|\b\d{4}-\d{2}-\d{2
 const RELEASE_PLACEHOLDER_PATTERN = /\b(?:TODO|TBD|FIXME|coming soon|placeholder)\b|\[[^\]]*\b(?:todo|tbd|insert|placeholder)\b[^\]]*\]/i;
 const RELEASE_BREAKING_PATTERN = /\b(?:breaking|removed|deprecated|not backward compatible|incompatible)\b/i;
 const RELEASE_MIGRATION_PATTERN = /\b(?:migration|migrate|upgrade|action required|manual step|rollback|compatibility|workaround)\b/i;
+const OPENAPI_METHODS = new Set(['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']);
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -116,6 +131,70 @@ function extractApiEndpoint(line: string): ApiEndpointReference | null {
 
 function sameParams(first: string[], second: string[]): boolean {
   return first.length === second.length && first.every((param, index) => param === second[index]);
+}
+
+function cleanYamlScalar(value: string): string {
+  return value.trim().replace(/^['"]|['"]$/g, '').trim();
+}
+
+export function summarizeOpenApiOperations(
+  content: string,
+  maxOperations = MAX_OPENAPI_SUMMARY_OPERATIONS,
+): OpenApiOperationSummary {
+  const operations: OpenApiOperation[] = [];
+  const lines = content.replace(/\r\n?/g, '\n').split('\n');
+  const looksLikeOpenApi = lines.some((line) => /^\s*(?:openapi|swagger):\s*["']?\d/i.test(line));
+  let currentPath = '';
+  let currentOperation: OpenApiOperation | null = null;
+  let totalOperations = 0;
+
+  if (!looksLikeOpenApi || maxOperations <= 0) {
+    return { operations, truncated: false };
+  }
+
+  lines.forEach((line, index) => {
+    const lineNumber = index + 1;
+    const pathMatch = line.match(/^\s{0,8}['"]?(\/[^:'"\s][^:'"]*)['"]?:\s*$/);
+    if (pathMatch) {
+      currentPath = cleanYamlScalar(pathMatch[1]);
+      currentOperation = null;
+      return;
+    }
+
+    const methodMatch = line.match(/^\s{2,12}([a-z]+):\s*$/i);
+    const method = methodMatch?.[1]?.toLocaleLowerCase() ?? '';
+    if (currentPath && OPENAPI_METHODS.has(method)) {
+      totalOperations++;
+      currentOperation = {
+        method: method.toLocaleUpperCase(),
+        path: currentPath,
+        line: lineNumber,
+        summary: '',
+        deprecated: false,
+      };
+      if (operations.length < maxOperations) {
+        operations.push(currentOperation);
+      }
+      return;
+    }
+
+    if (!currentOperation || !operations.includes(currentOperation)) return;
+
+    const summaryMatch = line.match(/^\s{4,18}summary:\s*(.+?)\s*$/i);
+    if (summaryMatch && !currentOperation.summary) {
+      currentOperation.summary = cleanYamlScalar(summaryMatch[1]);
+      return;
+    }
+
+    if (/^\s{4,18}deprecated:\s*true\b/i.test(line)) {
+      currentOperation.deprecated = true;
+    }
+  });
+
+  return {
+    operations,
+    truncated: totalOperations > operations.length,
+  };
 }
 
 export function parseTerminologyRules(input: string): ParsedTerminologyRules {

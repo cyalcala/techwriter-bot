@@ -33,7 +33,13 @@
   } from '../lib/conversation-session';
   import { DEFAULT_FOOTER_TEXT, DEFAULT_PRIMARY_COLOR, readWhiteLabelConfig } from '../lib/white-label';
   import { createSampleDataFiles, SAMPLE_DATA_PROMPT, SAMPLE_DATA_READY_MESSAGE } from '../lib/sample-data';
-  import { reviewDocument, type DocumentFinding, type TerminologyRule } from '../lib/document-review';
+  import {
+    reviewDocument,
+    summarizeOpenApiOperations,
+    type DocumentFinding,
+    type OpenApiOperationSummary,
+    type TerminologyRule,
+  } from '../lib/document-review';
   import ChatMessages from './ChatMessages.svelte';
   import ChatInput from './ChatInput.svelte';
   import DocumentToolsPanel from './DocumentToolsPanel.svelte';
@@ -191,6 +197,7 @@
   let toolsOpen = $state(false);
   let toolDocument = $state<{ name: string; text: string } | null>(null);
   let toolFindings = $state<DocumentFinding[]>([]);
+  let toolOpenApiSummary = $state<OpenApiOperationSummary | null>(null);
   let toolReviewRun = $state(false);
   let toolGraphResult = $state<GraphLookupResult | null>(null);
   let toolGraphLoading = $state(false);
@@ -390,6 +397,7 @@
     toolsOpen = false;
     toolDocument = null;
     toolFindings = [];
+    toolOpenApiSummary = null;
     toolReviewRun = false;
     toolGraphResult = null;
     toolGraphLoading = false;
@@ -505,6 +513,7 @@
   function runDocumentReview(terminology: TerminologyRule[]) {
     if (!toolDocument) return;
     toolFindings = reviewDocument(toolDocument.text, terminology);
+    toolOpenApiSummary = summarizeOpenApiOperations(toolDocument.text);
     toolReviewRun = true;
   }
 
@@ -1481,13 +1490,14 @@
       </div>
     {/if}
 
-    <input type="file" bind:this={fileInput} onchange={onFileSelected} class="hidden" accept=".txt,.md,.json,.csv" multiple />
+    <input type="file" bind:this={fileInput} onchange={onFileSelected} class="hidden" accept=".txt,.md,.json,.csv,.yaml,.yml" multiple />
     <input type="file" bind:this={sessionImportInput} onchange={onSessionImportSelected} class="hidden" accept=".json,application/json" />
 
     {#if toolsOpen}
       <DocumentToolsPanel
         documentName={toolDocument?.name ?? ''}
         findings={toolFindings}
+        openApiSummary={toolOpenApiSummary}
         hasRun={toolReviewRun}
         onReview={runDocumentReview}
         graphResult={toolGraphResult}

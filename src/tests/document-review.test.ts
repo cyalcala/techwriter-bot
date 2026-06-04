@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseTerminologyRules, reviewDocument } from '../lib/document-review';
+import { parseTerminologyRules, reviewDocument, summarizeOpenApiOperations } from '../lib/document-review';
 
 describe('reviewDocument', () => {
   it('returns no findings for a structurally clean document', () => {
@@ -138,6 +138,53 @@ describe('reviewDocument', () => {
     expect(findings).not.toEqual(expect.arrayContaining([
       expect.objectContaining({ rule: 'release-notes-placeholder' }),
     ]));
+  });
+
+  it('summarizes bounded OpenAPI YAML operations for an explicit review', () => {
+    const summary = summarizeOpenApiOperations([
+      'openapi: 3.1.0',
+      'paths:',
+      '  /v1/releases:',
+      '    get:',
+      '      summary: List releases',
+      '    post:',
+      '      summary: Create release',
+      '      deprecated: true',
+    ].join('\n'));
+
+    expect(summary).toEqual({
+      operations: [
+        {
+          method: 'GET',
+          path: '/v1/releases',
+          line: 4,
+          summary: 'List releases',
+          deprecated: false,
+        },
+        {
+          method: 'POST',
+          path: '/v1/releases',
+          line: 6,
+          summary: 'Create release',
+          deprecated: true,
+        },
+      ],
+      truncated: false,
+    });
+  });
+
+  it('bounds OpenAPI operation summaries', () => {
+    const summary = summarizeOpenApiOperations([
+      'openapi: 3.1.0',
+      'paths:',
+      '  /v1/a:',
+      '    get:',
+      '  /v1/b:',
+      '    post:',
+    ].join('\n'), 1);
+
+    expect(summary.operations).toHaveLength(1);
+    expect(summary.truncated).toBe(true);
   });
 
   it('does not review structure or terminology inside fenced code blocks', () => {
