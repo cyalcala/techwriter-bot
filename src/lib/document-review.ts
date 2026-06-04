@@ -40,10 +40,18 @@ export interface OpenApiOperationSummary {
   truncated: boolean;
 }
 
+export interface DocumentationCoverageTerm {
+  term: string;
+  source: 'heading' | 'endpoint' | 'code';
+  line: number;
+}
+
 export const MAX_TERMINOLOGY_RULES = 25;
 export const MAX_OPENAPI_SUMMARY_OPERATIONS = 8;
+export const MAX_DOCUMENTATION_COVERAGE_TERMS = 6;
 const TERMINOLOGY_DELIMITERS = ['->', '=>', '|'];
 const MAX_TERMINOLOGY_TERM_LENGTH = 80;
+const MAX_COVERAGE_TERM_LENGTH = 80;
 
 interface OpenFence {
   character: '`' | '~';
@@ -137,6 +145,32 @@ function cleanYamlScalar(value: string): string {
   return value.trim().replace(/^['"]|['"]$/g, '').trim();
 }
 
+function cleanCoverageTerm(value: string): string {
+  return value
+    .replace(/\s+#+\s*$/, '')
+    .replace(/^['"`]+|['"`]+$/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, MAX_COVERAGE_TERM_LENGTH);
+}
+
+function addCoverageTerm(
+  terms: DocumentationCoverageTerm[],
+  seen: Set<string>,
+  term: DocumentationCoverageTerm,
+  maxTerms: number,
+): void {
+  if (terms.length >= maxTerms) return;
+  const cleaned = cleanCoverageTerm(term.term);
+  if (cleaned.length < 3) return;
+
+  const key = cleaned.toLocaleLowerCase();
+  if (seen.has(key)) return;
+
+  seen.add(key);
+  terms.push({ ...term, term: cleaned });
+}
+
 export function summarizeOpenApiOperations(
   content: string,
   maxOperations = MAX_OPENAPI_SUMMARY_OPERATIONS,
@@ -195,6 +229,62 @@ export function summarizeOpenApiOperations(
     operations,
     truncated: totalOperations > operations.length,
   };
+}
+
+export function extractDocumentationCoverageTerms(
+  content: string,
+  maxTerms = MAX_DOCUMENTATION_COVERAGE_TERMS,
+): DocumentationCoverageTerm[] {
+  const terms: DocumentationCoverageTerm[] = [];
+  const seen = new Set<string>();
+  const lines = content.replace(/\r\n?/g, '\n').split('\n');
+  let openFence: OpenFence | null = null;
+
+  if (maxTerms <= 0) return terms;
+
+  lines.forEach((line, index) => {
+    const lineNumber = index + 1;
+    const fenceStart = startsFence(line);
+
+    if (openFence) {
+      if (closesFence(line, openFence)) openFence = null;
+      return;
+    }
+
+    if (fenceStart) {
+      openFence = { ...fenceStart, line: lineNumber };
+      return;
+    }
+
+    const heading = line.match(/^\s{0,3}#{1,6}\s+(.+?)\s*$/);
+    if (heading) {
+      addCoverageTerm(terms, seen, {
+        term: heading[1],
+        source: 'heading',
+        line: lineNumber,
+      }, maxTerms);
+    }
+
+    const endpoint = extractApiEndpoint(line);
+    if (endpoint) {
+      addCoverageTerm(terms, seen, {
+        term: `${endpoint.method} ${endpoint.path}`,
+        source: 'endpoint',
+        line: lineNumber,
+      }, maxTerms);
+    }
+
+    for (const match of line.matchAll(/`([A-Za-z_$][A-Za-z0-9_.$:-]{2,}(?:\(\))?)`/g)) {
+      addCoverageTerm(terms, seen, {
+        term: match[1],
+        source: 'code',
+        line: lineNumber,
+      }, maxTerms);
+      if (terms.length >= maxTerms) break;
+    }
+  });
+
+  return terms;
 }
 
 export function parseTerminologyRules(input: string): ParsedTerminologyRules {

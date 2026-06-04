@@ -46,7 +46,12 @@ describe('document review tool UI boundary', () => {
 
     expect(panel).toContain('Find Code References');
     expect(panel).toContain('onLookup');
+    expect(panel).toContain('Map coverage');
+    expect(panel).toContain('onMapCoverage');
     expect(island).toContain('runGraphLookup');
+    expect(island).toContain('runCoverageMap');
+    expect(island).toContain('extractDocumentationCoverageTerms');
+    expect(island).toContain('coverageMap={toolCoverageMap}');
     expect(island).toContain("fetch('/api/tool-graph-lookup'");
   });
 

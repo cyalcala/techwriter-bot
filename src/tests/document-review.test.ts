@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { parseTerminologyRules, reviewDocument, summarizeOpenApiOperations } from '../lib/document-review';
+import {
+  extractDocumentationCoverageTerms,
+  parseTerminologyRules,
+  reviewDocument,
+  summarizeOpenApiOperations,
+} from '../lib/document-review';
 
 describe('reviewDocument', () => {
   it('returns no findings for a structurally clean document', () => {
@@ -185,6 +190,36 @@ describe('reviewDocument', () => {
 
     expect(summary.operations).toHaveLength(1);
     expect(summary.truncated).toBe(true);
+  });
+
+  it('extracts bounded documentation coverage terms outside fenced code blocks', () => {
+    const terms = extractDocumentationCoverageTerms([
+      '# Authentication Flow',
+      '',
+      'Call `routeChat()` before sending requests.',
+      '- GET /api/chat returns the active provider response.',
+      '',
+      '```ts',
+      'const hidden = routeChat();',
+      '```',
+    ].join('\n'));
+
+    expect(terms).toEqual(expect.arrayContaining([
+      { term: 'Authentication Flow', source: 'heading', line: 1 },
+      { term: 'routeChat()', source: 'code', line: 3 },
+      { term: 'GET /api/chat', source: 'endpoint', line: 4 },
+    ]));
+    expect(terms.some((term) => term.term === 'hidden')).toBe(false);
+  });
+
+  it('bounds documentation coverage terms', () => {
+    const terms = extractDocumentationCoverageTerms([
+      '# First',
+      'Use `one()` and `two()` and `three()`.',
+      'GET /one',
+    ].join('\n'), 2);
+
+    expect(terms).toHaveLength(2);
   });
 
   it('does not review structure or terminology inside fenced code blocks', () => {

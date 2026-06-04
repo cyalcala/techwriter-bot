@@ -34,8 +34,10 @@
   import { DEFAULT_FOOTER_TEXT, DEFAULT_PRIMARY_COLOR, readWhiteLabelConfig } from '../lib/white-label';
   import { createSampleDataFiles, SAMPLE_DATA_PROMPT, SAMPLE_DATA_READY_MESSAGE } from '../lib/sample-data';
   import {
+    extractDocumentationCoverageTerms,
     reviewDocument,
     summarizeOpenApiOperations,
+    type DocumentationCoverageTerm,
     type DocumentFinding,
     type OpenApiOperationSummary,
     type TerminologyRule,
@@ -78,6 +80,17 @@
     available: boolean;
     context: string;
     nodeCount: number;
+  }
+
+  interface CoverageMapEntry extends DocumentationCoverageTerm {
+    nodeCount: number;
+  }
+
+  interface CoverageMapResult {
+    available: boolean;
+    entries: CoverageMapEntry[];
+    checkedCount: number;
+    coveredCount: number;
   }
 
   type WebhookDeliveryState = {
@@ -202,6 +215,9 @@
   let toolGraphResult = $state<GraphLookupResult | null>(null);
   let toolGraphLoading = $state(false);
   let toolGraphError = $state('');
+  let toolCoverageMap = $state<CoverageMapResult | null>(null);
+  let toolCoverageLoading = $state(false);
+  let toolCoverageError = $state('');
 
   type ChatState = 'idle' | 'loading' | 'streaming' | 'aborting';
   let chatState: ChatState = $state('idle');
@@ -402,6 +418,9 @@
     toolGraphResult = null;
     toolGraphLoading = false;
     toolGraphError = '';
+    toolCoverageMap = null;
+    toolCoverageLoading = false;
+    toolCoverageError = '';
   }
 
   function hasActiveConversationContent() {
@@ -573,6 +592,44 @@
     responseTransparency = null;
     conversationHistoryOpen = false;
     if (fileInput) fileInput.value = '';
+  }
+
+  async function runCoverageMap() {
+    if (!toolDocument) return;
+    const terms = extractDocumentationCoverageTerms(toolDocument.text);
+    toolCoverageLoading = true;
+    toolCoverageError = '';
+    toolCoverageMap = null;
+
+    try {
+      const entries: CoverageMapEntry[] = [];
+      for (const term of terms) {
+        const response = await fetch('/api/tool-graph-lookup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ term: term.term }),
+        });
+        const payload = await response.json();
+        if (!response.ok) throw new Error(String(payload.error || 'Coverage lookup is unavailable.'));
+        if (!payload.available) {
+          toolCoverageMap = { available: false, entries: [], checkedCount: terms.length, coveredCount: 0 };
+          return;
+        }
+        entries.push({ ...term, nodeCount: Number(payload.nodeCount || 0) });
+      }
+
+      toolCoverageMap = {
+        available: true,
+        entries,
+        checkedCount: entries.length,
+        coveredCount: entries.filter((entry) => entry.nodeCount > 0).length,
+      };
+    } catch {
+      toolCoverageMap = null;
+      toolCoverageError = 'Coverage map is unavailable.';
+    } finally {
+      toolCoverageLoading = false;
+    }
   }
 
   function clearChat() {
@@ -1503,7 +1560,11 @@
         graphResult={toolGraphResult}
         graphLoading={toolGraphLoading}
         graphError={toolGraphError}
+        coverageMap={toolCoverageMap}
+        coverageLoading={toolCoverageLoading}
+        coverageError={toolCoverageError}
         onLookup={runGraphLookup}
+        onMapCoverage={runCoverageMap}
         onClose={() => { toolsOpen = false; }}
       />
     {/if}

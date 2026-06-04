@@ -1,10 +1,22 @@
 <script lang="ts">
   import {
     parseTerminologyRules,
+    type DocumentationCoverageTerm,
     type DocumentFinding,
     type OpenApiOperationSummary,
     type TerminologyRule,
   } from '../lib/document-review';
+
+  interface CoverageMapEntry extends DocumentationCoverageTerm {
+    nodeCount: number;
+  }
+
+  interface CoverageMapResult {
+    available: boolean;
+    entries: CoverageMapEntry[];
+    checkedCount: number;
+    coveredCount: number;
+  }
 
   interface Props {
     documentName: string;
@@ -15,7 +27,11 @@
     graphResult: { available: boolean; context: string; nodeCount: number } | null;
     graphLoading: boolean;
     graphError: string;
+    coverageMap: CoverageMapResult | null;
+    coverageLoading: boolean;
+    coverageError: string;
     onLookup: (term: string) => void;
+    onMapCoverage: () => void;
     onClose: () => void;
   }
 
@@ -28,7 +44,11 @@
     graphResult,
     graphLoading,
     graphError,
+    coverageMap,
+    coverageLoading,
+    coverageError,
     onLookup,
+    onMapCoverage,
     onClose,
   }: Props = $props();
   let activeTool = $state<'review' | 'references'>('review');
@@ -177,9 +197,40 @@
           disabled={!lookupTerm.trim() || graphLoading}
           class="rounded-lg bg-stone-800 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-stone-700 disabled:cursor-not-allowed disabled:opacity-35"
         >{graphLoading ? 'Finding...' : 'Find'}</button>
+        <button
+          type="button"
+          onclick={onMapCoverage}
+          disabled={!documentName || coverageLoading}
+          class="rounded-lg border border-stone-200 px-3 py-2 text-xs font-medium text-stone-700 transition-colors hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-35"
+        >{coverageLoading ? 'Mapping...' : 'Map coverage'}</button>
       </div>
 
-      <div aria-live="polite" class="pt-3 text-xs text-stone-600">
+      <div aria-live="polite" class="space-y-3 pt-3 text-xs text-stone-600">
+        {#if coverageError}
+          <p class="text-red-700">{coverageError}</p>
+        {:else if coverageMap && !coverageMap.available}
+          <p>Reference index unavailable.</p>
+        {:else if coverageMap}
+          <div>
+            <p class="mb-2 font-medium text-stone-700">{coverageMap.coveredCount}/{coverageMap.checkedCount} document terms covered</p>
+            {#if coverageMap.entries.length === 0}
+              <p>No bounded coverage terms found.</p>
+            {:else}
+              <ol class="max-h-36 space-y-1.5 overflow-y-auto" aria-label="Documentation coverage map">
+                {#each coverageMap.entries as entry}
+                  <li class="grid gap-1 text-stone-700 sm:grid-cols-[minmax(140px,0.55fr)_1fr_auto]">
+                    <span class="truncate font-medium">{entry.term}</span>
+                    <span class="text-stone-500">Line {entry.line} · {entry.source}</span>
+                    <span class={entry.nodeCount > 0 ? 'text-green-700' : 'text-amber-700'}>
+                      {entry.nodeCount > 0 ? `${entry.nodeCount} refs` : 'No refs'}
+                    </span>
+                  </li>
+                {/each}
+              </ol>
+            {/if}
+          </div>
+        {/if}
+
         {#if graphError}
           <p class="text-red-700">{graphError}</p>
         {:else if graphResult && !graphResult.available}
