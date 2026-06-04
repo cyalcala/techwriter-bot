@@ -31,6 +31,7 @@
     upsertConversationSnapshot,
     type ConversationSnapshot,
   } from '../lib/conversation-session';
+  import { createCodeAreaExplanation, type CodeAreaExplanationResult } from '../lib/code-area-explanation';
   import { DEFAULT_FOOTER_TEXT, DEFAULT_PRIMARY_COLOR, readWhiteLabelConfig } from '../lib/white-label';
   import { createSampleDataFiles, SAMPLE_DATA_PROMPT, SAMPLE_DATA_READY_MESSAGE } from '../lib/sample-data';
   import {
@@ -218,6 +219,9 @@
   let toolCoverageMap = $state<CoverageMapResult | null>(null);
   let toolCoverageLoading = $state(false);
   let toolCoverageError = $state('');
+  let toolCodeAreaExplanation = $state<CodeAreaExplanationResult | null>(null);
+  let toolCodeAreaLoading = $state(false);
+  let toolCodeAreaError = $state('');
 
   type ChatState = 'idle' | 'loading' | 'streaming' | 'aborting';
   let chatState: ChatState = $state('idle');
@@ -421,6 +425,9 @@
     toolCoverageMap = null;
     toolCoverageLoading = false;
     toolCoverageError = '';
+    toolCodeAreaExplanation = null;
+    toolCodeAreaLoading = false;
+    toolCodeAreaError = '';
   }
 
   function hasActiveConversationContent() {
@@ -629,6 +636,37 @@
       toolCoverageError = 'Coverage map is unavailable.';
     } finally {
       toolCoverageLoading = false;
+    }
+  }
+
+  async function runCodeAreaExplanation(term: string) {
+    if (!term) return;
+    toolCodeAreaLoading = true;
+    toolCodeAreaError = '';
+    toolCodeAreaExplanation = null;
+
+    try {
+      const response = await fetch('/api/tool-graph-lookup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ term }),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        toolCodeAreaError = String(payload.error || 'Code area explanation is unavailable.');
+        return;
+      }
+
+      toolCodeAreaExplanation = createCodeAreaExplanation(term, {
+        available: Boolean(payload.available),
+        context: String(payload.context || ''),
+        nodeCount: Number(payload.nodeCount || 0),
+      });
+    } catch {
+      toolCodeAreaExplanation = null;
+      toolCodeAreaError = 'Code area explanation is unavailable.';
+    } finally {
+      toolCodeAreaLoading = false;
     }
   }
 
@@ -1563,8 +1601,12 @@
         coverageMap={toolCoverageMap}
         coverageLoading={toolCoverageLoading}
         coverageError={toolCoverageError}
+        codeAreaExplanation={toolCodeAreaExplanation}
+        codeAreaLoading={toolCodeAreaLoading}
+        codeAreaError={toolCodeAreaError}
         onLookup={runGraphLookup}
         onMapCoverage={runCoverageMap}
+        onExplainCodeArea={runCodeAreaExplanation}
         onClose={() => { toolsOpen = false; }}
       />
     {/if}

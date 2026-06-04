@@ -6,6 +6,7 @@
     type OpenApiOperationSummary,
     type TerminologyRule,
   } from '../lib/document-review';
+  import type { CodeAreaExplanationResult } from '../lib/code-area-explanation';
 
   interface CoverageMapEntry extends DocumentationCoverageTerm {
     nodeCount: number;
@@ -30,8 +31,12 @@
     coverageMap: CoverageMapResult | null;
     coverageLoading: boolean;
     coverageError: string;
+    codeAreaExplanation: CodeAreaExplanationResult | null;
+    codeAreaLoading: boolean;
+    codeAreaError: string;
     onLookup: (term: string) => void;
     onMapCoverage: () => void;
+    onExplainCodeArea: (term: string) => void;
     onClose: () => void;
   }
 
@@ -47,8 +52,12 @@
     coverageMap,
     coverageLoading,
     coverageError,
+    codeAreaExplanation,
+    codeAreaLoading,
+    codeAreaError,
     onLookup,
     onMapCoverage,
+    onExplainCodeArea,
     onClose,
   }: Props = $props();
   let activeTool = $state<'review' | 'references'>('review');
@@ -203,6 +212,12 @@
           disabled={!documentName || coverageLoading}
           class="rounded-lg border border-stone-200 px-3 py-2 text-xs font-medium text-stone-700 transition-colors hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-35"
         >{coverageLoading ? 'Mapping...' : 'Map coverage'}</button>
+        <button
+          type="button"
+          onclick={() => { onExplainCodeArea(lookupTerm.trim()); }}
+          disabled={!lookupTerm.trim() || codeAreaLoading}
+          class="rounded-lg border border-stone-200 px-3 py-2 text-xs font-medium text-stone-700 transition-colors hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-35"
+        >{codeAreaLoading ? 'Explaining...' : 'Explain code area'}</button>
       </div>
 
       <div aria-live="polite" class="space-y-3 pt-3 text-xs text-stone-600">
@@ -223,6 +238,28 @@
                     <span class="text-stone-500">Line {entry.line} · {entry.source}</span>
                     <span class={entry.nodeCount > 0 ? 'text-green-700' : 'text-amber-700'}>
                       {entry.nodeCount > 0 ? `${entry.nodeCount} refs` : 'No refs'}
+                    </span>
+                  </li>
+                {/each}
+              </ol>
+            {/if}
+          </div>
+        {/if}
+
+        {#if codeAreaError}
+          <p class="text-red-700">{codeAreaError}</p>
+        {:else if codeAreaExplanation && !codeAreaExplanation.available}
+          <p>Reference index unavailable.</p>
+        {:else if codeAreaExplanation}
+          <div>
+            <p class="mb-2 font-medium text-stone-700">{codeAreaExplanation.summary}</p>
+            {#if codeAreaExplanation.references.length}
+              <ol class="max-h-32 space-y-1.5 overflow-y-auto" aria-label="Code area explanation references">
+                {#each codeAreaExplanation.references as reference}
+                  <li class="grid gap-1 text-stone-700 sm:grid-cols-[minmax(130px,0.45fr)_1fr]">
+                    <span class="truncate font-medium">{reference.label}</span>
+                    <span class="min-w-0 truncate text-stone-500">
+                      {reference.kind} - {reference.file}{reference.line ? `:${reference.line}` : ''}
                     </span>
                   </li>
                 {/each}

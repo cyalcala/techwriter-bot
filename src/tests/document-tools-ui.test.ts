@@ -48,10 +48,15 @@ describe('document review tool UI boundary', () => {
     expect(panel).toContain('onLookup');
     expect(panel).toContain('Map coverage');
     expect(panel).toContain('onMapCoverage');
+    expect(panel).toContain('Explain code area');
+    expect(panel).toContain('onExplainCodeArea');
     expect(island).toContain('runGraphLookup');
     expect(island).toContain('runCoverageMap');
+    expect(island).toContain('runCodeAreaExplanation');
+    expect(island).toContain('createCodeAreaExplanation');
     expect(island).toContain('extractDocumentationCoverageTerms');
     expect(island).toContain('coverageMap={toolCoverageMap}');
+    expect(island).toContain('codeAreaExplanation={toolCodeAreaExplanation}');
     expect(island).toContain("fetch('/api/tool-graph-lookup'");
   });
 
