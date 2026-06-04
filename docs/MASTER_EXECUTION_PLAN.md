@@ -73,6 +73,10 @@ explicit non-goals.
   explicit `Explain code area` action that accepts a small user-entered term,
   reuses the private graph lookup endpoint, and renders a compact
   source-reference explanation scaffold in active page memory only.
+- Phase 5B code-area explanation slice deployed successfully in GitHub Actions
+  run `26950672782`, immutable URL `https://e70c3b39.tw-bot.pages.dev`;
+  production smoke confirmed app/health availability and bounded graph lookup
+  for `createCodeAreaExplanation()`.
 - Current completion estimate: approved Phase 1 through Phase 4 roadmap is
   closure-verified and accepted; paid-pilot readiness for the per-client
   Cloudflare deployment is about 90%, with remaining work focused on client
@@ -137,7 +141,7 @@ The current tracked code graph was refreshed with `graphify update .` on
   count; use node/edge counts and targeted graph queries for acceptance until
   that reporting discrepancy is reconciled.
 - The production runtime graph is published by the GitHub Actions extraction
-  pipeline and currently reports 1070 nodes and 1633 edges.
+  pipeline and currently reports 1080 nodes and 1646 edges.
 - Controlled provider fault injection is available only when
   `PROVIDER_FAULT_INJECTION_TOKEN` is configured and matched by request
   headers, allowing failover/outage acceptance without disabling real provider

@@ -235,11 +235,21 @@ transparency slices with privacy-first active-session boundaries:
 - Local Graphify after the Phase 5B code-area explanation slice: 878 nodes and
   1443 edges from code commit `4563754b`; `createCodeAreaExplanation()` appears
   in the code-area explanation community.
-- Next slice: push the code-area explanation code plus docs/Graphify
-  checkpoint to GitHub, watch the deployment, smoke production health and
-  bounded graph lookup for `createCodeAreaExplanation`, then record deployment
-  acceptance. After acceptance, run a Phase 5B closure audit unless the user
-  redirects.
+- Phase 5B code-area explanation production acceptance: docs/Graphify
+  checkpoint `41823f5` deployed successfully in GitHub Actions run
+  `26950672782`, immutable URL `https://e70c3b39.tw-bot.pages.dev`; Graphify
+  CI uploaded the runtime graph with 1080 nodes and 1646 edges. Production
+  alias `https://tw-bot.pages.dev` returned `200`, contained
+  `Technical Writer` and `Try sample data`, `/api/health` returned `ok` with 4
+  active providers out of 6 and matching app version `0.0.1`, and bounded
+  graph lookup for `createCodeAreaExplanation` returned 1 node with
+  `Cache-Control: no-store, private`. The immutable URL returned `200`, `ok`
+  health with 4 active providers out of 6 and matching app version, and the
+  same private graph lookup evidence.
+- Next slice: run a Phase 5B closure audit across the bounded Documentation
+  Tool Pack. Verify tests/build, confirm docs/recovery trail are current,
+  smoke production if needed, and then record Phase 5B acceptance. Do not add
+  new product scope during the audit.
   Do not add marketing pages, auth, billing, multi-tenancy, autonomous agents,
   WebContainer/runtime package tooling, or complex dashboards.
 - Relay-safe documentation updates after each meaningful step.
@@ -1982,13 +1992,14 @@ Continue Phase 5B in bounded, user-invoked tool slices:
 - Phase 1 through Phase 4 are closure-verified and accepted. Phase 5A Client
   Deployment Kit and self-client dry run are complete enough for pilot
   packaging until real client credentials are available.
-- Current Phase 5B code-area explanation helper is locally implemented and
-  verified in code commit `4563754`; local graph is refreshed to 878 nodes and
-  1443 edges from `4563754b`.
-- Next safe follow-up: push the code-area explanation code plus docs/Graphify
-  checkpoint to GitHub, watch deployment, run production health and bounded
-  graph smoke, then record acceptance. After acceptance, run a Phase 5B closure
-  audit unless the user redirects.
+- Current Phase 5B code-area explanation helper is implemented, verified, and
+  production accepted in code commit `4563754` and docs/Graphify checkpoint
+  `41823f5`; local graph is refreshed to 878 nodes and 1443 edges from
+  `4563754b`; production acceptance is recorded from GitHub Actions run
+  `26950672782`, immutable URL `https://e70c3b39.tw-bot.pages.dev`, with
+  runtime graph 1080 nodes and 1646 edges.
+- Next safe follow-up: run a Phase 5B closure audit across the bounded
+  Documentation Tool Pack, then record Phase 5B acceptance if the audit passes.
 - If local browser smoke remains blocked by the Cloudflare local preview issue,
   record that caveat and rely on build plus production smoke after deployment.
 - Keep the UI compact and internal-tool focused. Do not add marketing pages,

@@ -1,7 +1,7 @@
 # Bounded Documentation Tool Pack
 
 Date: 2026-06-04
-Status: Started; glossary, API reference checker, release-notes reviewer, OpenAPI summary, and documentation coverage-map slices deployed; code-area explanation locally implemented
+Status: Started; glossary, API reference checker, release-notes reviewer, OpenAPI summary, documentation coverage-map, and code-area explanation slices deployed
 
 ## Goal
 

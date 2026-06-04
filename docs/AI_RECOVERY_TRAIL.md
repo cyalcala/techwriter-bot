@@ -96,7 +96,8 @@ Unless the user explicitly changes strategy in writing, do not rebuild:
 As of 2026-06-04:
 
 - Latest behavior code backup: `4563754` (`feat: add bounded code area
-  explanation`), local on `main` and pending GitHub push/deployment acceptance.
+  explanation`), pushed to GitHub on `main` with docs/Graphify checkpoint
+  `41823f5`.
 - Behavior added: `Find Code References` now exposes an explicit
   `Explain code area` action that accepts a small user-entered term, calls the
   existing private graph lookup endpoint after user click, and renders a
@@ -106,13 +107,14 @@ As of 2026-06-04:
   tests), production audit with 0 high vulnerabilities, forbidden-scope diff
   scan, `git diff --check`, and the recorded `build:local` command all passed
   before the code commit.
-- Deployment evidence: pending for `4563754`. Next step is to push the
-  code-area explanation code plus docs/Graphify checkpoint, watch GitHub
-  Actions, smoke production health and bounded graph lookup, and record
-  acceptance in this file.
+- Deployment evidence: GitHub Actions run `26950672782` passed, immutable URL
+  `https://e70c3b39.tw-bot.pages.dev`; production alias and immutable URL both
+  returned `200`, `ok` health with 4 active providers out of 6, matching app
+  version `0.0.1`, and private bounded graph lookup for
+  `createCodeAreaExplanation`.
 - Local Graphify after the code-area explanation slice: 878 nodes and 1443
-  edges from `4563754b`; latest accepted production runtime graph reports 1070
-  nodes and 1633 edges.
+  edges from `4563754b`; latest accepted production runtime graph reports 1080
+  nodes and 1646 edges.
 - Kroki/artifact-renderer-down audit: existing renderer tests and production
   render API smoke cover private standardized route failures, transient Kroki
   retry, permanent syntax no-retry, sanitized SVG success, and visible
@@ -288,18 +290,24 @@ As of 2026-06-04:
 - Local Graphify after `4563754`: 878 nodes and 1443 edges from commit
   `4563754b`; `createCodeAreaExplanation()` appears in the code-area
   explanation community.
-- Next safe task: push the code-area explanation code plus docs/Graphify
-  checkpoint to GitHub, watch the deployment, smoke production health and
-  bounded graph lookup for `createCodeAreaExplanation`, then record deployment
-  acceptance. After acceptance, run a Phase 5B closure audit unless the user
-  redirects. Do not start autonomous/background tools, WebContainer/runtime
-  package tooling, auth, billing, multi-tenancy, email, marketing pages,
-  Kubernetes, Redis, or complex dashboards.
+- Phase 5B code-area explanation production acceptance: docs/Graphify
+  checkpoint `41823f5` deployed in GitHub Actions run `26950672782`, immutable
+  URL `https://e70c3b39.tw-bot.pages.dev`; production alias returned `200`,
+  `/api/health` returned `ok` with 4 active providers out of 6 and matching app
+  version `0.0.1`, the immutable URL returned `200` and `ok` health with 4
+  active providers out of 6, and bounded graph lookup for
+  `createCodeAreaExplanation` returned 1 node with `Cache-Control: no-store,
+  private` on both targets.
+- Next safe task: run a Phase 5B closure audit across the bounded
+  Documentation Tool Pack, then record Phase 5B acceptance if the audit passes.
+  Do not start autonomous/background tools, WebContainer/runtime package
+  tooling, auth, billing, multi-tenancy, email, marketing pages, Kubernetes,
+  Redis, or complex dashboards.
 
 ## Recovery Prompt
 
 Use this prompt when handing work to another AI agent:
 
 ```text
-Continue from C:\Users\admin\Desktop\techwriter-bot. Read docs\MASTER_EXECUTION_PLAN.md, docs\IMPLEMENTATION_STATUS.md, docs\AI_RECOVERY_TRAIL.md, docs\SELLABLE_READINESS_HANDOFF.md, docs\CLIENT_DEPLOYMENT_KIT.md, docs\superpowers\specs\2026-06-04-bounded-documentation-tool-pack.md, and graphify-out\GRAPH_REPORT.md first. Continue only from docs\IMPLEMENTATION_STATUS.md Next Task. Use the recorded build verification command when behavior changes. Preserve GitHub backups after each coherent slice. Next safe task is to push the Phase 5B bounded code-area explanation code plus docs/Graphify checkpoint, watch deployment, run production smoke, then record acceptance. Do not rebuild OAuth, Stripe, multi-tenancy, email, marketing pages, autonomous agents, Kubernetes, Redis, complex dashboards, or WebContainer/runtime package tooling.
+Continue from C:\Users\admin\Desktop\techwriter-bot. Read docs\MASTER_EXECUTION_PLAN.md, docs\IMPLEMENTATION_STATUS.md, docs\AI_RECOVERY_TRAIL.md, docs\SELLABLE_READINESS_HANDOFF.md, docs\CLIENT_DEPLOYMENT_KIT.md, docs\superpowers\specs\2026-06-04-bounded-documentation-tool-pack.md, and graphify-out\GRAPH_REPORT.md first. Continue only from docs\IMPLEMENTATION_STATUS.md Next Task. Use the recorded build verification command when behavior changes. Preserve GitHub backups after each coherent slice. Next safe task is to run a Phase 5B closure audit across the bounded Documentation Tool Pack and record acceptance if it passes. Do not rebuild OAuth, Stripe, multi-tenancy, email, marketing pages, autonomous agents, Kubernetes, Redis, complex dashboards, or WebContainer/runtime package tooling.
 ```
