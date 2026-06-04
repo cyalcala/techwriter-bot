@@ -96,7 +96,7 @@ Unless the user explicitly changes strategy in writing, do not rebuild:
 As of 2026-06-04:
 
 - Latest behavior code backup: `8e6de7d` (`feat: add api reference review
-  checks`), local on `main` and pending GitHub push/deployment acceptance.
+  checks`), pushed to `origin/main` with docs/Graphify checkpoint `6e9609d`.
 - Behavior added: deterministic API reference review rules in
   `reviewDocument()` now report duplicate `METHOD /path` endpoint references
   and equivalent endpoint shapes that use different `{pathParameter}` names,
@@ -105,12 +105,15 @@ As of 2026-06-04:
   privacy/document/tool tests, full `npm.cmd test` (42 files, 199 tests),
   production audit with 0 high vulnerabilities, `git diff --check`, and the
   recorded `build:local` command all passed before the code commit.
-- Deployment evidence: pending. Next step is to push the API-checker code plus
-  docs/Graphify checkpoint, watch GitHub Actions, smoke production health and a
-  bounded graph lookup, and record acceptance in this file.
+- Deployment evidence: GitHub Actions run `26947031364` succeeded from
+  docs/Graphify checkpoint `6e9609d`, immutable URL
+  `https://78e4ed6c.tw-bot.pages.dev`; Graphify CI uploaded the runtime graph
+  with 1047 nodes and 1607 edges. Production alias and immutable URL returned
+  `200`, health `ok`, matching app version `0.0.1`, and private bounded graph
+  lookup for `extractApiEndpoint`.
 - Local Graphify after the code slice: 867 nodes and 1428 edges from
-  `8e6de7d6`; latest accepted production runtime graph before this push
-  reported 999 nodes and 1559 edges.
+  `8e6de7d6`; latest accepted production runtime graph reports 1047 nodes and
+  1607 edges.
 - Kroki/artifact-renderer-down audit: existing renderer tests and production
   render API smoke cover private standardized route failures, transient Kroki
   retry, permanent syntax no-retry, sanitized SVG success, and visible
@@ -190,13 +193,17 @@ As of 2026-06-04:
   already substituted `T:`, and Cloudflare local AI-binding warnings.
 - Local Graphify after `8e6de7d`: 867 nodes and 1428 edges from commit
   `8e6de7d6`.
-- Next safe task: push the API-checker code plus docs/Graphify checkpoint to
-  GitHub, watch the deployment, smoke production health and bounded graph
-  lookup, then record deployment acceptance. After acceptance, continue Phase
-  5B with a release-notes draft reviewer unless the user redirects. Do not
-  start autonomous/background tools, WebContainer/runtime package tooling,
-  auth, billing, multi-tenancy, email, marketing pages, Kubernetes, Redis, or
-  complex dashboards.
+- Phase 5B API-checker production acceptance: docs/Graphify checkpoint
+  `6e9609d` deployed in GitHub Actions run `26947031364`, immutable URL
+  `https://78e4ed6c.tw-bot.pages.dev`; production alias returned `200`,
+  `/api/health` returned `ok` with 4 active providers out of 6 and matching
+  app version `0.0.1`, the immutable URL returned `200` and `ok` health with 3
+  active providers out of 6, and bounded graph lookup for `extractApiEndpoint`
+  returned 1 node with `Cache-Control: no-store, private` on both targets.
+- Next safe task: continue Phase 5B with a release-notes draft reviewer unless
+  the user redirects. Do not start autonomous/background tools,
+  WebContainer/runtime package tooling, auth, billing, multi-tenancy, email,
+  marketing pages, Kubernetes, Redis, or complex dashboards.
 
 ## Recovery Prompt
 

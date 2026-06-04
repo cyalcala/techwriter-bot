@@ -41,6 +41,10 @@ explicit non-goals.
   API endpoint references and inconsistent path-parameter names for matching
   endpoint shapes, bounded locally and applied only when the user clicks
   `Review`.
+- Phase 5B API-checker slice deployed successfully in GitHub Actions run
+  `26947031364`, immutable URL `https://78e4ed6c.tw-bot.pages.dev`; production
+  smoke confirmed app/health availability and bounded graph lookup for
+  `extractApiEndpoint()`.
 - Current completion estimate: approved Phase 1 through Phase 4 roadmap is
   closure-verified and accepted; paid-pilot readiness for the per-client
   Cloudflare deployment is about 90%, with remaining work focused on client
@@ -105,7 +109,7 @@ The current tracked code graph was refreshed with `graphify update .` on
   count; use node/edge counts and targeted graph queries for acceptance until
   that reporting discrepancy is reconciled.
 - The production runtime graph is published by the GitHub Actions extraction
-  pipeline and currently reports 999 nodes and 1559 edges.
+  pipeline and currently reports 1047 nodes and 1607 edges.
 - Controlled provider fault injection is available only when
   `PROVIDER_FAULT_INJECTION_TOKEN` is configured and matched by request
   headers, allowing failover/outage acceptance without disabling real provider
