@@ -1,7 +1,7 @@
 # Bounded Documentation Tool Pack
 
 Date: 2026-06-04
-Status: Started
+Status: Started; glossary slice deployed, API reference checker locally implemented
 
 ## Goal
 
@@ -69,3 +69,40 @@ The first slice should:
 - Automated document rewriting.
 - Background review.
 - AI-generated glossary suggestions.
+
+## Second Slice
+
+Continue with API reference consistency because technical writers routinely
+repeat endpoint references across conceptual docs, release notes, and reference
+pages. The smallest useful implementation stays inside the existing
+deterministic `Review Document` action.
+
+The second slice should:
+
+- Detect duplicate exact endpoint references such as `GET /v1/users`.
+- Detect equivalent endpoint shapes that use different path-parameter names,
+  such as `GET /v1/users/{userId}` and `GET /v1/users/{id}`.
+- Report findings with source-line warnings.
+- Reuse `reviewDocument()` and run only after the user clicks `Review`.
+- Keep document text and findings in component memory only.
+- Avoid network calls, OpenAPI fetching, schema validation services, KV writes,
+  localStorage, IndexedDB, WebContainer, background work, and autonomous tool
+  execution.
+
+## Second Slice Acceptance Criteria
+
+- Duplicate exact `METHOD /path` endpoint references are reported.
+- Matching endpoint shapes with mismatched path-parameter names are reported.
+- Endpoint checks do not require a saved OpenAPI file or live API call.
+- Existing structural and glossary checks still work.
+- UI remains compact and does not introduce a dashboard.
+- Privacy tests continue to prove the tool panel performs no direct fetch or
+  durable browser writes.
+
+## Second Slice Deferred
+
+- Full OpenAPI parsing.
+- Live API validation.
+- Schema diffing.
+- Automatic reference rewrites.
+- Saved client-wide API catalogs.

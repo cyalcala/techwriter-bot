@@ -37,6 +37,10 @@ explicit non-goals.
 - Phase 5B glossary slice deployed successfully in GitHub Actions run
   `26913659132`, immutable URL `https://6bff987e.tw-bot.pages.dev`; production
   smoke confirmed the Tools panel exposes the new glossary control.
+- Phase 5B second implementation slice: `Review Document` now reports duplicate
+  API endpoint references and inconsistent path-parameter names for matching
+  endpoint shapes, bounded locally and applied only when the user clicks
+  `Review`.
 - Current completion estimate: approved Phase 1 through Phase 4 roadmap is
   closure-verified and accepted; paid-pilot readiness for the per-client
   Cloudflare deployment is about 90%, with remaining work focused on client
@@ -94,9 +98,9 @@ The current tracked code graph was refreshed with `graphify update .` on
 
 - Report: `graphify-out/GRAPH_REPORT.md`
 - Graph: `graphify-out/graph.json`
-- Summary: 865 nodes, 1426 edges
+- Summary: 867 nodes, 1428 edges
 - Extraction confidence: 93% EXTRACTED, 7% INFERRED, 0% AMBIGUOUS
-- Built from code at commit: `8bce4389`
+- Built from code at commit: `8e6de7d6`
 - The generated report currently disagrees with itself on total community
   count; use node/edge counts and targeted graph queries for acceptance until
   that reporting discrepancy is reconciled.
@@ -112,6 +116,10 @@ The current tracked code graph was refreshed with `graphify update .` on
   failure boundaries and active-session renderer retry controls.
 - Kroki/server-render coverage now guards retry/no-retry behavior, SVG
   sanitization, endpoint mapping, and uncached private render API responses.
+- Phase 5B API reference consistency checks now run in the deterministic
+  document review pass: duplicate `METHOD /path` references and mismatched
+  `{pathParameter}` names for equivalent endpoint shapes are reported with
+  source-line warnings.
 - Active-session artifact repair now replaces the original queue entry when a
   user invokes Fix with AI, clears stale renderer errors, and avoids durable
   artifact caching or duplicate repaired entries.

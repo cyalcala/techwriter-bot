@@ -100,8 +100,27 @@ transparency slices with privacy-first active-session boundaries:
   The sample-data click also showed two embedding-failure messages before
   loading `sample-release-process.md`, which is a non-blocking reminder that
   embedding-service graceful degradation may appear during demos.
-- Next slice: continue Phase 5B with an API reference consistency checker
-  unless the user redirects.
+- Current Phase 5B API-checker local checkpoint: code commit `8e6de7d` adds
+  deterministic API reference review rules to the existing user-invoked
+  `reviewDocument()` path. The checker reports duplicate `METHOD /path`
+  endpoint references and equivalent endpoint shapes that use different
+  `{pathParameter}` names, with source-line warnings. It does not add network
+  calls, KV writes, localStorage, IndexedDB, autonomous execution, or
+  WebContainer/runtime package tooling.
+- Local verification for `8e6de7d`: red-green focused document-review tests
+  passed after implementation (`src/tests/document-review.test.ts`, 9 tests),
+  adjacent privacy/document/tool tests passed (5 files, 34 tests), full
+  `npm.cmd test` passed (42 files, 199 tests),
+  `npm.cmd audit --omit=dev --audit-level=high` found 0 vulnerabilities,
+  `git diff --check` reported only known CRLF warnings, and the recorded
+  `build:local` command passed with known non-failing `punycode`, already
+  substituted `T:`, and Cloudflare local AI-binding warnings.
+- Local Graphify after the Phase 5B API-checker slice: 867 nodes and 1428
+  edges from code commit `8e6de7d6`.
+- Next slice: push the API-checker code plus docs/Graphify checkpoint to
+  GitHub, watch the deployment, smoke production health and bounded graph
+  lookup, then record deployment acceptance. After acceptance, continue Phase
+  5B with a release-notes draft reviewer unless the user redirects.
   Do not add marketing pages, auth, billing, multi-tenancy, autonomous agents,
   WebContainer/runtime package tooling, or complex dashboards.
 - Relay-safe documentation updates after each meaningful step.
@@ -1844,11 +1863,13 @@ Continue Phase 5B in bounded, user-invoked tool slices:
 - Phase 1 through Phase 4 are closure-verified and accepted. Phase 5A Client
   Deployment Kit and self-client dry run are complete enough for pilot
   packaging until real client credentials are available.
-- Current Phase 5B glossary-compliance slice is locally implemented and
-  verified in code commit `8bce438`; local graph is refreshed to 865 nodes and
-  1426 edges.
-- Next safe follow-up: continue Phase 5B with an API reference consistency
-  checker unless the user redirects.
+- Current Phase 5B API reference consistency checker is locally implemented
+  and verified in code commit `8e6de7d`; local graph is refreshed to 867 nodes
+  and 1428 edges from `8e6de7d6`.
+- Next safe follow-up: push the code/docs/Graphify checkpoint to GitHub, watch
+  the deployment, run production health and bounded graph smoke, then record
+  acceptance. After acceptance, continue Phase 5B with a release-notes draft
+  reviewer unless the user redirects.
 - If local browser smoke remains blocked by the Cloudflare local preview issue,
   record that caveat and rely on build plus production smoke after deployment.
 - Keep the UI compact and internal-tool focused. Do not add marketing pages,

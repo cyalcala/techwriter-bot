@@ -95,26 +95,22 @@ Unless the user explicitly changes strategy in writing, do not rebuild:
 
 As of 2026-06-04:
 
-- Latest behavior code backup: `b27ecff` (`fix: shed telemetry writes when KV
-  is unavailable`), pushed to `origin/main`. The subsequent Phase 4 closure
-  audit required no code changes.
-- Behavior added: provider telemetry and aggregate token counter KV write
-  failures shed with a content-free `TELEMETRY_SHED` operator notice; protected
-  stats returns `telemetryAvailable: false` with the same notice when telemetry
-  KV is unavailable.
-- Verification evidence: focused red-green telemetry/stats tests, adjacent
-  privacy/API guardrails, full `npm.cmd test` (42 files, 195 tests),
+- Latest behavior code backup: `8e6de7d` (`feat: add api reference review
+  checks`), local on `main` and pending GitHub push/deployment acceptance.
+- Behavior added: deterministic API reference review rules in
+  `reviewDocument()` now report duplicate `METHOD /path` endpoint references
+  and equivalent endpoint shapes that use different `{pathParameter}` names,
+  with source-line warnings.
+- Verification evidence: focused red-green document-review tests, adjacent
+  privacy/document/tool tests, full `npm.cmd test` (42 files, 199 tests),
   production audit with 0 high vulnerabilities, `git diff --check`, and the
-  recorded `build:local` command all passed.
-- Deployment evidence: GitHub Actions run `26881378900` succeeded, immutable
-  URL `https://d29e72c2.tw-bot.pages.dev` returned `200`; the follow-up
-  docs/Graphify checkpoint deploy `26881676419` from `99e1410` also succeeded
-  at `https://ee867432.tw-bot.pages.dev`. Production health was `ok` with app
-  version `0.0.1`, and bounded graph lookup for `telemetry` returned 12 nodes
-  with `Cache-Control: no-store, private`.
-- Local Graphify after the code slice: 863 nodes and 1422 edges from
-  `b27ecffd`; latest production runtime graph reported 999 nodes and 1559
-  edges.
+  recorded `build:local` command all passed before the code commit.
+- Deployment evidence: pending. Next step is to push the API-checker code plus
+  docs/Graphify checkpoint, watch GitHub Actions, smoke production health and a
+  bounded graph lookup, and record acceptance in this file.
+- Local Graphify after the code slice: 867 nodes and 1428 edges from
+  `8e6de7d6`; latest accepted production runtime graph before this push
+  reported 999 nodes and 1559 edges.
 - Kroki/artifact-renderer-down audit: existing renderer tests and production
   render API smoke cover private standardized route failures, transient Kroki
   retry, permanent syntax no-retry, sanitized SVG success, and visible
@@ -180,10 +176,27 @@ As of 2026-06-04:
   The sample-data click also showed two embedding-failure messages before
   loading `sample-release-process.md`; this did not block the glossary flow and
   should be treated as a graceful-degradation demo caveat.
-- Next safe task: continue Phase 5B with an API reference consistency checker
-  unless the user redirects. Do not start autonomous/background tools,
-  WebContainer/runtime package tooling, auth, billing, multi-tenancy, email,
-  marketing pages, Kubernetes, Redis, or complex dashboards.
+- Phase 5B API-checker local code checkpoint: `8e6de7d` adds deterministic
+  API reference review rules to the existing user-invoked `reviewDocument()`
+  path. The checker reports duplicate `METHOD /path` endpoint references and
+  equivalent endpoint shapes that use different `{pathParameter}` names, with
+  source-line warnings.
+- Verification for `8e6de7d`: focused document-review tests passed after
+  red-green implementation (1 file, 9 tests); adjacent privacy/document/tool
+  tests passed (5 files, 34 tests); full `npm.cmd test` passed (42 files, 199
+  tests); `npm.cmd audit --omit=dev --audit-level=high` found 0
+  vulnerabilities; `git diff --check` reported only known CRLF warnings; and
+  the recorded `build:local` command passed with known non-failing `punycode`,
+  already substituted `T:`, and Cloudflare local AI-binding warnings.
+- Local Graphify after `8e6de7d`: 867 nodes and 1428 edges from commit
+  `8e6de7d6`.
+- Next safe task: push the API-checker code plus docs/Graphify checkpoint to
+  GitHub, watch the deployment, smoke production health and bounded graph
+  lookup, then record deployment acceptance. After acceptance, continue Phase
+  5B with a release-notes draft reviewer unless the user redirects. Do not
+  start autonomous/background tools, WebContainer/runtime package tooling,
+  auth, billing, multi-tenancy, email, marketing pages, Kubernetes, Redis, or
+  complex dashboards.
 
 ## Recovery Prompt
 
