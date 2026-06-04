@@ -127,6 +127,10 @@ Phase 5A and Phase 5B are now complete enough for pilots. The next strategic
 phase is Phase 5C unless real client credentials are available first.
 The initial Phase 5C collateral packet is now recorded in
 `docs/PORTFOLIO_BUYER_NARRATIVE.md`.
+It is also production-accepted: docs commit `9a7ac29` deployed in GitHub
+Actions run `26979426208`, immutable URL
+`https://be36a3cd.tw-bot.pages.dev`; production app/health smoke passed and
+Graphify CI reported 1112 nodes and 1677 edges.
 
 ### Phase 5A: Client Deployment Kit
 

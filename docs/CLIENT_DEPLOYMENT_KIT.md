@@ -404,8 +404,8 @@ Immutable URL smoke:
 ## Next Safe Task
 
 Use this kit for the first real client-style Cloudflare deployment when a client
-account is available. Until then, the next strategic choice is between:
+account is available. Until then, continue with:
 
-- Phase 5B: Bounded Documentation Tool Pack.
-- Phase 5C: Portfolio And Buyer Narrative.
+- Capturing the Phase 5C screenshot checklist from
+  `docs/PORTFOLIO_BUYER_NARRATIVE.md`.
 - A real client deployment using Path B once client credentials are available.

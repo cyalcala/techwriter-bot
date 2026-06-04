@@ -28,6 +28,10 @@ explicit non-goals.
   `docs/CLIENT_DEPLOYMENT_KIT.md`.
 - Phase 5C portfolio and buyer narrative reference:
   `docs/PORTFOLIO_BUYER_NARRATIVE.md`.
+- Phase 5C collateral acceptance: docs commit `9a7ac29` deployed in GitHub
+  Actions run `26979426208`, immutable URL
+  `https://be36a3cd.tw-bot.pages.dev`; production smoke passed and Graphify CI
+  reported 1112 nodes and 1677 edges.
 - Phase 5A self-client dry run passed against the existing production alias and
   immutable deployment `https://2482adc7.tw-bot.pages.dev` from GitHub Actions
   run `26883926741`.
@@ -90,11 +94,14 @@ explicit non-goals.
   about 94%, with remaining work focused on capturing screenshots,
   client-specific onboarding, and a real-client credential pilot rather than
   missing core product behavior.
-- Phase 5C initial collateral packet is complete locally:
+- Phase 5C initial collateral packet is complete and production-accepted:
   `docs/PORTFOLIO_BUYER_NARRATIVE.md` includes the portfolio case study, buyer
   one-pager, recruiter/client summary, before/after workflow story, demo
   script, screenshot checklist, architecture narrative, objection handling, and
-  external portfolio outline.
+  external portfolio outline. Acceptance evidence: docs commit `9a7ac29`,
+  GitHub Actions run `26979426208`, immutable URL
+  `https://be36a3cd.tw-bot.pages.dev`, production app/health smoke passed, and
+  Graphify CI uploaded a 1112-node, 1677-edge runtime graph.
 - First tooling design reference:
   `docs/superpowers/specs/2026-05-27-documentation-tooling-agent-foundation-design.md`.
 - First tooling implementation plan:
