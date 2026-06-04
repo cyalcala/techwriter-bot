@@ -32,7 +32,8 @@ Before a deployment pass, read:
 2. `docs/IMPLEMENTATION_STATUS.md`
 3. `docs/AI_RECOVERY_TRAIL.md`
 4. `docs/SELLABLE_READINESS_HANDOFF.md`
-5. `graphify-out/GRAPH_REPORT.md`
+5. `docs/PORTFOLIO_BUYER_NARRATIVE.md`
+6. `graphify-out/GRAPH_REPORT.md`
 
 ## Deployment Paths
 

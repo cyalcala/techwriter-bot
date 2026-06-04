@@ -13,16 +13,16 @@ scope, and what strategic phase should come next.
 - Phase 5A Client Deployment Kit: complete enough for pilots.
 - Phase 5B Bounded Documentation Tool Pack: 100% closure-accepted for planned
   scope.
-- Paid pilot readiness for a per-client Cloudflare deployment: about 92%.
+- Paid pilot readiness for a per-client Cloudflare deployment: about 94%.
 - Broad tooling-agent vision: bounded human-controlled tool pack delivered;
   further expansion remains a next strategic phase, not a hidden requirement
   for the current sellable baseline.
 
-The 92% paid-pilot estimate means the product is ready to demonstrate and sell
+The 94% paid-pilot estimate means the product is ready to demonstrate and sell
 as a client-owned internal technical-writing engine, with explicit setup and
-support expectations. The remaining 8% is not missing core product behavior;
-it is mostly buyer/portfolio narrative, client-specific onboarding, and a
-real-client credential pilot.
+support expectations. The remaining 6% is not missing core product behavior;
+it is mostly screenshot capture, client-specific onboarding, and a real-client
+credential pilot.
 
 ## What Is Sellable Now
 
@@ -125,6 +125,8 @@ artifacts, and preserve human control."
 
 Phase 5A and Phase 5B are now complete enough for pilots. The next strategic
 phase is Phase 5C unless real client credentials are available first.
+The initial Phase 5C collateral packet is now recorded in
+`docs/PORTFOLIO_BUYER_NARRATIVE.md`.
 
 ### Phase 5A: Client Deployment Kit
 
@@ -185,6 +187,6 @@ new in-app marketing page.
 
 ## Next Safe Task
 
-Start Phase 5C: Portfolio And Buyer Narrative as documentation/collateral, or
+Capture the screenshot checklist from `docs/PORTFOLIO_BUYER_NARRATIVE.md`, or
 run a real-client deployment when credentials are available. Do not add an
 in-app marketing page.

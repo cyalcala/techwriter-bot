@@ -26,6 +26,8 @@ explicit non-goals.
   `docs/SELLABLE_READINESS_HANDOFF.md`.
 - Phase 5A client deployment reference:
   `docs/CLIENT_DEPLOYMENT_KIT.md`.
+- Phase 5C portfolio and buyer narrative reference:
+  `docs/PORTFOLIO_BUYER_NARRATIVE.md`.
 - Phase 5A self-client dry run passed against the existing production alias and
   immutable deployment `https://2482adc7.tw-bot.pages.dev` from GitHub Actions
   run `26883926741`.
@@ -85,9 +87,14 @@ explicit non-goals.
   closure-verified and accepted; Phase 5A pilot deployment kit is complete
   enough for pilots; Phase 5B bounded Documentation Tool Pack is 100%
   accepted; paid-pilot readiness for the per-client Cloudflare deployment is
-  about 92%, with remaining work focused on buyer/portfolio narrative,
+  about 94%, with remaining work focused on capturing screenshots,
   client-specific onboarding, and a real-client credential pilot rather than
   missing core product behavior.
+- Phase 5C initial collateral packet is complete locally:
+  `docs/PORTFOLIO_BUYER_NARRATIVE.md` includes the portfolio case study, buyer
+  one-pager, recruiter/client summary, before/after workflow story, demo
+  script, screenshot checklist, architecture narrative, objection handling, and
+  external portfolio outline.
 - First tooling design reference:
   `docs/superpowers/specs/2026-05-27-documentation-tooling-agent-foundation-design.md`.
 - First tooling implementation plan:

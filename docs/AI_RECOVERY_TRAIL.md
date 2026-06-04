@@ -22,8 +22,9 @@ Start every recovery pass by reading, in this order:
 3. `docs/AI_RECOVERY_TRAIL.md`
 4. `docs/SELLABLE_READINESS_HANDOFF.md`
 5. `docs/CLIENT_DEPLOYMENT_KIT.md`
-6. `docs/superpowers/specs/2026-06-04-bounded-documentation-tool-pack.md`
-7. `graphify-out/GRAPH_REPORT.md`
+6. `docs/PORTFOLIO_BUYER_NARRATIVE.md`
+7. `docs/superpowers/specs/2026-06-04-bounded-documentation-tool-pack.md`
+8. `graphify-out/GRAPH_REPORT.md`
 
 These files are the standing handoff packet. Chat transcripts are useful, but
 GitHub is the source of truth.
@@ -93,7 +94,7 @@ Unless the user explicitly changes strategy in writing, do not rebuild:
 
 ## Latest Checkpoint
 
-As of 2026-06-04:
+As of 2026-06-05:
 
 - Latest behavior code backup: `4563754` (`feat: add bounded code area
   explanation`), pushed to GitHub on `main` with docs/Graphify checkpoint
@@ -124,6 +125,12 @@ As of 2026-06-04:
   graph smoke returned private no-store references for all Phase 5B tool
   symbols; Playwright CLI real-browser smoke confirmed the production
   `Explain code area` flow renders a bounded source-reference scaffold.
+- Phase 5C initial collateral checkpoint: `docs/PORTFOLIO_BUYER_NARRATIVE.md`
+  was added on 2026-06-05. It captures the portfolio case study, buyer
+  one-pager, recruiter/client summary, before/after workflow story, demo
+  script, screenshot checklist, architecture narrative, objection handling, and
+  external portfolio outline. This is documentation/collateral only; it does
+  not add an in-app marketing page or broaden product scope.
 - Kroki/artifact-renderer-down audit: existing renderer tests and production
   render API smoke cover private standardized route failures, transient Kroki
   retry, permanent syntax no-retry, sanitized SVG success, and visible
@@ -142,8 +149,9 @@ As of 2026-06-04:
 - Readiness handoff: `docs/SELLABLE_READINESS_HANDOFF.md` now records the
   post-Phase-4 sellability summary, intentional exclusions, tooling-agent
   status, employability positioning, and Phase 5 options. Use this framing for
-  progress updates: approved Phase 1 through Phase 4 roadmap is 100% accepted;
-  paid-pilot readiness is about 90%.
+  progress updates: approved Phase 1 through Phase 4 roadmap is 100%
+  accepted; Phase 5A is complete enough for pilots; Phase 5B is
+  closure-accepted; paid-pilot readiness is about 94%.
 - Phase 5A deployment kit: `docs/CLIENT_DEPLOYMENT_KIT.md` now records the
   client setup checklist, environment guide, per-client `deploy.sh` path,
   existing GitHub Actions caveat, production acceptance runbook, demo script,
@@ -313,16 +321,16 @@ As of 2026-06-04:
   recorded build passed; production health and graph smoke passed for all
   Phase 5B tool symbols; and real-browser Playwright CLI smoke confirmed the
   code-area explanation UI flow.
-- Next safe task: start Phase 5C Portfolio And Buyer Narrative as
-  documentation/collateral, or run a real-client deployment when credentials
-  are available. Do not start autonomous/background tools, WebContainer/runtime
-  package tooling, auth, billing, multi-tenancy, email, marketing pages,
-  Kubernetes, Redis, or complex dashboards.
+- Next safe task: capture the Phase 5C screenshot checklist for portfolio/buyer
+  collateral, or run a real-client deployment when credentials are available.
+  Do not start autonomous/background tools, WebContainer/runtime package
+  tooling, auth, billing, multi-tenancy, email, marketing pages, Kubernetes,
+  Redis, or complex dashboards.
 
 ## Recovery Prompt
 
 Use this prompt when handing work to another AI agent:
 
 ```text
-Continue from C:\Users\admin\Desktop\techwriter-bot. Read docs\MASTER_EXECUTION_PLAN.md, docs\IMPLEMENTATION_STATUS.md, docs\AI_RECOVERY_TRAIL.md, docs\SELLABLE_READINESS_HANDOFF.md, docs\CLIENT_DEPLOYMENT_KIT.md, docs\superpowers\specs\2026-06-04-bounded-documentation-tool-pack.md, and graphify-out\GRAPH_REPORT.md first. Continue only from docs\IMPLEMENTATION_STATUS.md Next Task. Use the recorded build verification command when behavior changes. Preserve GitHub backups after each coherent slice. Phase 5B is closure-accepted; next safe task is Phase 5C Portfolio And Buyer Narrative as documentation/collateral, or a real-client deployment when credentials are available. Do not rebuild OAuth, Stripe, multi-tenancy, email, marketing pages, autonomous agents, Kubernetes, Redis, complex dashboards, or WebContainer/runtime package tooling.
+Continue from C:\Users\admin\Desktop\techwriter-bot. Read docs\MASTER_EXECUTION_PLAN.md, docs\IMPLEMENTATION_STATUS.md, docs\AI_RECOVERY_TRAIL.md, docs\SELLABLE_READINESS_HANDOFF.md, docs\CLIENT_DEPLOYMENT_KIT.md, docs\PORTFOLIO_BUYER_NARRATIVE.md, docs\superpowers\specs\2026-06-04-bounded-documentation-tool-pack.md, and graphify-out\GRAPH_REPORT.md first. Continue only from docs\IMPLEMENTATION_STATUS.md Next Task. Use the recorded build verification command when behavior changes. Preserve GitHub backups after each coherent slice. Phase 5C initial collateral packet is complete; next safe task is screenshot capture for portfolio/buyer collateral, or a real-client deployment when credentials are available. Do not rebuild OAuth, Stripe, multi-tenancy, email, marketing pages, autonomous agents, Kubernetes, Redis, complex dashboards, or WebContainer/runtime package tooling.
 ```
