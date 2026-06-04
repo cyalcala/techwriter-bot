@@ -1,6 +1,6 @@
 # Sellable Readiness Handoff
 
-Date: 2026-06-03
+Date: 2026-06-04
 
 This handoff summarizes where Techwriter Bot stands after the Phase 4 closure
 acceptance. It is written for the user, future AI agents, and future maintainers
@@ -10,16 +10,19 @@ scope, and what strategic phase should come next.
 ## Current Completion
 
 - Approved Phase 1 through Phase 4 roadmap: 100% closure-verified and accepted.
-- Paid pilot readiness for a per-client Cloudflare deployment: about 90%.
-- Broad tooling-agent vision: first bounded slice delivered; broader expansion
-  remains a next strategic phase, not a hidden requirement for the current
-  sellable baseline.
+- Phase 5A Client Deployment Kit: complete enough for pilots.
+- Phase 5B Bounded Documentation Tool Pack: 100% closure-accepted for planned
+  scope.
+- Paid pilot readiness for a per-client Cloudflare deployment: about 92%.
+- Broad tooling-agent vision: bounded human-controlled tool pack delivered;
+  further expansion remains a next strategic phase, not a hidden requirement
+  for the current sellable baseline.
 
-The 90% paid-pilot estimate means the product is ready to demonstrate and sell
+The 92% paid-pilot estimate means the product is ready to demonstrate and sell
 as a client-owned internal technical-writing engine, with explicit setup and
-support expectations. The remaining 10% is not missing core product behavior;
-it is mostly packaging, client onboarding material, and repeatable acceptance
-runbooks.
+support expectations. The remaining 8% is not missing core product behavior;
+it is mostly buyer/portfolio narrative, client-specific onboarding, and a
+real-client credential pilot.
 
 ## What Is Sellable Now
 
@@ -38,8 +41,12 @@ The strongest sellable capabilities are:
 - Bounded Documentation Tooling Agent foundation:
   - `Review Document` for deterministic structural and terminology checks on
     active uploaded source.
+  - API reference consistency, release-notes draft, and OpenAPI operation
+    summary checks in the same explicit review path.
   - `Find Code References` for user-invoked, read-only, bounded `src/` graph
     lookup.
+  - Documentation coverage mapping and bounded code-area explanation from
+    private graph references.
 - Document RAG with filename, heading, and line metadata plus deterministic
   no-context handling when retrieval is weak or unavailable.
 - Active-session Knowledge Base controls for multiple documents, document
@@ -81,8 +88,10 @@ and safer for privacy-sensitive technical-writing workflows.
 The product is already more than a chat app. It is a bounded tool agent in the
 human-controlled sense:
 
-- The user can invoke document review.
-- The user can invoke code-reference lookup.
+- The user can invoke document review with glossary, API reference,
+  release-notes, and OpenAPI operation checks.
+- The user can invoke code-reference lookup, documentation coverage mapping,
+  and bounded code-area explanation.
 - The user can invoke Knowledge Base operations.
 - The user can repair, regenerate, copy, and export artifacts.
 - The user can export responses and conversations into downstream workflows.
@@ -114,7 +123,8 @@ artifacts, and preserve human control."
 
 ## Recommended Next Strategic Phase
 
-Recommendation: do Phase 5A first, then Phase 5B.
+Phase 5A and Phase 5B are now complete enough for pilots. The next strategic
+phase is Phase 5C unless real client credentials are available first.
 
 ### Phase 5A: Client Deployment Kit
 
@@ -175,6 +185,6 @@ new in-app marketing page.
 
 ## Next Safe Task
 
-Ask the user which strategic phase to start next. If the user says to proceed
-with the recommendation without choosing, start Phase 5A: Client Deployment Kit,
-because it increases sellability without widening product risk.
+Start Phase 5C: Portfolio And Buyer Narrative as documentation/collateral, or
+run a real-client deployment when credentials are available. Do not add an
+in-app marketing page.

@@ -77,11 +77,17 @@ explicit non-goals.
   run `26950672782`, immutable URL `https://e70c3b39.tw-bot.pages.dev`;
   production smoke confirmed app/health availability and bounded graph lookup
   for `createCodeAreaExplanation()`.
+- Phase 5B closure audit passed on 2026-06-04. The bounded Documentation Tool
+  Pack is production-accepted across glossary, API reference, release-notes,
+  OpenAPI operation summary, documentation coverage map, and code-area
+  explanation tools.
 - Current completion estimate: approved Phase 1 through Phase 4 roadmap is
-  closure-verified and accepted; paid-pilot readiness for the per-client
-  Cloudflare deployment is about 90%, with remaining work focused on client
-  onboarding, repeatable acceptance runbooks, and next-phase strategy rather
-  than missing core product behavior.
+  closure-verified and accepted; Phase 5A pilot deployment kit is complete
+  enough for pilots; Phase 5B bounded Documentation Tool Pack is 100%
+  accepted; paid-pilot readiness for the per-client Cloudflare deployment is
+  about 92%, with remaining work focused on buyer/portfolio narrative,
+  client-specific onboarding, and a real-client credential pilot rather than
+  missing core product behavior.
 - First tooling design reference:
   `docs/superpowers/specs/2026-05-27-documentation-tooling-agent-foundation-design.md`.
 - First tooling implementation plan:

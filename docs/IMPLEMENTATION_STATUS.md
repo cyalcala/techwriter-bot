@@ -16,7 +16,7 @@ Then continue from the "Next Task" section below.
 
 ## Current Focus
 
-Phase 5B: Bounded Documentation Tool Pack.
+Phase 5B: Bounded Documentation Tool Pack closure accepted.
 
 The accepted Phase 4 work followed Phase 3 conversation/export/client
 transparency slices with privacy-first active-session boundaries:
@@ -246,10 +246,31 @@ transparency slices with privacy-first active-session boundaries:
   `Cache-Control: no-store, private`. The immutable URL returned `200`, `ok`
   health with 4 active providers out of 6 and matching app version, and the
   same private graph lookup evidence.
-- Next slice: run a Phase 5B closure audit across the bounded Documentation
-  Tool Pack. Verify tests/build, confirm docs/recovery trail are current,
-  smoke production if needed, and then record Phase 5B acceptance. Do not add
-  new product scope during the audit.
+- Phase 5B closure audit acceptance: focused bounded-tool tests passed
+  (`src/tests/document-review.test.ts`,
+  `src/tests/document-tools-ui.test.ts`,
+  `src/tests/code-area-explanation.test.ts`,
+  `src/tests/tool-graph-lookup.test.ts`, `src/tests/privacy-first.test.ts`,
+  `src/tests/rag-document-registry.test.ts`, and
+  `src/tests/session-transfer.test.ts`: 7 files, 46 tests); full
+  `npm.cmd test` passed (43 files, 208 tests);
+  `npm.cmd audit --omit=dev --audit-level=high` found 0 vulnerabilities;
+  `git diff --check` was clean; the recorded `build:local` command passed with
+  known non-failing `Drive already SUBSTed`, `punycode`, and Cloudflare local
+  AI-binding warnings; production app/health smoke returned `200`, `ok`, 4
+  active providers out of 6, and matching app version `0.0.1`; production
+  graph smoke returned `200` and `Cache-Control: no-store, private` for
+  `parseTerminologyRules`, `extractApiEndpoint`, `release notes
+  reviewDocument`, `summarizeOpenApiOperations`,
+  `extractDocumentationCoverageTerms`, and `createCodeAreaExplanation`.
+  Playwright CLI real-browser smoke opened production, opened `Tools`, switched
+  to `Find Code References`, filled `createCodeAreaExplanation`, clicked
+  `Explain code area`, and saw the bounded source-reference scaffold for
+  `src/lib/code-area-explanation.ts:L47`; generated `.playwright-cli`
+  artifacts were removed.
+- Next slice: move to Phase 5C portfolio/buyer narrative or a real-client
+  pilot setup when credentials are available. Do not add new in-app product
+  scope during that work.
   Do not add marketing pages, auth, billing, multi-tenancy, autonomous agents,
   WebContainer/runtime package tooling, or complex dashboards.
 - Relay-safe documentation updates after each meaningful step.
@@ -1987,19 +2008,21 @@ Latest incremental verification on 2026-06-01:
 
 ## Next Task
 
-Continue Phase 5B in bounded, user-invoked tool slices:
+Phase 5B is closure-accepted. Continue with post-Phase-5 readiness work:
 
 - Phase 1 through Phase 4 are closure-verified and accepted. Phase 5A Client
   Deployment Kit and self-client dry run are complete enough for pilot
   packaging until real client credentials are available.
-- Current Phase 5B code-area explanation helper is implemented, verified, and
-  production accepted in code commit `4563754` and docs/Graphify checkpoint
-  `41823f5`; local graph is refreshed to 878 nodes and 1443 edges from
-  `4563754b`; production acceptance is recorded from GitHub Actions run
-  `26950672782`, immutable URL `https://e70c3b39.tw-bot.pages.dev`, with
-  runtime graph 1080 nodes and 1646 edges.
-- Next safe follow-up: run a Phase 5B closure audit across the bounded
-  Documentation Tool Pack, then record Phase 5B acceptance if the audit passes.
+- Phase 5B bounded Documentation Tool Pack is accepted at 100% for the planned
+  scope: glossary, API reference checker, release-notes reviewer, OpenAPI
+  operation summary, documentation coverage map, and bounded code-area
+  explanation.
+- Current paid-pilot readiness estimate is about 92%. The remaining 8% is
+  business/client packaging: buyer narrative, portfolio case study, screenshots
+  checklist, and a real-client credential pilot.
+- Next safe follow-up: start Phase 5C Portfolio And Buyer Narrative as
+  documentation/collateral, or run a real-client deployment when credentials
+  are available.
 - If local browser smoke remains blocked by the Cloudflare local preview issue,
   record that caveat and rely on build plus production smoke after deployment.
 - Keep the UI compact and internal-tool focused. Do not add marketing pages,
