@@ -1,7 +1,7 @@
 # Portfolio And Buyer Narrative
 
 Date: 2026-06-05
-Status: Phase 5C initial collateral packet
+Status: Phase 5C initial collateral packet; screenshot checklist captured
 
 This document turns the accepted Techwriter Bot product into a portfolio,
 buyer, and recruiter narrative. It is external collateral only. It does not
@@ -260,6 +260,9 @@ Use this for a 7 to 10 minute buyer or portfolio demo.
 Capture these screenshots for the portfolio or buyer deck. Do not add them as
 an in-app marketing page.
 
+Captured set: see `docs/PORTFOLIO_SCREENSHOT_MANIFEST.md`. Images are stored
+under `output/playwright/phase-5c-portfolio/`.
+
 Required screenshots:
 
 - App shell with `Technical Writer`, privacy notice, and `Try sample data`.
@@ -334,8 +337,8 @@ are more credible for documentation teams than silent background automation.
 
 ### What is left before paid pilots?
 
-Core product behavior is not the blocker. Remaining work is buyer collateral,
-screenshots, client-specific onboarding, and a real-client credential pilot.
+Core product behavior is not the blocker. Remaining work is external portfolio
+assembly, client-specific onboarding, and a real-client credential pilot.
 
 ## Portfolio Page Outline
 
@@ -371,7 +374,7 @@ Use this outline in an external portfolio, LinkedIn feature section, or PDF.
 
 ## Next Collateral Steps
 
-- Capture the screenshot checklist.
+- Assemble the captured screenshot set into an external PDF or portfolio page.
 - Build a short external PDF or portfolio page from this content.
 - Prepare a 60-second spoken demo script.
 - Prepare a 5-minute technical walkthrough.

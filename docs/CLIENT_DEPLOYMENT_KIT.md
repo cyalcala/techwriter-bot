@@ -33,7 +33,8 @@ Before a deployment pass, read:
 3. `docs/AI_RECOVERY_TRAIL.md`
 4. `docs/SELLABLE_READINESS_HANDOFF.md`
 5. `docs/PORTFOLIO_BUYER_NARRATIVE.md`
-6. `graphify-out/GRAPH_REPORT.md`
+6. `docs/PORTFOLIO_SCREENSHOT_MANIFEST.md`
+7. `graphify-out/GRAPH_REPORT.md`
 
 ## Deployment Paths
 
@@ -406,6 +407,6 @@ Immutable URL smoke:
 Use this kit for the first real client-style Cloudflare deployment when a client
 account is available. Until then, continue with:
 
-- Capturing the Phase 5C screenshot checklist from
-  `docs/PORTFOLIO_BUYER_NARRATIVE.md`.
+- Assembling the captured Phase 5C screenshots from
+  `docs/PORTFOLIO_SCREENSHOT_MANIFEST.md` into an external portfolio or PDF.
 - A real client deployment using Path B once client credentials are available.
