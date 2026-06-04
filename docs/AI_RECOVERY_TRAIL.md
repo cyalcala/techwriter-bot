@@ -96,7 +96,7 @@ Unless the user explicitly changes strategy in writing, do not rebuild:
 As of 2026-06-04:
 
 - Latest behavior code backup: `72efda6` (`feat: add release notes review
-  checks`), local on `main` and pending GitHub push/deployment acceptance.
+  checks`), pushed to `origin/main` with docs/Graphify checkpoint `f8073ab`.
 - Behavior added: deterministic release-note draft review rules in
   `reviewDocument()` now flag release-note-like documents that lack a
   version/date identity, still contain placeholder text, or mention breaking,
@@ -105,12 +105,15 @@ As of 2026-06-04:
   privacy/document/tool tests, full `npm.cmd test` (42 files, 202 tests),
   production audit with 0 high vulnerabilities, `git diff --check`, and the
   recorded `build:local` command all passed before the code commit.
-- Deployment evidence: pending. Next step is to push the release-notes reviewer
-  code plus docs/Graphify checkpoint, watch GitHub Actions, smoke production
-  health and a bounded graph lookup, and record acceptance in this file.
+- Deployment evidence: GitHub Actions run `26947748180` succeeded from
+  docs/Graphify checkpoint `f8073ab`, immutable URL
+  `https://dad791b6.tw-bot.pages.dev`; Graphify CI uploaded the runtime graph
+  with 1052 nodes and 1612 edges. Production alias and immutable URL returned
+  `200`, health `ok`, matching app version `0.0.1`, and private bounded graph
+  lookup for `release notes reviewDocument`.
 - Local Graphify after the code slice: 867 nodes and 1428 edges from
-  `72efda60`; latest accepted production runtime graph reports 1047 nodes and
-  1607 edges.
+  `72efda60`; latest accepted production runtime graph reports 1052 nodes and
+  1612 edges.
 - Kroki/artifact-renderer-down audit: existing renderer tests and production
   render API smoke cover private standardized route failures, transient Kroki
   retry, permanent syntax no-retry, sanitized SVG success, and visible
@@ -211,13 +214,18 @@ As of 2026-06-04:
   already SUBSTed`, `punycode`, and Cloudflare local AI-binding warnings.
 - Local Graphify after `72efda6`: 867 nodes and 1428 edges from commit
   `72efda60`.
-- Next safe task: push the release-notes reviewer code plus docs/Graphify
-  checkpoint to GitHub, watch the deployment, smoke production health and
-  bounded graph lookup, then record deployment acceptance. After acceptance,
-  continue Phase 5B with an OpenAPI change-summary helper unless the user
-  redirects. Do not start autonomous/background tools, WebContainer/runtime
-  package tooling, auth, billing, multi-tenancy, email, marketing pages,
-  Kubernetes, Redis, or complex dashboards.
+- Phase 5B release-notes production acceptance: docs/Graphify checkpoint
+  `f8073ab` deployed in GitHub Actions run `26947748180`, immutable URL
+  `https://dad791b6.tw-bot.pages.dev`; production alias returned `200`,
+  `/api/health` returned `ok` with 3 active providers out of 6 and matching
+  app version `0.0.1`, the immutable URL returned `200` and `ok` health with 4
+  active providers out of 6, and bounded graph lookup for
+  `release notes reviewDocument` returned 3 nodes with `Cache-Control:
+  no-store, private` on both targets.
+- Next safe task: continue Phase 5B with an OpenAPI change-summary helper
+  unless the user redirects. Do not start autonomous/background tools,
+  WebContainer/runtime package tooling, auth, billing, multi-tenancy, email,
+  marketing pages, Kubernetes, Redis, or complex dashboards.
 
 ## Recovery Prompt
 

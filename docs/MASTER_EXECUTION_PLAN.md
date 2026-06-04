@@ -49,6 +49,10 @@ explicit non-goals.
   drafts that lack a version/date identity, still contain placeholder text, or
   mention breaking/removal/deprecation changes without migration or
   action-required guidance.
+- Phase 5B release-notes reviewer slice deployed successfully in GitHub Actions
+  run `26947748180`, immutable URL `https://dad791b6.tw-bot.pages.dev`;
+  production smoke confirmed app/health availability and bounded graph lookup
+  for `release notes reviewDocument`.
 - Current completion estimate: approved Phase 1 through Phase 4 roadmap is
   closure-verified and accepted; paid-pilot readiness for the per-client
   Cloudflare deployment is about 90%, with remaining work focused on client
@@ -113,7 +117,7 @@ The current tracked code graph was refreshed with `graphify update .` on
   count; use node/edge counts and targeted graph queries for acceptance until
   that reporting discrepancy is reconciled.
 - The production runtime graph is published by the GitHub Actions extraction
-  pipeline and currently reports 1047 nodes and 1607 edges.
+  pipeline and currently reports 1052 nodes and 1612 edges.
 - Controlled provider fault injection is available only when
   `PROVIDER_FAULT_INJECTION_TOKEN` is configured and matched by request
   headers, allowing failover/outage acceptance without disabling real provider
