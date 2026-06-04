@@ -95,25 +95,24 @@ Unless the user explicitly changes strategy in writing, do not rebuild:
 
 As of 2026-06-04:
 
-- Latest behavior code backup: `57969f9` (`feat: add documentation coverage
-  map`), pushed to GitHub on `main` with docs/Graphify checkpoint `5927615`.
+- Latest behavior code backup: `4563754` (`feat: add bounded code area
+  explanation`), local on `main` and pending GitHub push/deployment acceptance.
 - Behavior added: `Find Code References` now exposes an explicit
-  `Map coverage` action that extracts a bounded set of active-document
-  headings, endpoints, and code identifiers locally, then checks those terms
-  against the existing private graph lookup endpoint after user click.
-- Verification evidence: focused red-green document-review/tool UI tests,
-  adjacent privacy/document/tool tests, full `npm.cmd test` (42 files, 206
-  tests),
-  production audit with 0 high vulnerabilities, `git diff --check`, and the
-  recorded `build:local` command all passed before the code commit.
-- Deployment evidence: GitHub Actions run `26949729477` passed, immutable URL
-  `https://1e721488.tw-bot.pages.dev`; production alias and immutable URL both
-  returned `200`, `ok` health with 4 active providers out of 6, matching app
-  version `0.0.1`, and private bounded graph lookup for
-  `extractDocumentationCoverageTerms`.
-- Local Graphify after the coverage-map code slice: 872 nodes and 1436 edges
-  from `57969f9f`; latest accepted production runtime graph reports 1067 nodes
-  and 1630 edges.
+  `Explain code area` action that accepts a small user-entered term, calls the
+  existing private graph lookup endpoint after user click, and renders a
+  compact source-reference explanation scaffold in active page memory.
+- Verification evidence: focused red-green code-area/tool UI tests, adjacent
+  privacy/document/tool/graph tests, full `npm.cmd test` (43 files, 208
+  tests), production audit with 0 high vulnerabilities, forbidden-scope diff
+  scan, `git diff --check`, and the recorded `build:local` command all passed
+  before the code commit.
+- Deployment evidence: pending for `4563754`. Next step is to push the
+  code-area explanation code plus docs/Graphify checkpoint, watch GitHub
+  Actions, smoke production health and bounded graph lookup, and record
+  acceptance in this file.
+- Local Graphify after the code-area explanation slice: 878 nodes and 1443
+  edges from `4563754b`; latest accepted production runtime graph reports 1070
+  nodes and 1633 edges.
 - Kroki/artifact-renderer-down audit: existing renderer tests and production
   render API smoke cover private standardized route failures, transient Kroki
   retry, permanent syntax no-retry, sanitized SVG success, and visible
@@ -272,16 +271,35 @@ As of 2026-06-04:
   active providers out of 6, and bounded graph lookup for
   `extractDocumentationCoverageTerms` returned 1 node with `Cache-Control:
   no-store, private` on both targets.
-- Next safe task: continue Phase 5B with a bounded code-area explanation helper
-  unless the user redirects. Keep it explicit/user-invoked, compact, and based
-  on constrained source references; do not start autonomous/background tools,
-  WebContainer/runtime package tooling, auth, billing, multi-tenancy, email,
-  marketing pages, Kubernetes, Redis, or complex dashboards.
+- Phase 5B code-area explanation local code checkpoint: `4563754` adds
+  `createCodeAreaExplanation()` and an explicit `Explain code area` action to
+  the existing user-invoked `Find Code References` path. It converts bounded
+  graph lookup context into a compact source-reference explanation scaffold,
+  without AI rewriting, autonomous traversal, or durable user-content storage.
+- Verification for `4563754`: focused code-area/tool UI tests passed after
+  red-green implementation (2 files, 6 tests); adjacent
+  privacy/document/tool/graph tests passed (7 files, 46 tests); full
+  `npm.cmd test` passed (43 files, 208 tests);
+  `npm.cmd audit --omit=dev --audit-level=high` found 0 vulnerabilities;
+  forbidden-scope diff scan found no forbidden additions; `git diff --check`
+  reported only known CRLF warnings; and the recorded `build:local` command
+  passed with known non-failing `Drive already SUBSTed`, `punycode`, and
+  Cloudflare local AI-binding warnings.
+- Local Graphify after `4563754`: 878 nodes and 1443 edges from commit
+  `4563754b`; `createCodeAreaExplanation()` appears in the code-area
+  explanation community.
+- Next safe task: push the code-area explanation code plus docs/Graphify
+  checkpoint to GitHub, watch the deployment, smoke production health and
+  bounded graph lookup for `createCodeAreaExplanation`, then record deployment
+  acceptance. After acceptance, run a Phase 5B closure audit unless the user
+  redirects. Do not start autonomous/background tools, WebContainer/runtime
+  package tooling, auth, billing, multi-tenancy, email, marketing pages,
+  Kubernetes, Redis, or complex dashboards.
 
 ## Recovery Prompt
 
 Use this prompt when handing work to another AI agent:
 
 ```text
-Continue from C:\Users\admin\Desktop\techwriter-bot. Read docs\MASTER_EXECUTION_PLAN.md, docs\IMPLEMENTATION_STATUS.md, docs\AI_RECOVERY_TRAIL.md, docs\SELLABLE_READINESS_HANDOFF.md, docs\CLIENT_DEPLOYMENT_KIT.md, docs\superpowers\specs\2026-06-04-bounded-documentation-tool-pack.md, and graphify-out\GRAPH_REPORT.md first. Continue only from docs\IMPLEMENTATION_STATUS.md Next Task. Use the recorded build verification command when behavior changes. Preserve GitHub backups after each coherent slice. Next safe task is the Phase 5B bounded code-area explanation helper. Do not rebuild OAuth, Stripe, multi-tenancy, email, marketing pages, autonomous agents, Kubernetes, Redis, complex dashboards, or WebContainer/runtime package tooling.
+Continue from C:\Users\admin\Desktop\techwriter-bot. Read docs\MASTER_EXECUTION_PLAN.md, docs\IMPLEMENTATION_STATUS.md, docs\AI_RECOVERY_TRAIL.md, docs\SELLABLE_READINESS_HANDOFF.md, docs\CLIENT_DEPLOYMENT_KIT.md, docs\superpowers\specs\2026-06-04-bounded-documentation-tool-pack.md, and graphify-out\GRAPH_REPORT.md first. Continue only from docs\IMPLEMENTATION_STATUS.md Next Task. Use the recorded build verification command when behavior changes. Preserve GitHub backups after each coherent slice. Next safe task is to push the Phase 5B bounded code-area explanation code plus docs/Graphify checkpoint, watch deployment, run production smoke, then record acceptance. Do not rebuild OAuth, Stripe, multi-tenancy, email, marketing pages, autonomous agents, Kubernetes, Redis, complex dashboards, or WebContainer/runtime package tooling.
 ```

@@ -215,10 +215,31 @@ transparency slices with privacy-first active-session boundaries:
   no-store, private`. The immutable URL returned `200`, `ok` health with 4
   active providers out of 6 and matching app version, and the same private
   graph lookup evidence.
-- Next slice: continue Phase 5B with a bounded code-area explanation helper
-  unless the user redirects. Keep it user-invoked, source-reference-only, and
-  compact; prefer reusing existing graph lookup rather than adding a broad
-  dashboard or autonomous tool path.
+- Current Phase 5B code-area explanation local checkpoint: code commit
+  `4563754` adds a bounded `Explain code area` action to the existing
+  `Find Code References` tool. The action accepts a small user-entered term,
+  calls the existing private `/api/tool-graph-lookup` endpoint only after user
+  click, and renders a compact source-reference explanation scaffold derived
+  from graph context. It does not add autonomous source traversal, broad repo
+  scans from the browser, KV writes, localStorage, IndexedDB,
+  WebContainer/runtime package tooling, or a complex dashboard.
+- Local verification for `4563754`: red-green focused code-area/tool UI tests
+  passed after implementation (2 files, 6 tests), adjacent
+  privacy/document/tool/graph tests passed (7 files, 46 tests), full
+  `npm.cmd test` passed (43 files, 208 tests),
+  `npm.cmd audit --omit=dev --audit-level=high` found 0 vulnerabilities,
+  forbidden-scope diff scan found no forbidden additions, `git diff --check`
+  reported only known CRLF warnings, and the recorded `build:local` command
+  passed with known non-failing `Drive already SUBSTed`, `punycode`, and
+  Cloudflare local AI-binding warnings.
+- Local Graphify after the Phase 5B code-area explanation slice: 878 nodes and
+  1443 edges from code commit `4563754b`; `createCodeAreaExplanation()` appears
+  in the code-area explanation community.
+- Next slice: push the code-area explanation code plus docs/Graphify
+  checkpoint to GitHub, watch the deployment, smoke production health and
+  bounded graph lookup for `createCodeAreaExplanation`, then record deployment
+  acceptance. After acceptance, run a Phase 5B closure audit unless the user
+  redirects.
   Do not add marketing pages, auth, billing, multi-tenancy, autonomous agents,
   WebContainer/runtime package tooling, or complex dashboards.
 - Relay-safe documentation updates after each meaningful step.
@@ -1961,16 +1982,13 @@ Continue Phase 5B in bounded, user-invoked tool slices:
 - Phase 1 through Phase 4 are closure-verified and accepted. Phase 5A Client
   Deployment Kit and self-client dry run are complete enough for pilot
   packaging until real client credentials are available.
-- Current Phase 5B documentation coverage map is locally implemented and
-  verified in code commit `57969f9`; local graph is refreshed to 872 nodes and
-  1436 edges from `57969f9f`; production acceptance is recorded from GitHub
-  Actions run `26949729477`, immutable URL
-  `https://1e721488.tw-bot.pages.dev`, with runtime graph 1067 nodes and 1630
-  edges.
-- Next safe follow-up: continue Phase 5B with a bounded code-area explanation
-  helper. It should explain a small user-selected code area from graph/code
-  references only after explicit user action, keep the UI compact, avoid
-  durable user-content storage, and avoid autonomous execution.
+- Current Phase 5B code-area explanation helper is locally implemented and
+  verified in code commit `4563754`; local graph is refreshed to 878 nodes and
+  1443 edges from `4563754b`.
+- Next safe follow-up: push the code-area explanation code plus docs/Graphify
+  checkpoint to GitHub, watch deployment, run production health and bounded
+  graph smoke, then record acceptance. After acceptance, run a Phase 5B closure
+  audit unless the user redirects.
 - If local browser smoke remains blocked by the Cloudflare local preview issue,
   record that caveat and rely on build plus production smoke after deployment.
 - Keep the UI compact and internal-tool focused. Do not add marketing pages,

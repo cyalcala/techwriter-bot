@@ -69,6 +69,10 @@ explicit non-goals.
   `https://1e721488.tw-bot.pages.dev`; production smoke confirmed app/health
   availability and bounded graph lookup for
   `extractDocumentationCoverageTerms()`.
+- Phase 5B sixth implementation slice: `Find Code References` now has an
+  explicit `Explain code area` action that accepts a small user-entered term,
+  reuses the private graph lookup endpoint, and renders a compact
+  source-reference explanation scaffold in active page memory only.
 - Current completion estimate: approved Phase 1 through Phase 4 roadmap is
   closure-verified and accepted; paid-pilot readiness for the per-client
   Cloudflare deployment is about 90%, with remaining work focused on client
@@ -126,14 +130,14 @@ The current tracked code graph was refreshed with `graphify update .` on
 
 - Report: `graphify-out/GRAPH_REPORT.md`
 - Graph: `graphify-out/graph.json`
-- Summary: 872 nodes, 1436 edges
+- Summary: 878 nodes, 1443 edges
 - Extraction confidence: 93% EXTRACTED, 7% INFERRED, 0% AMBIGUOUS
-- Built from code at commit: `57969f9f`
+- Built from code at commit: `4563754b`
 - The generated report currently disagrees with itself on total community
   count; use node/edge counts and targeted graph queries for acceptance until
   that reporting discrepancy is reconciled.
 - The production runtime graph is published by the GitHub Actions extraction
-  pipeline and currently reports 1067 nodes and 1630 edges.
+  pipeline and currently reports 1070 nodes and 1633 edges.
 - Controlled provider fault injection is available only when
   `PROVIDER_FAULT_INJECTION_TOKEN` is configured and matched by request
   headers, allowing failover/outage acceptance without disabling real provider
@@ -159,6 +163,10 @@ The current tracked code graph was refreshed with `graphify update .` on
   `extractDocumentationCoverageTerms()` to derive a bounded term list from the
   active document and a user-invoked graph lookup pass to show covered and
   uncovered references without durable document-content storage.
+- Phase 5B bounded code-area explanation now uses
+  `createCodeAreaExplanation()` to turn private graph lookup context into a
+  compact source-reference explanation scaffold after explicit user action,
+  without autonomous traversal or durable user-content storage.
 - Active-session artifact repair now replaces the original queue entry when a
   user invokes Fix with AI, clears stale renderer errors, and avoids durable
   artifact caching or duplicate repaired entries.
