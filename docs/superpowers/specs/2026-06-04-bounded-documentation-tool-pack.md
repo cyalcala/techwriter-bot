@@ -1,7 +1,7 @@
 # Bounded Documentation Tool Pack
 
 Date: 2026-06-04
-Status: Started; glossary, API reference checker, release-notes reviewer, and OpenAPI summary slices deployed
+Status: Started; glossary, API reference checker, release-notes reviewer, and OpenAPI summary slices deployed; documentation coverage map locally implemented
 
 ## Goal
 
@@ -180,3 +180,38 @@ The fourth slice should:
 - Live API validation.
 - Schema compatibility analysis.
 - Saved client API catalogs.
+
+## Fifth Slice
+
+Continue with a documentation coverage map from bounded graph references. This
+should help a writer see whether the terms in the active document correspond
+to known source/code areas without building a broad dashboard.
+
+The fifth slice should:
+
+- Extract a bounded set of active-document headings, API endpoint references,
+  and inline code identifiers.
+- Ignore fenced code blocks.
+- De-duplicate extracted terms locally.
+- Check the extracted terms only after the user clicks `Map coverage`.
+- Use the existing private `/api/tool-graph-lookup` endpoint.
+- Show a compact covered/not-covered list with line numbers.
+- Avoid sending the full document to the graph lookup endpoint.
+- Avoid KV writes, localStorage, IndexedDB, WebContainer, background work, and
+  autonomous tool execution.
+
+## Fifth Slice Acceptance Criteria
+
+- Coverage terms are bounded and de-duplicated.
+- The coverage map runs only through an explicit user action.
+- The panel shows covered and uncovered terms compactly.
+- Graph lookup failures degrade visibly.
+- Existing review, OpenAPI, and single reference lookup flows still work.
+- The tool panel remains free of direct durable browser writes.
+
+## Fifth Slice Deferred
+
+- Repository-wide coverage dashboards.
+- Persisted coverage reports.
+- Background coverage scans.
+- Automatic documentation generation.

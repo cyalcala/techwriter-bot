@@ -60,6 +60,10 @@ explicit non-goals.
   Actions run `26948498789`, immutable URL
   `https://9dde1140.tw-bot.pages.dev`; production smoke confirmed app/health
   availability and bounded graph lookup for `summarizeOpenApiOperations()`.
+- Phase 5B fifth implementation slice: `Find Code References` now has an
+  explicit `Map coverage` action that extracts a bounded set of active-document
+  headings, endpoints, and code identifiers locally, then checks those terms
+  against the existing private graph lookup endpoint only after user click.
 - Current completion estimate: approved Phase 1 through Phase 4 roadmap is
   closure-verified and accepted; paid-pilot readiness for the per-client
   Cloudflare deployment is about 90%, with remaining work focused on client
@@ -117,9 +121,9 @@ The current tracked code graph was refreshed with `graphify update .` on
 
 - Report: `graphify-out/GRAPH_REPORT.md`
 - Graph: `graphify-out/graph.json`
-- Summary: 869 nodes, 1431 edges
+- Summary: 872 nodes, 1436 edges
 - Extraction confidence: 93% EXTRACTED, 7% INFERRED, 0% AMBIGUOUS
-- Built from code at commit: `8f1e6bff`
+- Built from code at commit: `57969f9f`
 - The generated report currently disagrees with itself on total community
   count; use node/edge counts and targeted graph queries for acceptance until
   that reporting discrepancy is reconciled.
@@ -146,6 +150,10 @@ The current tracked code graph was refreshed with `graphify update .` on
 - Phase 5B OpenAPI operation summary now uses `summarizeOpenApiOperations()` to
   extract a bounded method/path/summary/deprecated inventory from OpenAPI YAML
   in the active page session, without live API validation or saved catalogs.
+- Phase 5B documentation coverage map now uses
+  `extractDocumentationCoverageTerms()` to derive a bounded term list from the
+  active document and a user-invoked graph lookup pass to show covered and
+  uncovered references without durable document-content storage.
 - Active-session artifact repair now replaces the original queue entry when a
   user invokes Fix with AI, clears stale renderer errors, and avoids durable
   artifact caching or duplicate repaired entries.

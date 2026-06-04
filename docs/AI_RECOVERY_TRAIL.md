@@ -95,25 +95,23 @@ Unless the user explicitly changes strategy in writing, do not rebuild:
 
 As of 2026-06-04:
 
-- Latest behavior code backup: `8f1e6bf` (`feat: add openapi operation summary
-  review`), pushed to `origin/main` with docs/Graphify checkpoint `6b82b34`.
-- Behavior added: `Review Document` now shows a bounded active-session OpenAPI
-  operation summary for uploaded YAML/YML OpenAPI documents after the user
-  clicks `Review`, using local parsing only.
+- Latest behavior code backup: `57969f9` (`feat: add documentation coverage
+  map`), local on `main` and pending GitHub push/deployment acceptance.
+- Behavior added: `Find Code References` now exposes an explicit
+  `Map coverage` action that extracts a bounded set of active-document
+  headings, endpoints, and code identifiers locally, then checks those terms
+  against the existing private graph lookup endpoint after user click.
 - Verification evidence: focused red-green document-review/tool UI tests,
-  adjacent privacy/document/tool tests, full `npm.cmd test` (42 files, 204
+  adjacent privacy/document/tool tests, full `npm.cmd test` (42 files, 206
   tests),
   production audit with 0 high vulnerabilities, `git diff --check`, and the
   recorded `build:local` command all passed before the code commit.
-- Deployment evidence: GitHub Actions run `26948498789` succeeded from
-  docs/Graphify checkpoint `6b82b34`, immutable URL
-  `https://9dde1140.tw-bot.pages.dev`; Graphify CI uploaded the runtime graph
-  with 1060 nodes and 1621 edges. Production alias and immutable URL returned
-  `200`, health `ok`, matching app version `0.0.1`, and private bounded graph
-  lookup for `summarizeOpenApiOperations`.
-- Local Graphify after the OpenAPI code slice: 869 nodes and 1431 edges from
-  `8f1e6bff`; latest accepted production runtime graph reports 1060 nodes and
-  1621 edges.
+- Deployment evidence: pending. Next step is to push the coverage-map code plus
+  docs/Graphify checkpoint, watch GitHub Actions, smoke production health and a
+  bounded graph lookup, and record acceptance in this file.
+- Local Graphify after the coverage-map code slice: 872 nodes and 1436 edges
+  from `57969f9f`; latest accepted production runtime graph reports 1060 nodes
+  and 1621 edges.
 - Kroki/artifact-renderer-down audit: existing renderer tests and production
   render API smoke cover private standardized route failures, transient Kroki
   retry, permanent syntax no-retry, sanitized SVG success, and visible
@@ -247,10 +245,30 @@ As of 2026-06-04:
   active providers out of 6, and bounded graph lookup for
   `summarizeOpenApiOperations` returned 1 node with `Cache-Control: no-store,
   private` on both targets.
-- Next safe task: continue Phase 5B with a documentation coverage map unless
-  the user redirects. Do not start autonomous/background tools,
-  WebContainer/runtime package tooling, auth, billing, multi-tenancy, email,
-  marketing pages, Kubernetes, Redis, or complex dashboards.
+- Phase 5B coverage-map local code checkpoint: `57969f9` adds
+  `extractDocumentationCoverageTerms()` and an explicit `Map coverage` action
+  to the existing user-invoked `Find Code References` path. The action extracts
+  at most six active-document terms locally and checks them with bounded
+  `POST /api/tool-graph-lookup` calls, without sending the full document or
+  adding durable user-content storage.
+- Verification for `57969f9`: focused document-review/tool UI tests passed
+  after red-green implementation (2 files, 20 tests); adjacent
+  privacy/document/tool tests passed (5 files, 41 tests); full `npm.cmd test`
+  passed (42 files, 206 tests); `npm.cmd audit --omit=dev --audit-level=high`
+  found 0 vulnerabilities; `git diff --check` reported only known CRLF
+  warnings; and the recorded `build:local` command passed with known
+  non-failing `Drive already SUBSTed`, `punycode`, and Cloudflare local
+  AI-binding warnings.
+- Local Graphify after `57969f9`: 872 nodes and 1436 edges from commit
+  `57969f9f`; `extractDocumentationCoverageTerms()` appears in the
+  document-review community.
+- Next safe task: push the coverage-map code plus docs/Graphify checkpoint to
+  GitHub, watch the deployment, smoke production health and bounded graph
+  lookup, then record deployment acceptance. After acceptance, continue Phase
+  5B with a bounded code-area explanation helper unless the user redirects. Do
+  not start autonomous/background tools, WebContainer/runtime package tooling,
+  auth, billing, multi-tenancy, email, marketing pages, Kubernetes, Redis, or
+  complex dashboards.
 
 ## Recovery Prompt
 
