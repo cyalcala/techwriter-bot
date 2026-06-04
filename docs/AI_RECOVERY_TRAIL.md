@@ -96,7 +96,7 @@ Unless the user explicitly changes strategy in writing, do not rebuild:
 As of 2026-06-04:
 
 - Latest behavior code backup: `57969f9` (`feat: add documentation coverage
-  map`), local on `main` and pending GitHub push/deployment acceptance.
+  map`), pushed to GitHub on `main` with docs/Graphify checkpoint `5927615`.
 - Behavior added: `Find Code References` now exposes an explicit
   `Map coverage` action that extracts a bounded set of active-document
   headings, endpoints, and code identifiers locally, then checks those terms
@@ -106,12 +106,14 @@ As of 2026-06-04:
   tests),
   production audit with 0 high vulnerabilities, `git diff --check`, and the
   recorded `build:local` command all passed before the code commit.
-- Deployment evidence: pending. Next step is to push the coverage-map code plus
-  docs/Graphify checkpoint, watch GitHub Actions, smoke production health and a
-  bounded graph lookup, and record acceptance in this file.
+- Deployment evidence: GitHub Actions run `26949729477` passed, immutable URL
+  `https://1e721488.tw-bot.pages.dev`; production alias and immutable URL both
+  returned `200`, `ok` health with 4 active providers out of 6, matching app
+  version `0.0.1`, and private bounded graph lookup for
+  `extractDocumentationCoverageTerms`.
 - Local Graphify after the coverage-map code slice: 872 nodes and 1436 edges
-  from `57969f9f`; latest accepted production runtime graph reports 1060 nodes
-  and 1621 edges.
+  from `57969f9f`; latest accepted production runtime graph reports 1067 nodes
+  and 1630 edges.
 - Kroki/artifact-renderer-down audit: existing renderer tests and production
   render API smoke cover private standardized route failures, transient Kroki
   retry, permanent syntax no-retry, sanitized SVG success, and visible
@@ -262,18 +264,24 @@ As of 2026-06-04:
 - Local Graphify after `57969f9`: 872 nodes and 1436 edges from commit
   `57969f9f`; `extractDocumentationCoverageTerms()` appears in the
   document-review community.
-- Next safe task: push the coverage-map code plus docs/Graphify checkpoint to
-  GitHub, watch the deployment, smoke production health and bounded graph
-  lookup, then record deployment acceptance. After acceptance, continue Phase
-  5B with a bounded code-area explanation helper unless the user redirects. Do
-  not start autonomous/background tools, WebContainer/runtime package tooling,
-  auth, billing, multi-tenancy, email, marketing pages, Kubernetes, Redis, or
-  complex dashboards.
+- Phase 5B coverage-map production acceptance: docs/Graphify checkpoint
+  `5927615` deployed in GitHub Actions run `26949729477`, immutable URL
+  `https://1e721488.tw-bot.pages.dev`; production alias returned `200`,
+  `/api/health` returned `ok` with 4 active providers out of 6 and matching app
+  version `0.0.1`, the immutable URL returned `200` and `ok` health with 4
+  active providers out of 6, and bounded graph lookup for
+  `extractDocumentationCoverageTerms` returned 1 node with `Cache-Control:
+  no-store, private` on both targets.
+- Next safe task: continue Phase 5B with a bounded code-area explanation helper
+  unless the user redirects. Keep it explicit/user-invoked, compact, and based
+  on constrained source references; do not start autonomous/background tools,
+  WebContainer/runtime package tooling, auth, billing, multi-tenancy, email,
+  marketing pages, Kubernetes, Redis, or complex dashboards.
 
 ## Recovery Prompt
 
 Use this prompt when handing work to another AI agent:
 
 ```text
-Continue from C:\Users\admin\Desktop\techwriter-bot. Read docs\MASTER_EXECUTION_PLAN.md, docs\IMPLEMENTATION_STATUS.md, docs\AI_RECOVERY_TRAIL.md, docs\SELLABLE_READINESS_HANDOFF.md, docs\CLIENT_DEPLOYMENT_KIT.md, docs\superpowers\specs\2026-06-04-bounded-documentation-tool-pack.md, and graphify-out\GRAPH_REPORT.md first. Continue only from docs\IMPLEMENTATION_STATUS.md Next Task. Use the recorded build verification command when behavior changes. Preserve GitHub backups after each coherent slice. Do not rebuild OAuth, Stripe, multi-tenancy, email, marketing pages, autonomous agents, Kubernetes, Redis, complex dashboards, or WebContainer/runtime package tooling.
+Continue from C:\Users\admin\Desktop\techwriter-bot. Read docs\MASTER_EXECUTION_PLAN.md, docs\IMPLEMENTATION_STATUS.md, docs\AI_RECOVERY_TRAIL.md, docs\SELLABLE_READINESS_HANDOFF.md, docs\CLIENT_DEPLOYMENT_KIT.md, docs\superpowers\specs\2026-06-04-bounded-documentation-tool-pack.md, and graphify-out\GRAPH_REPORT.md first. Continue only from docs\IMPLEMENTATION_STATUS.md Next Task. Use the recorded build verification command when behavior changes. Preserve GitHub backups after each coherent slice. Next safe task is the Phase 5B bounded code-area explanation helper. Do not rebuild OAuth, Stripe, multi-tenancy, email, marketing pages, autonomous agents, Kubernetes, Redis, complex dashboards, or WebContainer/runtime package tooling.
 ```

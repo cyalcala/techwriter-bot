@@ -1,7 +1,7 @@
 # Bounded Documentation Tool Pack
 
 Date: 2026-06-04
-Status: Started; glossary, API reference checker, release-notes reviewer, and OpenAPI summary slices deployed; documentation coverage map locally implemented
+Status: Started; glossary, API reference checker, release-notes reviewer, OpenAPI summary, and documentation coverage-map slices deployed
 
 ## Goal
 
@@ -215,3 +215,37 @@ The fifth slice should:
 - Persisted coverage reports.
 - Background coverage scans.
 - Automatic documentation generation.
+
+## Sixth Slice
+
+Continue with a bounded code-area explanation helper. This should help a writer
+understand a small source/code area related to the current documentation without
+building autonomous source traversal or a complex dashboard.
+
+The sixth slice should:
+
+- Run only after an explicit user action.
+- Accept a small user-entered symbol, route, component, or code-area term.
+- Reuse existing graph/code reference pathways where practical.
+- Return constrained source references and a compact explanation scaffold.
+- Keep document text, selected terms, and results in active page memory only.
+- Avoid broad repo scans from the browser, KV writes, localStorage, IndexedDB,
+  WebContainer, background work, and autonomous tool execution.
+
+## Sixth Slice Acceptance Criteria
+
+- The helper is user-invoked and bounded.
+- The UI stays compact and internal-tool focused.
+- Results include constrained source references rather than broad dashboards.
+- Lookup failures degrade visibly.
+- Existing review, coverage-map, OpenAPI, and single reference lookup flows
+  still work.
+- The tool panel remains free of direct durable browser writes.
+
+## Sixth Slice Deferred
+
+- Autonomous codebase exploration.
+- Generated documentation rewrites.
+- Persisted explanation reports.
+- Repository-wide architecture dashboards.
+- Browser package/runtime execution.

@@ -64,6 +64,11 @@ explicit non-goals.
   explicit `Map coverage` action that extracts a bounded set of active-document
   headings, endpoints, and code identifiers locally, then checks those terms
   against the existing private graph lookup endpoint only after user click.
+- Phase 5B documentation coverage-map slice deployed successfully in GitHub
+  Actions run `26949729477`, immutable URL
+  `https://1e721488.tw-bot.pages.dev`; production smoke confirmed app/health
+  availability and bounded graph lookup for
+  `extractDocumentationCoverageTerms()`.
 - Current completion estimate: approved Phase 1 through Phase 4 roadmap is
   closure-verified and accepted; paid-pilot readiness for the per-client
   Cloudflare deployment is about 90%, with remaining work focused on client
@@ -128,7 +133,7 @@ The current tracked code graph was refreshed with `graphify update .` on
   count; use node/edge counts and targeted graph queries for acceptance until
   that reporting discrepancy is reconciled.
 - The production runtime graph is published by the GitHub Actions extraction
-  pipeline and currently reports 1060 nodes and 1621 edges.
+  pipeline and currently reports 1067 nodes and 1630 edges.
 - Controlled provider fault injection is available only when
   `PROVIDER_FAULT_INJECTION_TOKEN` is configured and matched by request
   headers, allowing failover/outage acceptance without disabling real provider

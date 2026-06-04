@@ -204,10 +204,21 @@ transparency slices with privacy-first active-session boundaries:
 - Local Graphify after the Phase 5B coverage-map slice: 872 nodes and 1436
   edges from code commit `57969f9f`; `extractDocumentationCoverageTerms()`
   appears in the document-review community.
-- Next slice: push the coverage-map code plus docs/Graphify checkpoint to
-  GitHub, watch the deployment, smoke production health and bounded graph
-  lookup, then record deployment acceptance. After acceptance, continue Phase
-  5B with a bounded code-area explanation helper unless the user redirects.
+- Phase 5B coverage-map production acceptance: docs/Graphify checkpoint
+  `5927615` deployed successfully in GitHub Actions run `26949729477`,
+  immutable URL `https://1e721488.tw-bot.pages.dev`; Graphify CI uploaded the
+  runtime graph with 1067 nodes and 1630 edges. Production alias
+  `https://tw-bot.pages.dev` returned `200`, contained `Technical Writer` and
+  `Try sample data`, `/api/health` returned `ok` with 4 active providers out
+  of 6 and matching app version `0.0.1`, and bounded graph lookup for
+  `extractDocumentationCoverageTerms` returned 1 node with `Cache-Control:
+  no-store, private`. The immutable URL returned `200`, `ok` health with 4
+  active providers out of 6 and matching app version, and the same private
+  graph lookup evidence.
+- Next slice: continue Phase 5B with a bounded code-area explanation helper
+  unless the user redirects. Keep it user-invoked, source-reference-only, and
+  compact; prefer reusing existing graph lookup rather than adding a broad
+  dashboard or autonomous tool path.
   Do not add marketing pages, auth, billing, multi-tenancy, autonomous agents,
   WebContainer/runtime package tooling, or complex dashboards.
 - Relay-safe documentation updates after each meaningful step.
@@ -1952,11 +1963,14 @@ Continue Phase 5B in bounded, user-invoked tool slices:
   packaging until real client credentials are available.
 - Current Phase 5B documentation coverage map is locally implemented and
   verified in code commit `57969f9`; local graph is refreshed to 872 nodes and
-  1436 edges from `57969f9f`.
-- Next safe follow-up: push the coverage-map code plus docs/Graphify
-  checkpoint to GitHub, watch the deployment, run production health and bounded
-  graph smoke, then record acceptance. After acceptance, continue Phase 5B with
-  a bounded code-area explanation helper unless the user redirects.
+  1436 edges from `57969f9f`; production acceptance is recorded from GitHub
+  Actions run `26949729477`, immutable URL
+  `https://1e721488.tw-bot.pages.dev`, with runtime graph 1067 nodes and 1630
+  edges.
+- Next safe follow-up: continue Phase 5B with a bounded code-area explanation
+  helper. It should explain a small user-selected code area from graph/code
+  references only after explicit user action, keep the UI compact, avoid
+  durable user-content storage, and avoid autonomous execution.
 - If local browser smoke remains blocked by the Cloudflare local preview issue,
   record that caveat and rely on build plus production smoke after deployment.
 - Keep the UI compact and internal-tool focused. Do not add marketing pages,
