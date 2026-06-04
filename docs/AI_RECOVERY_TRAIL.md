@@ -95,24 +95,21 @@ Unless the user explicitly changes strategy in writing, do not rebuild:
 
 As of 2026-06-04:
 
-- Latest behavior code backup: `72efda6` (`feat: add release notes review
-  checks`), pushed to `origin/main` with docs/Graphify checkpoint `f8073ab`.
-- Behavior added: deterministic release-note draft review rules in
-  `reviewDocument()` now flag release-note-like documents that lack a
-  version/date identity, still contain placeholder text, or mention breaking,
-  removed, or deprecated changes without migration or action-required guidance.
-- Verification evidence: focused red-green document-review tests, adjacent
-  privacy/document/tool tests, full `npm.cmd test` (42 files, 202 tests),
+- Latest behavior code backup: `8f1e6bf` (`feat: add openapi operation summary
+  review`), local on `main` and pending GitHub push/deployment acceptance.
+- Behavior added: `Review Document` now shows a bounded active-session OpenAPI
+  operation summary for uploaded YAML/YML OpenAPI documents after the user
+  clicks `Review`, using local parsing only.
+- Verification evidence: focused red-green document-review/tool UI tests,
+  adjacent privacy/document/tool tests, full `npm.cmd test` (42 files, 204
+  tests),
   production audit with 0 high vulnerabilities, `git diff --check`, and the
   recorded `build:local` command all passed before the code commit.
-- Deployment evidence: GitHub Actions run `26947748180` succeeded from
-  docs/Graphify checkpoint `f8073ab`, immutable URL
-  `https://dad791b6.tw-bot.pages.dev`; Graphify CI uploaded the runtime graph
-  with 1052 nodes and 1612 edges. Production alias and immutable URL returned
-  `200`, health `ok`, matching app version `0.0.1`, and private bounded graph
-  lookup for `release notes reviewDocument`.
-- Local Graphify after the code slice: 867 nodes and 1428 edges from
-  `72efda60`; latest accepted production runtime graph reports 1052 nodes and
+- Deployment evidence: pending. Next step is to push the OpenAPI helper code
+  plus docs/Graphify checkpoint, watch GitHub Actions, smoke production health
+  and a bounded graph lookup, and record acceptance in this file.
+- Local Graphify after the OpenAPI code slice: 869 nodes and 1431 edges from
+  `8f1e6bff`; latest accepted production runtime graph reports 1052 nodes and
   1612 edges.
 - Kroki/artifact-renderer-down audit: existing renderer tests and production
   render API smoke cover private standardized route failures, transient Kroki
@@ -222,10 +219,30 @@ As of 2026-06-04:
   active providers out of 6, and bounded graph lookup for
   `release notes reviewDocument` returned 3 nodes with `Cache-Control:
   no-store, private` on both targets.
-- Next safe task: continue Phase 5B with an OpenAPI change-summary helper
-  unless the user redirects. Do not start autonomous/background tools,
-  WebContainer/runtime package tooling, auth, billing, multi-tenancy, email,
-  marketing pages, Kubernetes, Redis, or complex dashboards.
+- Phase 5B OpenAPI local code checkpoint: `8f1e6bf` adds
+  `summarizeOpenApiOperations()` and an active-session OpenAPI summary display
+  to the existing user-invoked `Review Document` path. It accepts YAML/YML
+  uploads and extracts a bounded method/path/summary/deprecated operation
+  inventory locally, without live API validation, schema diffing, saved
+  catalogs, or durable user-content storage.
+- Verification for `8f1e6bf`: focused document-review/tool UI tests passed
+  after red-green implementation (2 files, 18 tests); adjacent
+  privacy/document/tool tests passed (5 files, 39 tests); full `npm.cmd test`
+  passed (42 files, 204 tests); `npm.cmd audit --omit=dev --audit-level=high`
+  found 0 vulnerabilities; `git diff --check` reported only known CRLF
+  warnings; and the recorded `build:local` command passed with known
+  non-failing `Drive already SUBSTed`, `punycode`, and Cloudflare local
+  AI-binding warnings.
+- Local Graphify after `8f1e6bf`: 869 nodes and 1431 edges from commit
+  `8f1e6bff`; `summarizeOpenApiOperations()` appears in the document-review
+  community.
+- Next safe task: push the OpenAPI helper code plus docs/Graphify checkpoint to
+  GitHub, watch the deployment, smoke production health and bounded graph
+  lookup, then record deployment acceptance. After acceptance, continue Phase
+  5B with a documentation coverage map unless the user redirects. Do not start
+  autonomous/background tools, WebContainer/runtime package tooling, auth,
+  billing, multi-tenancy, email, marketing pages, Kubernetes, Redis, or complex
+  dashboards.
 
 ## Recovery Prompt
 

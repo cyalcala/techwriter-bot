@@ -53,6 +53,9 @@ explicit non-goals.
   run `26947748180`, immutable URL `https://dad791b6.tw-bot.pages.dev`;
   production smoke confirmed app/health availability and bounded graph lookup
   for `release notes reviewDocument`.
+- Phase 5B fourth implementation slice: `Review Document` now shows a bounded
+  active-session OpenAPI operation summary for uploaded YAML/YML OpenAPI
+  documents, using only local parsing after the user clicks `Review`.
 - Current completion estimate: approved Phase 1 through Phase 4 roadmap is
   closure-verified and accepted; paid-pilot readiness for the per-client
   Cloudflare deployment is about 90%, with remaining work focused on client
@@ -110,9 +113,9 @@ The current tracked code graph was refreshed with `graphify update .` on
 
 - Report: `graphify-out/GRAPH_REPORT.md`
 - Graph: `graphify-out/graph.json`
-- Summary: 867 nodes, 1428 edges
+- Summary: 869 nodes, 1431 edges
 - Extraction confidence: 93% EXTRACTED, 7% INFERRED, 0% AMBIGUOUS
-- Built from code at commit: `72efda60`
+- Built from code at commit: `8f1e6bff`
 - The generated report currently disagrees with itself on total community
   count; use node/edge counts and targeted graph queries for acceptance until
   that reporting discrepancy is reconciled.
@@ -136,6 +139,9 @@ The current tracked code graph was refreshed with `graphify update .` on
   pass for release-note-like documents, with warnings for missing release
   identity, placeholder draft text, and breaking/removal/deprecation entries
   that lack migration guidance.
+- Phase 5B OpenAPI operation summary now uses `summarizeOpenApiOperations()` to
+  extract a bounded method/path/summary/deprecated inventory from OpenAPI YAML
+  in the active page session, without live API validation or saved catalogs.
 - Active-session artifact repair now replaces the original queue entry when a
   user invokes Fix with AI, clears stale renderer errors, and avoids durable
   artifact caching or duplicate repaired entries.

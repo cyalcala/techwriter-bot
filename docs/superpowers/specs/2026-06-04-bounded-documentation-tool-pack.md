@@ -1,7 +1,7 @@
 # Bounded Documentation Tool Pack
 
 Date: 2026-06-04
-Status: Started; glossary, API reference checker, and release-notes reviewer slices deployed
+Status: Started; glossary, API reference checker, and release-notes reviewer slices deployed; OpenAPI summary locally implemented
 
 ## Goal
 
@@ -144,3 +144,39 @@ The third slice should:
 - Saved release-note templates.
 - Integration with issue trackers or release-management systems.
 - Client-wide release policy storage.
+
+## Fourth Slice
+
+Continue with an OpenAPI change-summary helper, starting with a bounded
+operation inventory instead of full schema diffing. This gives writers a useful
+source list for change summaries while staying deterministic and local.
+
+The fourth slice should:
+
+- Accept YAML/YML OpenAPI uploads in the existing document upload path.
+- Detect OpenAPI YAML from `openapi:` or `swagger:` version markers.
+- Extract a bounded method, path, summary, deprecated inventory from `paths:`.
+- Show the operation inventory only after the user clicks `Review`.
+- Keep document text and operation summaries in component memory only.
+- Avoid live API validation, OpenAPI fetching, schema diffing, saved catalogs,
+  KV writes, localStorage, IndexedDB, WebContainer, background work, and
+  autonomous tool execution.
+
+## Fourth Slice Acceptance Criteria
+
+- OpenAPI YAML operations are summarized with method, path, source line,
+  summary text, and deprecated state.
+- The operation list is bounded.
+- YAML/YML uploads are accepted by the document upload input.
+- Existing structural, glossary, API-reference, and release-note checks still
+  work.
+- The tool panel performs no direct fetch or durable browser writes.
+- UI remains compact and does not introduce a dashboard.
+
+## Fourth Slice Deferred
+
+- Comparing two OpenAPI versions.
+- JSON OpenAPI parsing beyond future explicit follow-up work.
+- Live API validation.
+- Schema compatibility analysis.
+- Saved client API catalogs.

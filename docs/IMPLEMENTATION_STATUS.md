@@ -156,8 +156,29 @@ transparency slices with privacy-first active-session boundaries:
   no-store, private`. The immutable URL returned `200`, `ok` health with 4
   active providers out of 6 and matching app version, and the same private
   graph lookup evidence.
-- Next slice: continue Phase 5B with an OpenAPI change-summary helper unless
-  the user redirects.
+- Current Phase 5B OpenAPI local checkpoint: code commit `8f1e6bf` adds a
+  bounded active-session OpenAPI operation summary to the existing
+  user-invoked `Review Document` path. Uploaded YAML/YML OpenAPI documents can
+  now show a compact method/path/summary/deprecated operation inventory after
+  the user clicks `Review`. The helper uses local parsing only and does not add
+  network calls, live API validation, schema diffing, saved catalogs, KV
+  writes, localStorage, IndexedDB, autonomous execution, or WebContainer/runtime
+  package tooling.
+- Local verification for `8f1e6bf`: red-green focused document-review/tool UI
+  tests passed after implementation (2 files, 18 tests), adjacent
+  privacy/document/tool tests passed (5 files, 39 tests), full `npm.cmd test`
+  passed (42 files, 204 tests), `npm.cmd audit --omit=dev --audit-level=high`
+  found 0 vulnerabilities, `git diff --check` reported only known CRLF
+  warnings, and the recorded `build:local` command passed with known
+  non-failing `Drive already SUBSTed`, `punycode`, and Cloudflare local
+  AI-binding warnings.
+- Local Graphify after the Phase 5B OpenAPI slice: 869 nodes and 1431 edges
+  from code commit `8f1e6bff`; `summarizeOpenApiOperations()` appears in the
+  document-review community.
+- Next slice: push the OpenAPI helper code plus docs/Graphify checkpoint to
+  GitHub, watch the deployment, smoke production health and bounded graph
+  lookup, then record deployment acceptance. After acceptance, continue Phase
+  5B with a documentation coverage map unless the user redirects.
   Do not add marketing pages, auth, billing, multi-tenancy, autonomous agents,
   WebContainer/runtime package tooling, or complex dashboards.
 - Relay-safe documentation updates after each meaningful step.
@@ -1900,13 +1921,13 @@ Continue Phase 5B in bounded, user-invoked tool slices:
 - Phase 1 through Phase 4 are closure-verified and accepted. Phase 5A Client
   Deployment Kit and self-client dry run are complete enough for pilot
   packaging until real client credentials are available.
-- Current Phase 5B release-notes draft reviewer is implemented, verified,
-  backed up to GitHub, and accepted in production through docs/Graphify
-  checkpoint `f8073ab` and GitHub Actions run `26947748180`; local graph is
-  refreshed to 867 nodes and 1428 edges from `72efda60`, and the production
-  runtime graph reports 1052 nodes and 1612 edges.
-- Next safe follow-up: continue Phase 5B with an OpenAPI change-summary helper
-  unless the user redirects.
+- Current Phase 5B OpenAPI operation summary helper is locally implemented and
+  verified in code commit `8f1e6bf`; local graph is refreshed to 869 nodes and
+  1431 edges from `8f1e6bff`.
+- Next safe follow-up: push the OpenAPI helper code plus docs/Graphify
+  checkpoint to GitHub, watch the deployment, run production health and bounded
+  graph smoke, then record acceptance. After acceptance, continue Phase 5B with
+  a documentation coverage map unless the user redirects.
 - If local browser smoke remains blocked by the Cloudflare local preview issue,
   record that caveat and rely on build plus production smoke after deployment.
 - Keep the UI compact and internal-tool focused. Do not add marketing pages,
