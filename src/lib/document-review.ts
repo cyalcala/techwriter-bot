@@ -5,7 +5,10 @@ export type DocumentFindingRule =
   | 'duplicate-heading'
   | 'terminology'
   | 'api-endpoint-duplicate'
-  | 'api-path-parameter-name-mismatch';
+  | 'api-path-parameter-name-mismatch'
+  | 'release-notes-placeholder'
+  | 'release-notes-missing-version-or-date'
+  | 'release-notes-breaking-without-migration-note';
 
 export interface TerminologyRule {
   avoid: string;
@@ -44,6 +47,24 @@ interface ApiEndpointReference {
 interface ApiEndpointRecord extends ApiEndpointReference {
   line: number;
 }
+
+interface ReleaseNoteLine {
+  line: number;
+}
+
+const RELEASE_NOTE_SECTION_HEADINGS = new Set([
+  'added',
+  'changed',
+  'deprecated',
+  'fixed',
+  'removed',
+  'security',
+]);
+const RELEASE_NOTE_TITLE_PATTERN = /\b(?:release notes?|changelog)\b/i;
+const RELEASE_IDENTITY_PATTERN = /(?:\bv?\d+\.\d+(?:\.\d+)?\b|\b\d{4}-\d{2}-\d{2}\b|\[[^\]]+\])/i;
+const RELEASE_PLACEHOLDER_PATTERN = /\b(?:TODO|TBD|FIXME|coming soon|placeholder)\b|\[[^\]]*\b(?:todo|tbd|insert|placeholder)\b[^\]]*\]/i;
+const RELEASE_BREAKING_PATTERN = /\b(?:breaking|removed|deprecated|not backward compatible|incompatible)\b/i;
+const RELEASE_MIGRATION_PATTERN = /\b(?:migration|migrate|upgrade|action required|manual step|rollback|compatibility|workaround)\b/i;
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -143,9 +164,14 @@ export function reviewDocument(
   const seenHeadings = new Map<string, number>();
   const seenApiEndpoints = new Map<string, ApiEndpointRecord>();
   const seenApiEndpointShapes = new Map<string, ApiEndpointRecord>();
+  const releaseNotePlaceholders: ReleaseNoteLine[] = [];
+  const breakingReleaseLines: ReleaseNoteLine[] = [];
   const lines = content.replace(/\r\n?/g, '\n').split('\n');
   let previousHeadingLevel = 0;
   let openFence: OpenFence | null = null;
+  let releaseNoteSignals = 0;
+  let hasReleaseIdentity = false;
+  let hasMigrationGuidance = false;
 
   lines.forEach((line, index) => {
     const lineNumber = index + 1;
@@ -174,6 +200,10 @@ export function reviewDocument(
       }
 
       const normalizedHeading = normalizeHeading(heading[2]);
+      if (RELEASE_NOTE_TITLE_PATTERN.test(heading[2])) releaseNoteSignals += 2;
+      if (RELEASE_NOTE_SECTION_HEADINGS.has(normalizedHeading)) releaseNoteSignals++;
+      if (RELEASE_IDENTITY_PATTERN.test(heading[2])) hasReleaseIdentity = true;
+
       if (normalizedHeading && seenHeadings.has(normalizedHeading)) {
         findings.push({
           rule: 'duplicate-heading',
@@ -186,6 +216,15 @@ export function reviewDocument(
       }
 
       previousHeadingLevel = level;
+    }
+
+    if (RELEASE_IDENTITY_PATTERN.test(line)) hasReleaseIdentity = true;
+    if (RELEASE_MIGRATION_PATTERN.test(line)) hasMigrationGuidance = true;
+    if (RELEASE_PLACEHOLDER_PATTERN.test(line)) {
+      releaseNotePlaceholders.push({ line: lineNumber });
+    }
+    if (!heading && RELEASE_BREAKING_PATTERN.test(line)) {
+      breakingReleaseLines.push({ line: lineNumber });
     }
 
     if (/!?\[[^\]]*\]\(\s*(?:(?:"[^"]*"|'[^']*')\s*)?\)/.test(line)) {
@@ -238,6 +277,37 @@ export function reviewDocument(
       }
     }
   });
+
+  if (releaseNoteSignals >= 2) {
+    if (!hasReleaseIdentity) {
+      findings.push({
+        rule: 'release-notes-missing-version-or-date',
+        severity: 'warning',
+        line: 1,
+        message: 'Release notes should identify the release version or date.',
+      });
+    }
+
+    releaseNotePlaceholders.forEach((placeholder) => {
+      findings.push({
+        rule: 'release-notes-placeholder',
+        severity: 'warning',
+        line: placeholder.line,
+        message: 'Release notes still contain placeholder draft text.',
+      });
+    });
+
+    if (!hasMigrationGuidance) {
+      breakingReleaseLines.forEach((breakingLine) => {
+        findings.push({
+          rule: 'release-notes-breaking-without-migration-note',
+          severity: 'warning',
+          line: breakingLine.line,
+          message: 'Breaking, removed, or deprecated release notes should include migration or action-required guidance.',
+        });
+      });
+    }
+  }
 
   if (openFence) {
     findings.push({

@@ -94,6 +94,52 @@ describe('reviewDocument', () => {
     }));
   });
 
+  it('reports release-note placeholders and missing release identity', () => {
+    const findings = reviewDocument([
+      '# Release Notes',
+      '',
+      '## Added',
+      '- TODO: describe the user-facing impact.',
+    ].join('\n'));
+
+    expect(findings).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        rule: 'release-notes-missing-version-or-date',
+        line: 1,
+      }),
+      expect.objectContaining({
+        rule: 'release-notes-placeholder',
+        line: 4,
+      }),
+    ]));
+  });
+
+  it('reports breaking release-note entries without migration guidance', () => {
+    const findings = reviewDocument([
+      '# Release Notes v2.0.0 - 2026-06-04',
+      '',
+      '## Changed',
+      '- Breaking: removed the legacy export format.',
+    ].join('\n'));
+
+    expect(findings).toContainEqual(expect.objectContaining({
+      rule: 'release-notes-breaking-without-migration-note',
+      line: 4,
+    }));
+  });
+
+  it('does not apply release-note draft checks to ordinary guides', () => {
+    const findings = reviewDocument([
+      '# Setup Guide',
+      '',
+      '- TODO: replace this local setup note.',
+    ].join('\n'));
+
+    expect(findings).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ rule: 'release-notes-placeholder' }),
+    ]));
+  });
+
   it('does not review structure or terminology inside fenced code blocks', () => {
     const findings = reviewDocument(
       '# Title\n\n```md\n#### Example heading\nThe whitelist is shown here.\n```\n',
