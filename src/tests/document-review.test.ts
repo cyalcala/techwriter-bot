@@ -63,6 +63,37 @@ describe('reviewDocument', () => {
     ]));
   });
 
+  it('reports duplicate API endpoint references with source lines', () => {
+    const findings = reviewDocument([
+      '# API',
+      '',
+      '## Endpoints',
+      '- GET /v1/releases/{id} returns one release.',
+      '- POST /v1/releases creates a release.',
+      '- GET /v1/releases/{id} fetches one release.',
+    ].join('\n'));
+
+    expect(findings).toContainEqual(expect.objectContaining({
+      rule: 'api-endpoint-duplicate',
+      line: 6,
+    }));
+  });
+
+  it('reports inconsistent API path parameter names for the same endpoint shape', () => {
+    const findings = reviewDocument([
+      '# API',
+      '',
+      '- GET /v1/releases/{id} returns one release.',
+      '- GET /v1/releases/{releaseId} returns one release.',
+      '- PATCH /v1/releases/{releaseId} updates one release.',
+    ].join('\n'));
+
+    expect(findings).toContainEqual(expect.objectContaining({
+      rule: 'api-path-parameter-name-mismatch',
+      line: 4,
+    }));
+  });
+
   it('does not review structure or terminology inside fenced code blocks', () => {
     const findings = reviewDocument(
       '# Title\n\n```md\n#### Example heading\nThe whitelist is shown here.\n```\n',

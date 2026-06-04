@@ -3,7 +3,9 @@ export type DocumentFindingRule =
   | 'unclosed-code-fence'
   | 'empty-link'
   | 'duplicate-heading'
-  | 'terminology';
+  | 'terminology'
+  | 'api-endpoint-duplicate'
+  | 'api-path-parameter-name-mismatch';
 
 export interface TerminologyRule {
   avoid: string;
@@ -29,6 +31,17 @@ const MAX_TERMINOLOGY_TERM_LENGTH = 80;
 interface OpenFence {
   character: '`' | '~';
   length: number;
+  line: number;
+}
+
+interface ApiEndpointReference {
+  method: string;
+  path: string;
+  normalizedPath: string;
+  params: string[];
+}
+
+interface ApiEndpointRecord extends ApiEndpointReference {
   line: number;
 }
 
@@ -64,6 +77,24 @@ function containsTerm(line: string, term: string): boolean {
 
 function cleanTerminologyTerm(value: string): string {
   return value.trim().replace(/\s+/g, ' ').slice(0, MAX_TERMINOLOGY_TERM_LENGTH);
+}
+
+function extractApiEndpoint(line: string): ApiEndpointReference | null {
+  const match = line.match(/\b(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\s+(\/[A-Za-z0-9._~:/{}-]+)/);
+  if (!match) return null;
+
+  const path = match[2].replace(/[),.;:]+$/, '');
+  const params = [...path.matchAll(/\{([A-Za-z][A-Za-z0-9_-]*)\}/g)].map((param) => param[1]);
+  return {
+    method: match[1],
+    path,
+    normalizedPath: path.replace(/\{[A-Za-z][A-Za-z0-9_-]*\}/g, '{}'),
+    params,
+  };
+}
+
+function sameParams(first: string[], second: string[]): boolean {
+  return first.length === second.length && first.every((param, index) => param === second[index]);
 }
 
 export function parseTerminologyRules(input: string): ParsedTerminologyRules {
@@ -110,6 +141,8 @@ export function reviewDocument(
 ): DocumentFinding[] {
   const findings: DocumentFinding[] = [];
   const seenHeadings = new Map<string, number>();
+  const seenApiEndpoints = new Map<string, ApiEndpointRecord>();
+  const seenApiEndpointShapes = new Map<string, ApiEndpointRecord>();
   const lines = content.replace(/\r\n?/g, '\n').split('\n');
   let previousHeadingLevel = 0;
   let openFence: OpenFence | null = null;
@@ -174,6 +207,36 @@ export function reviewDocument(
         message: `Prefer "${prefer}" instead of "${avoid}".`,
       });
     });
+
+    const endpoint = extractApiEndpoint(line);
+    if (endpoint) {
+      const endpointKey = `${endpoint.method} ${endpoint.path}`;
+      const endpointShapeKey = `${endpoint.method} ${endpoint.normalizedPath}`;
+      const firstEndpoint = seenApiEndpoints.get(endpointKey);
+      const firstShape = seenApiEndpointShapes.get(endpointShapeKey);
+
+      if (firstEndpoint) {
+        findings.push({
+          rule: 'api-endpoint-duplicate',
+          severity: 'warning',
+          line: lineNumber,
+          message: `${endpoint.method} ${endpoint.path} duplicates the endpoint on line ${firstEndpoint.line}.`,
+        });
+      } else {
+        seenApiEndpoints.set(endpointKey, { ...endpoint, line: lineNumber });
+      }
+
+      if (firstShape && !sameParams(firstShape.params, endpoint.params)) {
+        findings.push({
+          rule: 'api-path-parameter-name-mismatch',
+          severity: 'warning',
+          line: lineNumber,
+          message: `${endpoint.method} ${endpoint.path} uses path parameter names that differ from line ${firstShape.line}.`,
+        });
+      } else if (!firstShape) {
+        seenApiEndpointShapes.set(endpointShapeKey, { ...endpoint, line: lineNumber });
+      }
+    }
   });
 
   if (openFence) {
