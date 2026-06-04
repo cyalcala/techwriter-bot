@@ -175,10 +175,18 @@ transparency slices with privacy-first active-session boundaries:
 - Local Graphify after the Phase 5B OpenAPI slice: 869 nodes and 1431 edges
   from code commit `8f1e6bff`; `summarizeOpenApiOperations()` appears in the
   document-review community.
-- Next slice: push the OpenAPI helper code plus docs/Graphify checkpoint to
-  GitHub, watch the deployment, smoke production health and bounded graph
-  lookup, then record deployment acceptance. After acceptance, continue Phase
-  5B with a documentation coverage map unless the user redirects.
+- Phase 5B OpenAPI production acceptance: docs/Graphify checkpoint `6b82b34`
+  deployed successfully in GitHub Actions run `26948498789`, immutable URL
+  `https://9dde1140.tw-bot.pages.dev`; Graphify CI uploaded the runtime graph
+  with 1060 nodes and 1621 edges. Production alias `https://tw-bot.pages.dev`
+  returned `200`, contained `Technical Writer` and `Try sample data`,
+  `/api/health` returned `ok` with 4 active providers out of 6 and matching app
+  version `0.0.1`, and bounded graph lookup for `summarizeOpenApiOperations`
+  returned 1 node with `Cache-Control: no-store, private`. The immutable URL
+  returned `200`, `ok` health with 3 active providers out of 6 and matching app
+  version, and the same private graph lookup evidence.
+- Next slice: continue Phase 5B with a documentation coverage map unless the
+  user redirects.
   Do not add marketing pages, auth, billing, multi-tenancy, autonomous agents,
   WebContainer/runtime package tooling, or complex dashboards.
 - Relay-safe documentation updates after each meaningful step.
@@ -1921,13 +1929,13 @@ Continue Phase 5B in bounded, user-invoked tool slices:
 - Phase 1 through Phase 4 are closure-verified and accepted. Phase 5A Client
   Deployment Kit and self-client dry run are complete enough for pilot
   packaging until real client credentials are available.
-- Current Phase 5B OpenAPI operation summary helper is locally implemented and
-  verified in code commit `8f1e6bf`; local graph is refreshed to 869 nodes and
-  1431 edges from `8f1e6bff`.
-- Next safe follow-up: push the OpenAPI helper code plus docs/Graphify
-  checkpoint to GitHub, watch the deployment, run production health and bounded
-  graph smoke, then record acceptance. After acceptance, continue Phase 5B with
-  a documentation coverage map unless the user redirects.
+- Current Phase 5B OpenAPI operation summary helper is implemented, verified,
+  backed up to GitHub, and accepted in production through docs/Graphify
+  checkpoint `6b82b34` and GitHub Actions run `26948498789`; local graph is
+  refreshed to 869 nodes and 1431 edges from `8f1e6bff`, and the production
+  runtime graph reports 1060 nodes and 1621 edges.
+- Next safe follow-up: continue Phase 5B with a documentation coverage map
+  unless the user redirects.
 - If local browser smoke remains blocked by the Cloudflare local preview issue,
   record that caveat and rely on build plus production smoke after deployment.
 - Keep the UI compact and internal-tool focused. Do not add marketing pages,
