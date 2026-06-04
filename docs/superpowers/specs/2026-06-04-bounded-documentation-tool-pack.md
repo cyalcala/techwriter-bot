@@ -1,7 +1,7 @@
 # Bounded Documentation Tool Pack
 
 Date: 2026-06-04
-Status: Started; glossary and API reference checker slices deployed
+Status: Started; glossary and API reference checker slices deployed, release-notes reviewer locally implemented
 
 ## Goal
 
@@ -106,3 +106,41 @@ The second slice should:
 - Schema diffing.
 - Automatic reference rewrites.
 - Saved client-wide API catalogs.
+
+## Third Slice
+
+Continue with release-notes draft review because it is a common technical
+writing workflow and can be checked deterministically without asking an AI to
+rewrite the document.
+
+The third slice should:
+
+- Detect release-note-like documents from headings such as `Release Notes`,
+  `Changelog`, or standard release sections like `Added`, `Changed`, `Fixed`,
+  `Deprecated`, `Removed`, and `Security`.
+- Warn when release notes do not identify a release version or date.
+- Warn when release notes still contain placeholder draft text such as `TODO`
+  or `TBD`.
+- Warn when breaking, removed, or deprecated entries do not include migration,
+  upgrade, action-required, compatibility, or workaround guidance.
+- Reuse `reviewDocument()` and run only after the user clicks `Review`.
+- Keep document text and findings in component memory only.
+- Avoid network calls, AI rewrites, release-management API calls, KV writes,
+  localStorage, IndexedDB, WebContainer, background work, and autonomous tool
+  execution.
+
+## Third Slice Acceptance Criteria
+
+- Release-note drafts with placeholders are reported with source lines.
+- Release-note drafts without a version or date are reported.
+- Breaking/removal/deprecation entries without migration guidance are reported.
+- Ordinary setup guides with TODO text are not treated as release notes.
+- Existing structural, glossary, and API-reference checks still work.
+- UI remains compact and does not introduce a dashboard.
+
+## Third Slice Deferred
+
+- AI-generated release-note rewriting.
+- Saved release-note templates.
+- Integration with issue trackers or release-management systems.
+- Client-wide release policy storage.

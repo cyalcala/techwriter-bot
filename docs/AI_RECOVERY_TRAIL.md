@@ -95,24 +95,21 @@ Unless the user explicitly changes strategy in writing, do not rebuild:
 
 As of 2026-06-04:
 
-- Latest behavior code backup: `8e6de7d` (`feat: add api reference review
-  checks`), pushed to `origin/main` with docs/Graphify checkpoint `6e9609d`.
-- Behavior added: deterministic API reference review rules in
-  `reviewDocument()` now report duplicate `METHOD /path` endpoint references
-  and equivalent endpoint shapes that use different `{pathParameter}` names,
-  with source-line warnings.
+- Latest behavior code backup: `72efda6` (`feat: add release notes review
+  checks`), local on `main` and pending GitHub push/deployment acceptance.
+- Behavior added: deterministic release-note draft review rules in
+  `reviewDocument()` now flag release-note-like documents that lack a
+  version/date identity, still contain placeholder text, or mention breaking,
+  removed, or deprecated changes without migration or action-required guidance.
 - Verification evidence: focused red-green document-review tests, adjacent
-  privacy/document/tool tests, full `npm.cmd test` (42 files, 199 tests),
+  privacy/document/tool tests, full `npm.cmd test` (42 files, 202 tests),
   production audit with 0 high vulnerabilities, `git diff --check`, and the
   recorded `build:local` command all passed before the code commit.
-- Deployment evidence: GitHub Actions run `26947031364` succeeded from
-  docs/Graphify checkpoint `6e9609d`, immutable URL
-  `https://78e4ed6c.tw-bot.pages.dev`; Graphify CI uploaded the runtime graph
-  with 1047 nodes and 1607 edges. Production alias and immutable URL returned
-  `200`, health `ok`, matching app version `0.0.1`, and private bounded graph
-  lookup for `extractApiEndpoint`.
+- Deployment evidence: pending. Next step is to push the release-notes reviewer
+  code plus docs/Graphify checkpoint, watch GitHub Actions, smoke production
+  health and a bounded graph lookup, and record acceptance in this file.
 - Local Graphify after the code slice: 867 nodes and 1428 edges from
-  `8e6de7d6`; latest accepted production runtime graph reports 1047 nodes and
+  `72efda60`; latest accepted production runtime graph reports 1047 nodes and
   1607 edges.
 - Kroki/artifact-renderer-down audit: existing renderer tests and production
   render API smoke cover private standardized route failures, transient Kroki
@@ -200,10 +197,27 @@ As of 2026-06-04:
   app version `0.0.1`, the immutable URL returned `200` and `ok` health with 3
   active providers out of 6, and bounded graph lookup for `extractApiEndpoint`
   returned 1 node with `Cache-Control: no-store, private` on both targets.
-- Next safe task: continue Phase 5B with a release-notes draft reviewer unless
-  the user redirects. Do not start autonomous/background tools,
-  WebContainer/runtime package tooling, auth, billing, multi-tenancy, email,
-  marketing pages, Kubernetes, Redis, or complex dashboards.
+- Phase 5B release-notes local code checkpoint: `72efda6` adds deterministic
+  release-note draft checks to the existing user-invoked `reviewDocument()`
+  path. Release-note-like documents now warn about missing release version/date
+  identity, placeholder draft text, and breaking/removal/deprecation notes that
+  lack migration or action-required guidance.
+- Verification for `72efda6`: focused document-review tests passed after
+  red-green implementation (1 file, 12 tests); adjacent privacy/document/tool
+  tests passed (5 files, 37 tests); full `npm.cmd test` passed (42 files, 202
+  tests); `npm.cmd audit --omit=dev --audit-level=high` found 0
+  vulnerabilities; `git diff --check` reported only known CRLF warnings; and
+  the recorded `build:local` command passed with known non-failing `Drive
+  already SUBSTed`, `punycode`, and Cloudflare local AI-binding warnings.
+- Local Graphify after `72efda6`: 867 nodes and 1428 edges from commit
+  `72efda60`.
+- Next safe task: push the release-notes reviewer code plus docs/Graphify
+  checkpoint to GitHub, watch the deployment, smoke production health and
+  bounded graph lookup, then record deployment acceptance. After acceptance,
+  continue Phase 5B with an OpenAPI change-summary helper unless the user
+  redirects. Do not start autonomous/background tools, WebContainer/runtime
+  package tooling, auth, billing, multi-tenancy, email, marketing pages,
+  Kubernetes, Redis, or complex dashboards.
 
 ## Recovery Prompt
 

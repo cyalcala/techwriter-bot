@@ -1,7 +1,7 @@
 # Graph Report - techwriter-bot  (2026-06-04)
 
 ## Corpus Check
-- 131 files · ~93,440 words
+- 131 files · ~94,490 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `8e6de7d6`
+- Built from commit: `72efda60`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -77,7 +77,7 @@
 - `renderMarkmapArtifact()` --calls--> `setTimeout()`  [INFERRED]
   src/lib/renderer-loader.ts → src/components/ChatIsland.svelte
 
-## Communities (71 total, 3 thin omitted)
+## Communities (71 total, 4 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.05
@@ -128,8 +128,8 @@ Cohesion: 0.17
 Nodes (19): asCount(), emptyBucket(), recordProviderTelemetry(), safeDimension(), asCount(), collectOperationalStats(), emptyStats(), finalizeStats() (+11 more)
 
 ### Community 12 - "Community 12"
-Cohesion: 0.15
-Nodes (13): ../lib/artifact-lifecycle, ../lib/artifact-queue, ../lib/markdown, regenerateArtifactEntry(), ArtifactStatus, ArtifactEntry, ArtifactQueue, createArtifactQueue() (+5 more)
+Cohesion: 0.11
+Nodes (12): ../lib/artifact-lifecycle, ../lib/artifact-queue, ../lib/artifact-state, ../lib/cleanup, ../lib/markdown, ../lib/renderer-loader, ../lib/session-persist, ../lib/token-batcher (+4 more)
 
 ### Community 13 - "Community 13"
 Cohesion: 0.1
@@ -148,28 +148,28 @@ Cohesion: 0.15
 Nodes (13): ../lib/artifact-detector, extractArtifactTitle(), generateArtifactId(), isArtifactUpdate(), simpleHash(), artifact, artifacts, base (+5 more)
 
 ### Community 17 - "Community 17"
-Cohesion: 0.19
-Nodes (7): ArtifactPlacement, ArtifactStreamParser, ArtifactType, isPotentialArtifactTagPrefix(), ParserState, trailingArtifactTagPrefixLength(), trailingMarkerPrefixLength()
-
-### Community 18 - "Community 18"
 Cohesion: 0.12
 Nodes (16): [1.x] - Earlier releases, [2.0.0] - 2026-05-10 — Intelligent Artifact Auto-Correction Fallback, [2.1.0] - 2026-05-11 — One-Shot Artifact Rendering Engine Overhaul, All 12 Artifact Types — Stability Status, Changelog, Changes, Deployment, Overview (+8 more)
 
-### Community 19 - "Community 19"
+### Community 18 - "Community 18"
 Cohesion: 0.12
 Nodes (15): cleanSlateConfig, clientChunks, clientDir, distDir, ignorePath, internalConfigs, legacyEntry, midPath (+7 more)
 
+### Community 19 - "Community 19"
+Cohesion: 0.18
+Nodes (10): regenerateArtifactEntry(), ArtifactStatus, ArtifactEntry, ArtifactQueue, createArtifactQueue(), Subscriber, createArtifactRegenerationPrompt(), createArtifactRepairTarget() (+2 more)
+
 ### Community 20 - "Community 20"
 Cohesion: 0.13
-Nodes (8): ../lib/artifact-state, ../lib/cleanup, ../lib/session-persist, ../lib/token-batcher, closeSplit(), handleGlobalKeydown(), next, stored
+Nodes (14): Artifact Rendering, Caching, code:block1 (src/), Commit: `b2ac2c0` | Branch: `main` | Deployed: `tw-bot.pages.dev`, Deployed Capabilities, File Inventory (Source Files Only), Infra, Knowledge Graph (+6 more)
 
 ### Community 21 - "Community 21"
-Cohesion: 0.16
-Nodes (8): ../lib/artifact-types, ../lib/renderer-loader, ../lib/stream-parser, a, blob, url, fail(), renderTimeout
+Cohesion: 0.18
+Nodes (7): ../lib/artifact-types, ../lib/stream-parser, a, blob, url, fail(), renderTimeout
 
 ### Community 22 - "Community 22"
-Cohesion: 0.13
-Nodes (14): Artifact Rendering, Caching, code:block1 (src/), Commit: `b2ac2c0` | Branch: `main` | Deployed: `tw-bot.pages.dev`, Deployed Capabilities, File Inventory (Source Files Only), Infra, Knowledge Graph (+6 more)
+Cohesion: 0.22
+Nodes (11): detectAllArtifacts(), detectLang(), langToType(), normalizeType(), RawArtifact, validateArtifact(), ArtifactPlacement, ArtifactType (+3 more)
 
 ### Community 23 - "Community 23"
 Cohesion: 0.23
@@ -183,25 +183,21 @@ Nodes (8): ARTIFACT_LANGUAGE_ALIASES, balanced(), CODE_LANGS, looksLikeVegaSpec(
 Cohesion: 0.2
 Nodes (4): fixArtifactError(), getActiveArtifact(), SplitArtifact, SplitTab
 
-### Community 26 - "Community 26"
+### Community 27 - "Community 27"
 Cohesion: 0.25
 Nodes (4): DIAGRAM_LANGS, lang, origCode, renderer
 
-### Community 27 - "Community 27"
+### Community 28 - "Community 28"
 Cohesion: 0.46
 Nodes (5): escapeAttr(), escapeHtml(), formatArtifactRendererError(), getArtifactRecoveryHint(), getArtifactTypeLabel()
 
-### Community 28 - "Community 28"
+### Community 29 - "Community 29"
 Cohesion: 0.25
 Nodes (7): env, keys, req, restored, rl, serialized, state
 
-### Community 29 - "Community 29"
+### Community 30 - "Community 30"
 Cohesion: 0.29
 Nodes (5): chunksDir, clientDir, distDir, files, serverDir
-
-### Community 30 - "Community 30"
-Cohesion: 0.52
-Nodes (6): detectAllArtifacts(), detectLang(), langToType(), normalizeType(), RawArtifact, validateArtifact()
 
 ### Community 31 - "Community 31"
 Cohesion: 0.38
@@ -218,12 +214,12 @@ Nodes (4): cleanDisplayText(), cleanLogoUrl(), cleanPrimaryColor(), readWhiteLab
 ## Knowledge Gaps
 - **230 isolated node(s):** `distDir`, `clientDir`, `serverDir`, `serverFiles`, `workerEntry` (+225 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **3 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **4 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `setTimeout()` connect `Community 8` to `Community 0`, `Community 1`, `Community 6`, `Community 7`, `Community 15`, `Community 20`?**
+- **Why does `setTimeout()` connect `Community 8` to `Community 0`, `Community 1`, `Community 6`, `Community 7`, `Community 12`, `Community 15`?**
   _High betweenness centrality (0.065) - this node is a cross-community bridge._
 - **Why does `createRequestId()` connect `Community 0` to `Community 1`, `Community 10`?**
   _High betweenness centrality (0.031) - this node is a cross-community bridge._

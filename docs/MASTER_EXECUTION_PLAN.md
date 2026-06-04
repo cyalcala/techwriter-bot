@@ -45,6 +45,10 @@ explicit non-goals.
   `26947031364`, immutable URL `https://78e4ed6c.tw-bot.pages.dev`; production
   smoke confirmed app/health availability and bounded graph lookup for
   `extractApiEndpoint()`.
+- Phase 5B third implementation slice: `Review Document` now flags release-note
+  drafts that lack a version/date identity, still contain placeholder text, or
+  mention breaking/removal/deprecation changes without migration or
+  action-required guidance.
 - Current completion estimate: approved Phase 1 through Phase 4 roadmap is
   closure-verified and accepted; paid-pilot readiness for the per-client
   Cloudflare deployment is about 90%, with remaining work focused on client
@@ -104,7 +108,7 @@ The current tracked code graph was refreshed with `graphify update .` on
 - Graph: `graphify-out/graph.json`
 - Summary: 867 nodes, 1428 edges
 - Extraction confidence: 93% EXTRACTED, 7% INFERRED, 0% AMBIGUOUS
-- Built from code at commit: `8e6de7d6`
+- Built from code at commit: `72efda60`
 - The generated report currently disagrees with itself on total community
   count; use node/edge counts and targeted graph queries for acceptance until
   that reporting discrepancy is reconciled.
@@ -124,6 +128,10 @@ The current tracked code graph was refreshed with `graphify update .` on
   document review pass: duplicate `METHOD /path` references and mismatched
   `{pathParameter}` names for equivalent endpoint shapes are reported with
   source-line warnings.
+- Phase 5B release-notes draft checks now run in the same deterministic review
+  pass for release-note-like documents, with warnings for missing release
+  identity, placeholder draft text, and breaking/removal/deprecation entries
+  that lack migration guidance.
 - Active-session artifact repair now replaces the original queue entry when a
   user invokes Fix with AI, clears stale renderer errors, and avoids durable
   artifact caching or duplicate repaired entries.
