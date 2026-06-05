@@ -158,12 +158,15 @@ As of 2026-06-05:
   artifact rendering, browser preview, and Kroki rendering. The repair covers
   extra `>` characters after labeled edges, escaped arrow entities, styled
   subgraph titles with spaces, Mermaid-like flowchart aliases, and
-  Flowchart.js routing to Kroki's `flowchart` renderer. Server-rendered
-  diagram types now bypass optional browser CDN script loads and go straight
-  to the Kroki-backed fallback path. Local verification passed: focused
-  diagram/artifact tests (8 files, 51 tests), full `npm.cmd test` (44 files,
-  215 tests), `npm.cmd audit --omit=dev --audit-level=high` (0
-  vulnerabilities), `git diff --check`, and the recorded `build:local`
+  Flowchart.js staying client-rendered instead of being misrouted to Kroki.
+  Server-rendered diagram types now bypass optional browser CDN script loads
+  and go straight to the Kroki-backed fallback path. Flowchart.js loads its
+  browser renderer on demand only for true Flowchart.js syntax. Local
+  verification passed: focused diagram/artifact tests (8 files, 51 tests)
+  before the Flowchart.js endpoint correction, then focused parser/renderer
+  regression tests after the correction (4 files, 35 tests), full `npm.cmd
+  test` (44 files, 215 tests), `npm.cmd audit --omit=dev --audit-level=high`
+  (0 vulnerabilities), `git diff --check`, and the recorded `build:local`
   command with known non-failing warnings. Local Graphify refresh reports 894
   nodes and 1489 edges.
 - Kroki/artifact-renderer-down audit: existing renderer tests and production

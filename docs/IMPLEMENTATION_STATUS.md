@@ -85,14 +85,16 @@ transparency slices with privacy-first active-session boundaries:
   rendering, browser preview, and Kroki rendering. The fix covers extra `>`
   characters after labeled Mermaid edges such as `-->|ready|> B`, escaped
   arrow entities such as `--&gt;`, styled subgraph titles with spaces, and
-  Flowchart.js routing to Kroki's `flowchart` renderer instead of Mermaid.
+  Flowchart.js staying client-rendered instead of being misrouted to Kroki.
   Server-rendered diagram types no longer require optional browser CDN
-  renderer scripts before falling back to Kroki. Local verification passed:
-  focused diagram/artifact tests (8 files, 51 tests), full `npm.cmd test`
-  (44 files, 215 tests), `npm.cmd audit --omit=dev --audit-level=high`
-  (0 vulnerabilities), `git diff --check`, and the recorded `build:local`
-  command with known non-failing warnings. Local Graphify refresh reports 894
-  nodes and 1489 edges.
+  renderer scripts before falling back to Kroki. Flowchart.js loads its browser
+  renderer on demand only for true Flowchart.js syntax. Local verification passed:
+  focused diagram/artifact tests (8 files, 51 tests) before the Flowchart.js
+  endpoint correction, then focused parser/renderer regression tests after the
+  correction (4 files, 35 tests), full `npm.cmd test` (44 files, 215 tests),
+  `npm.cmd audit --omit=dev --audit-level=high` (0 vulnerabilities),
+  `git diff --check`, and the recorded `build:local` command with known
+  non-failing warnings. Local Graphify refresh reports 894 nodes and 1489 edges.
 - Current Phase 5C acceptance evidence: docs commit `9a7ac29` deployed
   successfully in GitHub Actions run `26979426208`, immutable URL
   `https://be36a3cd.tw-bot.pages.dev`; Graphify CI uploaded a runtime graph

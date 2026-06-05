@@ -9,7 +9,7 @@ const TYPE_MAP: Record<string, string> = {
   d2: 'd2',
   plantuml: 'plantuml',
   vega: 'vega',
-  flowchart: 'flowchart',
+  flowchart: 'mermaid',
 };
 
 export const KROKI_RENDERABLE = new Set(['mermaid', 'graphviz', 'd2', 'plantuml', 'vega', 'flowchart']);
@@ -17,6 +17,9 @@ export const CLIENT_ONLY_TYPES = new Set(['code', 'html', 'svg', 'react', 'katex
 
 export async function renderViaKroki(type: string, code: string): Promise<{ svg?: string; error?: string; cached?: boolean; status?: number }> {
   const normalizedCode = normalizeArtifactSource(type, code);
+  if (String(type || '').toLowerCase() === 'flowchart' && !looksLikeMermaidFlowchart(normalizedCode)) {
+    return { status: 400, error: 'Flowchart.js artifacts are client-rendered and are not supported by Kroki.' };
+  }
   const krokiType = selectKrokiType(type, normalizedCode);
 
   const tryOnce = async (): Promise<{ svg?: string; error?: string; cached?: boolean; status?: number; retryable?: boolean }> => {

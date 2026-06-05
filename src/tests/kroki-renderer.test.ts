@@ -45,13 +45,14 @@ describe('Kroki artifact rendering', () => {
     expect(result).toMatchObject({ status: 400, error: 'syntax error' });
   });
 
-  it('maps Flowchart.js artifacts to Kroki flowchart rendering', async () => {
+  it('does not send Flowchart.js syntax to an unsupported Kroki endpoint', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response('<svg><path /></svg>', { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
 
-    await renderViaKroki('flowchart', 'st=>start: Start\nop=>operation: Work\nst->op');
+    const result = await renderViaKroki('flowchart', 'st=>start: Start\nop=>operation: Work\nst->op');
 
-    expect(String(fetchMock.mock.calls[0][0])).toContain('/flowchart/svg');
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ status: 400, error: 'Flowchart.js artifacts are client-rendered and are not supported by Kroki.' });
   });
 
   it('keeps Mermaid-like flowchart aliases on Kroki Mermaid rendering', async () => {

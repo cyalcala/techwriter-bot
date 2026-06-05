@@ -306,15 +306,21 @@ export function renderFlowchartArtifact(code: string): string {
   if (/^\s*(graph|flowchart)\b/im.test(code)) {
     return renderMermaidArtifact(code);
   }
-  // For flowchart.js syntax, render via Kroki server
   const id = `fc-${rand()}`;
   domReady(async () => {
     const el = document.getElementById(id);
     if (!el) return;
     try {
-      await withTimeout(renderServerSvgInto(el, 'flowchart', code, 'Flowchart'), 15_000);
+      await loadScript('https://cdn.jsdelivr.net/npm/flowchart.js@1.18.0/release/flowchart.min.js');
+      const flowchart = window.flowchart || (window as any).flowchart;
+      if (!flowchart?.parse) throw new Error('Flowchart renderer failed to load.');
+      const hostId = `${id}-host`;
+      el.innerHTML = `<div id="${hostId}" class="artifact-flowchart-host"></div>`;
+      const diagram = flowchart.parse(code);
+      await withTimeout(Promise.resolve(diagram.drawSVG(hostId)), 10_000);
+      el.className = 'artifact-server-svg flex justify-center overflow-auto';
     } catch (e: any) {
-      el.innerHTML = renderError('Flowchart', e.message || 'Server render timed out', code);
+      el.innerHTML = renderError('Flowchart', e.message || 'Flowchart render failed', code);
     }
   });
   return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm"><div class="inline-block w-5 h-5 border-2 border-stone-300 border-t-blue-500 rounded-full animate-spin mb-2"></div><br/>Rendering flowchart...</div>`;
