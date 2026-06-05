@@ -291,6 +291,15 @@ describe('artifact lifecycle and queue', () => {
     expect(route).toContain("import '../../styles/global.css'");
   });
 
+  it('re-renders previews after returning from the code tab', () => {
+    const panel = readFileSync(join(process.cwd(), 'src', 'components', 'ArtifactPanel.svelte'), 'utf8');
+
+    expect(panel).toContain('function showPreviewTab()');
+    expect(panel).toContain("activeTab !== 'preview'");
+    expect(panel).toContain('renderNonce += 1');
+    expect(panel).toContain('onclick={showPreviewTab}');
+  });
+
   it('uses the full artifact body when generating stable ids', () => {
     const base = 'x'.repeat(220);
 

@@ -163,13 +163,16 @@ As of 2026-06-05:
   and go straight to the Kroki-backed fallback path. Flowchart.js loads its
   browser renderer on demand only for true Flowchart.js syntax. Browser QA also
   found the standalone artifact route was missing the app stylesheet, so that
-  route now imports `src/styles/global.css`. Local verification passed: focused
-  diagram/artifact tests (8 files, 51 tests) before the Flowchart.js endpoint
-  correction, then focused parser/renderer/standalone regression tests after
-  the correction (4 files, 36 tests), full `npm.cmd test` (44 files, 216
-  tests), `npm.cmd audit --omit=dev --audit-level=high` (0 vulnerabilities),
-  `git diff --check`, and the recorded `build:local` command with known
-  non-failing warnings. Local Graphify refresh reports 894 nodes and 1489 edges.
+  route now imports `src/styles/global.css`. Browser QA also exposed that
+  switching async diagrams from Code back to Preview could leave a stale
+  placeholder, so the Preview control now re-triggers rendering. Local
+  verification passed: focused diagram/artifact tests (8 files, 51 tests)
+  before the Flowchart.js endpoint correction, then focused parser/renderer/
+  standalone/mobile regression tests after the interaction fixes (5 files, 40
+  tests), full `npm.cmd test` (44 files, 217 tests), `npm.cmd audit
+  --omit=dev --audit-level=high` (0 vulnerabilities), `git diff --check`, and
+  the recorded `build:local` command with known non-failing warnings. Local
+  Graphify refresh reports 894 nodes and 1489 edges.
 - Kroki/artifact-renderer-down audit: existing renderer tests and production
   render API smoke cover private standardized route failures, transient Kroki
   retry, permanent syntax no-retry, sanitized SVG success, and visible

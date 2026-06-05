@@ -117,6 +117,15 @@
 
   async function copyCode() { try { await navigator.clipboard.writeText(artifact.code); copied = true; setTimeout(() => copied = false, 1500); } catch {} }
 
+  function showPreviewTab() {
+    if (activeTab !== 'preview') {
+      activeTab = 'preview';
+      renderNonce += 1;
+      return;
+    }
+    activeTab = 'preview';
+  }
+
   function retryRenderer() {
     loadError = '';
     activeTab = 'preview';
@@ -151,7 +160,7 @@
     <div class="artifact-actions flex items-center gap-1.5 shrink-0">
       {#if showPreview}
         <button onclick={() => activeTab = 'code'} class="text-[10px] px-2.5 py-1 rounded-md transition-all {activeTab === 'code' ? 'bg-white/20 text-white font-bold' : 'text-gray-400 hover:text-white'}">Code</button>
-        <button onclick={() => activeTab = 'preview'} class="text-[10px] px-2.5 py-1 rounded-md transition-all {activeTab === 'preview' ? 'bg-white/20 text-white font-bold' : 'text-gray-400 hover:text-white'}">Preview</button>
+        <button onclick={showPreviewTab} class="text-[10px] px-2.5 py-1 rounded-md transition-all {activeTab === 'preview' ? 'bg-white/20 text-white font-bold' : 'text-gray-400 hover:text-white'}">Preview</button>
       {/if}
       <button onclick={copyCode} class="text-[10px] px-2.5 py-1 rounded-md text-gray-400 hover:text-white hover:bg-white/10 transition-all">{copied ? 'Copied!' : 'Copy'}</button>
       <button onclick={downloadArtifact} class="text-[10px] px-2 py-1 rounded-md text-gray-400 hover:text-white hover:bg-white/10 transition-all" title="Download">
