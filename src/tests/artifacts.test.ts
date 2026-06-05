@@ -285,6 +285,12 @@ describe('artifact lifecycle and queue', () => {
     expect(standalone).toContain('normalizeArtifactSource(artifactType, code)');
   });
 
+  it('loads app styles on standalone artifact routes', () => {
+    const route = readFileSync(join(process.cwd(), 'src', 'pages', 'artifact', '[id].astro'), 'utf8');
+
+    expect(route).toContain("import '../../styles/global.css'");
+  });
+
   it('uses the full artifact body when generating stable ids', () => {
     const base = 'x'.repeat(220);
 

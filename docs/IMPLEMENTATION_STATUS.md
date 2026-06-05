@@ -88,11 +88,13 @@ transparency slices with privacy-first active-session boundaries:
   Flowchart.js staying client-rendered instead of being misrouted to Kroki.
   Server-rendered diagram types no longer require optional browser CDN
   renderer scripts before falling back to Kroki. Flowchart.js loads its browser
-  renderer on demand only for true Flowchart.js syntax. Local verification passed:
-  focused diagram/artifact tests (8 files, 51 tests) before the Flowchart.js
-  endpoint correction, then focused parser/renderer regression tests after the
-  correction (4 files, 35 tests), full `npm.cmd test` (44 files, 215 tests),
-  `npm.cmd audit --omit=dev --audit-level=high` (0 vulnerabilities),
+  renderer on demand only for true Flowchart.js syntax. Browser QA also found
+  the standalone artifact route was missing the app stylesheet, so that route
+  now imports `src/styles/global.css`. Local verification passed: focused
+  diagram/artifact tests (8 files, 51 tests) before the Flowchart.js endpoint
+  correction, then focused parser/renderer/standalone regression tests after
+  the correction (4 files, 36 tests), full `npm.cmd test` (44 files, 216
+  tests), `npm.cmd audit --omit=dev --audit-level=high` (0 vulnerabilities),
   `git diff --check`, and the recorded `build:local` command with known
   non-failing warnings. Local Graphify refresh reports 894 nodes and 1489 edges.
 - Current Phase 5C acceptance evidence: docs commit `9a7ac29` deployed
