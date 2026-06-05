@@ -51,7 +51,8 @@ The strongest sellable capabilities are:
 - Active-session Knowledge Base controls for multiple documents, document
   deletion, and user-invoked re-embedding.
 - Artifact generation and recovery paths with parser hardening, renderer error
-  boundaries, Kroki/server-render coverage, gallery controls, selected artifact
+  boundaries, Mermaid source normalization, Kroki/server-render coverage,
+  Flowchart.js renderer routing, gallery controls, selected artifact
   regeneration, source/SVG/PNG downloads, and mobile overlay gestures.
 - Conversation workflow for active-session history, JSON export/import,
   Markdown export, single-response export, Slack-format copy, and explicit

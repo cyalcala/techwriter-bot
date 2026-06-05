@@ -1,3 +1,5 @@
+import { normalizeArtifactSource } from './diagram-source-normalizer';
+
 export type ArtifactType = 'code' | 'html' | 'svg' | 'mermaid' | 'react' | 'katex' | 'markmap' | 'd2' | 'vega' | 'graphviz' | 'plantuml' | 'flowchart';
 export type ArtifactPlacement = 'inline' | 'side' | 'modal';
 
@@ -184,6 +186,8 @@ export class ArtifactStreamParser {
         artifact.code = fenceMatch[2].trim();
       }
     }
+
+    artifact.code = normalizeArtifactSource(artifact.type, artifact.code);
 
     this.onArtifactComplete(artifact);
     this.artifactDepth = 0;

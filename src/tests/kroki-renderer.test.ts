@@ -45,13 +45,42 @@ describe('Kroki artifact rendering', () => {
     expect(result).toMatchObject({ status: 400, error: 'syntax error' });
   });
 
-  it('maps flowchart artifacts to Kroki Mermaid rendering', async () => {
+  it('maps Flowchart.js artifacts to Kroki flowchart rendering', async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response('<svg><path /></svg>', { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
 
-    await renderViaKroki('flowchart', 'graph TD\nA-->B');
+    await renderViaKroki('flowchart', 'st=>start: Start\nop=>operation: Work\nst->op');
+
+    expect(String(fetchMock.mock.calls[0][0])).toContain('/flowchart/svg');
+  });
+
+  it('keeps Mermaid-like flowchart aliases on Kroki Mermaid rendering', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response('<svg><path /></svg>', { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await renderViaKroki('flowchart', 'graph TD\nA-->|done|>B');
 
     expect(String(fetchMock.mock.calls[0][0])).toContain('/mermaid/svg');
+    expect(String(fetchMock.mock.calls[0][1]?.body)).toContain('A-->|done| B');
+  });
+
+  it('normalizes common AI Mermaid mistakes before sending source to Kroki', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response('<svg><path /></svg>', { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await renderViaKroki('mermaid', [
+      'graph LR',
+      'A[Customer Inquiry] -->|request received|> B[Initial Screening]',
+      'subgraph BPO Process',
+      'B',
+      'end',
+      'style BPO Process fill:#f9f,stroke:#333,stroke-width:4px',
+    ].join('\n'));
+
+    const body = String(fetchMock.mock.calls[0][1]?.body);
+    expect(body).toContain('A[Customer Inquiry] -->|request received| B[Initial Screening]');
+    expect(body).toContain('subgraph BPO_Process [BPO Process]');
+    expect(body).toContain('style BPO_Process fill:#f9f,stroke:#333,stroke-width:4px');
   });
 
   it('keeps render-artifact API responses private and uncached on every branch', () => {

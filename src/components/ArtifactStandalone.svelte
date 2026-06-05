@@ -3,6 +3,7 @@
   import ArtifactPanel from './ArtifactPanel.svelte';
   import type { Artifact } from '../lib/stream-parser';
   import { normalizeArtifactType } from '../lib/artifact-types';
+  import { normalizeArtifactSource } from '../lib/diagram-source-normalizer';
 
   let artifact = $state<Artifact | null>(null);
   let error = $state<string | null>(null);
@@ -14,7 +15,8 @@
     const code = params.get('code');
     const title = params.get('title') || 'Artifact';
     if (code) {
-      artifact = { id: `standalone-${Date.now().toString(36)}`, type: normalizeArtifactType(type, code) || 'code', title, code, placement: 'inline' };
+      const artifactType = normalizeArtifactType(type, code) || 'code';
+      artifact = { id: `standalone-${Date.now().toString(36)}`, type: artifactType, title, code: normalizeArtifactSource(artifactType, code), placement: 'inline' };
     } else {
       error = 'No artifact data provided. Open from a chat conversation.';
     }

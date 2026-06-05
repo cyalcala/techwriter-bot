@@ -6,6 +6,7 @@
   import { setupCleanupCallbacks, runStaleCheck, clearAllData } from '../lib/cleanup';
   import { ArtifactStreamParser, type Artifact } from '../lib/stream-parser';
   import { detectAllArtifacts } from '../lib/artifact-detector';
+  import { normalizeArtifactSource } from '../lib/diagram-source-normalizer';
   import { preloadPopular } from '../lib/renderer-loader';
   import { fixArtifactError } from '../lib/artifact-state';
   import { estimateTokens } from '../lib/token-counter';
@@ -284,21 +285,7 @@
   });
 
   async function resolveArtifact(art: Artifact, msgIdx: number) {
-    let code = art.code;
-    if (code.startsWith('```')) {
-      const firstNewline = code.indexOf('\n');
-      const lastBacktick = code.lastIndexOf('```');
-      if (firstNewline !== -1 && lastBacktick > firstNewline) {
-        code = code.slice(firstNewline + 1, lastBacktick).trim();
-      }
-    }
-    if (art.type === 'mermaid') {
-      if (/^\s*(graph|flowchart)\b/im.test(code)) {
-        code = code.replace(/^\s*note\s+(?:right\s+of|left\s+of|over)\s+.*$/gim, '');
-        const parts = code.split(/\n(?=\s*(graph|flowchart)\b)/i);
-        if (parts.length > 1) code = parts[0].trim();
-      }
-    }
+    const code = normalizeArtifactSource(art.type, art.code);
 
     const cleanArt = { ...art, code };
     const repairTarget = pendingArtifactRepair;

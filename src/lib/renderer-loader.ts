@@ -1,5 +1,6 @@
 import type { ArtifactType } from './stream-parser';
 import { formatArtifactRendererError } from './artifact-error-boundary';
+import { normalizeArtifactSource, normalizeMermaidSource } from './diagram-source-normalizer';
 
 const loadedScripts = new Set<string>();
 const loadedStyles = new Set<string>();
@@ -96,7 +97,6 @@ export async function loadRenderer(type: ArtifactType): Promise<void> {
       ]);
       return;
     case 'mermaid':
-      await loadScript('https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js');
       return;
     case 'katex':
       await Promise.all([
@@ -108,22 +108,14 @@ export async function loadRenderer(type: ArtifactType): Promise<void> {
       await loadScript('https://cdn.jsdelivr.net/npm/markmap-autoloader@0.17.0/dist/index.js');
       return;
     case 'd2':
-      await loadScript('https://cdn.jsdelivr.net/npm/@terrastruct/d2-js@0.6.3/dist/d2-js.umd.min.js');
       return;
     case 'vega':
-      await Promise.all([
-        loadScript('https://cdn.jsdelivr.net/npm/vega@5.25.0/build/vega.min.js'),
-        loadScript('https://cdn.jsdelivr.net/npm/vega-lite@5.16.3/build/vega-lite.min.js'),
-        loadScript('https://cdn.jsdelivr.net/npm/vega-embed@6.24.0/build/vega-embed.min.js'),
-      ]);
       return;
     case 'graphviz':
-      await loadScript('https://cdn.jsdelivr.net/npm/@hpcc-js/wasm@2.15.3/dist/graphviz.umd.min.js');
       return;
     case 'plantuml':
       return;
     case 'flowchart':
-      await loadScript('https://cdn.jsdelivr.net/npm/flowchart.js@1.18.0/release/flowchart.min.js');
       return;
     case 'svg':
     case 'html':
@@ -161,17 +153,15 @@ export function renderHtmlArtifact(code: string): string {
 export function renderSvgArtifact(code: string): string { return `<div class="artifact-svg-host">${sanitizeSvg(code)}</div>`; }
 
 export function renderMermaidArtifact(code: string): string {
-  const sanitized = sanitizeMermaid(code);
+  const sanitized = normalizeMermaidSource(code);
   const id = `mer-${rand()}`;
   domReady(async () => {
     const el = document.getElementById(id);
     if (!el) return;
-    const mm = window.mermaid || (window as any).mermaid;
-    if (!mm) {
-      el.innerHTML = renderError('Mermaid', 'Mermaid library failed to load. Please refresh.', code);
-      return;
-    }
     try {
+      await loadScript('https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js');
+      const mm = window.mermaid || (window as any).mermaid;
+      if (!mm) throw new Error('Mermaid library failed to load.');
       mm.initialize({ startOnLoad: false, securityLevel: 'loose', theme: 'base', themeVariables: { primaryColor: '#f1f5f9', primaryTextColor: '#1e293b', primaryBorderColor: '#475569', lineColor: '#475569', secondaryColor: '#f8fafc', tertiaryColor: '#f1f5f9' } });
       const renderPromise = mm.render(`${id}-s`, sanitized);
       const timeoutPromise = new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Mermaid render timed out after 5s')), 5000));
@@ -180,10 +170,12 @@ export function renderMermaidArtifact(code: string): string {
         el.innerHTML = sanitizeSvg(svg);
         el.className = 'artifact-server-svg flex justify-center overflow-auto';
       } else {
-        el.innerHTML = renderError('Mermaid', 'Render produced no valid SVG output.', code);
+        await withTimeout(renderServerSvgInto(el, 'mermaid', sanitized, 'Mermaid'), 15_000);
       }
     } catch (e: any) {
-      el.innerHTML = renderError('Mermaid', e.message || String(e), code);
+      await withTimeout(renderServerSvgInto(el, 'mermaid', sanitized, 'Mermaid'), 15_000).catch(() => {
+        el.innerHTML = renderError('Mermaid', e.message || String(e), sanitized);
+      });
     }
   });
   return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm"><div class="inline-block w-5 h-5 border-2 border-stone-300 border-t-amber-500 rounded-full animate-spin mb-2"></div><br/>Rendering diagram...</div>`;
@@ -337,20 +329,6 @@ function getReactHtml(code: string): string {
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"><\/script><script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"><\/script><script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script><style>html,body,#root{min-height:100%;margin:0}body{font-family:system-ui,sans-serif;background:#fff;color:#1a1a1a;padding:16px;overflow:auto}*{box-sizing:border-box}img,svg,canvas,video{max-width:100%;height:auto}</style></head><body><div id="root"></div><script>window.__HOST_API=Object.freeze({dispatch:function(a,p){window.parent.postMessage({source:'artifact',action:a,payload:p},'*');},copy:function(t){window.parent.postMessage({source:'artifact',action:'copy',payload:t},'*');},error:function(e){window.parent.postMessage({source:'artifact',action:'error',payload:e},'*');}});window.addEventListener('error',function(e){window.__HOST_API.error(e.message||String(e.error||e));});</script><script type="text/babel" data-type="module">${safeCode}\nconst container=document.getElementById('root');if(typeof App!=='undefined'){try{ReactDOM.createRoot(container).render(React.createElement(App));}catch(e){window.__HOST_API.error(e.message||String(e));container.innerHTML='<pre style="color:#b91c1c;white-space:pre-wrap">'+String(e.message||e).replace(/[<>&]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;'}[c]})+'</pre>';}}else{container.innerHTML='<pre style="color:#92400e;white-space:pre-wrap">React artifact must export or define an App component.</pre>';}<\/script></body></html>`;
 }
 
-function sanitizeMermaid(code: string): string {
-  return code
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/?p>/gi, '')
-    .replace(/<\/?div>/gi, '\n')
-    .replace(/<\/?b>/gi, '')
-    .replace(/<\/?i>/gi, '')
-    .replace(/<\/?strong>/gi, '')
-    .replace(/<\/?em>/gi, '')
-    .replace(/<span[^>]*>/gi, '')
-    .replace(/<\/span>/gi, '')
-    .replace(/&nbsp;/gi, ' ');
-}
-
 function detectLanguage(code: string): string {
   if (/^\s*(import|export|const|let|var|function|class|=>|async|await)/.test(code)) return 'javascript';
   if (/def\s|class\s|print\(/.test(code)) return 'python';
@@ -359,11 +337,12 @@ function detectLanguage(code: string): string {
 }
 
 async function renderServerSvgInto(el: HTMLElement, type: ArtifactType, code: string, label: string): Promise<void> {
+  const normalizedCode = normalizeArtifactSource(type, code);
   try {
     const res = await fetch('/api/render-artifact', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type, code }),
+      body: JSON.stringify({ type, code: normalizedCode }),
     });
     const data = await res.json().catch(() => null);
     if (res.ok && data?.svg) {
@@ -371,9 +350,9 @@ async function renderServerSvgInto(el: HTMLElement, type: ArtifactType, code: st
       el.className = 'artifact-server-svg flex justify-center overflow-auto';
       return;
     }
-    el.innerHTML = renderError(label, data?.message || data?.error || `Renderer returned ${res.status}`, code);
+    el.innerHTML = renderError(label, data?.message || data?.error || `Renderer returned ${res.status}`, normalizedCode);
   } catch (e) {
-    el.innerHTML = renderError(label, String(e), code);
+    el.innerHTML = renderError(label, String(e), normalizedCode);
   }
 }
 

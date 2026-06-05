@@ -153,6 +153,19 @@ As of 2026-06-05:
   `output/portfolio/techwriter-bot-portfolio-packet-preview.png`.
   Browser sanity confirmed the HTML packet loads screenshots and the only
   console issue during PDF generation was a missing localhost favicon.
+- Diagram-rendering audit checkpoint: common AI-generated Mermaid syntax
+  mistakes are normalized before queueing, export/source views, standalone
+  artifact rendering, browser preview, and Kroki rendering. The repair covers
+  extra `>` characters after labeled edges, escaped arrow entities, styled
+  subgraph titles with spaces, Mermaid-like flowchart aliases, and
+  Flowchart.js routing to Kroki's `flowchart` renderer. Server-rendered
+  diagram types now bypass optional browser CDN script loads and go straight
+  to the Kroki-backed fallback path. Local verification passed: focused
+  diagram/artifact tests (8 files, 51 tests), full `npm.cmd test` (44 files,
+  215 tests), `npm.cmd audit --omit=dev --audit-level=high` (0
+  vulnerabilities), `git diff --check`, and the recorded `build:local`
+  command with known non-failing warnings. Local Graphify refresh reports 894
+  nodes and 1489 edges.
 - Kroki/artifact-renderer-down audit: existing renderer tests and production
   render API smoke cover private standardized route failures, transient Kroki
   retry, permanent syntax no-retry, sanitized SVG success, and visible
@@ -343,7 +356,8 @@ As of 2026-06-05:
   recorded build passed; production health and graph smoke passed for all
   Phase 5B tool symbols; and real-browser Playwright CLI smoke confirmed the
   code-area explanation UI flow.
-- Next safe task: prepare client-specific onboarding or run a real-client
+- Next safe task: finish production browser QA for the diagram-rendering audit
+  deployment, then return to client-specific onboarding or run a real-client
   deployment when credentials are available. The Phase 5C collateral packet,
   screenshot checklist, and external portfolio/PDF packet are already
   assembled. Do not start autonomous/background tools, WebContainer/runtime
@@ -355,5 +369,5 @@ As of 2026-06-05:
 Use this prompt when handing work to another AI agent:
 
 ```text
-Continue from C:\Users\admin\Desktop\techwriter-bot. Read docs\MASTER_EXECUTION_PLAN.md, docs\IMPLEMENTATION_STATUS.md, docs\AI_RECOVERY_TRAIL.md, docs\SELLABLE_READINESS_HANDOFF.md, docs\CLIENT_DEPLOYMENT_KIT.md, docs\PORTFOLIO_BUYER_NARRATIVE.md, docs\PORTFOLIO_SCREENSHOT_MANIFEST.md, docs\PORTFOLIO_PDF_PACKET.md, docs\superpowers\specs\2026-06-04-bounded-documentation-tool-pack.md, and graphify-out\GRAPH_REPORT.md first. Continue only from docs\IMPLEMENTATION_STATUS.md Next Task. Use the recorded build verification command when behavior changes. Preserve GitHub backups after each coherent slice. Phase 5C initial collateral packet, screenshot checklist, and external portfolio/PDF packet are complete; next safe task is client-specific onboarding or a real-client deployment when credentials are available. Do not rebuild OAuth, Stripe, multi-tenancy, email, marketing pages, autonomous agents, Kubernetes, Redis, complex dashboards, or WebContainer/runtime package tooling.
+Continue from C:\Users\admin\Desktop\techwriter-bot. Read docs\MASTER_EXECUTION_PLAN.md, docs\IMPLEMENTATION_STATUS.md, docs\AI_RECOVERY_TRAIL.md, docs\SELLABLE_READINESS_HANDOFF.md, docs\CLIENT_DEPLOYMENT_KIT.md, docs\PORTFOLIO_BUYER_NARRATIVE.md, docs\PORTFOLIO_SCREENSHOT_MANIFEST.md, docs\PORTFOLIO_PDF_PACKET.md, docs\superpowers\specs\2026-06-04-bounded-documentation-tool-pack.md, and graphify-out\GRAPH_REPORT.md first. Continue only from docs\IMPLEMENTATION_STATUS.md Next Task. Use the recorded build verification command when behavior changes. Preserve GitHub backups after each coherent slice. Phase 5C initial collateral packet, screenshot checklist, and external portfolio/PDF packet are complete; diagram-rendering audit code is locally verified and needs production browser QA after deployment before returning to client-specific onboarding or a real-client deployment when credentials are available. Do not rebuild OAuth, Stripe, multi-tenancy, email, marketing pages, autonomous agents, Kubernetes, Redis, complex dashboards, or WebContainer/runtime package tooling.
 ```

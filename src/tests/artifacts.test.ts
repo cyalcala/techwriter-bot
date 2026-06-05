@@ -53,6 +53,20 @@ describe('artifact detection', () => {
     expect(result.cleanText).toBe('Here are two diagrams:');
   });
 
+  it('normalizes Mermaid fenced artifacts found after streaming', () => {
+    const text = [
+      '```mermaid',
+      'graph TD',
+      'A[Start] --&gt;|ready|&gt; B[Done]',
+      '```',
+    ].join('\n');
+
+    const result = detectAllArtifacts(text, []);
+
+    expect(result.artifacts).toHaveLength(1);
+    expect(result.artifacts[0].code).toBe('graph TD\nA[Start] -->|ready| B[Done]');
+  });
+
   it('does not classify ordinary json fences as Vega charts', () => {
     const result = detectAllArtifacts('```json\n{"ok":true}\n```', []);
 
@@ -136,6 +150,28 @@ describe('artifact stream parser', () => {
       title: 'Flow',
       code: 'graph TD\nA-->B',
     });
+  });
+
+  it('normalizes common AI Mermaid mistakes before queueing streamed artifacts', () => {
+    const artifacts: Artifact[] = [];
+    const parser = new ArtifactStreamParser((artifact) => artifacts.push(artifact), () => {});
+
+    parser.feed([
+      '<artifact type="mermaid" title="BPO Flow">',
+      'graph LR',
+      'A[Customer Inquiry] -->|request received|> B[Initial Screening]',
+      'subgraph BPO Process',
+      'B',
+      'end',
+      'style BPO Process fill:#f9f,stroke:#333,stroke-width:4px',
+      '</artifact>',
+    ].join('\n'));
+    parser.flush();
+
+    expect(artifacts).toHaveLength(1);
+    expect(artifacts[0].code).toContain('A[Customer Inquiry] -->|request received| B[Initial Screening]');
+    expect(artifacts[0].code).toContain('subgraph BPO_Process [BPO Process]');
+    expect(artifacts[0].code).toContain('style BPO_Process fill:#f9f,stroke:#333,stroke-width:4px');
   });
 
   it('closes artifact bodies when the close tag is split across token boundaries', () => {
@@ -246,6 +282,7 @@ describe('artifact lifecycle and queue', () => {
     const standalone = readFileSync(join(process.cwd(), 'src', 'components', 'ArtifactStandalone.svelte'), 'utf8');
 
     expect(standalone).toContain("normalizeArtifactType(type, code) || 'code'");
+    expect(standalone).toContain('normalizeArtifactSource(artifactType, code)');
   });
 
   it('uses the full artifact body when generating stable ids', () => {

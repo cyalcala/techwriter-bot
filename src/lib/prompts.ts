@@ -32,7 +32,7 @@ const ARTIFACT_COMPACT = [
   '  A[Step One] -->|does this| B[Step Two]',
   '  B -->|leads to| C[Step Three]',
   '  C -->|results in| D[Final Step]',
-  'Rules: Square brackets for nodes: A[Description]. Pipes for edge labels: -->|action|. Curly braces for decisions: A{Choice}. Use subgraph for grouping. NO semicolons. NO "note" statements. NO "participant" keyword in flowcharts. Only graph/flowchart syntax.',
+  'Rules: Square brackets for nodes: A[Description]. Pipes for edge labels: -->|action| B. NEVER write -->|action|> B. Curly braces for decisions: A{Choice}. Use subgraph for grouping. If a styled subgraph title has spaces, write subgraph BPO_Process [BPO Process] and style BPO_Process. NO semicolons. NO "note" statements. NO "participant" keyword in flowcharts. Only graph/flowchart syntax.',
   '',
   'Mermaid sequence diagrams: Use "sequenceDiagram" keyword. participant A, A->>B: message, Note right of A: text.',
   'Graphviz: digraph Name { rankdir=LR; node[shape=box]; A -> B[label="desc"]; }',

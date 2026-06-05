@@ -1,6 +1,7 @@
 import type { ArtifactEntry } from './artifact-queue';
 import type { ArtifactPlacement, ArtifactType } from './stream-parser';
 import type { UploadedDocumentRecord } from './rag-client';
+import { normalizeArtifactSource } from './diagram-source-normalizer';
 
 export const SESSION_EXPORT_VERSION = 1;
 
@@ -175,7 +176,7 @@ function cloneArtifactEntry(input: unknown): ArtifactEntry | null {
       type: type as ArtifactType,
       title,
       placement: placement as ArtifactPlacement,
-      code,
+      code: normalizeArtifactSource(type, code),
     },
   };
 

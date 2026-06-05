@@ -1,4 +1,5 @@
 import type { Artifact, ArtifactType } from './stream-parser';
+import { normalizeArtifactSource } from './diagram-source-normalizer';
 
 interface RawArtifact {
   type: ArtifactType;
@@ -78,8 +79,9 @@ export function detectAllArtifacts(text: string, streamArtifacts: Artifact[]): {
   const artifacts: Artifact[] = [];
   for (const f of found) {
     if (!f.type || !f.code) continue;
-    if (!validateArtifact(f.type, f.code)) continue;
-    const key = `${f.type}:${f.code.slice(0, 80)}`;
+    const code = normalizeArtifactSource(f.type, f.code);
+    if (!validateArtifact(f.type, code)) continue;
+    const key = `${f.type}:${code.slice(0, 80)}`;
     if (seen.has(key)) continue;
     seen.add(key);
     artifacts.push({
@@ -87,8 +89,8 @@ export function detectAllArtifacts(text: string, streamArtifacts: Artifact[]): {
       type: f.type,
       title: f.title || `${f.type} Diagram`,
       placement: 'inline',
-      code: f.code,
-      language: f.type === 'code' ? detectLang(f.code) : undefined,
+      code,
+      language: f.type === 'code' ? detectLang(code) : undefined,
     });
   }
 

@@ -1,3 +1,5 @@
+import { looksLikeMermaidFlowchart, normalizeArtifactSource } from './diagram-source-normalizer';
+
 const KROKI_BASE = 'https://kroki.io';
 const KROKI_TIMEOUT_MS = 10_000;
 
@@ -7,14 +9,15 @@ const TYPE_MAP: Record<string, string> = {
   d2: 'd2',
   plantuml: 'plantuml',
   vega: 'vega',
-  flowchart: 'mermaid',
+  flowchart: 'flowchart',
 };
 
 export const KROKI_RENDERABLE = new Set(['mermaid', 'graphviz', 'd2', 'plantuml', 'vega', 'flowchart']);
 export const CLIENT_ONLY_TYPES = new Set(['code', 'html', 'svg', 'react', 'katex', 'markmap']);
 
 export async function renderViaKroki(type: string, code: string): Promise<{ svg?: string; error?: string; cached?: boolean; status?: number }> {
-  const krokiType = TYPE_MAP[type] || type;
+  const normalizedCode = normalizeArtifactSource(type, code);
+  const krokiType = selectKrokiType(type, normalizedCode);
 
   const tryOnce = async (): Promise<{ svg?: string; error?: string; cached?: boolean; status?: number; retryable?: boolean }> => {
     try {
@@ -23,7 +26,7 @@ export async function renderViaKroki(type: string, code: string): Promise<{ svg?
       const res = await fetch(`${KROKI_BASE}/${krokiType}/svg`, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' },
-        body: code,
+        body: normalizedCode,
         signal: ctrl.signal,
       });
       clearTimeout(timer);
@@ -50,6 +53,12 @@ export async function renderViaKroki(type: string, code: string): Promise<{ svg?
   await new Promise(r => setTimeout(r, 2000));
   const second = await tryOnce();
   return { svg: second.svg, error: second.error, status: second.status, cached: second.cached };
+}
+
+function selectKrokiType(type: string, code: string): string {
+  const normalizedType = String(type || '').toLowerCase();
+  if (normalizedType === 'flowchart' && looksLikeMermaidFlowchart(code)) return 'mermaid';
+  return TYPE_MAP[normalizedType] || normalizedType;
 }
 
 function sanitizeSvg(svg: string): string {
