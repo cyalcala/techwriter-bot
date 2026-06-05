@@ -50,12 +50,13 @@ describe('artifact iframe sandboxing', () => {
   });
 
   it('keeps wide Mermaid SVGs scrollable on mobile instead of shrinking them to the card', () => {
-    const svg = '<svg id="m" width="100%" style="max-width: 1847.75px;" viewBox="0 0 1847.75 140"><g /></svg>';
+    const svg = '<svg id="m" width="100%" style="max-width: 1847.75px;" viewBox="0 0 1847.75 140"><style>#m{max-width:200px;}</style><g /></svg>';
 
     const preserved = preserveScrollableDiagramSvgSize(svg);
 
     expect(preserved).toContain('width="1848"');
     expect(preserved).not.toContain('width="100%"');
     expect(preserved).not.toContain('max-width: 1847.75px');
+    expect(preserved).not.toContain('max-width:200px');
   });
 });

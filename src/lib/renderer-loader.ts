@@ -396,7 +396,7 @@ export function preserveScrollableDiagramSvgSize(svg: string): string {
         return cleaned ? ` style=${quote}${cleaned}${quote}` : '';
       });
     return `<svg${nextAttrs}>`;
-  });
+  }).replace(/max-width\s*:\s*[\d.]+px\s*;?/gi, '');
 }
 function safeClassName(value: string): string { return value.replace(/[^\w-]/g, '') || 'plaintext'; }
 function rand(): string { return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`; }

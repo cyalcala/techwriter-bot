@@ -168,8 +168,9 @@ As of 2026-06-05:
   placeholder, so the Preview control now re-triggers rendering. Mobile QA
   found Mermaid's generated `width="100%"` SVG output was shrinking wide
   diagrams into an unreadable strip, so rendered diagram SVGs now preserve
-  intrinsic width and scroll horizontally on small screens. Local verification
-  passed: focused diagram/artifact tests (8 files, 51 tests) before the
+  intrinsic width and strip embedded Mermaid `max-width` CSS so they scroll
+  horizontally on small screens. Local verification passed: focused
+  diagram/artifact tests (8 files, 51 tests) before the
   Flowchart.js endpoint correction, then focused parser/renderer/standalone/
   mobile regression tests after the interaction and mobile readability fixes (5
   files, 41 tests), full `npm.cmd test` (44 files, 218 tests), `npm.cmd audit
