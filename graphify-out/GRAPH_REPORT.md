@@ -1,16 +1,16 @@
-# Graph Report - techwriter-bot  (2026-06-04)
+# Graph Report - techwriter-bot  (2026-06-05)
 
 ## Corpus Check
-- 133 files · ~98,719 words
+- 135 files · ~139,032 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 878 nodes · 1443 edges · 37 communities detected
-- Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 94 edges (avg confidence: 0.8)
+- 894 nodes · 1489 edges · 37 communities detected
+- Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 101 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `4563754b`
+- Built from commit: `7793d625`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -59,11 +59,11 @@
 3. `apiError()` - 26 edges
 4. `jsonResponse()` - 20 edges
 5. `searchRouter()` - 17 edges
-6. `kvKey()` - 15 edges
-7. `Technical Writer Bot` - 14 edges
-8. `Antigravity Cloudflare API Rotation Strategy` - 14 edges
-9. `readEnvKeys()` - 13 edges
-10. `setTimeout()` - 12 edges
+6. `normalizeArtifactSource()` - 16 edges
+7. `kvKey()` - 15 edges
+8. `Technical Writer Bot` - 14 edges
+9. `Antigravity Cloudflare API Rotation Strategy` - 14 edges
+10. `readEnvKeys()` - 13 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `fail()` --calls--> `formatArtifactRendererError()`  [INFERRED]
@@ -77,19 +77,19 @@
 - `renderMarkmapArtifact()` --calls--> `setTimeout()`  [INFERRED]
   src/lib/renderer-loader.ts → src/components/ChatIsland.svelte
 
-## Communities (71 total, 4 thin omitted)
+## Communities (71 total, 3 thin omitted)
 
 ### Community 0 - "Community 0"
-Cohesion: 0.05
-Nodes (57): GET(), ALLOWED_ORIGINS, checkCSRF(), dailyEmbedCounts, now, POST(), RateLimitEntry, rateLimits (+49 more)
+Cohesion: 0.06
+Nodes (51): GET(), ALLOWED_ORIGINS, checkCSRF(), dailyEmbedCounts, now, POST(), RateLimitEntry, rateLimits (+43 more)
 
 ### Community 1 - "Community 1"
 Cohesion: 0.06
-Nodes (57): ALLOWED_ORIGINS, bindSession(), checkCSRF(), checkRateLimit(), dailyUsage, DC_ASNS, GET(), getReputation() (+49 more)
+Nodes (52): ALLOWED_ORIGINS, bindSession(), checkCSRF(), checkRateLimit(), dailyUsage, DC_ASNS, GET(), getReputation() (+44 more)
 
 ### Community 2 - "Community 2"
-Cohesion: 0.05
-Nodes (37): ../lib/artifact-lifecycle, ../lib/artifact-state, ../lib/artifact-types, ../lib/cleanup, ../lib/markdown, ../lib/renderer-loader, ../lib/session-persist, ../lib/stream-parser (+29 more)
+Cohesion: 0.06
+Nodes (53): ../lib/renderer-loader, cleanSubgraphTitle(), decodeCommonEntities(), escapeRegExp(), isDiagramType(), keepFirstFlowchartDocument(), looksLikeMermaidFlowchart(), normalizeArtifactSource() (+45 more)
 
 ### Community 3 - "Community 3"
 Cohesion: 0.07
@@ -97,99 +97,103 @@ Nodes (43): ../lib/rag-client, ../lib/rag-db, clearAllData(), clearLegacyBrowser
 
 ### Community 4 - "Community 4"
 Cohesion: 0.1
-Nodes (29): ../lib/artifact-queue, ArtifactEntry, chatMarkdownExportFilename(), cleanInline(), cleanResponseMarkdown(), codeFence(), createChatMarkdownExport(), createSingleMessageMarkdownExport() (+21 more)
+Nodes (36): GET(), setTimeout(), checkEnvKeys(), readEnvKeys(), classifyQuery(), extractKeyTerms(), filterRelevantResults(), formatConversationalResponse() (+28 more)
 
 ### Community 5 - "Community 5"
 Cohesion: 0.05
 Nodes (39): 10. Response Caching and Idempotency, 1. Intelligent Chat Paths, 2. Multi-Provider AI Routing with Circuit Breaker, 3. Real-Time Artifact Generation, 4. Multi-Tier Live Search, 5. Knowledge Graph Context, 6. Document RAG (Retrieval Augmented Generation), 7. Reputation and Access Tier System (+31 more)
 
 ### Community 6 - "Community 6"
+Cohesion: 0.07
+Nodes (18): fixArtifactError(), getActiveArtifact(), SplitArtifact, SplitTab, ARTIFACT_LANGUAGE_ALIASES, balanced(), CODE_LANGS, looksLikeVegaSpec() (+10 more)
+
+### Community 7 - "Community 7"
 Cohesion: 0.05
 Nodes (38): Architecture, Build and Deploy, Building Around LLM Limitations, Codebase-Aware Responses, code:block1 (┌───────────────────────────────────────────────────────────), code:env (GROQ_API_KEY=gru_...), code:bash (git clone https://github.com/your-username/techwriter-bot.gi), code:bash (npm run dev) (+30 more)
 
-### Community 7 - "Community 7"
-Cohesion: 0.11
-Nodes (34): detectLanguage(), domReady(), escapeAttr(), escapeHtml(), getReactHtml(), loadedScripts, loadedStyles, loadingScripts (+26 more)
-
 ### Community 8 - "Community 8"
 Cohesion: 0.08
-Nodes (28): getInjectedProviderStatus(), parseProviderFaultInjection(), parseProviderFaultSpec(), readEnvString(), safeEquals(), classifyQuery(), getProvidersForRole(), Provider (+20 more)
+Nodes (29): getInjectedProviderStatus(), parseProviderFaultInjection(), parseProviderFaultSpec(), readEnvString(), safeEquals(), classifyQuery(), getProvidersForRole(), Provider (+21 more)
 
 ### Community 9 - "Community 9"
-Cohesion: 0.13
-Nodes (26): GET(), setTimeout(), checkEnvKeys(), readEnvKeys(), extractKeyTerms(), filterRelevantResults(), checkEnhancedBudget(), EnhancedSearchResult (+18 more)
+Cohesion: 0.15
+Nodes (18): chatMarkdownExportFilename(), cleanInline(), cleanResponseMarkdown(), codeFence(), createChatMarkdownExport(), createSingleMessageMarkdownExport(), createSlackMessageCopy(), escapeLinkText() (+10 more)
 
 ### Community 10 - "Community 10"
 Cohesion: 0.07
 Nodes (26): 10. SSE Parse Resilience (10 min), 1. Guaranteed Abort Cleanup (30 min), 2. Session Persistence (1.5 hours), 3. SSE Connection Resilience (1 hour), 4. Kroki Request Queue (30 min), 5. Aggressive Token Governor (30 min), 6. Provider Health Pre-Flight (30 min), 7. New Chat Guard (15 min) (+18 more)
 
 ### Community 11 - "Community 11"
-Cohesion: 0.14
-Nodes (17): GET(), loadEnv(), POST(), buildCommunityContext(), buildContextFromNodes(), clearGraphCache(), ensureGraph(), getGodNodes() (+9 more)
+Cohesion: 0.16
+Nodes (21): kvKey(), normalizeProjectName(), asCount(), emptyBucket(), recordProviderTelemetry(), safeDimension(), asCount(), collectOperationalStats() (+13 more)
 
 ### Community 12 - "Community 12"
-Cohesion: 0.17
-Nodes (19): asCount(), emptyBucket(), recordProviderTelemetry(), safeDimension(), asCount(), collectOperationalStats(), emptyStats(), finalizeStats() (+11 more)
+Cohesion: 0.15
+Nodes (16): loadEnv(), POST(), buildCommunityContext(), buildContextFromNodes(), clearGraphCache(), ensureGraph(), getGodNodes(), GraphContext (+8 more)
 
 ### Community 13 - "Community 13"
+Cohesion: 0.15
+Nodes (13): ../lib/artifact-lifecycle, ../lib/artifact-queue, ../lib/markdown, regenerateArtifactEntry(), ArtifactStatus, ArtifactEntry, ArtifactQueue, createArtifactQueue() (+5 more)
+
+### Community 14 - "Community 14"
 Cohesion: 0.1
 Nodes (19): Acceptance Criteria, Antigravity Cloudflare API Rotation Strategy, Cloudflare Setup, code:text (CEREBRAS_API_KEY), code:text (GET /api/debug-keys), code:text (EPERM: operation not permitted, lstat 'C:\Users\admin'), code:text (npm run build), code:text (src/pages/api/debug-ai.ts: Cannot find module 'cloudflare:wo) (+11 more)
 
-### Community 14 - "Community 14"
+### Community 15 - "Community 15"
 Cohesion: 0.11
 Nodes (18): Built for Technical Precision, Not Generic AI Chat, Caching and Idempotency, Codebase-Aware Responses, Diagrams That Actually Work, Document-Centric RAG, Enterprise-Grade Architecture, Live Research, Not Stale Training Data, Multi-Provider Reliability (+10 more)
 
-### Community 15 - "Community 15"
+### Community 16 - "Community 16"
+Cohesion: 0.16
+Nodes (14): artifactEntryKey(), chipBases, copySource(), currentEntry, currentError, downloadPng(), downloadSvg(), getSelectedSvgMarkup() (+6 more)
+
+### Community 17 - "Community 17"
 Cohesion: 0.14
 Nodes (14): ../lib/artifact-detector, extractArtifactTitle(), generateArtifactId(), isArtifactUpdate(), simpleHash(), ArtifactType, artifact, artifacts (+6 more)
 
-### Community 16 - "Community 16"
+### Community 18 - "Community 18"
 Cohesion: 0.17
 Nodes (10): addCoverageTerm(), cleanCoverageTerm(), cleanTerminologyTerm(), closesFence(), containsTerm(), escapeRegExp(), extractDocumentationCoverageTerms(), parseTerminologyRules() (+2 more)
 
-### Community 17 - "Community 17"
+### Community 19 - "Community 19"
 Cohesion: 0.12
 Nodes (16): [1.x] - Earlier releases, [2.0.0] - 2026-05-10 — Intelligent Artifact Auto-Correction Fallback, [2.1.0] - 2026-05-11 — One-Shot Artifact Rendering Engine Overhaul, All 12 Artifact Types — Stability Status, Changelog, Changes, Deployment, Overview (+8 more)
 
-### Community 18 - "Community 18"
+### Community 20 - "Community 20"
 Cohesion: 0.12
 Nodes (15): cleanSlateConfig, clientChunks, clientDir, distDir, ignorePath, internalConfigs, legacyEntry, midPath (+7 more)
 
-### Community 19 - "Community 19"
-Cohesion: 0.18
-Nodes (9): regenerateArtifactEntry(), ArtifactStatus, ArtifactQueue, createArtifactQueue(), Subscriber, createArtifactRegenerationPrompt(), createArtifactRepairTarget(), planArtifactRepairReplacement() (+1 more)
+### Community 21 - "Community 21"
+Cohesion: 0.13
+Nodes (8): ../lib/artifact-state, ../lib/cleanup, ../lib/session-persist, ../lib/token-batcher, closeSplit(), handleGlobalKeydown(), next, stored
 
-### Community 20 - "Community 20"
+### Community 22 - "Community 22"
 Cohesion: 0.13
 Nodes (14): Artifact Rendering, Caching, code:block1 (src/), Commit: `b2ac2c0` | Branch: `main` | Deployed: `tw-bot.pages.dev`, Deployed Capabilities, File Inventory (Source Files Only), Infra, Knowledge Graph (+6 more)
 
-### Community 21 - "Community 21"
-Cohesion: 0.23
-Nodes (8): ARTIFACT_LANGUAGE_ALIASES, balanced(), CODE_LANGS, looksLikeVegaSpec(), looksLikeWebContainerProject(), normalizeArtifactType(), TYPE_ALIASES, validateArtifact()
-
-### Community 22 - "Community 22"
-Cohesion: 0.2
-Nodes (4): fixArtifactError(), getActiveArtifact(), SplitArtifact, SplitTab
-
 ### Community 23 - "Community 23"
-Cohesion: 0.33
-Nodes (6): CachedResponse, cacheKey(), checkCache(), normalizeQuery(), sha256(), writeCache()
+Cohesion: 0.26
+Nodes (9): archiveConversation(), cleanTitle(), createConversationSnapshot(), deleteConversation(), listVisibleConversations(), renameConversation(), sortByUpdatedDesc(), titleFromFirstUserMessage() (+1 more)
+
+### Community 24 - "Community 24"
+Cohesion: 0.19
+Nodes (6): ../lib/artifact-types, ../lib/stream-parser, a, blob, url, renderTimeout
 
 ### Community 25 - "Community 25"
-Cohesion: 0.25
-Nodes (4): DIAGRAM_LANGS, lang, origCode, renderer
+Cohesion: 0.39
+Nodes (6): fail(), escapeAttr(), escapeHtml(), formatArtifactRendererError(), getArtifactRecoveryHint(), getArtifactTypeLabel()
 
 ### Community 26 - "Community 26"
 Cohesion: 0.25
-Nodes (7): env, keys, req, restored, rl, serialized, state
+Nodes (4): DIAGRAM_LANGS, lang, origCode, renderer
 
 ### Community 27 - "Community 27"
-Cohesion: 0.29
-Nodes (5): chunksDir, clientDir, distDir, files, serverDir
+Cohesion: 0.25
+Nodes (7): env, keys, req, restored, rl, serialized, state
 
 ### Community 28 - "Community 28"
-Cohesion: 0.33
-Nodes (5): ArtifactPlacement, isPotentialArtifactTagPrefix(), ParserState, trailingArtifactTagPrefixLength(), trailingMarkerPrefixLength()
+Cohesion: 0.29
+Nodes (5): chunksDir, clientDir, distDir, files, serverDir
 
 ### Community 29 - "Community 29"
 Cohesion: 0.52
@@ -214,16 +218,16 @@ Nodes (4): cleanDisplayText(), cleanLogoUrl(), cleanPrimaryColor(), readWhiteLab
 ## Knowledge Gaps
 - **230 isolated node(s):** `distDir`, `clientDir`, `serverDir`, `serverFiles`, `workerEntry` (+225 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **4 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **3 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `setTimeout()` connect `Community 9` to `Community 0`, `Community 1`, `Community 2`, `Community 7`, `Community 8`?**
-  _High betweenness centrality (0.063) - this node is a cross-community bridge._
-- **Why does `createRequestId()` connect `Community 0` to `Community 1`, `Community 11`?**
-  _High betweenness centrality (0.030) - this node is a cross-community bridge._
-- **Why does `kvKey()` connect `Community 0` to `Community 8`, `Community 1`, `Community 12`?**
+- **Why does `setTimeout()` connect `Community 4` to `Community 0`, `Community 1`, `Community 2`, `Community 8`, `Community 16`, `Community 21`?**
+  _High betweenness centrality (0.057) - this node is a cross-community bridge._
+- **Why does `normalizeArtifactSource()` connect `Community 2` to `Community 9`, `Community 29`, `Community 6`?**
+  _High betweenness centrality (0.033) - this node is a cross-community bridge._
+- **Why does `createRequestId()` connect `Community 0` to `Community 1`, `Community 12`?**
   _High betweenness centrality (0.029) - this node is a cross-community bridge._
 - **Are the 6 inferred relationships involving `POST()` (e.g. with `createRequestId()` and `getRequestLimits()`) actually correct?**
   _`POST()` has 6 INFERRED edges - model-reasoned connections that need verification._
