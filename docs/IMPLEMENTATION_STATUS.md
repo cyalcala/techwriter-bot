@@ -96,11 +96,14 @@ transparency slices with privacy-first active-session boundaries:
   generated `width="100%"` SVG output was shrinking wide diagrams into an
   unreadable strip, so rendered diagram SVGs now preserve intrinsic width and
   strip embedded Mermaid `max-width` CSS so they scroll horizontally on small
-  screens. Local verification passed: focused diagram/artifact tests (8 files,
-  51 tests) before the Flowchart.js endpoint
+  screens, with flex shrink disabled for rendered diagram SVGs. Local
+  verification passed: focused diagram/artifact tests (8 files, 51 tests)
+  before the Flowchart.js endpoint
   correction, then focused parser/renderer/standalone/mobile regression tests
   after the interaction and mobile readability fixes (5 files, 41 tests), full
-  `npm.cmd test` (44 files, 218 tests), `npm.cmd audit
+  `npm.cmd test` (44 files, 218 tests), then focused flex-shrink regression
+  tests (5 files, 42 tests) and full `npm.cmd test` (44 files, 219 tests),
+  `npm.cmd audit
   --omit=dev --audit-level=high` (0 vulnerabilities), `git diff --check`, and
   the recorded `build:local` command with known non-failing warnings. Local
   Graphify refresh reports 894 nodes and 1489 edges.

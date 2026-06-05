@@ -300,6 +300,14 @@ describe('artifact lifecycle and queue', () => {
     expect(panel).toContain('onclick={showPreviewTab}');
   });
 
+  it('prevents rendered diagram SVGs from shrinking inside mobile flex containers', () => {
+    const panel = readFileSync(join(process.cwd(), 'src', 'components', 'ArtifactPanel.svelte'), 'utf8');
+
+    expect(panel).toContain(':global(.artifact-server-svg svg)');
+    expect(panel).toContain('flex: 0 0 auto;');
+    expect(panel).toContain('max-width: none;');
+  });
+
   it('uses the full artifact body when generating stable ids', () => {
     const base = 'x'.repeat(220);
 

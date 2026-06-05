@@ -264,6 +264,7 @@
 
   :global(.artifact-server-svg svg),
   :global(.artifact-flowchart-host svg) {
+    flex: 0 0 auto;
     max-width: none;
     height: auto;
   }
