@@ -53,8 +53,9 @@ The strongest sellable capabilities are:
 - Artifact generation and recovery paths with parser hardening, renderer error
   boundaries, Mermaid source normalization, Kroki/server-render coverage,
   Flowchart.js client rendering, standalone artifact route styling, Preview
-  re-render recovery after viewing source, gallery controls, selected artifact
-  regeneration, source/SVG/PNG downloads, and mobile overlay gestures.
+  re-render recovery after viewing source, mobile-readable wide diagram
+  scrolling, gallery controls, selected artifact regeneration, source/SVG/PNG
+  downloads, and mobile overlay gestures.
 - Conversation workflow for active-session history, JSON export/import,
   Markdown export, single-response export, Slack-format copy, and explicit
   webhook export.

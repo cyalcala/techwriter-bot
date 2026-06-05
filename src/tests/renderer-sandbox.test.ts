@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { preserveScrollableDiagramSvgSize } from '../lib/renderer-loader';
 
 function source(path: string): string {
   return readFileSync(join(process.cwd(), path), 'utf8');
@@ -46,5 +47,15 @@ describe('artifact iframe sandboxing', () => {
     expect(rendererLoader).toContain("script.referrerPolicy = 'no-referrer';");
     expect(loadStyleBody).toContain("link.crossOrigin = 'anonymous';");
     expect(loadStyleBody).toContain("link.referrerPolicy = 'no-referrer';");
+  });
+
+  it('keeps wide Mermaid SVGs scrollable on mobile instead of shrinking them to the card', () => {
+    const svg = '<svg id="m" width="100%" style="max-width: 1847.75px;" viewBox="0 0 1847.75 140"><g /></svg>';
+
+    const preserved = preserveScrollableDiagramSvgSize(svg);
+
+    expect(preserved).toContain('width="1848"');
+    expect(preserved).not.toContain('width="100%"');
+    expect(preserved).not.toContain('max-width: 1847.75px');
   });
 });

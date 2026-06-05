@@ -257,10 +257,25 @@
   }
 
   :global(.artifact-svg-host svg),
-  :global(.artifact-server-svg svg),
-  :global(.artifact-preview-shell svg) {
+  :global(.artifact-preview-shell > svg) {
     max-width: 100%;
     height: auto;
+  }
+
+  :global(.artifact-server-svg svg),
+  :global(.artifact-flowchart-host svg) {
+    max-width: none;
+    height: auto;
+  }
+
+  :global(.artifact-server-svg) {
+    justify-content: flex-start;
+  }
+
+  @media (min-width: 768px) {
+    :global(.artifact-server-svg) {
+      justify-content: center;
+    }
   }
 
   :global(.artifact-error) {

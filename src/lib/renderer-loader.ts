@@ -167,7 +167,7 @@ export function renderMermaidArtifact(code: string): string {
       const timeoutPromise = new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Mermaid render timed out after 5s')), 5000));
       const { svg } = await Promise.race([renderPromise, timeoutPromise]);
       if (svg && /<svg\b/i.test(svg)) {
-        el.innerHTML = sanitizeSvg(svg);
+        el.innerHTML = sanitizeSvg(preserveScrollableDiagramSvgSize(svg));
         el.className = 'artifact-server-svg flex justify-center overflow-auto';
       } else {
         await withTimeout(renderServerSvgInto(el, 'mermaid', sanitized, 'Mermaid'), 15_000);
@@ -352,7 +352,7 @@ async function renderServerSvgInto(el: HTMLElement, type: ArtifactType, code: st
     });
     const data = await res.json().catch(() => null);
     if (res.ok && data?.svg) {
-      el.innerHTML = sanitizeSvg(data.svg);
+      el.innerHTML = sanitizeSvg(preserveScrollableDiagramSvgSize(data.svg));
       el.className = 'artifact-server-svg flex justify-center overflow-auto';
       return;
     }
@@ -377,6 +377,26 @@ function sanitizeHtml(html: string): string {
 function sanitizeSvg(svg: string): string {
   return sanitizeHtml(svg)
     .replace(/\s(href|src|xlink:href)\s*=\s*(['"])\s*data:text\/html[\s\S]*?\2/gi, '');
+}
+export function preserveScrollableDiagramSvgSize(svg: string): string {
+  return svg.replace(/<svg\b([^>]*)>/i, (match, attrs: string) => {
+    if (!/\swidth=(["'])100%\1/i.test(attrs)) return match;
+    const maxWidth = attrs.match(/max-width\s*:\s*([\d.]+)px/i)?.[1];
+    if (!maxWidth) return match;
+    const width = Math.ceil(Number(maxWidth));
+    if (!Number.isFinite(width) || width <= 0) return match;
+    const nextAttrs = attrs
+      .replace(/\swidth=(["'])100%\1/i, ` width="${width}"`)
+      .replace(/\sstyle=(["'])(.*?)\1/i, (_styleAttr: string, quote: string, style: string) => {
+        const cleaned = style
+          .replace(/(^|;)\s*max-width\s*:\s*[\d.]+px\s*;?/i, '$1')
+          .replace(/;{2,}/g, ';')
+          .replace(/^\s*;\s*/, '')
+          .trim();
+        return cleaned ? ` style=${quote}${cleaned}${quote}` : '';
+      });
+    return `<svg${nextAttrs}>`;
+  });
 }
 function safeClassName(value: string): string { return value.replace(/[^\w-]/g, '') || 'plaintext'; }
 function rand(): string { return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`; }
