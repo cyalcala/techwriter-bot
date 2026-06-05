@@ -107,7 +107,17 @@ transparency slices with privacy-first active-session boundaries:
   `npm.cmd audit
   --omit=dev --audit-level=high` (0 vulnerabilities), `git diff --check`, and
   the recorded `build:local` command with known non-failing warnings. Local
-  Graphify refresh reports 894 nodes and 1489 edges.
+  Graphify refresh reports 894 nodes and 1489 edges. Production acceptance for
+  commit `1eec50d` passed in GitHub Actions run `27021251021`, immutable URL
+  `https://16502d06.tw-bot.pages.dev`; Graphify CI reported 1156 nodes and
+  1759 edges. Production smoke confirmed the alias and immutable URL return
+  `200`, `/api/health` returns `ok`, the broken BPO Mermaid sample from the
+  screenshot renders SVG without syntax errors after one retryable Kroki
+  timeout, pure Flowchart.js API requests return a non-retryable client-rendered
+  response, Mermaid-like flowchart aliases render SVG, and real Chrome
+  Playwright browser QA passed on desktop `1440x900` and mobile `390x844` with
+  styled standalone artifacts, Code -> Preview recovery, no artifact error
+  panel, and horizontally scrollable wide diagrams.
 - Current Phase 5C acceptance evidence: docs commit `9a7ac29` deployed
   successfully in GitHub Actions run `26979426208`, immutable URL
   `https://be36a3cd.tw-bot.pages.dev`; Graphify CI uploaded a runtime graph
@@ -2086,10 +2096,9 @@ Phase 5B is closure-accepted. Continue with post-Phase-5 readiness work:
   `output/playwright/phase-5c-portfolio/`.
 - Phase 5C external portfolio/PDF packet is assembled in
   `docs/PORTFOLIO_PDF_PACKET.md` and `output/portfolio/`.
-- Next safe follow-up: finish production browser QA for the diagram-rendering
-  audit deployment, then return to client-specific onboarding or run a
-  real-client deployment when credentials are available. Do not add an in-app
-  marketing page.
+- Next safe follow-up: return to client-specific onboarding or run a real-client
+  deployment when credentials are available. The diagram-rendering audit is
+  production-accepted. Do not add an in-app marketing page.
 - If local browser smoke remains blocked by the Cloudflare local preview issue,
   record that caveat and rely on build plus production smoke after deployment.
 - Keep the UI compact and internal-tool focused. Do not add marketing pages,
@@ -2109,5 +2118,5 @@ Phase 5B is closure-accepted. Continue with post-Phase-5 readiness work:
 Use this in a new chat if the session stops:
 
 ```text
-Continue from C:\Users\admin\Desktop\techwriter-bot. Read docs\MASTER_EXECUTION_PLAN.md, docs\IMPLEMENTATION_STATUS.md, docs\AI_RECOVERY_TRAIL.md, docs\SELLABLE_READINESS_HANDOFF.md, docs\CLIENT_DEPLOYMENT_KIT.md, docs\PORTFOLIO_BUYER_NARRATIVE.md, docs\PORTFOLIO_SCREENSHOT_MANIFEST.md, docs\PORTFOLIO_PDF_PACKET.md, docs\superpowers\specs\2026-06-04-bounded-documentation-tool-pack.md, and graphify-out\GRAPH_REPORT.md first. Then continue from docs\IMPLEMENTATION_STATUS.md Next Task. Use the build verification command recorded there when behavior changes. Preserve GitHub backups after each coherent slice. Phase 5C initial collateral packet, screenshot checklist, and external portfolio/PDF packet are complete; diagram-rendering audit code is locally verified and needs production browser QA after deployment before returning to client-specific onboarding or a real-client deployment when credentials are available. Do not rebuild OAuth, Stripe, multi-tenancy, email, marketing pages, autonomous agents, Kubernetes, Redis, complex dashboards, or WebContainer/runtime package tooling.
+Continue from C:\Users\admin\Desktop\techwriter-bot. Read docs\MASTER_EXECUTION_PLAN.md, docs\IMPLEMENTATION_STATUS.md, docs\AI_RECOVERY_TRAIL.md, docs\SELLABLE_READINESS_HANDOFF.md, docs\CLIENT_DEPLOYMENT_KIT.md, docs\PORTFOLIO_BUYER_NARRATIVE.md, docs\PORTFOLIO_SCREENSHOT_MANIFEST.md, docs\PORTFOLIO_PDF_PACKET.md, docs\superpowers\specs\2026-06-04-bounded-documentation-tool-pack.md, and graphify-out\GRAPH_REPORT.md first. Then continue from docs\IMPLEMENTATION_STATUS.md Next Task. Use the build verification command recorded there when behavior changes. Preserve GitHub backups after each coherent slice. Phase 5C initial collateral packet, screenshot checklist, external portfolio/PDF packet, and the diagram-rendering audit are production-accepted; next safe work is client-specific onboarding or a real-client deployment when credentials are available. Do not rebuild OAuth, Stripe, multi-tenancy, email, marketing pages, autonomous agents, Kubernetes, Redis, complex dashboards, or WebContainer/runtime package tooling.
 ```
