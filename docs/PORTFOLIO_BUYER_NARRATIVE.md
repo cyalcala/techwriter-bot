@@ -262,6 +262,8 @@ an in-app marketing page.
 
 Captured set: see `docs/PORTFOLIO_SCREENSHOT_MANIFEST.md`. Images are stored
 under `output/playwright/phase-5c-portfolio/`.
+Assembled external packet: see `docs/PORTFOLIO_PDF_PACKET.md`, with generated
+HTML/PDF outputs under `output/portfolio/`.
 
 Required screenshots:
 
@@ -337,8 +339,8 @@ are more credible for documentation teams than silent background automation.
 
 ### What is left before paid pilots?
 
-Core product behavior is not the blocker. Remaining work is external portfolio
-assembly, client-specific onboarding, and a real-client credential pilot.
+Core product behavior is not the blocker. Remaining work is client-specific
+onboarding and a real-client credential pilot.
 
 ## Portfolio Page Outline
 
@@ -374,8 +376,6 @@ Use this outline in an external portfolio, LinkedIn feature section, or PDF.
 
 ## Next Collateral Steps
 
-- Assemble the captured screenshot set into an external PDF or portfolio page.
-- Build a short external PDF or portfolio page from this content.
-- Prepare a 60-second spoken demo script.
-- Prepare a 5-minute technical walkthrough.
+- Use `docs/PORTFOLIO_PDF_PACKET.md` for the external portfolio/PDF packet.
+- Prepare client-specific onboarding.
 - Run a real-client deployment when credentials are available.

@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Techwriter Bot Portfolio Packet</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1c1917;
+      --muted: #6b625c;
+      --line: #ded8ce;
+      --soft: #faf7f2;
+      --accent: #15803d;
+      --accent-soft: #dcfce7;
+      --panel: #ffffff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--soft);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+
+    main {
+      width: min(1080px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 40px 0 56px;
+    }
+
+    section {
+      break-inside: avoid;
+      margin: 0 0 24px;
+      padding: 24px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    h1,
+    h2,
+    h3 {
+      margin: 0;
+      letter-spacing: 0;
+      line-height: 1.15;
+    }
+
+    h1 {
+      font-size: 42px;
+      margin-bottom: 10px;
+    }
+
+    h2 {
+      font-size: 24px;
+      margin-bottom: 14px;
+    }
+
+    h3 {
+      font-size: 16px;
+      margin: 18px 0 8px;
+    }
+
+    p {
+      margin: 0 0 12px;
+    }
+
+    ul,
+    ol {
+      margin: 0 0 12px 20px;
+      padding: 0;
+    }
+
+    li {
+      margin: 4px 0;
+    }
+
+    .kicker {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+
+    .subtitle {
+      max-width: 760px;
+      color: var(--muted);
+      font-size: 18px;
+    }
+
+    .quote {
+      margin-top: 18px;
+      padding: 16px 18px;
+      border-left: 4px solid var(--accent);
+      background: var(--accent-soft);
+      color: #14532d;
+      font-weight: 700;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .stat {
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fffdf9;
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 20px;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .shot {
+      break-inside: avoid;
+      margin-top: 14px;
+    }
+
+    .shot img {
+      display: block;
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .caption {
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .two-shot {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .evidence {
+      padding: 14px;
+      border: 1px solid #bbf7d0;
+      border-radius: 8px;
+      background: #f0fdf4;
+    }
+
+    code {
+      padding: 1px 4px;
+      border-radius: 4px;
+      background: #f5f5f4;
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+      font-size: 0.93em;
+    }
+
+    a {
+      color: #166534;
+      text-decoration: none;
+    }
+
+    @media print {
+      body {
+        background: #fff;
+      }
+
+      main {
+        width: 100%;
+        padding: 0;
+      }
+
+      section {
+        border-radius: 0;
+        box-shadow: none;
+        page-break-inside: avoid;
+      }
+
+      .page-break {
+        page-break-before: always;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section>
+      <div class="kicker">Portfolio case study</div>
+      <h1>Techwriter Bot</h1>
+      <p class="subtitle">Privacy-first AI documentation tooling engine for technical-writing teams.</p>
+      <p class="quote">I designed and shipped a privacy-first documentation tooling engine that helps technical-writing teams review documents, work with code context, produce artifacts, and preserve human control.</p>
+      <div class="stat-grid">
+        <div class="stat"><strong>100%</strong><span>Phase 1-4 accepted</span></div>
+        <div class="stat"><strong>100%</strong><span>Phase 5B tool pack accepted</span></div>
+        <div class="stat"><strong>97%</strong><span>paid-pilot readiness</span></div>
+        <div class="stat"><strong>13</strong><span>portfolio screenshots captured</span></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>The Problem</h2>
+      <p>Technical writers need AI help that can be verified. They move between drafts, source context, API references, release notes, diagrams, exports, and deployment evidence while keeping private content under control.</p>
+      <div class="grid">
+        <div>
+          <h3>Before</h3>
+          <p>Writers use generic AI chat, manually inspect source references, rebuild diagrams, copy content into Markdown, and still need to prove the tool did not invent facts or retain sensitive content.</p>
+        </div>
+        <div>
+          <h3>After</h3>
+          <p>Writers use one client-owned workspace for active-session docs, deterministic review, bounded graph lookup, coverage mapping, code-area explanation, artifacts, and explicit exports.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>What Was Built</h2>
+      <ul>
+        <li>AI chat with provider health, routing, and failover.</li>
+        <li>Active-session document context with filename, heading, and line citations.</li>
+        <li>Document review for glossary, API reference, release-note, and OpenAPI operation checks.</li>
+        <li>Bounded source/code graph lookup, coverage mapping, and code-area explanation.</li>
+        <li>Artifact generation, recovery, source view, SVG/PNG/source export, and mobile overlay handling.</li>
+        <li>Explicit session export/import and Markdown export.</li>
+        <li>Client deployment kit and GitHub-backed recovery trail.</li>
+      </ul>
+      <p>The product is a bounded, human-controlled tool agent. It is not an autonomous background system.</p>
+    </section>
+
+    <section class="page-break">
+      <h2>App Shell And Privacy Boundary</h2>
+      <div class="two-shot">
+        <div class="shot">
+          <img src="../playwright/phase-5c-portfolio/01-app-shell-empty-session.png" alt="Techwriter Bot app shell with empty session controls">
+          <p class="caption">App shell, active-session notice, suggested prompts, and export/import controls.</p>
+        </div>
+        <div class="shot">
+          <img src="../playwright/phase-5c-portfolio/13-privacy-notice-expanded-empty-session.png" alt="Expanded privacy notice in an empty session">
+          <p class="caption">Expanded privacy notice explaining active-session and durable-storage boundaries.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Sample Data And Document Review</h2>
+      <div class="two-shot">
+        <div class="shot">
+          <img src="../playwright/phase-5c-portfolio/02-sample-data-loaded.png" alt="Sample data loaded into the active session">
+          <p class="caption">Sample data lets a fresh deployment demonstrate value without client data.</p>
+        </div>
+        <div class="shot">
+          <img src="../playwright/phase-5c-portfolio/03-tools-review-document.png" alt="Review Document tool selected">
+          <p class="caption">Review Document stays compact and explicit.</p>
+        </div>
+      </div>
+      <div class="two-shot">
+        <div class="shot">
+          <img src="../playwright/phase-5c-portfolio/04-glossary-rules-textarea.png" alt="Glossary rules textarea">
+          <p class="caption">Glossary rules are active-session input, not durable policy storage.</p>
+        </div>
+        <div class="shot">
+          <img src="../playwright/phase-5c-portfolio/05-document-review-no-findings.png" alt="Document review result">
+          <p class="caption">Deterministic review result after explicit user action.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="page-break">
+      <h2>Bounded Source Context Tools</h2>
+      <div class="shot">
+        <img src="../playwright/phase-5c-portfolio/06-bounded-graph-lookup-result.png" alt="Bounded graph lookup result">
+        <p class="caption">Bounded graph lookup returns constrained source references.</p>
+      </div>
+      <div class="two-shot">
+        <div class="shot">
+          <img src="../playwright/phase-5c-portfolio/07-documentation-coverage-map.png" alt="Documentation coverage map result">
+          <p class="caption">Coverage map connects active-document terms to source references.</p>
+        </div>
+        <div class="shot">
+          <img src="../playwright/phase-5c-portfolio/08-code-area-explanation-result.png" alt="Code-area explanation result">
+          <p class="caption">Code-area explanation gives a source-grounded scaffold for docs work.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="page-break">
+      <h2>Artifacts And Export Controls</h2>
+      <div class="two-shot">
+        <div class="shot">
+          <img src="../playwright/phase-5c-portfolio/09-artifact-split-view-rendered-diagram.png" alt="Rendered Mermaid artifact in split view">
+          <p class="caption">Rendered Mermaid workflow artifact in the split view.</p>
+        </div>
+        <div class="shot">
+          <img src="../playwright/phase-5c-portfolio/10-artifact-source-export-controls.png" alt="Artifact source and export controls">
+          <p class="caption">Source view plus source, SVG, and PNG export controls.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="page-break">
+      <h2>Deployment Evidence</h2>
+      <div class="two-shot">
+        <div class="shot">
+          <img src="../playwright/phase-5c-portfolio/11-health-response-evidence.png" alt="Health endpoint response evidence">
+          <p class="caption">Sanitized health endpoint evidence: status ok, provider availability, matching app version.</p>
+        </div>
+        <div class="shot">
+          <img src="../playwright/phase-5c-portfolio/12-github-actions-success-run.png" alt="GitHub Actions successful deployment run">
+          <p class="caption">GitHub Actions success for the deployed collateral checkpoint.</p>
+        </div>
+      </div>
+      <div class="evidence">
+        <p><strong>Latest screenshot evidence commit:</strong> <code>e11309e</code></p>
+        <p><strong>Accepted CI run:</strong> <code>26981068018</code></p>
+        <p><strong>Immutable URL:</strong> <code>https://5d5d86a0.tw-bot.pages.dev</code></p>
+        <p><strong>Graphify CI:</strong> 1117 nodes and 1681 edges</p>
+        <p><strong>Production smoke:</strong> app <code>200</code>, health <code>ok</code>, 4 active providers out of 6, app version <code>0.0.1</code> matched.</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>Demo Script</h2>
+      <ol>
+        <li>Open the app and point out the active-session refresh/export boundary.</li>
+        <li>Open the privacy notice and explain the retention model.</li>
+        <li>Click <code>Try sample data</code>.</li>
+        <li>Open <code>Tools</code>, run <code>Review Document</code>, and show glossary rules.</li>
+        <li>Switch to <code>Find Code References</code> and run <code>createCodeAreaExplanation</code>.</li>
+        <li>Click <code>Map coverage</code>, then <code>Explain code area</code>.</li>
+        <li>Ask for a Mermaid workflow artifact and show preview, source, and export controls.</li>
+        <li>Show health and GitHub Actions evidence.</li>
+        <li>Close with the per-client Cloudflare deployment model.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>Recruiter And Buyer Summary</h2>
+      <p>Built and shipped a privacy-first AI documentation tooling engine on Cloudflare Pages/Workers with Astro and Svelte 5. The product supports AI writing, active-session document RAG with citations, deterministic review tools, bounded source graph lookup, coverage mapping, code-area explanation, diagram/artifact workflows, export features, white-label configuration, GitHub Actions deployment, and production smoke evidence.</p>
+      <h3>What remains</h3>
+      <ul>
+        <li>Client-specific onboarding.</li>
+        <li>A real-client credential deployment pilot.</li>
+        <li>Optional polish for a specific portfolio or PDF format.</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

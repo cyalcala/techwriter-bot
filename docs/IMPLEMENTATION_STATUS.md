@@ -11,8 +11,9 @@ When starting a new chat, read these files first:
 5. `docs/CLIENT_DEPLOYMENT_KIT.md`
 6. `docs/PORTFOLIO_BUYER_NARRATIVE.md`
 7. `docs/PORTFOLIO_SCREENSHOT_MANIFEST.md`
-8. `docs/superpowers/specs/2026-06-04-bounded-documentation-tool-pack.md`
-9. `graphify-out/GRAPH_REPORT.md`
+8. `docs/PORTFOLIO_PDF_PACKET.md`
+9. `docs/superpowers/specs/2026-06-04-bounded-documentation-tool-pack.md`
+10. `graphify-out/GRAPH_REPORT.md`
 
 Then continue from the "Next Task" section below.
 
@@ -71,6 +72,14 @@ transparency slices with privacy-first active-session boundaries:
   active-session sample data, document review, glossary rules, bounded graph
   lookup, coverage map, code-area explanation, rendered artifact, artifact
   source/export controls, health response evidence, and GitHub Actions success.
+- Current Phase 5C portfolio packet checkpoint:
+  `docs/PORTFOLIO_PDF_PACKET.md` is the external PDF/portfolio source.
+  `output/portfolio/techwriter-bot-portfolio-packet.html` is the printable
+  HTML packet, `output/portfolio/techwriter-bot-portfolio-packet.pdf` is the
+  generated PDF, and
+  `output/portfolio/techwriter-bot-portfolio-packet-preview.png` is the visual
+  QA preview. These are external collateral only and do not add an in-app
+  marketing page.
 - Current Phase 5C acceptance evidence: docs commit `9a7ac29` deployed
   successfully in GitHub Actions run `26979426208`, immutable URL
   `https://be36a3cd.tw-bot.pages.dev`; Graphify CI uploaded a runtime graph
@@ -2038,7 +2047,7 @@ Phase 5B is closure-accepted. Continue with post-Phase-5 readiness work:
   scope: glossary, API reference checker, release-notes reviewer, OpenAPI
   operation summary, documentation coverage map, and bounded code-area
   explanation.
-- Current paid-pilot readiness estimate is about 96%. The remaining work is
+- Current paid-pilot readiness estimate is about 97%. The remaining work is
   client-specific onboarding and a real-client credential pilot.
 - Phase 5C initial collateral packet is complete and production-accepted in
   `docs/PORTFOLIO_BUYER_NARRATIVE.md`; docs commit `9a7ac29`, GitHub Actions
@@ -2047,8 +2056,9 @@ Phase 5B is closure-accepted. Continue with post-Phase-5 readiness work:
 - Phase 5C screenshot checklist is captured in
   `docs/PORTFOLIO_SCREENSHOT_MANIFEST.md` with image files under
   `output/playwright/phase-5c-portfolio/`.
-- Next safe follow-up: use the captured screenshots to assemble an external
-  portfolio/PDF, prepare client-specific onboarding, or run a real-client
+- Phase 5C external portfolio/PDF packet is assembled in
+  `docs/PORTFOLIO_PDF_PACKET.md` and `output/portfolio/`.
+- Next safe follow-up: prepare client-specific onboarding or run a real-client
   deployment when credentials are available. Do not add an in-app marketing
   page.
 - If local browser smoke remains blocked by the Cloudflare local preview issue,
@@ -2070,5 +2080,5 @@ Phase 5B is closure-accepted. Continue with post-Phase-5 readiness work:
 Use this in a new chat if the session stops:
 
 ```text
-Continue from C:\Users\admin\Desktop\techwriter-bot. Read docs\MASTER_EXECUTION_PLAN.md, docs\IMPLEMENTATION_STATUS.md, docs\AI_RECOVERY_TRAIL.md, docs\SELLABLE_READINESS_HANDOFF.md, docs\CLIENT_DEPLOYMENT_KIT.md, docs\PORTFOLIO_BUYER_NARRATIVE.md, docs\PORTFOLIO_SCREENSHOT_MANIFEST.md, docs\superpowers\specs\2026-06-04-bounded-documentation-tool-pack.md, and graphify-out\GRAPH_REPORT.md first. Then continue from docs\IMPLEMENTATION_STATUS.md Next Task. Use the build verification command recorded there when behavior changes. Preserve GitHub backups after each coherent slice. Phase 5C initial collateral packet and screenshot checklist are complete; next safe task is external portfolio/PDF assembly, client-specific onboarding, or a real-client deployment when credentials are available. Do not rebuild OAuth, Stripe, multi-tenancy, email, marketing pages, autonomous agents, Kubernetes, Redis, complex dashboards, or WebContainer/runtime package tooling.
+Continue from C:\Users\admin\Desktop\techwriter-bot. Read docs\MASTER_EXECUTION_PLAN.md, docs\IMPLEMENTATION_STATUS.md, docs\AI_RECOVERY_TRAIL.md, docs\SELLABLE_READINESS_HANDOFF.md, docs\CLIENT_DEPLOYMENT_KIT.md, docs\PORTFOLIO_BUYER_NARRATIVE.md, docs\PORTFOLIO_SCREENSHOT_MANIFEST.md, docs\PORTFOLIO_PDF_PACKET.md, docs\superpowers\specs\2026-06-04-bounded-documentation-tool-pack.md, and graphify-out\GRAPH_REPORT.md first. Then continue from docs\IMPLEMENTATION_STATUS.md Next Task. Use the build verification command recorded there when behavior changes. Preserve GitHub backups after each coherent slice. Phase 5C initial collateral packet, screenshot checklist, and external portfolio/PDF packet are complete; next safe task is client-specific onboarding or a real-client deployment when credentials are available. Do not rebuild OAuth, Stripe, multi-tenancy, email, marketing pages, autonomous agents, Kubernetes, Redis, complex dashboards, or WebContainer/runtime package tooling.
 ```

@@ -30,6 +30,8 @@ explicit non-goals.
   `docs/PORTFOLIO_BUYER_NARRATIVE.md`.
 - Phase 5C screenshot evidence reference:
   `docs/PORTFOLIO_SCREENSHOT_MANIFEST.md`.
+- Phase 5C external portfolio/PDF packet reference:
+  `docs/PORTFOLIO_PDF_PACKET.md`.
 - Phase 5C collateral acceptance: docs commit `9a7ac29` deployed in GitHub
   Actions run `26979426208`, immutable URL
   `https://be36a3cd.tw-bot.pages.dev`; production smoke passed and Graphify CI
@@ -93,7 +95,7 @@ explicit non-goals.
   closure-verified and accepted; Phase 5A pilot deployment kit is complete
   enough for pilots; Phase 5B bounded Documentation Tool Pack is 100%
   accepted; paid-pilot readiness for the per-client Cloudflare deployment is
-  about 96%, with remaining work focused on client-specific onboarding and a
+  about 97%, with remaining work focused on client-specific onboarding and a
   real-client credential pilot rather than missing core product behavior.
 - Phase 5C initial collateral packet is complete and production-accepted:
   `docs/PORTFOLIO_BUYER_NARRATIVE.md` includes the portfolio case study, buyer
@@ -106,6 +108,8 @@ explicit non-goals.
 - Phase 5C screenshot checklist is captured in
   `docs/PORTFOLIO_SCREENSHOT_MANIFEST.md`, with 13 production screenshots under
   `output/playwright/phase-5c-portfolio/`.
+- Phase 5C external portfolio/PDF packet is assembled in
+  `docs/PORTFOLIO_PDF_PACKET.md` and `output/portfolio/`.
 - First tooling design reference:
   `docs/superpowers/specs/2026-05-27-documentation-tooling-agent-foundation-design.md`.
 - First tooling implementation plan:

@@ -58,6 +58,9 @@ Images are stored in `output/playwright/phase-5c-portfolio/`.
 
 - The screenshots are external collateral only. They do not add an in-app
   marketing page or broaden product scope.
+- The assembled external portfolio/PDF packet that uses this screenshot set is
+  recorded in `docs/PORTFOLIO_PDF_PACKET.md`, with generated outputs under
+  `output/portfolio/`.
 - The artifact flow first surfaced a Mermaid syntax error from one generated
   diagram, then produced a clean rendered Mermaid flowchart after a shorter
   valid-diagram prompt. The committed screenshots use the clean rendered state.

@@ -13,12 +13,12 @@ scope, and what strategic phase should come next.
 - Phase 5A Client Deployment Kit: complete enough for pilots.
 - Phase 5B Bounded Documentation Tool Pack: 100% closure-accepted for planned
   scope.
-- Paid pilot readiness for a per-client Cloudflare deployment: about 96%.
+- Paid pilot readiness for a per-client Cloudflare deployment: about 97%.
 - Broad tooling-agent vision: bounded human-controlled tool pack delivered;
   further expansion remains a next strategic phase, not a hidden requirement
   for the current sellable baseline.
 
-The 96% paid-pilot estimate means the product is ready to demonstrate and sell
+The 97% paid-pilot estimate means the product is ready to demonstrate and sell
 as a client-owned internal technical-writing engine, with explicit setup and
 support expectations. The remaining work is not missing core product behavior;
 it is mostly client-specific onboarding and a real-client credential pilot.
@@ -133,6 +133,9 @@ Graphify CI reported 1112 nodes and 1677 edges.
 The screenshot checklist is captured in
 `docs/PORTFOLIO_SCREENSHOT_MANIFEST.md`, with 13 production screenshots under
 `output/playwright/phase-5c-portfolio/`.
+The external portfolio/PDF packet is assembled in
+`docs/PORTFOLIO_PDF_PACKET.md`, with generated outputs under
+`output/portfolio/`.
 
 ### Phase 5A: Client Deployment Kit
 
@@ -193,6 +196,5 @@ new in-app marketing page.
 
 ## Next Safe Task
 
-Use the captured screenshots to assemble an external portfolio/PDF, prepare
-client-specific onboarding, or run a real-client deployment when credentials
-are available. Do not add an in-app marketing page.
+Prepare client-specific onboarding or run a real-client deployment when
+credentials are available. Do not add an in-app marketing page.
