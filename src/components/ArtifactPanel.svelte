@@ -273,12 +273,6 @@
     justify-content: flex-start;
   }
 
-  @media (min-width: 768px) {
-    :global(.artifact-server-svg) {
-      justify-content: center;
-    }
-  }
-
   :global(.artifact-error) {
     display: grid;
     gap: 8px;

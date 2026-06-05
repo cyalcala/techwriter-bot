@@ -170,7 +170,8 @@ As of 2026-06-05:
   diagrams into an unreadable strip, so rendered diagram SVGs now preserve
   intrinsic width and strip embedded Mermaid `max-width` CSS so they scroll
   horizontally on small screens, with flex shrink disabled for rendered diagram
-  SVGs. Local verification passed: focused
+  SVGs and scroll position starting at the beginning of the diagram. Local
+  verification passed: focused
   diagram/artifact tests (8 files, 51 tests) before the
   Flowchart.js endpoint correction, then focused parser/renderer/standalone/
   mobile regression tests after the interaction and mobile readability fixes (5
