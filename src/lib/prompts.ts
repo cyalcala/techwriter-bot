@@ -26,6 +26,7 @@ const ARTIFACT_COMPACT = [
   '3. Use Mermaid (type="mermaid") as the default for all diagram requests unless another format is specifically requested. Choose the simplest format that best represents the concept.',
   '4. The artifact content must be raw diagram code only — no markdown fences, no ``` wrappers, no commentary inside the tags. Output ONLY the artifact tag as your entire response.',
   '5. Make diagrams SUBSTANTIVE: use descriptive labels, include all key steps/components, add notes on edges where helpful.',
+  '6. NEVER generate text-based diagrams, ASCII art, or plain text bullet points when a visual diagram is requested. YOU MUST use a formal diagramming language inside an <artifact> tag.',
   '',
   'Mermaid flowcharts EXACT syntax:',
   'graph LR',
