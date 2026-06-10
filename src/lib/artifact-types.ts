@@ -1,4 +1,5 @@
 import type { ArtifactType } from './stream-parser';
+import { KROKI_RENDERABLE } from './kroki-renderer';
 
 export const SUPPORTED_ARTIFACT_TYPES = [
   'code',
@@ -156,7 +157,7 @@ export function validateArtifact(type: ArtifactType, rawCode: string): boolean {
     case 'react':
       return /(function|class|const|import|export|jsx|render|App|ReactDOM)/i.test(code);
     default:
-      return false;
+      return KROKI_RENDERABLE.has(type as string) ? code.length >= 5 : false;
   }
 }
 

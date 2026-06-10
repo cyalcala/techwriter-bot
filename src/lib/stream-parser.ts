@@ -1,6 +1,7 @@
 import { normalizeArtifactSource } from './diagram-source-normalizer';
+import { KROKI_RENDERABLE } from './kroki-renderer';
 
-export type ArtifactType = 'code' | 'html' | 'svg' | 'mermaid' | 'react' | 'katex' | 'markmap' | 'd2' | 'vega' | 'graphviz' | 'plantuml' | 'flowchart';
+export type ArtifactType = 'code' | 'html' | 'svg' | 'mermaid' | 'react' | 'katex' | 'markmap' | 'd2' | 'vega' | 'graphviz' | 'plantuml' | 'flowchart' | string;
 export type ArtifactPlacement = 'inline' | 'side' | 'modal';
 
 export interface Artifact {
@@ -240,19 +241,6 @@ export function detectCodeFenceFallback(text: string): Artifact[] {
     if (lang === 'html' || lang === 'htm') { type = 'html'; title = 'HTML'; }
     else if (lang === 'svg') { type = 'svg'; title = 'SVG'; }
     else if (lang === 'mermaid') { type = 'mermaid'; title = 'Mermaid Diagram'; }
-    else if (lang === 'jsx' || lang === 'tsx' || lang === 'react') { type = 'react'; title = 'React Component'; }
-    else if (lang === 'graphviz' || lang === 'dot') { type = 'graphviz'; title = 'Graphviz Diagram'; }
-    else if (lang === 'd2') { type = 'd2'; title = 'D2 Diagram'; }
-    else if (lang === 'plantuml' || lang === 'puml') { type = 'plantuml'; title = 'PlantUML Diagram'; }
-    else if (lang === 'katex' || lang === 'latex' || lang === 'tex') { type = 'katex'; title = 'Math Formula'; }
-    else if (lang === 'vega' || lang === 'vega-lite' || lang === 'json') { type = 'vega'; title = 'Vega Chart'; }
-    else if (lang === 'flowchart') { type = 'flowchart'; title = 'Flowchart'; }
-
-    artifacts.push({
-      id: `fallback-${Date.now()}-${count++}`,
-      type, title, placement: 'inline', code,
-      language: lang || undefined,
-    });
   }
 
   const svgMatch = text.match(/<svg[\s\S]*?<\/svg>/);

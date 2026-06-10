@@ -7,7 +7,7 @@ export function getDiagramRenderDoc(type: string, code: string): string {
 
   switch (type) {
     case 'mermaid':
-      return `${base}<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"><\/script></head><body><div id="md"></div><script>
+      return `${base}<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"><\/script></head><body><div id="md"></div><script>
 var code = ${JSON.stringify(code)};
 var el = document.getElementById('md');
 el.textContent = code;

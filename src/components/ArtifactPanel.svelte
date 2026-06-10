@@ -1,8 +1,9 @@
 <script lang="ts">
   import type { Artifact, ArtifactType } from '../lib/stream-parser';
-  import { loadRenderer, renderCodeArtifact, renderHtmlArtifact, renderSvgArtifact, renderMermaidArtifact, renderReactArtifact, renderKatexArtifact, renderMarkmapArtifact, renderD2Artifact, renderVegaArtifact, renderGraphvizArtifact, renderPlantUMLArtifact, renderFlowchartArtifact } from '../lib/renderer-loader';
+  import { loadRenderer, renderCodeArtifact, renderHtmlArtifact, renderSvgArtifact, renderMermaidArtifact, renderReactArtifact, renderKatexArtifact, renderMarkmapArtifact, renderD2Artifact, renderVegaArtifact, renderGraphvizArtifact, renderPlantUMLArtifact, renderFlowchartArtifact, renderGenericKrokiArtifact } from '../lib/renderer-loader';
   import { PREVIEWABLE_ARTIFACT_TYPES } from '../lib/artifact-types';
   import { formatArtifactRendererError } from '../lib/artifact-error-boundary';
+  import { KROKI_RENDERABLE } from '../lib/kroki-renderer';
 
   interface Props { artifact: Artifact; progressive?: boolean; onrenderererror?: (message: string) => void; }
   let { artifact, progressive = false, onrenderererror = () => {} }: Props = $props();
@@ -78,6 +79,10 @@
           case 'html': renderedHtml = renderHtmlArtifact(a.code); break;
           case 'svg': renderedHtml = renderSvgArtifact(a.code); break;
           case 'mermaid': renderedHtml = renderMermaidArtifact(a.code); break;
+          case 'code': renderedHtml = renderCodeArtifact(a.code, a.language); break;
+          case 'html': renderedHtml = renderHtmlArtifact(a.code); break;
+          case 'svg': renderedHtml = renderSvgArtifact(a.code); break;
+          case 'mermaid': renderedHtml = renderMermaidArtifact(a.code); break;
           case 'react': renderedHtml = renderReactArtifact(a.code); break;
           case 'katex': renderedHtml = renderKatexArtifact(a.code); break;
           case 'markmap': renderedHtml = renderMarkmapArtifact(a.code); break;
@@ -86,7 +91,12 @@
           case 'graphviz': renderedHtml = renderGraphvizArtifact(a.code); break;
           case 'plantuml': renderedHtml = renderPlantUMLArtifact(a.code); break;
           case 'flowchart': renderedHtml = renderFlowchartArtifact(a.code); break;
-          default: renderedHtml = `<pre>${escapeHtml(a.code)}</pre>`;
+          default: 
+            if (KROKI_RENDERABLE.has(a.type)) {
+              renderedHtml = renderGenericKrokiArtifact(a.type, a.code);
+            } else {
+              renderedHtml = `<pre>${escapeHtml(a.code)}</pre>`;
+            }
         }
       } catch (error) {
         fail(error instanceof Error ? error.message : String(error));
@@ -147,7 +157,7 @@
     document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
   }
 
-  const showPreview = $derived(previewableTypes.includes(artifact.type));
+  const showPreview = $derived(previewableTypes.includes(artifact.type) || KROKI_RENDERABLE.has(artifact.type));
 
 </script>
 

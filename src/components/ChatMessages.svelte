@@ -61,10 +61,10 @@
           {#if msg.empty}
             <div class="text-[#71717a] italic text-sm">No response received.</div>
           {:else}
-            <div class="ai-content whitespace-pre-wrap">{@html formatMarkdown(stripDisclaimers(msg.content), msg.sources)}</div>
+            <div class="ai-content whitespace-pre-wrap break-words min-w-0">{@html formatMarkdown(stripDisclaimers(msg.content), msg.sources)}</div>
           {/if}
           {#if !isStreaming && msg.content && !msg.empty}
-            <div class="flex items-center gap-2 mt-1.5 opacity-100 md:opacity-0 md:hover:opacity-100 transition-opacity duration-150">
+            <div class="flex flex-wrap items-center gap-2 mt-1.5 opacity-100 md:opacity-0 md:hover:opacity-100 transition-opacity duration-150">
               <button onclick={() => onCopyMessage(i)} class="text-[11px] px-2 py-0.5 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 transition-all">
                 {copiedMessageIdx === i ? 'Copied' : 'Copy'}
               </button>
@@ -112,10 +112,10 @@
         {:else}
           {#if editingMessageIdx === i}
             <div class="w-full text-left">
-              <textarea value={editText} oninput={(e) => onEditTextChange((e.target as HTMLTextAreaElement).value)} class="w-full bg-[#1a1a22] border border-white/[0.1] rounded-xl p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/30 text-[#e4e4e7]" rows="3"></textarea>
+              <textarea value={editText} oninput={(e) => onEditTextChange((e.target as HTMLTextAreaElement).value)} class="w-full bg-white border border-stone-200 rounded-xl p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-400/30 text-stone-800" rows="3"></textarea>
               <div class="flex gap-1.5 mt-2">
-                <button onclick={() => onSaveEdit(i)} disabled={!editText.trim()} class="text-[10px] bg-white text-black px-3 py-1 rounded-lg disabled:opacity-40 transition-all font-medium">Save</button>
-                <button onclick={onCancelEdit} class="text-[10px] bg-white/[0.05] text-[#a1a1aa] px-3 py-1 rounded-lg border border-white/[0.06] transition-all">Cancel</button>
+                <button onclick={() => onSaveEdit(i)} disabled={!editText.trim()} class="text-[10px] bg-stone-800 text-white px-3 py-1 rounded-lg disabled:opacity-40 transition-all font-medium">Save</button>
+                <button onclick={onCancelEdit} class="text-[10px] bg-stone-100 text-stone-600 px-3 py-1 rounded-lg border border-stone-200 transition-all hover:bg-stone-200">Cancel</button>
               </div>
             </div>
           {:else}

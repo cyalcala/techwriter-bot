@@ -1,6 +1,6 @@
 import type { ArtifactType } from './stream-parser';
 
-const MERMAID_DIRECTIVE_RE = /^\s*(?:%%\{[\s\S]*?\}%%\s*)?(graph|flowchart|sequenceDiagram|classDiagram|classDiagram-v2|stateDiagram|stateDiagram-v2|erDiagram|journey|gantt|pie|gitgraph|mindmap|timeline|quadrantChart|block-beta|requirementDiagram|sankey-beta|xychart-beta|C4Context|C4Container)\b/i;
+const MERMAID_DIRECTIVE_RE = /^\s*(?:%%\{[\s\S]*?\}%%\s*)?(graph|flowchart|sequenceDiagram|classDiagram|classDiagram-v2|stateDiagram|stateDiagram-v2|erDiagram|journey|gantt|pie|gitgraph|mindmap|timeline|quadrantChart|block-beta|requirementDiagram|sankey-beta|xychart-beta|C4Context|C4Container|ishikawa|architecture)\b/i;
 const FLOWCHART_DIRECTIVE_RE = /^\s*(graph|flowchart)\b/i;
 const EXTRA_LABEL_ARROW_RE = /((?:-->|---|==>|-.->|--x|--o)\s*\|[^|\r\n]+)\|>\s*/g;
 

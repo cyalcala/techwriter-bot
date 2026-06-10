@@ -1,6 +1,7 @@
 import type { ArtifactType } from './stream-parser';
 import { formatArtifactRendererError } from './artifact-error-boundary';
 import { normalizeArtifactSource, normalizeMermaidSource } from './diagram-source-normalizer';
+import { KROKI_RENDERABLE } from './kroki-renderer';
 
 const loadedScripts = new Set<string>();
 const loadedStyles = new Set<string>();
@@ -122,6 +123,7 @@ export async function loadRenderer(type: ArtifactType): Promise<void> {
     case 'react':
       return;
     default:
+      if (KROKI_RENDERABLE.has(type as string)) return;
       throw new Error(`Unsupported artifact type: ${type}`);
   }
 }
@@ -402,6 +404,20 @@ function safeClassName(value: string): string { return value.replace(/[^\w-]/g, 
 function rand(): string { return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`; }
 function renderError(type: string, message: string, code: string): string {
   return formatArtifactRendererError(type, message, code);
+}
+
+export function renderGenericKrokiArtifact(type: string, code: string): string {
+  const id = `kroki-${rand()}`;
+  domReady(async () => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    try {
+      await withTimeout(renderServerSvgInto(el, type, code, type.toUpperCase()), 15_000);
+    } catch (e: any) {
+      el.innerHTML = renderError(type.toUpperCase(), e.message || 'Server render timed out', code);
+    }
+  });
+  return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm"><div class="inline-block w-5 h-5 border-2 border-stone-300 border-t-indigo-500 rounded-full animate-spin mb-2"></div><br/>Rendering ${type} diagram...</div>`;
 }
 
 declare global { interface Window { Prism: any; mermaid: any; katex: any; flowchart: any; } }

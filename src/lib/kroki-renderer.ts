@@ -10,9 +10,16 @@ const TYPE_MAP: Record<string, string> = {
   plantuml: 'plantuml',
   vega: 'vega',
   flowchart: 'mermaid',
+  dot: 'graphviz',
 };
 
-export const KROKI_RENDERABLE = new Set(['mermaid', 'graphviz', 'd2', 'plantuml', 'vega', 'flowchart']);
+export const KROKI_RENDERABLE = new Set([
+  'mermaid', 'graphviz', 'd2', 'plantuml', 'vega', 'flowchart',
+  'actdiag', 'blockdiag', 'bpmn', 'bytefield', 'c4plantuml', 'dbml',
+  'ditaa', 'erd', 'excalidraw', 'nomnoml', 'nwdiag', 'packetdiag',
+  'pikchr', 'rackdiag', 'seqdiag', 'structurizr', 'svgbob', 'symbolator',
+  'tikztosvg', 'umlet', 'vegalite', 'wavedrom', 'wireviz', 'dot'
+]);
 export const CLIENT_ONLY_TYPES = new Set(['code', 'html', 'svg', 'react', 'katex', 'markmap']);
 
 export async function renderViaKroki(type: string, code: string): Promise<{ svg?: string; error?: string; cached?: boolean; status?: number }> {
