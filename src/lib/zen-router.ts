@@ -136,7 +136,7 @@ function getApiKey(provider: Provider, env: any): string | undefined {
   return typeof raw === 'string' ? raw.trim() : undefined;
 }
 
-async function callProvider(provider: Provider, messages: any[], env: any, maxTokens: number, maxTimeout?: number): Promise<Response> {
+async function callProvider(provider: Provider, messages: any[], env: any, maxTokens: number, maxTimeout?: number, agenticTools?: any[], stream: boolean = true): Promise<Response> {
   const effectiveTimeout = maxTimeout && maxTimeout < provider.timeoutMs ? maxTimeout : provider.timeoutMs;
   if (provider.name === 'cloudflare') {
     const ai = env.AI;
@@ -158,11 +158,16 @@ async function callProvider(provider: Provider, messages: any[], env: any, maxTo
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), effectiveTimeout);
   try {
-    const body: any = { model: provider.model, messages, temperature: 0.7, max_tokens: maxTokens, stream: true, stream_options: { include_usage: true } };
-    if (provider.name === 'gemini') body.tools = [{ googleSearch: {} }];
+    const body: any = { model: provider.model, messages, temperature: 0.7, max_tokens: maxTokens };
+    if (stream) {
+      body.stream = true;
+      body.stream_options = { include_usage: true };
+    }
+    if (provider.name === 'gemini' && !agenticTools) body.tools = [{ googleSearch: {} }];
+    if (agenticTools) body.tools = agenticTools;
     return await fetch(endpoint, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
+      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'Accept': stream ? 'text/event-stream' : 'application/json' },
       body: JSON.stringify(body),
       signal: ctrl.signal,
     });
@@ -218,7 +223,7 @@ function makeHeaders(provider: Provider, latency: number, sources?: any[], metad
   const h = new Headers();
   h.set('x-provider', provider.id);
   h.set('x-latency-ms', String(latency));
-  h.set('Content-Type', 'text/event-stream');
+  if (!h.has('Content-Type')) h.set('Content-Type', 'text/event-stream');
   if (sources?.length) h.set('x-sources', JSON.stringify(sources));
   if (metadata) {
     h.set('x-search-tier', metadata.searchTier);
@@ -268,6 +273,8 @@ export async function routeChat(
   forceSticky: boolean = false,
   maxTokensOverride?: number,
   faultPolicy?: ProviderFaultPolicy | null,
+  agenticTools?: any[],
+  stream: boolean = true,
 ) {
   const role: ProviderRole = classifyQuery(messages, intent);
   let candidates = getProvidersForRole(role);
@@ -361,7 +368,7 @@ export async function routeChat(
     const start = Date.now();
     try {
       const maxTimeout = chatPath === 'fast' ? 15_000 : undefined;
-      const res = await callProvider(provider, messages, env, requestedOutputTokens, maxTimeout);
+      const res = await callProvider(provider, messages, env, requestedOutputTokens, maxTimeout, agenticTools, stream);
       const latency = Date.now() - start;
 
       if (res.ok) {

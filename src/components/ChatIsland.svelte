@@ -1261,6 +1261,10 @@
             if (rawData === '[DONE]') continue;
             try {
               const json = JSON.parse(rawData);
+              if (json.type === 'agent_step') {
+                artifactParser.feed(`\n\n*${json.message}*\n\n`);
+                continue;
+              }
               if (json.error) { artifactParser.feed(`\n\nError: ${json.error.message || JSON.stringify(json.error)}`); continue; }
               const content = json.choices?.[0]?.delta?.content || json.choices?.[0]?.text || json.response || json.content || '';
               if (content) artifactParser.feed(content);

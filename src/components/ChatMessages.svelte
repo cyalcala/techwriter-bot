@@ -56,7 +56,7 @@
 <div class="flex-1 overflow-y-auto px-4 md:px-8 py-4 md:py-6 space-y-6 w-full scroll-smooth max-w-3xl mx-auto" style="overscroll-behavior: contain;" role="log" aria-label="Chat messages" aria-live="polite">
   {#each messages as msg, i}
     <div class="msg-group relative {msg.role === 'user' ? 'flex flex-row-reverse' : ''}" id="msg-{i}">
-      <div class="{msg.role === 'user' ? 'ml-auto text-right max-w-[85%] md:max-w-[70%]' : 'max-w-full'}">
+      <div class="{msg.role === 'user' ? 'ml-auto text-right max-w-[95%] md:max-w-[75%]' : 'max-w-full overflow-hidden'}">
         {#if msg.role === 'assistant'}
           {#if msg.empty}
             <div class="text-[#71717a] italic text-sm">No response received.</div>
@@ -64,21 +64,21 @@
             <div class="ai-content whitespace-pre-wrap break-words min-w-0">{@html formatMarkdown(stripDisclaimers(msg.content), msg.sources)}</div>
           {/if}
           {#if !isStreaming && msg.content && !msg.empty}
-            <div class="flex flex-wrap items-center gap-2 mt-1.5 opacity-100 md:opacity-0 md:hover:opacity-100 transition-opacity duration-150">
-              <button onclick={() => onCopyMessage(i)} class="text-[11px] px-2 py-0.5 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 transition-all">
+            <div class="flex flex-wrap items-center gap-2 mt-2 md:mt-1.5 opacity-100 md:opacity-0 md:hover:opacity-100 transition-opacity duration-150">
+              <button onclick={() => onCopyMessage(i)} class="text-[12px] md:text-[11px] px-3 py-1.5 md:px-2 md:py-0.5 rounded-md text-stone-500 md:text-stone-400 hover:text-stone-800 md:hover:text-stone-700 bg-stone-100 md:bg-transparent hover:bg-stone-200/50 transition-all">
                 {copiedMessageIdx === i ? 'Copied' : 'Copy'}
               </button>
-              <button onclick={() => onExportMessageMarkdown(i)} title="Export response as Markdown" class="text-[11px] px-2 py-0.5 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 transition-all">
+              <button onclick={() => onExportMessageMarkdown(i)} title="Export response as Markdown" class="text-[12px] md:text-[11px] px-3 py-1.5 md:px-2 md:py-0.5 rounded-md text-stone-500 md:text-stone-400 hover:text-stone-800 md:hover:text-stone-700 bg-stone-100 md:bg-transparent hover:bg-stone-200/50 transition-all">
                 Markdown
               </button>
-              <button onclick={() => onCopySlackMessage(i)} title="Copy response for Slack" class="text-[11px] px-2 py-0.5 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 transition-all">
+              <button onclick={() => onCopySlackMessage(i)} title="Copy response for Slack" class="text-[12px] md:text-[11px] px-3 py-1.5 md:px-2 md:py-0.5 rounded-md text-stone-500 md:text-stone-400 hover:text-stone-800 md:hover:text-stone-700 bg-stone-100 md:bg-transparent hover:bg-stone-200/50 transition-all">
                 {copiedSlackMessageIdx === i ? 'Slack copied' : 'Slack'}
               </button>
-              <button onclick={() => onExportMessageWebhook(i)} title="Send response to webhook" class="text-[11px] px-2 py-0.5 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 transition-all">
+              <button onclick={() => onExportMessageWebhook(i)} title="Send response to webhook" class="text-[12px] md:text-[11px] px-3 py-1.5 md:px-2 md:py-0.5 rounded-md text-stone-500 md:text-stone-400 hover:text-stone-800 md:hover:text-stone-700 bg-stone-100 md:bg-transparent hover:bg-stone-200/50 transition-all">
                 Webhook
               </button>
               {#if i === messages.length - 1}
-                <button onclick={onRetryMessage} class="text-[11px] px-2 py-0.5 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 transition-all">Retry</button>
+                <button onclick={onRetryMessage} class="text-[12px] md:text-[11px] px-3 py-1.5 md:px-2 md:py-0.5 rounded-md text-stone-500 md:text-stone-400 hover:text-stone-800 md:hover:text-stone-700 bg-stone-100 md:bg-transparent hover:bg-stone-200/50 transition-all">Retry</button>
               {/if}
             </div>
             {#if webhookDelivery?.messageIdx === i}

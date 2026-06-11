@@ -1,10 +1,11 @@
 import { shouldSkipSearch } from './relevance';
 
-export type ChatPath = 'fast' | 'balanced' | 'heavy';
+export type ChatPath = 'fast' | 'balanced' | 'heavy' | 'agent';
 
 const RECENCY_KEYWORDS = /\b(latest|current|today|now|news|price of|stock|weather|score|recent|just happened|announced|who won|what happened|this year|this month)\b/i;
 const YEAR_REFERENCE = /\b20(?:25|26)\b/;
 const URL_PATTERN = /https?:\/\//i;
+const MULTISTEP_PATTERN = /\b(then|after that|search for|find out).*?\b(and|then|make|create|draw|tell me)\b/i;
 
 export function hasRecencyKeyword(query: string): boolean {
   return RECENCY_KEYWORDS.test(query) || YEAR_REFERENCE.test(query) || URL_PATTERN.test(query);
@@ -28,6 +29,11 @@ export function determineChatPath(
 ): PathContext {
   const lastPath = sessionPaths.get(sessionId);
 
+  if (intent === 'agent' || MULTISTEP_PATTERN.test(query)) {
+    sessionPaths.set(sessionId, 'agent');
+    return { path: 'agent', skipSearch: true, includeGraph: true, includeRAG: true, reason: 'multi_step_agent' };
+  }
+
   if (hasRecencyKeyword(query)) {
     sessionPaths.set(sessionId, 'heavy');
     return { path: 'heavy', skipSearch: false, includeGraph: true, includeRAG: true, reason: 'recency_keyword' };
@@ -46,6 +52,11 @@ export function determineChatPath(
   if (lastPath === 'heavy') {
     sessionPaths.set(sessionId, 'heavy');
     return { path: 'heavy', skipSearch: false, includeGraph: true, includeRAG: true, reason: 'session_affinity_heavy' };
+  }
+  
+  if (lastPath === 'agent') {
+    sessionPaths.set(sessionId, 'agent');
+    return { path: 'agent', skipSearch: true, includeGraph: true, includeRAG: true, reason: 'session_affinity_agent' };
   }
 
   sessionPaths.set(sessionId, 'balanced');

@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { env as cfGlobalEnv } from 'cloudflare:workers';
 import { routeChat, initCircuitKV, type ResponseMetadata } from '../../lib/zen-router';
-import { searchRouter } from '../../lib/search';
+import { searchRouter, searchDuckDuckGo } from '../../lib/search';
 import { buildSystemPrompt, type SearchResult, type PromptContext } from '../../lib/prompts';
 import { readEnvKeys } from '../../lib/env-reader';
 import { updateReputation, getDefaultState, deserializeReputation, serializeReputation, getTierProviderPool, getDailyLimits, type ReputationState } from '../../lib/reputation';
@@ -243,6 +243,7 @@ export const POST: APIRoute = async (ctx) => {
       pool = ['groq-fast', 'cerebras-llama', 'gemini-flash', 'cloudflare-llama'];
     }
 
+
     const forceSticky = needsArtifact;
     const systemPrompt = messages.find((m: any) => m.role === 'system');
     const inputTokens = estimateTokens(systemPrompt?.content || '') + messages.slice(1).reduce((s: number, m: any) => s + estimateTokens(m.content || ''), 0);
@@ -256,6 +257,80 @@ export const POST: APIRoute = async (ctx) => {
       chatPath: effectivePath,
       inputTokens,
     };
+
+    messages = [{ role: 'system', content: buildSystemPrompt(query, promptCtx) }, ...messages];
+
+    if (effectivePath === 'agent') {
+      const { readable, writable } = new TransformStream();
+      const writer = writable.getWriter();
+      const enc = new TextEncoder();
+      
+      const agenticTools = [{
+        type: "function",
+        function: {
+          name: "search_web",
+          description: "Search the web for real-time information. Use this multiple times if needed.",
+          parameters: { type: "object", properties: { query: { type: "string", description: "Search query" } }, required: ["query"] }
+        }
+      }];
+
+      (async () => {
+        try {
+          let loopCount = 0;
+          const maxLoops = 4;
+          while (loopCount < maxLoops) {
+            loopCount++;
+            const res = await routeChat(
+              body.intent || 'chat-fast', messages, locals, env, sessionId, searchResult.sources, meta, pool, effectivePath,
+              true, 2048, parseProviderFaultInjection(env, request.headers), agenticTools, false
+            );
+            
+            if (res.status !== 200) break;
+            const data = await res.json() as any;
+            const msg = data.choices?.[0]?.message;
+            if (!msg) break;
+
+            if (msg.tool_calls?.length > 0) {
+              messages.push(msg);
+              for (const call of msg.tool_calls) {
+                if (call.function?.name === 'search_web') {
+                  try {
+                    const args = JSON.parse(call.function.arguments);
+                    await writer.write(enc.encode(`data: ${JSON.stringify({ type: 'agent_step', message: `Searching web for "${args.query}"...` })}\n\n`));
+                    const result = await searchDuckDuckGo(args.query, env?.SESSION);
+                    messages.push({ role: "tool", tool_call_id: call.id, name: "search_web", content: result ? result.content : "No results found." });
+                    if (result) searchResult.sources.push({ title: result.title, url: result.url, provider: 'ddg' });
+                  } catch (e) {
+                    messages.push({ role: "tool", tool_call_id: call.id, name: "search_web", content: "Search failed." });
+                  }
+                }
+              }
+            } else {
+              if (msg.content) {
+                await writer.write(enc.encode(`data: ${JSON.stringify({ id: `final`, object: 'chat.completion.chunk', created: Math.floor(Date.now() / 1000), model: 'agent', choices: [{ index: 0, delta: { content: msg.content }, finish_reason: 'stop' }] })}\n\n`));
+              }
+              await writer.write(enc.encode('data: [DONE]\n\n'));
+              break;
+            }
+          }
+          if (loopCount >= maxLoops) {
+            await writer.write(enc.encode(`data: ${JSON.stringify({ id: `timeout`, object: 'chat.completion.chunk', created: Math.floor(Date.now() / 1000), model: 'agent', choices: [{ index: 0, delta: { content: "\n*(Agent reached step limit)*" }, finish_reason: 'stop' }] })}\n\n`));
+            await writer.write(enc.encode('data: [DONE]\n\n'));
+          }
+        } catch (e) {
+          await writer.write(enc.encode('data: [DONE]\n\n'));
+        } finally {
+          await writer.close();
+        }
+      })();
+      
+      logTokenUsage(env.SESSION, env, meta.provider || 'unknown', inputTokens, 0).catch(() => {});
+      const headers = new Headers();
+      headers.set('Content-Type', 'text/event-stream');
+      headers.set('x-request-id', rid);
+      if (searchResult.sources.length) headers.set('x-sources', JSON.stringify(searchResult.sources));
+      return new Response(readable, { status: 200, headers });
+    }
 
     const response = await routeChat(
       effectivePath === 'fast' ? 'chat-fast' : body.intent || 'chat-fast',

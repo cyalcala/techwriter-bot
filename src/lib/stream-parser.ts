@@ -241,6 +241,12 @@ export function detectCodeFenceFallback(text: string): Artifact[] {
     if (lang === 'html' || lang === 'htm') { type = 'html'; title = 'HTML'; }
     else if (lang === 'svg') { type = 'svg'; title = 'SVG'; }
     else if (lang === 'mermaid') { type = 'mermaid'; title = 'Mermaid Diagram'; }
+    else if (KROKI_RENDERABLE.has(lang)) { type = lang; title = `${lang.charAt(0).toUpperCase() + lang.slice(1)} Diagram`; }
+    
+    artifacts.push({
+      id: `fallback-code-${Date.now()}-${count++}`,
+      type, title, placement: 'inline', code, language: lang || undefined
+    });
   }
 
   const svgMatch = text.match(/<svg[\s\S]*?<\/svg>/);
