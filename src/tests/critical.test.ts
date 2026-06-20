@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 
 describe('Security checks', () => {
   it('CSRF rejects invalid origin', async () => {
@@ -122,6 +122,11 @@ describe('Env reader', () => {
 });
 
 describe('Turnstile', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
   it('returns true when no token provided', async () => {
     const { verifyTurnstile } = await import('../lib/turnstile');
     const result = await verifyTurnstile('', 'secret');
@@ -132,5 +137,23 @@ describe('Turnstile', () => {
     const { verifyTurnstile } = await import('../lib/turnstile');
     const result = await verifyTurnstile('token', '');
     expect(result).toBe(true);
+  });
+
+  it('sends secret and response in FormData body', async () => {
+    const { verifyTurnstile } = await import('../lib/turnstile');
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ success: true }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await verifyTurnstile('test-token', 'test-secret');
+    expect(result).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('https://challenges.cloudflare.com/turnstile/v0/siteverify');
+    expect(init.method).toBe('POST');
+    expect(init.body).toBeInstanceOf(FormData);
+    const body = init.body as FormData;
+    expect(body.get('secret')).toBe('test-secret');
+    expect(body.get('response')).toBe('test-token');
   });
 });

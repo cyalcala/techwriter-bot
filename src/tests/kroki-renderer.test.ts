@@ -15,7 +15,13 @@ describe('Kroki artifact rendering', () => {
   });
 
   it('covers the server-rendered diagram types used by artifact previews', () => {
-    expect([...KROKI_RENDERABLE].sort()).toEqual(['d2', 'flowchart', 'graphviz', 'mermaid', 'plantuml', 'vega']);
+    expect([...KROKI_RENDERABLE].sort()).toEqual([
+      'actdiag', 'blockdiag', 'bpmn', 'bytefield', 'c4plantuml', 'd2', 'dbml',
+      'ditaa', 'dot', 'erd', 'excalidraw', 'flowchart', 'graphviz', 'mermaid',
+      'nomnoml', 'nwdiag', 'packetdiag', 'pikchr', 'plantuml', 'rackdiag',
+      'seqdiag', 'structurizr', 'svgbob', 'symbolator', 'tikztosvg', 'umlet',
+      'vega', 'vegalite', 'wavedrom', 'wireviz'
+    ]);
   });
 
   it('retries transient Kroki failures once and sanitizes returned SVG', async () => {

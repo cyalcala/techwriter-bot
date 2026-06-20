@@ -65,7 +65,10 @@ async function verifyTurnstile(token: string, secret: string): Promise<boolean> 
   try {
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), 2000);
-    const r = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', { method: 'POST', body: new FormData(), signal: ctrl.signal });
+    const formData = new FormData();
+    formData.append('secret', secret);
+    formData.append('response', token);
+    const r = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', { method: 'POST', body: formData, signal: ctrl.signal });
     clearTimeout(t);
     r.body?.cancel();
     const d = await r.json() as any;
@@ -94,7 +97,7 @@ async function getReputation(kv: any, ip: string, headers: Headers, env: Record<
   if (kv) { try { const raw = await kv.get(kvKey(env, `reputation:${ip}`)); if (raw) s = deserializeReputation(raw); } catch {} }
   const ua = headers.get('user-agent') || '';
   if (isBotUA(ua)) s = updateReputation(s, 'bot_ua', { userAgent: ua });
-  else if (headers.get('cf-bot-score') && parseFloat(headers.get('cf-bot-score')!) >= 1) s = updateReputation(s, 'bot_ua', { userAgent: ua });
+  else if (headers.get('cf-bot-score') && parseFloat(headers.get('cf-bot-score')!) < 30) s = updateReputation(s, 'bot_ua', { userAgent: ua });
   if (isDC(headers.get('cf-asn') || '')) s = updateReputation(s, 'datacenter_ip', { ip });
   return updateReputation(s, 'request');
 }
