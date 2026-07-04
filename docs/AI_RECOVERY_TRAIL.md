@@ -381,18 +381,82 @@ As of 2026-06-05:
   recorded build passed; production health and graph smoke passed for all
   Phase 5B tool symbols; and real-browser Playwright CLI smoke confirmed the
   code-area explanation UI flow.
-- Next safe task: return to client-specific onboarding or run a real-client
-  deployment when credentials are available. The diagram-rendering audit is
-  production-accepted. The Phase 5C collateral packet,
-  screenshot checklist, and external portfolio/PDF packet are already
-  assembled. Do not start autonomous/background tools, WebContainer/runtime
-  package tooling, auth, billing, multi-tenancy, email, marketing pages,
-  Kubernetes, Redis, or complex dashboards.
+- Next safe task (superseded below by an urgent mobile bug report): return to
+  client-specific onboarding or run a real-client deployment when credentials
+  are available. The diagram-rendering audit is production-accepted. The
+  Phase 5C collateral packet, screenshot checklist, and external
+  portfolio/PDF packet are already assembled. Do not start
+  autonomous/background tools, WebContainer/runtime package tooling, auth,
+  billing, multi-tenancy, email, marketing pages, Kubernetes, Redis, or
+  complex dashboards.
+
+## Latest Checkpoint (2026-07-04) — Mobile Bug Audit, In Progress
+
+User reported `https://tw-bot.pages.dev/` "does not work on mobile" and
+requested a full audit/debug/refine pass with GitHub-backed documentation.
+Full detail is in `docs/MOBILE_AUDIT_2026-07-04.md` — read that file first,
+this is only the checkpoint summary.
+
+- **No code changes yet.** This checkpoint is research + attempted
+  reproduction only.
+- Confirmed (again) that the local `astro dev` Cloudflare/Miniflare server
+  hangs on startup in this sandbox after the "AI bindings always access
+  remote resources" warning and never binds its port. This matches the
+  already-recorded "Cloudflare local preview issue" caveat in
+  `docs/IMPLEMENTATION_STATUS.md` — treat it as a known environment
+  limitation, not a new regression, and do not re-litigate it; use
+  production-URL reproduction instead (Playwright CLI or the
+  `claude-in-chrome` MCP tools), the same way Phase 4's mobile smoke was
+  originally done.
+- Chrome browser MCP tools were not connected this session
+  ("Claude in Chrome is not connected") — retry needed before a live
+  reproduction can happen.
+- Static re-read of the mobile-relevant code (`ChatIsland.svelte`,
+  `ArtifactOverlay.svelte`, `ArtifactPanel.svelte`, `ArtifactSplitView.svelte`,
+  `ArtifactStandalone.svelte`, `global.css`,
+  `src/tests/mobile-artifacts.test.ts`) found the previously-accepted
+  viewport/scroll-lock/pinch-zoom/swipe-dismiss work still intact, but
+  surfaced five unconfirmed candidate gaps, ranked in
+  `docs/MOBILE_AUDIT_2026-07-04.md`: (1) `mobile-artifacts.test.ts` is
+  static source-pattern verification only, not a real rendered-interaction
+  test, so a live regression could pass CI; (2) mobile detection
+  (`window.innerWidth < 768`) has no `orientationchange`/`matchMedia`
+  listener, only `resize`; (3) the chat input textarea has no explicit
+  max-height, so a long message could grow it unbounded on a small screen;
+  (4) swipe-dismiss geometry doesn't appear to account for
+  `env(safe-area-inset-*)` on notched devices; (5) `public/_headers` sets
+  `Cross-Origin-Embedder-Policy: credentialless` alongside third-party
+  script allowances (esm.sh, unpkg, jsdelivr, cdnjs) for the diagram
+  renderers — COEP/COOP enforcement differs across mobile browser engines
+  and is a plausible candidate for a mobile-only silent asset-load failure,
+  but is unconfirmed without a real console/network trace.
+- Next task: reproduce for real against `https://tw-bot.pages.dev/` at a
+  phone viewport (do not guess-fix), read console/network for CSP
+  violations or JS errors, confirm one root cause, then fix, verify, and
+  update this file plus `docs/IMPLEMENTATION_STATUS.md` with the commit hash
+  and evidence per the existing format.
 
 ## Recovery Prompt
 
 Use this prompt when handing work to another AI agent:
 
 ```text
-Continue from C:\Users\admin\Desktop\techwriter-bot. Read docs\MASTER_EXECUTION_PLAN.md, docs\IMPLEMENTATION_STATUS.md, docs\AI_RECOVERY_TRAIL.md, docs\SELLABLE_READINESS_HANDOFF.md, docs\CLIENT_DEPLOYMENT_KIT.md, docs\PORTFOLIO_BUYER_NARRATIVE.md, docs\PORTFOLIO_SCREENSHOT_MANIFEST.md, docs\PORTFOLIO_PDF_PACKET.md, docs\superpowers\specs\2026-06-04-bounded-documentation-tool-pack.md, and graphify-out\GRAPH_REPORT.md first. Continue only from docs\IMPLEMENTATION_STATUS.md Next Task. Use the recorded build verification command when behavior changes. Preserve GitHub backups after each coherent slice. Phase 5C initial collateral packet, screenshot checklist, external portfolio/PDF packet, and the diagram-rendering audit are production-accepted; next safe work is client-specific onboarding or a real-client deployment when credentials are available. Do not rebuild OAuth, Stripe, multi-tenancy, email, marketing pages, autonomous agents, Kubernetes, Redis, complex dashboards, or WebContainer/runtime package tooling.
+Continue from C:\Users\admin\Downloads\techwriter-bot (this project has moved
+location before, e.g. previously referenced under C:\Users\admin\Desktop —
+verify the working path is correct before running commands). Read
+docs\MOBILE_AUDIT_2026-07-04.md first — it has the active task. Then read
+docs\MASTER_EXECUTION_PLAN.md, docs\IMPLEMENTATION_STATUS.md,
+docs\AI_RECOVERY_TRAIL.md (this file's "Latest Checkpoint (2026-07-04)"
+section), docs\SELLABLE_READINESS_HANDOFF.md, docs\CLIENT_DEPLOYMENT_KIT.md,
+docs\PORTFOLIO_BUYER_NARRATIVE.md, docs\PORTFOLIO_SCREENSHOT_MANIFEST.md,
+docs\PORTFOLIO_PDF_PACKET.md, docs\superpowers\specs\2026-06-04-bounded-documentation-tool-pack.md,
+and graphify-out\GRAPH_REPORT.md for standing project context. The active,
+user-requested task is the mobile bug audit/fix in
+docs\MOBILE_AUDIT_2026-07-04.md — reproduce against the live production URL
+(local `astro dev` is known-blocked in this sandbox, do not re-debug that),
+confirm a root cause with real evidence, then fix, verify, and update the
+docs per the existing format before pushing. Preserve GitHub backups after
+each coherent slice. Do not rebuild OAuth, Stripe, multi-tenancy, email,
+marketing pages, autonomous agents, Kubernetes, Redis, complex dashboards, or
+WebContainer/runtime package tooling.
 ```

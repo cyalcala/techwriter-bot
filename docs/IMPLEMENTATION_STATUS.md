@@ -2076,6 +2076,19 @@ Latest incremental verification on 2026-06-01:
 
 ## Next Task
 
+**Active as of 2026-07-04: user-reported mobile bug audit.** The user
+reported `https://tw-bot.pages.dev/` "does not work on mobile" and asked for
+a full audit/debug/refine pass with GitHub-backed documentation. Full detail,
+ranked candidate root causes, and the exact next reproduction steps are in
+`docs/MOBILE_AUDIT_2026-07-04.md` and the matching checkpoint in
+`docs/AI_RECOVERY_TRAIL.md` ("Latest Checkpoint (2026-07-04)"). Read those
+two first. Summary: no code changes have been made yet; local `astro dev`
+is blocked in this sandbox by the already-known Cloudflare local-preview
+issue (see below), so reproduction must happen against the live production
+URL with a real mobile viewport before any fix is attempted. This supersedes
+the post-Phase-5 readiness work below until resolved; resume the items below
+once the mobile audit reaches a documented resolution.
+
 Phase 5B is closure-accepted. Continue with post-Phase-5 readiness work:
 
 - Phase 1 through Phase 4 are closure-verified and accepted. Phase 5A Client
@@ -2118,5 +2131,25 @@ Phase 5B is closure-accepted. Continue with post-Phase-5 readiness work:
 Use this in a new chat if the session stops:
 
 ```text
-Continue from C:\Users\admin\Desktop\techwriter-bot. Read docs\MASTER_EXECUTION_PLAN.md, docs\IMPLEMENTATION_STATUS.md, docs\AI_RECOVERY_TRAIL.md, docs\SELLABLE_READINESS_HANDOFF.md, docs\CLIENT_DEPLOYMENT_KIT.md, docs\PORTFOLIO_BUYER_NARRATIVE.md, docs\PORTFOLIO_SCREENSHOT_MANIFEST.md, docs\PORTFOLIO_PDF_PACKET.md, docs\superpowers\specs\2026-06-04-bounded-documentation-tool-pack.md, and graphify-out\GRAPH_REPORT.md first. Then continue from docs\IMPLEMENTATION_STATUS.md Next Task. Use the build verification command recorded there when behavior changes. Preserve GitHub backups after each coherent slice. Phase 5C initial collateral packet, screenshot checklist, external portfolio/PDF packet, and the diagram-rendering audit are production-accepted; next safe work is client-specific onboarding or a real-client deployment when credentials are available. Do not rebuild OAuth, Stripe, multi-tenancy, email, marketing pages, autonomous agents, Kubernetes, Redis, complex dashboards, or WebContainer/runtime package tooling.
+Continue from C:\Users\admin\Downloads\techwriter-bot (verify the actual
+working path first — this project has been referenced under different
+parent folders across sessions). Read docs\MOBILE_AUDIT_2026-07-04.md first
+— it holds the active task (user-reported mobile bug, audit in progress, no
+code changes made yet). Then read docs\MASTER_EXECUTION_PLAN.md,
+docs\IMPLEMENTATION_STATUS.md Next Task (this section),
+docs\AI_RECOVERY_TRAIL.md "Latest Checkpoint (2026-07-04)",
+docs\SELLABLE_READINESS_HANDOFF.md, docs\CLIENT_DEPLOYMENT_KIT.md,
+docs\PORTFOLIO_BUYER_NARRATIVE.md, docs\PORTFOLIO_SCREENSHOT_MANIFEST.md,
+docs\PORTFOLIO_PDF_PACKET.md, docs\superpowers\specs\2026-06-04-bounded-documentation-tool-pack.md,
+and graphify-out\GRAPH_REPORT.md for standing context. Reproduce the mobile
+bug against the live production URL with a real mobile viewport (local
+`astro dev` is known-blocked in this sandbox by a Cloudflare/Miniflare
+local-preview hang — do not re-debug that, it is pre-existing) before
+attempting any fix. Use the build verification command recorded here when
+behavior changes. Preserve GitHub backups after each coherent slice. Once
+the mobile audit is resolved and documented, next safe work is
+client-specific onboarding or a real-client deployment when credentials are
+available. Do not rebuild OAuth, Stripe, multi-tenancy, email, marketing
+pages, autonomous agents, Kubernetes, Redis, complex dashboards, or
+WebContainer/runtime package tooling.
 ```
