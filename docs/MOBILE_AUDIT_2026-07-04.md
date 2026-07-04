@@ -141,6 +141,51 @@ From reading `src/styles/global.css`, `src/components/ChatIsland.svelte`,
 None of the above is confirmed as *the* cause yet — they are ranked
 candidates pending a real mobile reproduction.
 
+## Confirmed Symptom (from user, 2026-07-04)
+
+The user reports that on mobile, sending a chat message returns a "no AI
+available" style response — the app tells the user no AI is available and
+the tool cannot be used on mobile. This is a live, user-confirmed repro
+detail (not yet independently verified by an agent against production).
+
+This is a strong lead: the tip commit on `main`, `5ded853`
+("fix: resolve mobile AI availability, turnstile payloads, and kroki test",
+2026-06-20), already targeted this exact symptom — "mobile AI availability"
+and "turnstile payloads" — meaning either that fix was incomplete, or a
+regression reintroduced it. The likely code paths to check first, next
+session:
+
+- `src/lib/zen-router.ts` — returns `AI_PROVIDERS_UNAVAILABLE` /
+  `"All AI providers are currently unavailable. Please try again in a
+  moment."` (`unavailableResponse()`, around line 238) when every provider
+  in the fallback chain fails or is skipped. This is the most likely source
+  of the literal message the user is seeing.
+- `src/lib/turnstile.ts` and wherever the client invokes the Turnstile
+  widget/token — if Turnstile verification is a prerequisite gate before
+  the chat route will call any provider, a mobile-specific Turnstile
+  failure (widget not loading, token not generated, token rejected) could
+  present to the user as "no AI available" even though the real cause is a
+  blocked/failed challenge, not actual provider outage.
+- **`public/_headers` CSP looks suspicious for Turnstile specifically**:
+  `script-src` and `frame-src` in the current CSP do **not** list
+  `https://challenges.cloudflare.com` (only `connect-src` does). Turnstile
+  normally needs to load a script and/or render a challenge iframe from
+  `challenges.cloudflare.com`. If the client-side widget relies on script/
+  iframe loading (rather than a fully server-side check), this CSP gap
+  could silently block Turnstile — worth checking whether this manifests
+  only on mobile (e.g. a stricter or differently-timed CSP enforcement, or
+  a code path that only requires Turnstile under certain conditions such as
+  IP reputation scoring in `src/lib/reputation.ts` that could disproportionately
+  affect mobile carrier IPs) or everywhere equally (in which case it isn't
+  mobile-specific and the real cause is elsewhere).
+- `src/lib/session-continuity.ts` (`AI_PROVIDERS_UNAVAILABLE` handling) and
+  the `liveOutage` / "Live AI unavailable" banner in `ChatIsland.svelte`
+  (~line 1403) are the client-side rendering of this failure state — useful
+  to confirm which exact code path/message the user is hitting.
+
+Not yet traced end-to-end — this is the top-priority next step, above the
+general layout/CSS candidates listed earlier in this document.
+
 ## What Was NOT Yet Done
 
 - No code changes have been made yet. This pass was research + attempted
