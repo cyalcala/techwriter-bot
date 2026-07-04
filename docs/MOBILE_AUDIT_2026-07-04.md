@@ -424,18 +424,34 @@ cerebras/groq recover only after the user rotates keys.
 - `ArtifactPanel.svelte`: duplicate `case 'code'/'html'/'svg'/'mermaid'`
   arms removed from the renderer switch.
 
-### 7. Verification
+### 7. Verification (post-deploy, 2026-07-04 ~14:06 UTC) — RESOLVED, 2/6 → 4/6
 
+- Commit `1e33a6b` (main fix batch) deployed via GitHub Actions run
+  `28708474072`; post-deploy health showed **cloudflare-llama ok:true
+  200** (fix confirmed) and **groq 200** (user rotated the key), but
+  cerebras flipped 403 → **404**: the rotated key was valid but Cerebras
+  had removed ALL Llama models from its public catalog — `llama-3.1-8b`
+  no longer exists there. Follow-up commit `13be4e3` switched
+  cerebras-llama's model to `gpt-oss-120b` (Cerebras's current production
+  model), deployed via run `28708635928`.
+- Final `/api/health` at 14:06 UTC: **4 of 6 active** — cerebras 200
+  (435ms), groq 200 (290ms), openrouter 200 (727ms), cloudflare 200
+  (612ms). Still down: gemini `http_429` (quota — user action), nvidia
+  `provider_error` at the 5s health-ping cap (NVIDIA-side slowness; the
+  chat path allows it 12s). Snapshot:
+  `output/playwright/mobile-audit-2026-07-04/health-snapshot-2026-07-04-post-fix.json`.
+- Production mobile smoke (`scripts/mobile-repro.mjs`, iPhone-class
+  390x844) after both deploys: hydration OK, input enabled, message sent,
+  **zero console errors / page errors / failed requests / 4xx-5xx**, no
+  horizontal overflow. Combined with the Session-3 repro2 diagram flow
+  (real AI reply + rendered MERMAID artifact), the "no AI available"
+  failure mode no longer reproduces.
 - `npm test`: **222/222 passed (44 files)** after all changes.
-- Local `astro dev` remains blocked (known caveat, untouched); production
-  smoke via `scripts/mobile-repro.mjs` + `/api/health` runs after the
-  deploy triggered by this session's push — evidence recorded in the
-  checkpoint files per the existing format.
 
-Deferred/not done: Cerebras+Groq key rotation and the Gemini quota check
-remain user actions; `mobile-artifacts.test.ts` is still static
-pattern-verification only (a real rendered-browser CI test remains a
-worthwhile follow-up, out of scope this session).
+Deferred/not done: Gemini quota check remains a user action; nvidia-fast
+latency worth re-checking next session; `mobile-artifacts.test.ts` is
+still static pattern-verification only (a real rendered-browser CI test
+remains a worthwhile follow-up, out of scope this session).
 
 ## Continue Prompt (updated after Session 2)
 

@@ -495,11 +495,19 @@ Full detail in `docs/MOBILE_AUDIT_2026-07-04.md` "Session 3". Summary:
   ran clean: zero errors, artifact rendered; evidence added to
   `output/playwright/mobile-audit-2026-07-04/`.
 - `npm test`: 222/222 across 44 files.
-- **Still pending (user action):** rotate Cerebras + Groq keys, check
-  Gemini quota — health at ~05:30 UTC still showed 403/403/429.
-- Commit hash, Actions run id, and post-deploy production verification
-  evidence are recorded in the follow-up docs checkpoint after the deploy
-  completes, per the established pattern.
+- **Post-deploy verification (RESOLVED, 2/6 → 4/6 providers):** fix batch
+  commit `1e33a6b` deployed in Actions run `28708474072`; cloudflare-llama
+  came back `ok: true` and groq recovered after the user's key rotation.
+  Cerebras then surfaced as 403 → 404 (rotated key valid, but Cerebras
+  removed all Llama models from its catalog); follow-up commit `13be4e3`
+  (run `28708635928`) switched it to `gpt-oss-120b`. Final health at
+  14:06 UTC: **cerebras, groq, openrouter, cloudflare all 200**; gemini
+  still `http_429` (quota — user action), nvidia timing out at the 5s
+  health cap (watch item). Snapshot:
+  `output/playwright/mobile-audit-2026-07-04/health-snapshot-2026-07-04-post-fix.json`.
+  Production iPhone-profile smoke (`scripts/mobile-repro.mjs`) after both
+  deploys: zero errors, no overflow, send works — the "no AI available"
+  failure mode no longer reproduces.
 
 ## Recovery Prompt
 

@@ -2093,13 +2093,23 @@ and ruled out (no client widget exists; latent fail-open `json()` bug
 fixed); the 16px iOS input-zoom fix and the Session-1 refinements
 (matchMedia/orientationchange detection, glossary textarea cap, safe-area
 insets, duplicate-case cleanup) are applied. `npm test` 222/222.
-**Remaining:** (a) post-deploy verification — `/api/health` should show
-cloudflare-llama `ok: true` (3 of 6 healthy) and `scripts/mobile-repro.mjs`
-should pass against production; (b) **user action:** rotate the Cerebras +
-Groq API keys and check Gemini quota — still 403/403/429 at ~05:30 UTC.
-The next task after this resolves is the video/presentation generation
-upgrade briefed in `docs/VIDEO_PRESENTATION_UPGRADE_BRIEF.md` (research →
-strategy doc → architecture doc; no code until the strategy doc exists).
+**RESOLVED (2026-07-04 ~14:06 UTC): 4 of 6 providers healthy.** Fix batch
+commit `1e33a6b` (Actions run `28708474072`) restored cloudflare-llama;
+the user's key rotation restored groq; follow-up commit `13be4e3` (run
+`28708635928`) fixed cerebras, whose rotated key surfaced a second
+catalog retirement (`llama-3.1-8b` removed from Cerebras — now
+`gpt-oss-120b`). Final health: cerebras 200, groq 200, openrouter 200,
+cloudflare 200; gemini `http_429` (quota — **user action**), nvidia
+timing out at the 5s health-ping cap (watch item). Production
+iPhone-profile smoke (`scripts/mobile-repro.mjs`) after both deploys ran
+with zero errors and no overflow; the Session-3 Android repro
+(`scripts/mobile-repro2.mjs`) got a real AI reply with a rendered MERMAID
+artifact. The "no AI available" failure mode no longer reproduces.
+Evidence: `output/playwright/mobile-audit-2026-07-04/`. `npm test`
+222/222. **The active task is now the video/presentation generation
+upgrade** briefed in `docs/VIDEO_PRESENTATION_UPGRADE_BRIEF.md` (research
+→ strategy doc → architecture doc; no code until the strategy doc
+exists).
 
 Phase 5B is closure-accepted. Continue with post-Phase-5 readiness work:
 
