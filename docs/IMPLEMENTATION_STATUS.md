@@ -2111,6 +2111,20 @@ upgrade** briefed in `docs/VIDEO_PRESENTATION_UPGRADE_BRIEF.md` (research
 → strategy doc → architecture doc; no code until the strategy doc
 exists).
 
+**Session 4 (2026-07-05):** that task's research phase is 2 of 6
+dimensions complete (presenton, OpenMontage — both deep-dived with
+primary sources) and was halted by the user for handoff. Everything is
+preserved in `docs/VIDEO_PRESENTATION_RESEARCH_NOTES.md`: findings,
+license analysis (presenton Apache-2.0 but closed export binaries;
+OpenMontage AGPL; Remotion 3-employee license trap; HyperFrames
+Apache-2.0), a preliminary two-phase strategy direction (deck artifact +
+client-side PPTX first; in-browser slide-video second), the 4 remaining
+research dimensions, and the mapped codebase integration points. The
+next session continues from that file: finish research → write
+`docs/VIDEO_PRESENTATION_STRATEGY.md` → then
+`docs/VIDEO_PRESENTATION_ARCHITECTURE.md` → no code before the strategy
+doc.
+
 Phase 5B is closure-accepted. Continue with post-Phase-5 readiness work:
 
 - Phase 1 through Phase 4 are closure-verified and accepted. Phase 5A Client
@@ -2155,23 +2169,24 @@ Use this in a new chat if the session stops:
 ```text
 Continue from C:\Users\admin\Downloads\techwriter-bot (verify the actual
 working path first — this project has been referenced under different
-parent folders across sessions). Read docs\MOBILE_AUDIT_2026-07-04.md first
-— it holds the active task (user-reported mobile bug, audit in progress, no
-code changes made yet). Then read docs\MASTER_EXECUTION_PLAN.md,
-docs\IMPLEMENTATION_STATUS.md Next Task (this section),
-docs\AI_RECOVERY_TRAIL.md "Latest Checkpoint (2026-07-04)",
-docs\SELLABLE_READINESS_HANDOFF.md, docs\CLIENT_DEPLOYMENT_KIT.md,
-docs\PORTFOLIO_BUYER_NARRATIVE.md, docs\PORTFOLIO_SCREENSHOT_MANIFEST.md,
-docs\PORTFOLIO_PDF_PACKET.md, docs\superpowers\specs\2026-06-04-bounded-documentation-tool-pack.md,
-and graphify-out\GRAPH_REPORT.md for standing context. Reproduce the mobile
-bug against the live production URL with a real mobile viewport (local
-`astro dev` is known-blocked in this sandbox by a Cloudflare/Miniflare
-local-preview hang — do not re-debug that, it is pre-existing) before
-attempting any fix. Use the build verification command recorded here when
-behavior changes. Preserve GitHub backups after each coherent slice. Once
-the mobile audit is resolved and documented, next safe work is
-client-specific onboarding or a real-client deployment when credentials are
-available. Do not rebuild OAuth, Stripe, multi-tenancy, email, marketing
-pages, autonomous agents, Kubernetes, Redis, complex dashboards, or
-WebContainer/runtime package tooling.
+parent folders across sessions). The ACTIVE task is the video/presentation
+generation upgrade: read docs\VIDEO_PRESENTATION_RESEARCH_NOTES.md first
+(completed research, preliminary strategy, remaining checklist, handoff
+instructions), together with docs\VIDEO_PRESENTATION_UPGRADE_BRIEF.md
+(constraints and expected outputs). Finish the 4 remaining research
+dimensions with primary-source citations, adversarially verify
+license/free-tier claims, then write docs\VIDEO_PRESENTATION_STRATEGY.md,
+then docs\VIDEO_PRESENTATION_ARCHITECTURE.md — do NOT write code before
+the strategy doc exists. For standing context read
+docs\MASTER_EXECUTION_PLAN.md, docs\IMPLEMENTATION_STATUS.md Next Task,
+docs\AI_RECOVERY_TRAIL.md "Latest Checkpoint (2026-07-04)" through
+"Session 4", and docs\MOBILE_AUDIT_2026-07-04.md (mobile bug: RESOLVED
+2026-07-04; remaining user actions: Gemini quota, nvidia latency watch
+item). Environment caveats: local `astro dev` is known-blocked in this
+sandbox (do not re-debug); production smoke pattern is
+scripts\mobile-repro.mjs; run git only from inside the repo clone (a
+stray git repo exists at C:\). Preserve GitHub backups after each
+coherent slice. Do not rebuild OAuth, Stripe, multi-tenancy, email,
+marketing pages, autonomous agents, Kubernetes, Redis, complex
+dashboards, or WebContainer/runtime package tooling.
 ```

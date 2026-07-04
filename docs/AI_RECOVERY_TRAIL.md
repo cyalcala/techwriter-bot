@@ -509,6 +509,31 @@ Full detail in `docs/MOBILE_AUDIT_2026-07-04.md` "Session 3". Summary:
   deploys: zero errors, no overflow, send works — the "no AI available"
   failure mode no longer reproduces.
 
+### Session 4 update (2026-07-05) — video/presentation research started, halted by user, handed off
+
+- The video/presentation upgrade task (brief:
+  `docs/VIDEO_PRESENTATION_UPGRADE_BRIEF.md`) entered its research phase.
+  2 of 6 research dimensions completed with primary-source evidence
+  before the user stopped the session: **presenton** (Apache-2.0; cannot
+  run on Cloudflare free tier; its schema-driven HTML/Tailwind slide
+  template pattern is the portable asset; its PPTX export binary is
+  unlicensed closed-source — avoid) and **OpenMontage** (AGPL-3.0 —
+  design reference only; its default renderer Remotion is free only up
+  to 3-employee companies; HyperFrames (Apache-2.0) is the safe renderer
+  alternative; it validates the "LLM stages on Cloudflare + render in
+  GitHub Actions" split).
+- All findings, license analysis, a PRELIMINARY strategy direction
+  (Phase A: schema-driven `deck` artifact + client-side PptxGenJS
+  export; Phase B: in-browser slide-video via WebCodecs + free TTS;
+  non-goal: server-rendered cinematic video), the 4 remaining research
+  dimensions, and codebase integration points are preserved in
+  **`docs/VIDEO_PRESENTATION_RESEARCH_NOTES.md`** — the handoff file for
+  whichever AI continues.
+- No strategy doc, no architecture doc, no code yet — per the brief,
+  strategy doc comes after research completes.
+- Mobile-fix follow-ups still open for the user: Gemini quota (429) and
+  the nvidia-fast health-ping timeouts (watch item).
+
 ## Recovery Prompt
 
 Use this prompt when handing work to another AI agent:

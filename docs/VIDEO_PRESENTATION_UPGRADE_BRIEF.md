@@ -1,8 +1,11 @@
 # Video + Presentation Generation Upgrade — Task Brief (2026-07-04)
 
-Status: **NOT STARTED** — request captured, research not yet begun. This
-brief exists so any AI session can pick the task up without the original
-chat.
+Status: **RESEARCH IN PROGRESS (2 of 6 dimensions complete)** — see
+`docs/VIDEO_PRESENTATION_RESEARCH_NOTES.md` for all completed findings
+(presenton + OpenMontage deep-dives with sources and license analysis), a
+preliminary strategy direction, the remaining research checklist, and
+handoff instructions. Strategy/architecture docs NOT yet written; no code
+exists. This brief's constraints and expected outputs still govern.
 
 ## User Request (verbatim intent)
 
