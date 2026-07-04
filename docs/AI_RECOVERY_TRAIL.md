@@ -436,6 +436,38 @@ this is only the checkpoint summary.
   update this file plus `docs/IMPLEMENTATION_STATUS.md` with the commit hash
   and evidence per the existing format.
 
+### Session 2 update (2026-07-04 afternoon) — reproduction achieved, root cause evidenced
+
+- User confirmed the symptom: chat reports **"no AI available" on mobile**
+  (recorded in `docs/MOBILE_AUDIT_2026-07-04.md` "Confirmed Symptom").
+- A real mobile-viewport reproduction now works WITHOUT the Chrome
+  extension or local dev: `scripts/mobile-repro.mjs` (playwright-core from
+  the npx cache + system Chrome, `channel: 'chrome'`, headless, 390x844
+  touch emulation). Evidence under
+  `output/playwright/mobile-audit-2026-07-04/`.
+- Result: load, hydration, layout, typing, sending, and AI reply all
+  **worked** in emulated mobile Chrome with zero console/network errors —
+  the UI is not the failure. The reply only arrived after visible
+  provider **failover** (groq → cerebras → gemini badges).
+- **Root-cause evidence:** `GET /api/health` on production shows **4 of 6
+  providers down** — cerebras 403, groq 403 (bad/revoked keys), gemini 429
+  (quota), cloudflare-llama binding erroring (status null); only nvidia +
+  openrouter healthy. When those two blip, `zen-router.ts` returns
+  `AI_PROVIDERS_UNAVAILABLE` — exactly the user's symptom. Snapshot:
+  `output/playwright/mobile-audit-2026-07-04/health-snapshot-2026-07-04.json`.
+- Secondary iOS-only lead (unfixed): 15px chat-input font triggers iOS
+  Safari auto-zoom-on-focus; recommend 16px on mobile.
+- Still **no app code changes** — user requested a checkpoint here. The
+  prioritized fix list is in `docs/MOBILE_AUDIT_2026-07-04.md` "What
+  remains for the fix session" (run `scripts/mobile-repro2.mjs` first,
+  then fix the cloudflare-llama binding, rotate Cerebras/Groq keys, trace
+  the Turnstile/CSP gate, apply the 16px fix, then the Session-1
+  refinements).
+- **New pending task captured:** video + presentation generation upgrade
+  (presenton/OpenMontage research → strategy → architecture), briefed in
+  `docs/VIDEO_PRESENTATION_UPGRADE_BRIEF.md`. Not started; mobile fix
+  takes priority.
+
 ## Recovery Prompt
 
 Use this prompt when handing work to another AI agent:

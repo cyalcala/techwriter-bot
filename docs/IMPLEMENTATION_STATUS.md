@@ -2076,18 +2076,24 @@ Latest incremental verification on 2026-06-01:
 
 ## Next Task
 
-**Active as of 2026-07-04: user-reported mobile bug audit.** The user
-reported `https://tw-bot.pages.dev/` "does not work on mobile" and asked for
-a full audit/debug/refine pass with GitHub-backed documentation. Full detail,
-ranked candidate root causes, and the exact next reproduction steps are in
-`docs/MOBILE_AUDIT_2026-07-04.md` and the matching checkpoint in
-`docs/AI_RECOVERY_TRAIL.md` ("Latest Checkpoint (2026-07-04)"). Read those
-two first. Summary: no code changes have been made yet; local `astro dev`
-is blocked in this sandbox by the already-known Cloudflare local-preview
-issue (see below), so reproduction must happen against the live production
-URL with a real mobile viewport before any fix is attempted. This supersedes
-the post-Phase-5 readiness work below until resolved; resume the items below
-once the mobile audit reaches a documented resolution.
+**Active as of 2026-07-04: user-reported mobile bug audit — Session 2
+checkpoint reached.** The user reported `https://tw-bot.pages.dev/` "does
+not work on mobile" (confirmed symptom: chat says **no AI available** on
+mobile) and asked for a full audit/debug/refine pass with GitHub-backed
+documentation. Read `docs/MOBILE_AUDIT_2026-07-04.md` first — especially
+"Confirmed Symptom" and "Session 2". Status: a real mobile-viewport
+reproduction now works via `scripts/mobile-repro.mjs` (playwright-core +
+system Chrome; local `astro dev` remains blocked by the known Cloudflare
+local-preview issue — do not re-debug). The mobile UI itself passed a full
+load/hydrate/type/send/reply smoke with zero errors; the evidence-backed
+root cause is the **provider outage**: `/api/health` shows 4 of 6 providers
+down (cerebras 403, groq 403, gemini 429, cloudflare-llama binding error;
+snapshot in `output/playwright/mobile-audit-2026-07-04/`). **No app code
+changes yet** — the prioritized fix list is in the audit doc's "What
+remains for the fix session". This supersedes the post-Phase-5 readiness
+work below until resolved. A second pending task (video/presentation
+generation upgrade) is briefed in
+`docs/VIDEO_PRESENTATION_UPGRADE_BRIEF.md` and starts after the mobile fix.
 
 Phase 5B is closure-accepted. Continue with post-Phase-5 readiness work:
 

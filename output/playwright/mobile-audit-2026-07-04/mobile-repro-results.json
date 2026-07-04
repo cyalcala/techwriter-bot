@@ -1,0 +1,14 @@
+{
+  "consoleErrors": [],
+  "consoleWarnings": [],
+  "pageErrors": [],
+  "failedRequests": [],
+  "badResponses": [],
+  "steps": [
+    "navigate",
+    "hydration-check {\"islandSsrAttr\":false,\"inputTag\":\"INPUT\",\"inputDisabled\":false,\"docHeight\":844,\"innerHeight\":844}",
+    "send-button {\"found\":true,\"disabled\":false}",
+    "sent-message",
+    "overflow-check {\"bodyScrollWidth\":390,\"innerWidth\":390,\"overflowing\":false}"
+  ]
+}

@@ -226,18 +226,130 @@ general layout/CSS candidates listed earlier in this document.
 5. Commit and push; the `deploy.yml` workflow deploys on push to `main`
    automatically.
 
-## Continue Prompt
+---
+
+## Session 2 (2026-07-04, afternoon) — Real Mobile Reproduction + Provider Health Evidence
+
+A second session got a **real browser reproduction working** and captured
+production evidence that strongly corroborates the "Confirmed Symptom"
+section above (the "no AI available" message). Still **no app code
+changes** — the user asked for a checkpoint before the fix session.
+
+### Reproduction method (working, reusable)
+
+- `claude-in-chrome` MCP was still not connected (second session in a row).
+- **Working fallback discovered:** a prior session left `playwright-core`
+  in the npx cache at
+  `C:\Users\admin\AppData\Local\npm-cache\_npx\31e32ef8478fbf80\node_modules\playwright-core`
+  and it launches the **system Chrome** via `channel: 'chrome'` headless —
+  no Playwright browser download needed. If that cache path is gone, run
+  `npm i playwright-core` anywhere and keep `channel: 'chrome'`.
+- The exact repro harness is committed at **`scripts/mobile-repro.mjs`**
+  (iPhone-class emulation: 390x844, DPR 3, touch, iOS UA; captures console
+  errors, page errors, failed requests, 4xx/5xx responses, screenshots,
+  hydration + horizontal-overflow checks). Run:
+  `node scripts/mobile-repro.mjs` (edit the absolute playwright-core path
+  at the top if the cache moved).
+- A second, **not-yet-run** pass is committed at
+  **`scripts/mobile-repro2.mjs`** (Android profile 360x740; diagram
+  request → artifact chip → overlay → Tools panel). The user interrupted
+  before it ran. **Run this first thing next session.**
+
+### Result: the core mobile flow WORKS in emulated mobile Chrome
+
+Evidence committed under `output/playwright/mobile-audit-2026-07-04/`:
+
+- `m1-initial.png` — clean first paint at 390x844; layout correct.
+- `m2-typed.png` / `m3-after-send.png` — message typed, sent, and a real
+  AI reply rendered end-to-end.
+- `mobile-repro-results.json` — **zero console errors, zero page errors,
+  zero failed network requests, zero 4xx/5xx responses**; astro-island
+  hydrated (`ssr` attribute removed, input enabled); **no horizontal
+  overflow** (`bodyScrollWidth 390 == innerWidth 390`).
+
+So the failure is NOT load/hydrate/layout/send in a Chromium mobile
+profile. This demotes the layout/CSS/COEP candidates (#1, #2, #5 in the
+Session 1 ranking) and strengthens the provider-availability lead.
+
+### KEY EVIDENCE: 4 of 6 AI providers are DOWN on production
+
+`GET https://tw-bot.pages.dev/api/health` at 2026-07-04 ~05:05 UTC
+(snapshot committed at
+`output/playwright/mobile-audit-2026-07-04/health-snapshot-2026-07-04.json`):
+
+| provider | status | meaning |
+|---|---|---|
+| cerebras-llama | **403** | key invalid/revoked/blocked |
+| groq-fast | **403** | key invalid/revoked/blocked |
+| gemini-flash | **429** | quota exhausted (retryable) |
+| cloudflare-llama | **null** | Workers AI binding call failing outright |
+| nvidia-fast | 200 OK | alive |
+| openrouter-fast | 200 OK | alive |
+
+The successful test reply visibly went through the **Failover** path first
+(UI badges: groq-fast → cerebras-llama → gemini-flash, all 01:03 PM)
+before a live provider answered. With only 2 of 6 providers healthy, any
+transient failure or rate-limit of nvidia + openrouter =
+`AI_PROVIDERS_UNAVAILABLE` from `zen-router.ts` = exactly the
+user-confirmed "no AI available" symptom. Mobile networks (carrier IPs,
+higher latency, reputation scoring in `src/lib/reputation.ts`) may make
+this more frequent on the user's phone, but the root outage is
+device-independent.
+
+This makes the provider outage the **#1 confirmed-evidence root cause**.
+The 403s are key problems (user action: rotate/replace Cerebras and Groq
+keys, check Gemini quota); the `cloudflare-llama` null-status failure is
+code/config side (`src/lib/providers.ts`, `wrangler.json` `ai` binding)
+and should be debugged next session. The Turnstile-CSP lead in the
+"Confirmed Symptom" section above remains worth checking as a possible
+*additional* mobile-specific gate, but note the served (middleware) CSP
+comes from `src/lib/security-headers.ts`, not `public/_headers` — and
+neither lists `challenges.cloudflare.com` in `script-src`.
+
+### Secondary lead: iOS Safari auto-zoom on the chat input (not yet fixed)
+
+The chat input renders at **15px** font (`text-[15px]`, visible in the
+SSR HTML and `ChatInput.svelte`). iOS Safari auto-zooms the page when
+focusing any input with font-size < 16px, and with
+`maximum-scale=5.0, user-scalable=yes` in the viewport meta that zoom is
+allowed and sticks — leaving a fixed-height `h-dvh overflow-hidden` chat
+shell partially off-screen. A classic "broken on iPhone" symptom that
+Chromium emulation cannot reproduce. Low-risk fix: 16px input font on
+mobile (e.g. `text-base md:text-[15px]`). Not applied yet.
+
+### What remains for the fix session (priority order)
+
+1. Run `node scripts/mobile-repro2.mjs` (diagram/artifact-overlay/Tools
+   pass at 360x740); file results next to the existing evidence.
+2. Debug and fix the `cloudflare-llama` (Workers AI binding) failure —
+   this is the only fully-in-code provider and it should never 403/expire.
+3. Ask the user to rotate the Cerebras + Groq API keys and check the
+   Gemini quota; re-run `/api/health` to confirm recovery.
+4. Trace the Turnstile gate (see "Confirmed Symptom" section): whether a
+   blocked `challenges.cloudflare.com` script/iframe can present as
+   "no AI available" on mobile, given the CSP in
+   `src/lib/security-headers.ts` omits it from `script-src`/`frame-src`.
+5. Apply the 16px input-font fix for iOS auto-zoom.
+6. Session-1 refinements still open: `matchMedia`/`orientationchange`
+   mobile detection, textarea max-height cap, safe-area insets, duplicate
+   `case` cleanup in `ArtifactPanel.svelte`.
+7. `npm test`, push to `main` (deploy.yml auto-deploys), production smoke
+   via `scripts/mobile-repro.mjs`, then update the checkpoints in
+   `docs/AI_RECOVERY_TRAIL.md` and `docs/IMPLEMENTATION_STATUS.md`.
+
+## Continue Prompt (updated after Session 2)
 
 ```text
 Continue the mobile audit for techwriter-bot from
-docs/MOBILE_AUDIT_2026-07-04.md. Read docs/AI_RECOVERY_TRAIL.md and
-docs/IMPLEMENTATION_STATUS.md "Next Task" first for the project's standing
-rules. The local Cloudflare/astro dev server hangs on startup in this
-sandbox (known issue, not a regression) — do not waste time re-debugging
-that; instead reproduce against the live production URL
-https://tw-bot.pages.dev/ via a real mobile-viewport browser (claude-in-chrome
-MCP tools, or ask the user for device/browser details and exact symptoms).
-Candidate root causes are ranked in the "Static Analysis Findings" section
-above — confirm one with real console/network evidence before writing a fix.
-No code changes have been made yet as of this file's writing.
+docs/MOBILE_AUDIT_2026-07-04.md — read "Confirmed Symptom" and the
+"Session 2" section; they supersede the Session 1 candidate ranking.
+Reproduction now works via scripts/mobile-repro.mjs (playwright-core +
+system Chrome; local astro dev remains blocked — do not re-debug it). The
+core mobile UI flow is confirmed working in emulated Chrome; the
+evidence-backed root cause of "no AI available on mobile" is the provider
+outage (4 of 6 providers down — see
+output/playwright/mobile-audit-2026-07-04/health-snapshot-2026-07-04.json).
+Work the numbered list in "What remains for the fix session". A separate
+new task (video/presentation generation upgrade) is briefed in
+docs/VIDEO_PRESENTATION_UPGRADE_BRIEF.md.
 ```
