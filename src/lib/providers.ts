@@ -16,7 +16,8 @@ export const ZEN_REGISTRY: Provider[] = [
     name: 'cerebras',
     role: 'balanced',
     endpoint: 'https://api.cerebras.ai/v1',
-    model: 'llama-3.1-8b',
+    // Cerebras dropped Llama models from its public catalog (404 as of 2026-07); gpt-oss-120b is its production model
+    model: 'gpt-oss-120b',
     timeoutMs: 12000,
     freeTier: true,
   },

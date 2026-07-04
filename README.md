@@ -108,7 +108,7 @@ No single AI provider offers guaranteed uptime, best latency for every query typ
 | Provider | Model | Role |
 |---|---|---|
 | Groq | llama-3.3-70b-versatile | Fast |
-| Cerebras | llama-3.1-8b | Balanced |
+| Cerebras | gpt-oss-120b | Balanced |
 | Gemini | gemini-2.0-flash | Heavy |
 | NVIDIA | meta/llama-3.1-8b-instruct | Fallback |
 | OpenRouter | meta-llama/llama-3.1-8b-instruct | Fallback |

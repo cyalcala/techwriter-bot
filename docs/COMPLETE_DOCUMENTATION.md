@@ -96,7 +96,7 @@ The `zen-router` (`src/lib/zen-router.ts`) implements a production-grade provide
 | Provider | Model | Role | Free Tier |
 |---|---|---|---|
 | Groq | llama-3.3-70b-versatile | Fast | Yes |
-| Cerebras | llama-3.1-8b | Balanced | Yes |
+| Cerebras | gpt-oss-120b | Balanced | Yes |
 | Gemini | gemini-2.0-flash | Heavy | Yes |
 | NVIDIA | meta/llama-3.1-8b-instruct | Fallback | Yes |
 | OpenRouter | meta-llama/llama-3.1-8b-instruct | Fallback | Yes |
