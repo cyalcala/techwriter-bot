@@ -112,7 +112,7 @@ No single AI provider offers guaranteed uptime, best latency for every query typ
 | Gemini | gemini-2.0-flash | Heavy |
 | NVIDIA | meta/llama-3.1-8b-instruct | Fallback |
 | OpenRouter | meta-llama/llama-3.1-8b-instruct | Fallback |
-| Cloudflare Workers AI | @cf/meta/llama-3.1-8b-instruct | Fallback |
+| Cloudflare Workers AI | @cf/meta/llama-3.1-8b-instruct-fast | Fallback |
 
 The circuit breaker pattern (`src/lib/zen-router.ts`) ejects providers after 3 failures in 60 seconds. Permanent auth failures get a 10-minute cool-down. Your conversation continues even when a provider doesn't.
 

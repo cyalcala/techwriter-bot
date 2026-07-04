@@ -24,6 +24,18 @@ export interface PublicProviderHealth {
   status: number | null;
   latencyMs: number;
   retryable: boolean;
+  error?: string;
+}
+
+const CONFIG_ERROR_CODES = new Set(['missing_api_key', 'missing_ai_binding']);
+
+// Expose only a coarse runtime-failure code publicly; configuration state and
+// raw provider exception text stay server-side.
+function publicErrorCode(provider: ProviderHealth): string | undefined {
+  if (provider.ok || !provider.error) return undefined;
+  if (CONFIG_ERROR_CODES.has(provider.error)) return undefined;
+  if (provider.error === 'timeout' || /^http_\d{3}$/.test(provider.error)) return provider.error;
+  return 'provider_error';
 }
 
 export interface ProviderHealthOptions {
@@ -128,6 +140,7 @@ export async function checkProvidersHealth(
 }
 
 export function toPublicProviderHealth(provider: ProviderHealth): PublicProviderHealth {
+  const error = publicErrorCode(provider);
   return {
     id: provider.id,
     name: provider.name,
@@ -135,5 +148,6 @@ export function toPublicProviderHealth(provider: ProviderHealth): PublicProvider
     status: provider.status,
     latencyMs: provider.latencyMs,
     retryable: provider.retryable,
+    ...(error ? { error } : {}),
   };
 }

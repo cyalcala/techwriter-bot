@@ -59,7 +59,7 @@ describe('provider health checks', () => {
     expect(result.retryable).toBe(true);
   });
 
-  it('publishes provider availability without configuration or error details', async () => {
+  it('publishes coarse failure codes without configuration or raw error details', async () => {
     const { toPublicProviderHealth } = await import('../lib/provider-health');
 
     const publicStatus = toPublicProviderHealth({
@@ -80,8 +80,79 @@ describe('provider health checks', () => {
       status: 503,
       latencyMs: 8,
       retryable: true,
+      error: 'provider_error',
     });
     expect(JSON.stringify(publicStatus)).not.toContain('configured');
     expect(JSON.stringify(publicStatus)).not.toContain('internal context');
+  });
+
+  it('never exposes configuration state in public health output', async () => {
+    const { toPublicProviderHealth } = await import('../lib/provider-health');
+
+    const unconfigured = toPublicProviderHealth({
+      id: 'groq-fast',
+      name: 'groq',
+      configured: false,
+      ok: false,
+      status: null,
+      latencyMs: 0,
+      retryable: false,
+      error: 'missing_api_key',
+    });
+
+    expect(unconfigured.error).toBeUndefined();
+    expect(JSON.stringify(unconfigured)).not.toContain('missing_api_key');
+
+    const missingBinding = toPublicProviderHealth({
+      id: 'cloudflare-llama',
+      name: 'cloudflare',
+      configured: false,
+      ok: false,
+      status: null,
+      latencyMs: 0,
+      retryable: false,
+      error: 'missing_ai_binding',
+    });
+
+    expect(missingBinding.error).toBeUndefined();
+  });
+
+  it('passes through timeout and http status codes as public error codes', async () => {
+    const { toPublicProviderHealth } = await import('../lib/provider-health');
+
+    const timedOut = toPublicProviderHealth({
+      id: 'cloudflare-llama',
+      name: 'cloudflare',
+      configured: true,
+      ok: false,
+      status: null,
+      latencyMs: 5000,
+      retryable: true,
+      error: 'timeout',
+    });
+    expect(timedOut.error).toBe('timeout');
+
+    const httpError = toPublicProviderHealth({
+      id: 'groq-fast',
+      name: 'groq',
+      configured: true,
+      ok: false,
+      status: 403,
+      latencyMs: 10,
+      retryable: false,
+      error: 'http_403',
+    });
+    expect(httpError.error).toBe('http_403');
+
+    const healthy = toPublicProviderHealth({
+      id: 'nvidia-fast',
+      name: 'nvidia',
+      configured: true,
+      ok: true,
+      status: 200,
+      latencyMs: 240,
+      retryable: false,
+    });
+    expect(healthy.error).toBeUndefined();
   });
 });

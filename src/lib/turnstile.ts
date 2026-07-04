@@ -12,7 +12,6 @@ export async function verifyTurnstile(token: string, secret: string, timeoutMs: 
       signal: ctrl.signal,
     });
     clearTimeout(t);
-    r.body?.cancel();
     const d = await r.json() as any;
     return !!d.success;
   } catch {

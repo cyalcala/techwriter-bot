@@ -468,6 +468,39 @@ this is only the checkpoint summary.
   `docs/VIDEO_PRESENTATION_UPGRADE_BRIEF.md`. Not started; mobile fix
   takes priority.
 
+### Session 3 update (2026-07-04 evening) — root cause fixed, refinements applied
+
+Full detail in `docs/MOBILE_AUDIT_2026-07-04.md` "Session 3". Summary:
+
+- **cloudflare-llama root cause found and fixed:** Cloudflare removed
+  `@cf/meta/llama-3.1-8b-instruct` from the Workers AI catalog on
+  2026-05-30 (changelog 2026-05-08). The binding itself is alive — proved
+  by a live `POST /api/summarize` probe returning a real llama-3.2-1b
+  completion. `src/lib/providers.ts` now uses
+  `@cf/meta/llama-3.1-8b-instruct-fast` (still-active variant).
+- `/api/health` now publishes sanitized runtime error codes (`timeout`,
+  `http_NNN`, `provider_error`) per failing provider so future provider
+  outages are diagnosable from the public endpoint; configuration state
+  is still never exposed (tests extended to pin both).
+- **Turnstile/CSP lead closed — not a factor:** no client-side widget
+  exists anywhere in `src/`, and the server gate passes tokenless
+  requests, so the CSP omission of `challenges.cloudflare.com` is moot.
+  Fixed a latent fail-open bug (`r.body?.cancel()` before `r.json()`) in
+  both copies of `verifyTurnstile` so the gate works if a widget is added.
+- iOS auto-zoom fix applied (`text-base md:text-[15px]` on the chat
+  input); Session-1 refinements applied (matchMedia + orientationchange
+  mobile detection, glossary textarea `max-h-40`, safe-area insets on the
+  artifact overlay, duplicate switch-case cleanup in ArtifactPanel).
+- `scripts/mobile-repro2.mjs` (Android 360x740, diagram → artifact flow)
+  ran clean: zero errors, artifact rendered; evidence added to
+  `output/playwright/mobile-audit-2026-07-04/`.
+- `npm test`: 222/222 across 44 files.
+- **Still pending (user action):** rotate Cerebras + Groq keys, check
+  Gemini quota — health at ~05:30 UTC still showed 403/403/429.
+- Commit hash, Actions run id, and post-deploy production verification
+  evidence are recorded in the follow-up docs checkpoint after the deploy
+  completes, per the established pattern.
+
 ## Recovery Prompt
 
 Use this prompt when handing work to another AI agent:

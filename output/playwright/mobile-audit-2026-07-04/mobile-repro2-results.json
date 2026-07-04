@@ -1,0 +1,13 @@
+{
+  "consoleErrors": [],
+  "pageErrors": [],
+  "failedRequests": [],
+  "badResponses": [],
+  "steps": [
+    "navigate",
+    "diagram-request-sent",
+    "artifact-appeared at 1s {\"chip\":true,\"svg\":false,\"textLen\":561}",
+    "overflow {\"bodyScrollWidth\":360,\"innerWidth\":360}",
+    "overlay-attempted"
+  ]
+}

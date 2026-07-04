@@ -79,10 +79,6 @@
           case 'html': renderedHtml = renderHtmlArtifact(a.code); break;
           case 'svg': renderedHtml = renderSvgArtifact(a.code); break;
           case 'mermaid': renderedHtml = renderMermaidArtifact(a.code); break;
-          case 'code': renderedHtml = renderCodeArtifact(a.code, a.language); break;
-          case 'html': renderedHtml = renderHtmlArtifact(a.code); break;
-          case 'svg': renderedHtml = renderSvgArtifact(a.code); break;
-          case 'mermaid': renderedHtml = renderMermaidArtifact(a.code); break;
           case 'react': renderedHtml = renderReactArtifact(a.code); break;
           case 'katex': renderedHtml = renderKatexArtifact(a.code); break;
           case 'markmap': renderedHtml = renderMarkmapArtifact(a.code); break;

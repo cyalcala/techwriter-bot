@@ -395,9 +395,13 @@
     isOnline = navigator.onLine;
     window.addEventListener('online', () => { isOnline = true; });
     window.addEventListener('offline', () => { isOnline = false; });
-    const checkMobile = () => { isMobile = window.innerWidth < 768; };
+    // matchMedia + orientationchange cover browsers that change viewport without firing resize (in-app browsers, PWAs, foldables)
+    const mobileQuery = window.matchMedia('(max-width: 767px)');
+    const checkMobile = () => { isMobile = mobileQuery.matches; };
     checkMobile();
+    mobileQuery.addEventListener?.('change', checkMobile);
     window.addEventListener('resize', checkMobile);
+    window.addEventListener('orientationchange', checkMobile);
   });
 
   function clearDocumentToolState() {

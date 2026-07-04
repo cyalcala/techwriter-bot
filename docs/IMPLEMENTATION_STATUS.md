@@ -2076,24 +2076,30 @@ Latest incremental verification on 2026-06-01:
 
 ## Next Task
 
-**Active as of 2026-07-04: user-reported mobile bug audit — Session 2
-checkpoint reached.** The user reported `https://tw-bot.pages.dev/` "does
-not work on mobile" (confirmed symptom: chat says **no AI available** on
-mobile) and asked for a full audit/debug/refine pass with GitHub-backed
-documentation. Read `docs/MOBILE_AUDIT_2026-07-04.md` first — especially
-"Confirmed Symptom" and "Session 2". Status: a real mobile-viewport
-reproduction now works via `scripts/mobile-repro.mjs` (playwright-core +
-system Chrome; local `astro dev` remains blocked by the known Cloudflare
-local-preview issue — do not re-debug). The mobile UI itself passed a full
-load/hydrate/type/send/reply smoke with zero errors; the evidence-backed
-root cause is the **provider outage**: `/api/health` shows 4 of 6 providers
-down (cerebras 403, groq 403, gemini 429, cloudflare-llama binding error;
-snapshot in `output/playwright/mobile-audit-2026-07-04/`). **No app code
-changes yet** — the prioritized fix list is in the audit doc's "What
-remains for the fix session". This supersedes the post-Phase-5 readiness
-work below until resolved. A second pending task (video/presentation
-generation upgrade) is briefed in
-`docs/VIDEO_PRESENTATION_UPGRADE_BRIEF.md` and starts after the mobile fix.
+**Active as of 2026-07-04: user-reported mobile bug audit — Session 3 fix
+session complete, awaiting deploy verification + user key rotation.** The
+user reported `https://tw-bot.pages.dev/` "does not work on mobile"
+(confirmed symptom: chat says **no AI available**). Read
+`docs/MOBILE_AUDIT_2026-07-04.md` — "Confirmed Symptom", "Session 2", and
+"Session 3". Status: the evidence-backed root cause was the **provider
+outage** (4 of 6 down). Session 3 fixed the code-side share of it:
+cloudflare-llama failed because Cloudflare **removed
+`@cf/meta/llama-3.1-8b-instruct` from the Workers AI catalog on
+2026-05-30**; `src/lib/providers.ts` now uses the still-active
+`@cf/meta/llama-3.1-8b-instruct-fast` (binding proven alive via a live
+`/api/summarize` probe). `/api/health` now publishes sanitized runtime
+error codes so provider outages are diagnosable; Turnstile/CSP was traced
+and ruled out (no client widget exists; latent fail-open `json()` bug
+fixed); the 16px iOS input-zoom fix and the Session-1 refinements
+(matchMedia/orientationchange detection, glossary textarea cap, safe-area
+insets, duplicate-case cleanup) are applied. `npm test` 222/222.
+**Remaining:** (a) post-deploy verification — `/api/health` should show
+cloudflare-llama `ok: true` (3 of 6 healthy) and `scripts/mobile-repro.mjs`
+should pass against production; (b) **user action:** rotate the Cerebras +
+Groq API keys and check Gemini quota — still 403/403/429 at ~05:30 UTC.
+The next task after this resolves is the video/presentation generation
+upgrade briefed in `docs/VIDEO_PRESENTATION_UPGRADE_BRIEF.md` (research →
+strategy doc → architecture doc; no code until the strategy doc exists).
 
 Phase 5B is closure-accepted. Continue with post-Phase-5 readiness work:
 

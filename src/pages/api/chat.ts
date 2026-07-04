@@ -70,7 +70,6 @@ async function verifyTurnstile(token: string, secret: string): Promise<boolean> 
     formData.append('response', token);
     const r = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', { method: 'POST', body: formData, signal: ctrl.signal });
     clearTimeout(t);
-    r.body?.cancel();
     const d = await r.json() as any;
     return !!d.success;
   } catch { return true; }

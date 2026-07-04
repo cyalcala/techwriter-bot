@@ -100,7 +100,7 @@ The `zen-router` (`src/lib/zen-router.ts`) implements a production-grade provide
 | Gemini | gemini-2.0-flash | Heavy | Yes |
 | NVIDIA | meta/llama-3.1-8b-instruct | Fallback | Yes |
 | OpenRouter | meta-llama/llama-3.1-8b-instruct | Fallback | Yes |
-| Cloudflare Workers AI | @cf/meta/llama-3.1-8b-instruct | Fallback | Yes |
+| Cloudflare Workers AI | @cf/meta/llama-3.1-8b-instruct-fast | Fallback | Yes |
 
 ### 3. Real-Time Artifact Generation
 

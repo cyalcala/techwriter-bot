@@ -337,6 +337,106 @@ mobile (e.g. `text-base md:text-[15px]`). Not applied yet.
    via `scripts/mobile-repro.mjs`, then update the checkpoints in
    `docs/AI_RECOVERY_TRAIL.md` and `docs/IMPLEMENTATION_STATUS.md`.
 
+## Session 3 (2026-07-04, evening) — Fix Session: Root Cause Fixed + Refinements Applied
+
+Worked the full "What remains for the fix session" list. All items resolved
+or dispositioned; `npm test` green (222/222 across 44 files).
+
+### 1. mobile-repro2.mjs ran clean (Android profile 360x740)
+
+Zero console errors, zero page errors, zero failed requests, zero 4xx/5xx.
+A diagram request ("mermaid flowchart of a login flow") returned a real AI
+reply; the MERMAID "Login Flow" artifact chip appeared and the artifact
+view rendered (screenshots `m4-diagram.png`, `m5-overlay.png`, results in
+`mobile-repro2-results.json`, all next to the Session-2 evidence). No
+horizontal overflow (360 == 360). The Tools-panel step did not execute
+because on mobile the artifact view replaces the chat view, so
+`button[aria-controls="document-tools-panel"]` was not in the DOM — a
+harness locator limitation, not an app failure. The script's output path
+was fixed to write into `output/playwright/mobile-audit-2026-07-04/`
+instead of a stale session scratchpad.
+
+### 2. cloudflare-llama ROOT CAUSE FOUND AND FIXED: model removed from Workers AI catalog
+
+- Probe: production `POST /api/summarize` (which calls
+  `env.AI.run('@cf/meta/llama-3.2-1b-instruct', ...)`) returned a real
+  completion — **the AI binding is alive**. The failure was model-specific.
+- Cloudflare **removed `@cf/meta/llama-3.1-8b-instruct` from the Workers AI
+  catalog on 2026-05-30** (announced 2026-05-08:
+  https://developers.cloudflare.com/changelog/post/2026-05-08-planned-model-deprecations/).
+  Only the `-fast` and `-lora` variants remain active. That is why
+  `ai.run()` rejected in ~8ms (instant catalog rejection, status null)
+  while a fetch timeout would have taken 5000ms.
+- Fix: `src/lib/providers.ts` cloudflare-llama model →
+  `@cf/meta/llama-3.1-8b-instruct-fast` (same family, still active).
+  README.md and docs/COMPLETE_DOCUMENTATION.md provider tables updated.
+- Hardening so this class of outage is never opaque again:
+  `/api/health` now publishes a **sanitized** error code per failing
+  provider (`timeout`, `http_NNN`, or generic `provider_error`).
+  Configuration state (`missing_api_key`, `missing_ai_binding`) is still
+  never exposed, preserving the privacy-first contract; tests in
+  `src/tests/provider-health.test.ts` updated and extended to pin both
+  directions.
+
+### 3. Key rotation still pending (user action)
+
+`/api/health` re-checked this session (~05:30 UTC): cerebras 403, groq 403,
+gemini 429 — unchanged, so the Cerebras/Groq keys had NOT yet been rotated
+at that time. cloudflare-llama recovery is verified after this deploy;
+cerebras/groq recover only after the user rotates keys.
+
+### 4. Turnstile/CSP gate traced: NOT a factor — closed
+
+- There is **no client-side Turnstile widget anywhere in `src/`** — nothing
+  loads `challenges.cloudflare.com/turnstile/v0/api.js` and no component
+  ever sends a `turnstileToken`. The CSP omission of
+  `challenges.cloudflare.com` from `script-src`/`frame-src` is therefore
+  moot; nothing client-side requests that origin. CSP left unchanged.
+- Server-side, `verifyTurnstile(token, secret)` returns `true` when the
+  token is absent, so the gate passes every request today. It cannot
+  produce "no AI available" on any device. Lead closed.
+- Latent bug found and fixed while tracing: both `src/lib/turnstile.ts` and
+  the copy in `src/pages/api/chat.ts` called `r.body?.cancel()` **before**
+  `r.json()`, making `json()` throw and the catch return `true` — i.e.
+  verification was permanently fail-open even with a valid token+secret.
+  Removed the premature `cancel()`; behavior for today's tokenless clients
+  is unchanged, but the gate now actually works if a widget is ever added.
+
+### 5. 16px iOS input-zoom fix applied
+
+`ChatInput.svelte` chat input: `text-[15px]` → `text-base md:text-[15px]`
+(16px under 768px, 15px on desktop). Note the chat input is a single-line
+`<input>`, not a textarea.
+
+### 6. Session-1 refinements applied
+
+- `ChatIsland.svelte`: mobile detection now uses
+  `matchMedia('(max-width: 767px)')` with a `change` listener plus
+  `orientationchange`, keeping `resize` as fallback — covers in-app
+  browsers/PWAs/foldables that change viewport without firing `resize`.
+- Textarea max-height: the Session-1 concern about the chat input growing
+  unbounded was based on a misread — it is a single-line `<input>` and
+  cannot grow. The message-edit textarea is already capped
+  (`rows="3" resize-none`). The one user-resizable textarea (Tools panel
+  glossary rules) got `max-h-40`.
+- `ArtifactOverlay.svelte`: outer fixed container now pads by
+  `env(safe-area-inset-*)` (no-op where insets are 0).
+- `ArtifactPanel.svelte`: duplicate `case 'code'/'html'/'svg'/'mermaid'`
+  arms removed from the renderer switch.
+
+### 7. Verification
+
+- `npm test`: **222/222 passed (44 files)** after all changes.
+- Local `astro dev` remains blocked (known caveat, untouched); production
+  smoke via `scripts/mobile-repro.mjs` + `/api/health` runs after the
+  deploy triggered by this session's push — evidence recorded in the
+  checkpoint files per the existing format.
+
+Deferred/not done: Cerebras+Groq key rotation and the Gemini quota check
+remain user actions; `mobile-artifacts.test.ts` is still static
+pattern-verification only (a real rendered-browser CI test remains a
+worthwhile follow-up, out of scope this session).
+
 ## Continue Prompt (updated after Session 2)
 
 ```text

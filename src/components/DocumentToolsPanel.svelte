@@ -139,7 +139,7 @@
             oninput={(event) => { glossaryRules = (event.target as HTMLTextAreaElement).value; }}
             placeholder="whitelist -> allowlist"
             rows="3"
-            class="mt-1 w-full resize-y rounded-lg border border-stone-200 bg-stone-50 px-2.5 py-2 text-xs text-stone-800 outline-none transition-colors focus:border-amber-300"
+            class="mt-1 w-full resize-y max-h-40 rounded-lg border border-stone-200 bg-stone-50 px-2.5 py-2 text-xs text-stone-800 outline-none transition-colors focus:border-amber-300"
           ></textarea>
         </label>
         {#if glossaryNotice}

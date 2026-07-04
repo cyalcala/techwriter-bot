@@ -61,7 +61,8 @@ export const ZEN_REGISTRY: Provider[] = [
     name: 'cloudflare',
     role: 'fallback',
     endpoint: 'workers-ai',
-    model: '@cf/meta/llama-3.1-8b-instruct',
+    // @cf/meta/llama-3.1-8b-instruct was removed from Workers AI 2026-05-30; only the -fast variant remains
+    model: '@cf/meta/llama-3.1-8b-instruct-fast',
     timeoutMs: 20000,
     freeTier: true,
   },

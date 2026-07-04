@@ -3,7 +3,7 @@ import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const { chromium } = require('C:\\Users\\admin\\AppData\\Local\\npm-cache\\_npx\\31e32ef8478fbf80\\node_modules\\playwright-core');
 
-const OUT = 'C:\\Users\\admin\\AppData\\Local\\Temp\\claude\\C--Users-admin-Downloads\\aa319702-84f8-486b-bfcf-172c1982fbdd\\scratchpad';
+const OUT = 'C:\\Users\\admin\\Downloads\\techwriter-bot\\output\\playwright\\mobile-audit-2026-07-04';
 const results = { consoleErrors: [], pageErrors: [], failedRequests: [], badResponses: [], steps: [] };
 function log(s) { results.steps.push(s); console.log('STEP:', s); }
 

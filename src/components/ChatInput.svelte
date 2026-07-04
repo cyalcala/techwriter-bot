@@ -180,7 +180,7 @@
             oninput={(e) => onInputChange((e.target as HTMLInputElement).value)}
             onkeydown={handleKeydown}
             disabled={disabled}
-            class="w-full bg-stone-100 border border-stone-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-400/30 focus:border-amber-300/50 text-stone-800 placeholder:text-stone-400 text-[15px] transition-all"
+            class="w-full bg-stone-100 border border-stone-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-400/30 focus:border-amber-300/50 text-stone-800 placeholder:text-stone-400 text-base md:text-[15px] transition-all"
             placeholder={ragUploadStatus === 'done' ? 'Ask about your document...' : 'Ask anything...'}
             aria-label="Chat input"
           />
