@@ -1,0 +1,16 @@
+{
+  "steps": [
+    "generated-pdf 36230 bytes",
+    "generated-docx 7531 bytes",
+    "pdf-indexed 1 chunks at 6s",
+    "pdf-grounded-answer true",
+    "docx-indexed 1 chunks at 1s",
+    "docx-grounded-answer true"
+  ],
+  "consoleErrors": [],
+  "pageErrors": [],
+  "pdf_chunks": 1,
+  "pdf_grounded": true,
+  "docx_chunks": 1,
+  "docx_grounded": true
+}

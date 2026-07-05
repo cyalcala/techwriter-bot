@@ -1,11 +1,13 @@
 # Document Ingestion + Artifact System — Strategy (2026-07-05)
 
-Status: **STRATEGY — awaiting user go-ahead before implementation.** The
-user asked for: ingest PDF and other major document formats (reasonable,
-feasible size), then "spit back" a downloadable artifact in PDF and other
-major formats, with a **Claude-style artifact experience**. This doc
-strategizes that; implementation follows in reviewable chunks per the
-established pattern (like the deck feature).
+Status: **Phase 1 SHIPPED + verified in production (2026-07-05).**
+Phases 2–3 pending. The user asked for: ingest PDF and other major
+document formats (reasonable, feasible size), then "spit back" a
+downloadable artifact in PDF and other major formats, with a
+**Claude-style artifact experience**. Phase 1 (ingest versatility) is
+done — see the roadmap below and the Session 7 checkpoint in
+`docs/AI_RECOVERY_TRAIL.md`. Approved sizing: **~300KB / ~500 chunks**
+with a partial-index notice.
 
 All library facts below were verified against primary sources on
 2026-07-05 (license + client-side + CDN/CSP fit) — not assumed.
@@ -122,10 +124,14 @@ upload path):
 
 ## Phased roadmap (each phase independently shippable + verifiable)
 
-- **Phase 1 — Ingest versatility.** PDF + DOCX parsers, fix `.yaml`
-  gap, smarter chunking, raised/announced coverage cap. Outcome: "upload
-  a real PDF/Word doc and chat about it." Verify with a real PDF + DOCX
-  via the playwright smoke pattern.
+- **Phase 1 — Ingest versatility. ✅ DONE (2026-07-05, commit 3efac97).**
+  PDF (pdf.js) + DOCX (mammoth) client-side parsers, fixed `.yaml` gap,
+  paragraph-aware chunking, cap raised 100→500 with a partial-index
+  notice, embed capacity raised to match. **Verified in production**
+  (`scripts/rag-doc-smoke.mjs`): a real Chrome-printed PDF and a real
+  DOCX were each uploaded, indexed, and answered with `[Doc: …, line n]`
+  citations — zero console/page errors. Evidence:
+  `output/playwright/rag-doc-v1/`.
 - **Phase 2 — Downloads.** deck→PDF; new `document` artifact type with
   PDF + DOCX export. Outcome: "get a downloadable PDF/Word artifact."
 - **Phase 3 — Claude-style artifact UX.** Dedicated viewer (slide nav

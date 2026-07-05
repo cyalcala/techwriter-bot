@@ -623,6 +623,45 @@ Full detail in `docs/MOBILE_AUDIT_2026-07-04.md` "Session 3". Summary:
   errors, zero page errors, no horizontal overflow** — the new textarea
   is fully interactive and the chat→artifact flow is intact.
 
+### Session 7 update (2026-07-05) — RAG document ingestion Phase 1 (PDF/DOCX)
+
+- User direction: make RAG versatile — ingest PDF and other major
+  documents (feasible size), present downloadable artifacts (PDF + other
+  formats), Claude-style artifact UX. Strategy written + approved:
+  `docs/DOCUMENT_ARTIFACT_STRATEGY.md` (sizing chosen: ~300KB / ~500
+  chunks with a partial-index notice).
+- **Phase 1 (ingest) shipped, commit `3efac97`, deploy run
+  `28755678608`:**
+  - `src/lib/document-parsers.ts` (new): client-side text extraction —
+    PDF via pdf.js (Apache-2.0), DOCX via mammoth.js (BSD-2), both
+    lazy-loaded from jsdelivr; CSP-clear (pdf.js worker rides
+    `worker-src 'self' blob:`). Scanned/image-only PDFs report a clear
+    note. 2MB extracted-text ceiling.
+  - `validateDocument`: added `.pdf/.docx/.yaml/.yml` (fixes the picker
+    vs validator YAML mismatch).
+  - `rag-client.ts`: `chunkDocument()` — paragraph/heading-aware cutting
+    (pure slices → citations stay line-accurate), cap 100→500 with a
+    `truncated` flag surfaced in the upload message.
+    `createDocumentChunks` kept as a back-compat wrapper.
+    `handleFileUpload` now extracts via document-parsers.
+  - Embed capacity for large docs: client `BATCH_SIZE` 5→10; server
+    `MAX_REQUESTS_PER_WINDOW` 50→120, `MAX_DAILY_EMBED` 500→800.
+  - `ChatIsland` picker `accept` adds `.pdf,.docx`.
+- Tests: `src/tests/document-ingest.test.ts` (dispatch, allowlist, text
+  extraction, paragraph chunking, truncation cap, forward-progress).
+  Full suite **241/241 / 46 files**; new files type-clean.
+- **Production verification (PASSED)** via new `scripts/rag-doc-smoke.mjs`:
+  a real Chrome-printed **PDF** and a real **DOCX** were each uploaded to
+  tw-bot.pages.dev, extracted, indexed, and answered a grounded question
+  with `[Doc: …, line n]` citations (PDF answer correctly returned
+  "24 hours" + "100 requests per minute"). **Zero console/page errors.**
+  Evidence: `output/playwright/rag-doc-v1/` (`pdf-result.png`,
+  `docx-result.png`, `rag-doc-smoke-results.json`, generated `sample.pdf`
+  / `sample.docx`).
+- **Next (not started): Phase 2** (deck→PDF; new `document` artifact type
+  exporting PDF + DOCX) and **Phase 3** (Claude-style artifact viewer +
+  download-format menu). Per `docs/DOCUMENT_ARTIFACT_STRATEGY.md`.
+
 ## Recovery Prompt
 
 Use this prompt when handing work to another AI agent:

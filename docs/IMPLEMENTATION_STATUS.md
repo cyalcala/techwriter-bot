@@ -2143,8 +2143,21 @@ evidence in `output/playwright/composer-ui/` via the new
 `scripts/composer-shot.mjs`. Note: a transient
 `zen-router-failover.test.ts` timeout during this work was machine
 contention (a hung local build), not a regression — passes in isolation
-and at `--testTimeout=20000`. No open follow-ups on the agreed roadmap;
-next work is user-directed.
+and at `--testTimeout=20000`.
+
+**Session 7 (2026-07-05): RAG document ingestion Phase 1 SHIPPED.**
+Strategy: `docs/DOCUMENT_ARTIFACT_STRATEGY.md` (user-approved; sizing
+~300KB/~500 chunks). The app now ingests **PDF (pdf.js) and DOCX
+(mammoth), fully client-side** alongside text formats, with
+paragraph-aware chunking, a raised+announced coverage cap, fixed YAML
+allowlist, and matched embed capacity. Commit `3efac97`, deploy
+`28755678608`; suite 241/241. **Verified in production**
+(`scripts/rag-doc-smoke.mjs`): a real PDF and DOCX were uploaded,
+indexed, and answered with `[Doc: …, line n]` citations, zero errors
+(evidence `output/playwright/rag-doc-v1/`). **Pending: Phase 2** (deck→PDF
++ a `document` artifact type exporting PDF/DOCX) and **Phase 3**
+(Claude-style artifact viewer + download-format menu). No other open
+roadmap items; next work is user-directed.
 
 Phase 5B is closure-accepted. Continue with post-Phase-5 readiness work:
 
