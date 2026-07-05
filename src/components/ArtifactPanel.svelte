@@ -1,7 +1,8 @@
 <script lang="ts">
   import type { Artifact, ArtifactType } from '../lib/stream-parser';
-  import { loadRenderer, renderCodeArtifact, renderHtmlArtifact, renderSvgArtifact, renderMermaidArtifact, renderReactArtifact, renderKatexArtifact, renderMarkmapArtifact, renderD2Artifact, renderVegaArtifact, renderGraphvizArtifact, renderPlantUMLArtifact, renderFlowchartArtifact, renderGenericKrokiArtifact } from '../lib/renderer-loader';
+  import { loadRenderer, renderCodeArtifact, renderHtmlArtifact, renderSvgArtifact, renderMermaidArtifact, renderReactArtifact, renderKatexArtifact, renderMarkmapArtifact, renderD2Artifact, renderVegaArtifact, renderGraphvizArtifact, renderPlantUMLArtifact, renderFlowchartArtifact, renderGenericKrokiArtifact, renderDeckArtifact } from '../lib/renderer-loader';
   import { PREVIEWABLE_ARTIFACT_TYPES } from '../lib/artifact-types';
+  import { repairDeckSpec } from '../lib/deck-schema';
   import { formatArtifactRendererError } from '../lib/artifact-error-boundary';
   import { KROKI_RENDERABLE } from '../lib/kroki-renderer';
 
@@ -18,6 +19,7 @@
   let prevId = $state('');
   let loadError = $state('');
   let renderNonce = $state(0);
+  let exporting = $state(false);
 
   $effect(() => {
     if (artifact.id !== prevId && prevId) {
@@ -43,6 +45,7 @@
     html: 'bg-rose-600 text-white',
     svg: 'bg-amber-600 text-white',
     react: 'bg-sky-600 text-white',
+    deck: 'bg-amber-700 text-white',
   };
 
   const typeBadge = $derived(typeBadgeMap[artifact.type] || 'bg-gray-600 text-white');
@@ -79,6 +82,7 @@
           case 'html': renderedHtml = renderHtmlArtifact(a.code); break;
           case 'svg': renderedHtml = renderSvgArtifact(a.code); break;
           case 'mermaid': renderedHtml = renderMermaidArtifact(a.code); break;
+          case 'deck': renderedHtml = renderDeckArtifact(a.code); break;
           case 'react': renderedHtml = renderReactArtifact(a.code); break;
           case 'katex': renderedHtml = renderKatexArtifact(a.code); break;
           case 'markmap': renderedHtml = renderMarkmapArtifact(a.code); break;
@@ -138,15 +142,33 @@
     renderNonce += 1;
   }
 
-  function downloadArtifact() {
+  async function downloadArtifact() {
+    const filenameBase = (artifact.title || 'artifact').replace(/[^a-zA-Z0-9_-]/g, '_');
+
+    if (artifact.type === 'deck' && !exporting) {
+      const spec = repairDeckSpec(artifact.code);
+      if (spec) {
+        exporting = true;
+        try {
+          const { exportDeckToPptx } = await import('../lib/deck-pptx');
+          await exportDeckToPptx(spec, filenameBase);
+          return;
+        } catch {
+          // fall through to raw JSON download so the user still gets the content
+        } finally {
+          exporting = false;
+        }
+      }
+    }
+
     const extMap: Record<string, string> = {
       code: artifact.language === 'python' ? '.py' : artifact.language === 'javascript' ? '.js' : artifact.language ? `.${artifact.language.replace(/^\./, '')}` : '.txt',
       html: '.html', svg: '.svg', mermaid: '.mmd', react: '.jsx',
       katex: '.tex', markmap: '.md', d2: '.d2', vega: '.json',
-      graphviz: '.dot', plantuml: '.puml', flowchart: '.fc.js',
+      graphviz: '.dot', plantuml: '.puml', flowchart: '.fc.js', deck: '.json',
     };
     const ext = extMap[artifact.type] || '.txt';
-    const filename = (artifact.title || 'artifact').replace(/[^a-zA-Z0-9_-]/g, '_') + ext;
+    const filename = filenameBase + ext;
     const blob = new Blob([artifact.code], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = filename;
@@ -169,8 +191,12 @@
         <button onclick={showPreviewTab} class="text-[10px] px-2.5 py-1 rounded-md transition-all {activeTab === 'preview' ? 'bg-white/20 text-white font-bold' : 'text-gray-400 hover:text-white'}">Preview</button>
       {/if}
       <button onclick={copyCode} class="text-[10px] px-2.5 py-1 rounded-md text-gray-400 hover:text-white hover:bg-white/10 transition-all">{copied ? 'Copied!' : 'Copy'}</button>
-      <button onclick={downloadArtifact} class="text-[10px] px-2 py-1 rounded-md text-gray-400 hover:text-white hover:bg-white/10 transition-all" title="Download">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+      <button onclick={downloadArtifact} disabled={exporting} class="text-[10px] px-2 py-1 rounded-md text-gray-400 hover:text-white hover:bg-white/10 transition-all disabled:opacity-40" title={artifact.type === 'deck' ? 'Download PPTX' : 'Download'}>
+        {#if exporting}
+          <span class="inline-block h-3.5 w-3.5 border-2 border-gray-500 border-t-white rounded-full animate-spin"></span>
+        {:else}
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        {/if}
       </button>
       <button onclick={() => collapsed = !collapsed} class="text-[10px] px-2 py-1 rounded-md text-gray-400 hover:text-white hover:bg-white/10 transition-all" title={collapsed ? 'Expand' : 'Collapse'}>
         <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 transition-transform {collapsed ? '' : 'rotate-180'}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7"/></svg>

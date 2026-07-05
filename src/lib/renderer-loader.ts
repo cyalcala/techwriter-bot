@@ -1,5 +1,6 @@
 import type { ArtifactType } from './stream-parser';
 import { formatArtifactRendererError } from './artifact-error-boundary';
+import { repairDeckSpec, type DeckSlide, type DeckSpec } from './deck-schema';
 import { normalizeArtifactSource, normalizeMermaidSource } from './diagram-source-normalizer';
 import { KROKI_RENDERABLE } from './kroki-renderer';
 
@@ -74,6 +75,11 @@ function loadStyle(href: string): Promise<void> {
   });
   loadingStyles.set(href, promise);
   return promise;
+}
+
+// For feature modules (e.g. deck PPTX export) that lazy-load CSP-allowed CDN libs
+export function loadExternalScript(src: string): Promise<void> {
+  return loadScript(src);
 }
 
 export function preloadPopular(): void {
@@ -154,6 +160,91 @@ export function renderHtmlArtifact(code: string): string {
   return `<iframe title="HTML artifact preview" sandbox="" referrerpolicy="no-referrer" srcdoc="${escapeAttr(doc)}" class="artifact-frame artifact-frame-html"></iframe>`;
 }
 export function renderSvgArtifact(code: string): string { return `<div class="artifact-svg-host">${sanitizeSvg(code)}</div>`; }
+
+// --- Deck (presentation) rendering: strategy in docs/VIDEO_PRESENTATION_STRATEGY.md.
+// Pure sync render from validated JSON; inline styles on the existing
+// stone/amber palette so output is immune to Tailwind class scanning.
+
+const DECK_FONT = `font-family:system-ui,-apple-system,'Segoe UI',sans-serif`;
+const DECK_TEXT = '#1c1917';
+const DECK_MUTED = '#57534e';
+const DECK_FAINT = '#a8a29e';
+const DECK_ACCENT = '#d97706';
+const DECK_BORDER = '#e7e5e4';
+
+function deckStr(data: Record<string, unknown>, key: string, max = 160): string {
+  const value = data[key];
+  if (typeof value !== 'string' && typeof value !== 'number') return '';
+  return escapeHtml(String(value).slice(0, max));
+}
+
+function deckList(data: Record<string, unknown>, key: string, maxItems: number, maxLen = 140): string[] {
+  const value = data[key];
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is string | number => typeof item === 'string' || typeof item === 'number')
+    .slice(0, maxItems)
+    .map(item => escapeHtml(String(item).slice(0, maxLen)));
+}
+
+function deckHeading(text: string, size = 20): string {
+  return text ? `<h3 style="margin:0 0 14px;font-size:${size}px;font-weight:700;line-height:1.25;color:${DECK_TEXT}">${text}</h3>` : '';
+}
+
+function deckBulletRows(items: string[], marker: (i: number) => string): string {
+  return items.map((item, i) => `<div style="display:flex;gap:10px;align-items:baseline;margin:0 0 9px;font-size:15px;line-height:1.5;color:${DECK_MUTED}">${marker(i)}<span>${item}</span></div>`).join('');
+}
+
+function deckColumn(title: string, items: string[]): string {
+  return `<div><div style="font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:${DECK_ACCENT};margin-bottom:10px">${title}</div>${deckBulletRows(items, () => `<span style="color:${DECK_ACCENT}">&bull;</span>`)}</div>`;
+}
+
+function renderDeckSlideBody(slide: DeckSlide): string {
+  const d = slide.data;
+  switch (slide.layout) {
+    case 'title': {
+      const kicker = deckStr(d, 'kicker', 40);
+      return `<div style="text-align:center">${kicker ? `<div style="font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:${DECK_ACCENT};margin-bottom:14px">${kicker}</div>` : ''}<h2 style="margin:0;font-size:30px;font-weight:700;line-height:1.2;color:${DECK_TEXT}">${deckStr(d, 'heading', 120) || 'Untitled'}</h2>${deckStr(d, 'subheading') ? `<p style="margin:14px 0 0;font-size:15px;line-height:1.5;color:${DECK_MUTED}">${deckStr(d, 'subheading')}</p>` : ''}</div>`;
+    }
+    case 'agenda':
+      return `${deckHeading(deckStr(d, 'heading', 120) || 'Agenda')}${deckBulletRows(deckList(d, 'items', 6), i => `<span style="font-weight:700;color:${DECK_ACCENT};min-width:20px">${i + 1}</span>`)}`;
+    case 'bullets': {
+      const icon = deckStr(d, 'icon', 4);
+      return `${icon ? `<div style="font-size:22px;margin-bottom:8px">${icon}</div>` : ''}${deckHeading(deckStr(d, 'heading', 120))}${deckBulletRows(deckList(d, 'bullets', 5), () => `<span style="color:${DECK_ACCENT}">&bull;</span>`)}`;
+    }
+    case 'two-column':
+      return `${deckHeading(deckStr(d, 'heading', 120))}<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">${deckColumn(deckStr(d, 'leftTitle', 60) || 'Left', deckList(d, 'leftItems', 4))}${deckColumn(deckStr(d, 'rightTitle', 60) || 'Right', deckList(d, 'rightItems', 4))}</div>`;
+    case 'stat':
+      return `<div style="text-align:center">${deckStr(d, 'heading', 120) ? `<div style="font-size:15px;color:${DECK_MUTED};margin-bottom:10px">${deckStr(d, 'heading', 120)}</div>` : ''}<div style="font-size:46px;font-weight:700;color:${DECK_ACCENT};line-height:1.1">${deckStr(d, 'value', 40) || '&mdash;'}</div>${deckStr(d, 'label') ? `<div style="font-size:15px;font-weight:600;color:${DECK_TEXT};margin-top:10px">${deckStr(d, 'label')}</div>` : ''}${deckStr(d, 'context') ? `<div style="font-size:13px;color:${DECK_FAINT};margin-top:8px">${deckStr(d, 'context')}</div>` : ''}</div>`;
+    case 'quote':
+      return `<div style="text-align:center;padding:0 6%"><div style="font-size:34px;line-height:1;color:${DECK_ACCENT};font-weight:700">&ldquo;</div><p style="margin:4px 0 0;font-size:19px;font-style:italic;line-height:1.5;color:${DECK_TEXT}">${deckStr(d, 'text', 280)}</p>${deckStr(d, 'attribution', 80) ? `<div style="margin-top:14px;font-size:13px;color:${DECK_FAINT}">&mdash; ${deckStr(d, 'attribution', 80)}</div>` : ''}</div>`;
+    case 'code':
+      return `${deckHeading(deckStr(d, 'heading', 120), 18)}<pre style="margin:0;background:#292524;color:${DECK_BORDER};border-radius:8px;padding:14px 16px;font-size:12.5px;line-height:1.55;overflow:auto;max-height:100%"><code>${deckStr(d, 'code', 900)}</code></pre>`;
+    case 'closing': {
+      const items = deckList(d, 'items', 3);
+      return `<div style="text-align:center"><h2 style="margin:0;font-size:26px;font-weight:700;line-height:1.25;color:${DECK_TEXT}">${deckStr(d, 'heading', 120) || 'Thank you'}</h2>${deckStr(d, 'subheading') ? `<p style="margin:12px 0 0;font-size:15px;color:${DECK_MUTED}">${deckStr(d, 'subheading')}</p>` : ''}${items.length ? `<div style="margin-top:18px;display:inline-block;text-align:left">${deckBulletRows(items, () => `<span style="color:${DECK_ACCENT}">&bull;</span>`)}</div>` : ''}</div>`;
+    }
+    default:
+      return deckBulletRows(deckList(d, 'bullets', 5), () => `<span style="color:${DECK_ACCENT}">&bull;</span>`);
+  }
+}
+
+export function renderDeckSpecHtml(spec: DeckSpec): string {
+  const total = spec.slides.length;
+  const deckTitle = escapeHtml(spec.title.slice(0, 80));
+  const slides = spec.slides.map((slide, i) => {
+    const centered = slide.layout === 'title' || slide.layout === 'stat' || slide.layout === 'quote' || slide.layout === 'closing';
+    const accentBar = centered ? '' : `<span style="position:absolute;top:0;left:7%;width:44px;height:4px;background:#f59e0b;border-radius:0 0 4px 4px"></span>`;
+    return `<section style="position:relative;background:#fff;border:1px solid ${DECK_BORDER};border-radius:12px;box-shadow:0 1px 3px rgba(28,25,23,.06);aspect-ratio:16/9;min-height:230px;padding:6.5% 7% 7.5%;display:flex;flex-direction:column;justify-content:center;${DECK_FONT};color:${DECK_TEXT}">${accentBar}${renderDeckSlideBody(slide)}${i > 0 ? `<span style="position:absolute;bottom:11px;left:16px;font-size:11px;color:${DECK_FAINT}">${deckTitle}</span>` : ''}<span style="position:absolute;bottom:11px;right:16px;font-size:11px;color:${DECK_FAINT}">${i + 1} / ${total}</span></section>`;
+  }).join('');
+  return `<div class="deck-artifact" data-deck-slides="${total}" style="display:flex;flex-direction:column;gap:16px;padding:4px">${slides}</div>`;
+}
+
+export function renderDeckArtifact(code: string): string {
+  const spec = repairDeckSpec(code);
+  if (!spec) return renderError('Deck', 'Invalid presentation JSON. Expected {"title", "slides":[{"layout","data"}]}.', code);
+  return renderDeckSpecHtml(spec);
+}
 
 export function renderMermaidArtifact(code: string): string {
   const sanitized = normalizeMermaidSource(code);

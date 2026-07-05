@@ -160,7 +160,25 @@
     svg: 'bg-amber-600 text-white', code: 'bg-slate-700 text-slate-100',
   };
 
-  function downloadContent() {
+  let exporting = $state(false);
+
+  async function downloadContent() {
+    if (type === 'deck' && !exporting) {
+      const { repairDeckSpec } = await import('../lib/deck-schema');
+      const spec = repairDeckSpec(svg || code);
+      if (spec) {
+        exporting = true;
+        try {
+          const { exportDeckToPptx } = await import('../lib/deck-pptx');
+          await exportDeckToPptx(spec, (title || 'presentation').replace(/[^a-zA-Z0-9_-]/g, '_'));
+          return;
+        } catch {
+          // fall through to raw download
+        } finally {
+          exporting = false;
+        }
+      }
+    }
     const content = svg || code;
     const ext = svg ? '.svg' : '.txt';
     const mime = svg ? 'image/svg+xml' : 'text/plain';
