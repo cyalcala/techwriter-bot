@@ -67,10 +67,26 @@
     footerText = 'AI can make mistakes. Verify important info.',
   }: Props = $props();
   let privacyOpen = $state(false);
+  let inputEl = $state<HTMLTextAreaElement | null>(null);
+
+  // Auto-grow the composer up to ~5 lines; height resets when the message clears after send
+  const MAX_INPUT_HEIGHT = 144;
+  function autosize() {
+    const el = inputEl;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, MAX_INPUT_HEIGHT)}px`;
+  }
+  $effect(() => { void inputMessage; autosize(); });
+
+  function handleInput(e: Event) {
+    onInputChange((e.target as HTMLTextAreaElement).value);
+    autosize();
+  }
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); onSend(); return; }
-    if (e.key === 'Enter') { e.preventDefault(); onSend(); }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend(); }
   }
 
   function failoverTime(timestamp: string): string {
@@ -170,30 +186,48 @@
         </div>
       {/if}
 
-      <div class="flex gap-2 items-center">
-        <button onclick={onFileClick} disabled={isUploading} class="p-2.5 hover:bg-stone-200/50 rounded-xl text-stone-400 hover:text-stone-600 transition-all disabled:opacity-30 shrink-0" title="Upload document" aria-label="Upload document">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
-        </button>
-        <div class="relative flex-1">
-          <input
-            value={inputMessage}
-            oninput={(e) => onInputChange((e.target as HTMLInputElement).value)}
-            onkeydown={handleKeydown}
-            disabled={disabled}
-            class="w-full bg-stone-100 border border-stone-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-amber-400/30 focus:border-amber-300/50 text-stone-800 placeholder:text-stone-400 text-base md:text-[15px] transition-all"
-            placeholder={ragUploadStatus === 'done' ? 'Ask about your document...' : 'Ask anything...'}
-            aria-label="Chat input"
-          />
+      <div class="bg-white border border-stone-200 rounded-2xl shadow-sm focus-within:border-amber-300/60 focus-within:ring-2 focus-within:ring-amber-400/20 transition-all">
+        <textarea
+          bind:this={inputEl}
+          value={inputMessage}
+          oninput={handleInput}
+          onkeydown={handleKeydown}
+          disabled={disabled}
+          rows="1"
+          class="block w-full bg-transparent border-0 focus:outline-none focus:ring-0 resize-none px-4 pt-3.5 pb-1 text-stone-800 placeholder:text-stone-400 text-base md:text-[15px] leading-6 max-h-36 overflow-y-auto"
+          placeholder={ragUploadStatus === 'done' ? 'Ask about your document...' : 'Ask anything...'}
+          aria-label="Chat input"
+        ></textarea>
+        <div class="flex items-center gap-1 px-2.5 pb-2.5 pt-0.5">
+          <button onclick={onFileClick} disabled={isUploading} class="p-2 hover:bg-stone-100 rounded-lg text-stone-400 hover:text-stone-600 transition-all disabled:opacity-30 shrink-0" title="Upload document" aria-label="Upload document">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+          </button>
+          <div class="flex items-center bg-stone-100 p-0.5 rounded-lg shrink-0">
+            <button onclick={() => onModeChange('fast')} class="px-2 md:px-2.5 py-1 rounded-md transition-all text-[10px] {mode === 'fast' ? 'bg-white text-stone-800 font-medium shadow-sm' : 'text-stone-400 hover:text-stone-600'}">Fast</button>
+            <button onclick={() => onModeChange('brain')} class="px-2 md:px-2.5 py-1 rounded-md transition-all text-[10px] {mode === 'brain' ? 'bg-white text-stone-800 font-medium shadow-sm' : 'text-stone-400 hover:text-stone-600'}">Brain</button>
+            <button
+              onclick={() => { const canUse = enhancedCredits.remaining > 0 && !enhancedCredits.budgetExhausted; if (canUse) onModeChange('live'); }}
+              class="px-2 md:px-2.5 py-1 rounded-md transition-all text-[10px] {mode === 'live' ? 'bg-stone-800 text-white font-medium' : (enhancedCredits.remaining <= 0 || enhancedCredits.budgetExhausted ? 'text-stone-300 cursor-not-allowed' : 'text-stone-400 hover:text-stone-600')}"
+            >Live {enhancedCredits.remaining <= 0 ? '' : enhancedCredits.remaining}</button>
+          </div>
+          <button
+            type="button"
+            onclick={onToggleTools}
+            aria-expanded={toolsOpen}
+            aria-controls="document-tools-panel"
+            class="rounded-lg px-2 py-1.5 text-[11px] text-stone-500 hover:text-stone-700 hover:bg-stone-100 transition-colors shrink-0"
+          >Tools</button>
+          <div class="flex-1"></div>
+          {#if isStreaming}
+            <button onclick={onStop} class="bg-stone-200 hover:bg-stone-300 text-stone-500 p-2 rounded-lg transition-all active:scale-95 shrink-0" aria-label="Stop generating">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><rect x="3" y="3" width="14" height="14" rx="2"/></svg>
+            </button>
+          {:else}
+            <button onclick={onSend} disabled={disabled || !inputMessage.trim()} class="text-white p-2 rounded-lg transition-all active:scale-95 disabled:opacity-20 shrink-0" style:background-color={primaryColor} aria-label="Send message">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/></svg>
+            </button>
+          {/if}
         </div>
-        {#if isStreaming}
-          <button onclick={onStop} class="bg-stone-200 hover:bg-stone-300 text-stone-500 p-2.5 rounded-xl transition-all active:scale-95 shrink-0" aria-label="Stop generating">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><rect x="3" y="3" width="14" height="14" rx="2"/></svg>
-          </button>
-        {:else}
-          <button onclick={onSend} disabled={disabled || !inputMessage.trim()} class="text-white p-2.5 rounded-xl transition-all active:scale-95 disabled:opacity-20 shrink-0" style:background-color={primaryColor} aria-label="Send message">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/></svg>
-          </button>
-        {/if}
       </div>
 
       <div
@@ -227,16 +261,8 @@
         </div>
       </div>
 
-      <div class="flex justify-between items-center text-[10px] md:text-[11px] text-stone-400 mt-2.5">
-        <div class="flex items-center gap-2">
-          <div class="flex items-center bg-stone-100 p-0.5 rounded-lg shrink-0">
-            <button onclick={() => onModeChange('fast')} class="px-2 md:px-2.5 py-1 rounded-md transition-all text-[10px] {mode === 'fast' ? 'bg-white text-stone-800 font-medium shadow-sm' : 'text-stone-400 hover:text-stone-600'}">Fast</button>
-            <button onclick={() => onModeChange('brain')} class="px-2 md:px-2.5 py-1 rounded-md transition-all text-[10px] {mode === 'brain' ? 'bg-white text-stone-800 font-medium shadow-sm' : 'text-stone-400 hover:text-stone-600'}">Brain</button>
-            <button
-              onclick={() => { const canUse = enhancedCredits.remaining > 0 && !enhancedCredits.budgetExhausted; if (canUse) onModeChange('live'); }}
-              class="px-2 md:px-2.5 py-1 rounded-md transition-all text-[10px] {mode === 'live' ? 'bg-stone-800 text-white font-medium' : (enhancedCredits.remaining <= 0 || enhancedCredits.budgetExhausted ? 'text-stone-300 cursor-not-allowed' : 'text-stone-400 hover:text-stone-600')}"
-            >Live {enhancedCredits.remaining <= 0 ? '' : enhancedCredits.remaining}</button>
-          </div>
+      <div class="flex justify-between items-center text-[10px] md:text-[11px] text-stone-400 mt-2">
+        <div class="flex items-center gap-2 min-w-0">
           {#if responseTransparency}
             <span class="hidden min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] text-stone-300 sm:flex" aria-label="Response details">
               <span>Provider {responseTransparency.provider}</span>
@@ -263,13 +289,6 @@
         </div>
         <div class="flex items-center gap-2 shrink-0">
           <span class="hidden sm:inline">{footerText}</span>
-          <button
-            type="button"
-            onclick={onToggleTools}
-            aria-expanded={toolsOpen}
-            aria-controls="document-tools-panel"
-            class="rounded-md px-1.5 py-1 text-stone-500 hover:text-stone-700 hover:bg-stone-100 transition-colors"
-          >Tools</button>
           <button
             type="button"
             onclick={() => privacyOpen = !privacyOpen}
