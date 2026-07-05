@@ -2125,8 +2125,11 @@ diagram rules — token-lean), inline-styled renderer
 (`src/lib/deck-pptx.ts`, PptxGenJS from jsdelivr) wired into both
 ArtifactPanel (desktop) and ArtifactOverlay (mobile). Tests:
 `src/tests/deck-artifacts.test.ts`; suite 232/232. **Video must not be
-resumed without an explicit user request.** Deploy/smoke evidence in
-the checkpoint entries above once pushed. Remaining agreed follow-up:
+resumed without an explicit user request.** Verified in production:
+Actions run `28728488207` deployed cleanly; `scripts/deck-smoke.mjs`
+confirmed a live 8-slide deck rendering at a mobile viewport with zero
+errors (evidence in `output/playwright/deck-v1/`). Remaining agreed
+follow-up:
 chat-input UI refresh (Claude.ai-composer-style layout polish, same
 palette/tokens, no artifact-behavior changes) — plan to be proposed and
 confirmed before implementation.

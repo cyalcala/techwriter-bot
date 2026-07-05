@@ -567,7 +567,18 @@ Full detail in `docs/MOBILE_AUDIT_2026-07-04.md` "Session 3". Summary:
   convention, the GitHub Actions deploy build is the build gate and
   production smoke is the verification; Pages keeps serving the prior
   deploy if a build fails.
-- Deploy + production smoke evidence recorded below after push.
+- **Deploy + production verification (PASSED):** commits `1396a6b` /
+  `5bb244b` / `587d2fc` built and deployed cleanly in GitHub Actions run
+  `28728488207` (confirming the local build hang is environment-only).
+  Production smoke via the new committed `scripts/deck-smoke.mjs`
+  (iPhone-class 390x844 against tw-bot.pages.dev): a live AI request
+  "Create a presentation about API documentation best practices"
+  produced a rendered deck artifact with **exactly 8 slides** (cap
+  honored), visible DECK badge, zero console/page/network errors, and
+  no horizontal overflow. Evidence:
+  `output/playwright/deck-v1/deck-smoke-results.json` +
+  `deck-1-rendered.png` (title slide with kicker, numbered agenda,
+  icon bullets — quality bar met).
 
 ## Recovery Prompt
 

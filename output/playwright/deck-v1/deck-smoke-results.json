@@ -1,0 +1,21 @@
+{
+  "consoleErrors": [],
+  "pageErrors": [],
+  "failedRequests": [],
+  "badResponses": [],
+  "steps": [
+    "navigate",
+    "deck-request-sent",
+    "deck-rendered at 1s {\"deckRendered\":true,\"slideCount\":8,\"badgeVisible\":true}",
+    "overflow {\"bodyScrollWidth\":390,\"innerWidth\":390}"
+  ],
+  "deckState": {
+    "deckRendered": true,
+    "slideCount": 8,
+    "badgeVisible": true
+  },
+  "overflow": {
+    "bodyScrollWidth": 390,
+    "innerWidth": 390
+  }
+}
