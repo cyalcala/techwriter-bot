@@ -2128,11 +2128,23 @@ ArtifactPanel (desktop) and ArtifactOverlay (mobile). Tests:
 resumed without an explicit user request.** Verified in production:
 Actions run `28728488207` deployed cleanly; `scripts/deck-smoke.mjs`
 confirmed a live 8-slide deck rendering at a mobile viewport with zero
-errors (evidence in `output/playwright/deck-v1/`). Remaining agreed
-follow-up:
-chat-input UI refresh (Claude.ai-composer-style layout polish, same
-palette/tokens, no artifact-behavior changes) — plan to be proposed and
-confirmed before implementation.
+errors (evidence in `output/playwright/deck-v1/`). **Video must not be
+resumed without an explicit user request.**
+
+**Session 6 (2026-07-05): composer UI refresh SHIPPED.** The chat-input
+was restyled into a single elevated card (Claude.ai/Higgsfield-style)
+with an auto-growing textarea (Enter sends, Shift+Enter newline) and the
+attach/mode-pills/Tools controls integrated inside the card; stats +
+footer + Privacy demoted to a quiet meta line. **Layout only — no
+palette/token changes**; all aria labels, the privacy accordion, chips,
+and the 16px mobile input font preserved (verified by the source-pattern
+suite, 232/232). Commit `04042a6`, deploy run `28754728380`; before/after
+evidence in `output/playwright/composer-ui/` via the new
+`scripts/composer-shot.mjs`. Note: a transient
+`zen-router-failover.test.ts` timeout during this work was machine
+contention (a hung local build), not a regression — passes in isolation
+and at `--testTimeout=20000`. No open follow-ups on the agreed roadmap;
+next work is user-directed.
 
 Phase 5B is closure-accepted. Continue with post-Phase-5 readiness work:
 

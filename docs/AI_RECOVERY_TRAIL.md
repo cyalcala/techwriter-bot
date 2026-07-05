@@ -580,6 +580,49 @@ Full detail in `docs/MOBILE_AUDIT_2026-07-04.md` "Session 3". Summary:
   `deck-1-rendered.png` (title slide with kicker, numbered agenda,
   icon bullets — quality bar met).
 
+### Session 6 update (2026-07-05) — composer UI refresh (Claude.ai-style)
+
+- User approved and requested the chat-input UI refresh. Implemented in
+  `src/components/ChatInput.svelte` as a **layout/spacing/hierarchy
+  change only — no palette or design-token changes** (hard constraint):
+  - One elevated white card (`rounded-2xl`, subtle shadow, amber
+    `focus-within` ring) is now the composer and visual focus.
+  - The single-line `<input>` became an **auto-growing `<textarea>`**
+    (Enter sends, Shift+Enter newline, ~5-line/144px cap via an
+    `autosize()` effect). This is the one behavioral change, explicitly
+    approved.
+  - Attach, the Fast/Brain/Live pills, and Tools moved INSIDE the card's
+    bottom control row; send is the single accent button
+    (`primaryColor`, unchanged) bottom-right.
+  - Transparency stats + footer text + Privacy demoted to one quiet meta
+    line under the card.
+  - Preserved verbatim (verified against the source-pattern test suite):
+    all props/handlers, `aria-label="Chat input"`,
+    `aria-label="Send message"`, `aria-controls="document-tools-panel"`,
+    the privacy accordion (`id="privacy-notice"`, aria, grid-rows
+    animation), RAG/failover/upload chips, the `panelOpen && isMobile`
+    hide condition, and the 16px mobile input font
+    (`text-base md:text-[15px]`).
+- Committed `04042a6`, pushed to `main`; deploy run `28754728380`.
+- **Flaky-test note for future sessions:** during this work a full-suite
+  run showed `zen-router-failover.test.ts` timing out at the default
+  5000ms. This was **machine contention** (a hung local `astro build`
+  process was still running), NOT a regression — the composer change
+  never touches zen-router. In isolation the test passes in ~0.4s, and
+  the full suite passes 232/232 at `--testTimeout=20000`. If it flakes
+  again, raise the timeout / ensure no build process is competing; do
+  not "fix" zen-router.
+- `scripts/composer-shot.mjs` added to capture before/after composer
+  screenshots (desktop 1280 + mobile 390); evidence under
+  `output/playwright/composer-ui/` (`before-*`/`after-*`).
+- **Post-deploy verification (PASSED):** deploy run `28754728380`
+  succeeded; after-screenshots confirm the single-card composer on both
+  desktop and mobile with the palette unchanged. End-to-end interaction
+  re-verified by re-running `scripts/deck-smoke.mjs` THROUGH the new
+  textarea composer: typed + sent, 8-slide deck rendered, **zero console
+  errors, zero page errors, no horizontal overflow** — the new textarea
+  is fully interactive and the chat→artifact flow is intact.
+
 ## Recovery Prompt
 
 Use this prompt when handing work to another AI agent:
