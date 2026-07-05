@@ -2111,19 +2111,25 @@ upgrade** briefed in `docs/VIDEO_PRESENTATION_UPGRADE_BRIEF.md` (research
 → strategy doc → architecture doc; no code until the strategy doc
 exists).
 
-**Session 4 (2026-07-05):** that task's research phase is 2 of 6
-dimensions complete (presenton, OpenMontage — both deep-dived with
-primary sources) and was halted by the user for handoff. Everything is
-preserved in `docs/VIDEO_PRESENTATION_RESEARCH_NOTES.md`: findings,
-license analysis (presenton Apache-2.0 but closed export binaries;
-OpenMontage AGPL; Remotion 3-employee license trap; HyperFrames
-Apache-2.0), a preliminary two-phase strategy direction (deck artifact +
-client-side PPTX first; in-browser slide-video second), the 4 remaining
-research dimensions, and the mapped codebase integration points. The
-next session continues from that file: finish research → write
-`docs/VIDEO_PRESENTATION_STRATEGY.md` → then
-`docs/VIDEO_PRESENTATION_ARCHITECTURE.md` → no code before the strategy
-doc.
+**Session 4 (2026-07-05):** research phase reached 2 of 6 dimensions
+(presenton, OpenMontage) and was halted by the user; everything is
+preserved in `docs/VIDEO_PRESENTATION_RESEARCH_NOTES.md`.
+
+**Session 5 (2026-07-05): presentations SHIPPED, video PARKED.** The
+user approved `docs/VIDEO_PRESENTATION_STRATEGY.md` and the `deck`
+artifact type is implemented end-to-end: schema/validation
+(`src/lib/deck-schema.ts`, strict 8-slide cap), routing + deck-only
+4096 token override, DECK_COMPACT prompt contract (injected instead of
+diagram rules — token-lean), inline-styled renderer
+(`renderDeckArtifact`), and client-side PPTX export
+(`src/lib/deck-pptx.ts`, PptxGenJS from jsdelivr) wired into both
+ArtifactPanel (desktop) and ArtifactOverlay (mobile). Tests:
+`src/tests/deck-artifacts.test.ts`; suite 232/232. **Video must not be
+resumed without an explicit user request.** Deploy/smoke evidence in
+the checkpoint entries above once pushed. Remaining agreed follow-up:
+chat-input UI refresh (Claude.ai-composer-style layout polish, same
+palette/tokens, no artifact-behavior changes) — plan to be proposed and
+confirmed before implementation.
 
 Phase 5B is closure-accepted. Continue with post-Phase-5 readiness work:
 

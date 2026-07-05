@@ -534,6 +534,41 @@ Full detail in `docs/MOBILE_AUDIT_2026-07-04.md` "Session 3". Summary:
 - Mobile-fix follow-ups still open for the user: Gemini quota (429) and
   the nvidia-fast health-ping timeouts (watch item).
 
+### Session 5 update (2026-07-05) — presentation (deck) artifact shipped, video parked
+
+- User approved the strategy (`docs/VIDEO_PRESENTATION_STRATEGY.md`) and
+  the implementation plan with explicit parameters: strict 7-8 slide
+  cap, deck-only 4096 maxTokensOverride, icons+typography on the
+  existing stone/amber palette, render-on-complete, PPTX export in v1,
+  $0 and token-lean.
+- **Video is PARKED by user decision** — status lines in the brief and
+  research notes; do not resume without an explicit user request.
+- Implemented in reviewable commits:
+  1. `5c3c479` strategy docs;
+  2. `1396a6b` plumbing + prompt contract — `deck-schema.ts` (8
+     layouts, hard cap via truncation, lenient parse), registries
+     (stream-parser, artifact-types incl. json-fence deck sniffing,
+     session-transfer, renderer-loader), path-router deck triggers +
+     `isDeckGenerationRequest`, chat.ts 4096 deck override, DECK_COMPACT
+     prompt injected INSTEAD of diagram rules for deck requests; also
+     fixed a duplicate system-prompt prepend in chat.ts that sent two
+     identical system messages per request (token waste);
+  3. `5bb244b` renderer + export — `renderDeckArtifact` (inline-styled
+     16:9 slide cards, all content escaped, renderError recovery),
+     ArtifactPanel deck case/badge + PPTX download (spinner, raw-JSON
+     fallback), ArtifactOverlay mobile export, `deck-pptx.ts`
+     (PptxGenJS 3.12.0 MIT from jsdelivr, per-layout mapping).
+- `src/tests/deck-artifacts.test.ts`: schema parse/repair/cap/aliases,
+  type registration, routing detection, prompt-contract injection.
+  Full suite green (232 tests / 45 files).
+- Environment caveat (new): local `astro build` now also hangs with no
+  output in this sandbox (same family as the documented `astro dev`
+  Cloudflare local-tooling blocker — do not re-debug). Per the existing
+  convention, the GitHub Actions deploy build is the build gate and
+  production smoke is the verification; Pages keeps serving the prior
+  deploy if a build fails.
+- Deploy + production smoke evidence recorded below after push.
+
 ## Recovery Prompt
 
 Use this prompt when handing work to another AI agent:
