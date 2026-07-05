@@ -8,8 +8,10 @@ import { startCleanupInterval } from '../../lib/runtime-interval';
 const MAX_TEXTS_PER_REQUEST = 10;
 const MAX_TEXT_LENGTH = 2000;
 const RATE_LIMIT_WINDOW = 60_000;
-const MAX_REQUESTS_PER_WINDOW = 50;
-const MAX_DAILY_EMBED = 500;
+// A max-size document (~500 chunks) embeds in ~50 batched requests; the
+// window cap must clear that plus follow-up query embeds in one minute.
+const MAX_REQUESTS_PER_WINDOW = 120;
+const MAX_DAILY_EMBED = 800;
 const EMBED_TIMEOUT_MS = 12_000;
 const MAX_BODY = 10 * 1024;
 

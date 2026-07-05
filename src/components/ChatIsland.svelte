@@ -1580,7 +1580,7 @@
       </div>
     {/if}
 
-    <input type="file" bind:this={fileInput} onchange={onFileSelected} class="hidden" accept=".txt,.md,.json,.csv,.yaml,.yml" multiple />
+    <input type="file" bind:this={fileInput} onchange={onFileSelected} class="hidden" accept=".pdf,.docx,.txt,.md,.json,.csv,.yaml,.yml" multiple />
     <input type="file" bind:this={sessionImportInput} onchange={onSessionImportSelected} class="hidden" accept=".json,application/json" />
 
     {#if toolsOpen}

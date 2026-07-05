@@ -36,7 +36,7 @@ describe('document review tool UI boundary', () => {
     expect(island).toContain('runDocumentReview');
     expect(island).toContain('summarizeOpenApiOperations');
     expect(island).toContain('openApiSummary={toolOpenApiSummary}');
-    expect(island).toContain('accept=".txt,.md,.json,.csv,.yaml,.yml"');
+    expect(island).toContain('accept=".pdf,.docx,.txt,.md,.json,.csv,.yaml,.yml"');
     expect(island).not.toContain('$effect(() => runDocumentReview');
   });
 

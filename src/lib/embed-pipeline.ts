@@ -1,4 +1,6 @@
-const BATCH_SIZE = 5;
+// 10 = server MAX_TEXTS_PER_REQUEST; halves request count for large docs.
+// At ~700-char chunks this keeps each request body well under the 10KB cap.
+const BATCH_SIZE = 10;
 const MAX_RETRIES = 3;
 const RETRY_DELAYS = [500, 1500, 4000];
 
@@ -106,15 +108,20 @@ export function chunkText(text: string, chunkSize: number = 500, overlap: number
 }
 
 export function validateDocument(file: File): string | null {
-  const validTypes = ['text/plain', 'text/markdown', 'application/json', 'text/csv', 'text/x-markdown'];
-  const validExts = ['.txt', '.md', '.json', '.csv'];
+  const validTypes = [
+    'text/plain', 'text/markdown', 'text/x-markdown', 'application/json', 'text/csv',
+    'text/yaml', 'application/x-yaml', 'application/yaml',
+    'application/pdf',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  ];
+  const validExts = ['.txt', '.md', '.json', '.csv', '.yaml', '.yml', '.pdf', '.docx'];
 
   if (file.size > 5 * 1024 * 1024) return 'File exceeds 5MB limit.';
   if (file.size === 0) return 'File is empty.';
 
   const ext = '.' + file.name.split('.').pop()?.toLowerCase();
   if (!validExts.includes(ext) && !validTypes.includes(file.type)) {
-    return `Unsupported file type: ${file.name}. Supported: .txt, .md, .json, .csv`;
+    return `Unsupported file type: ${file.name}. Supported: .pdf, .docx, .txt, .md, .json, .csv, .yaml`;
   }
 
   return null;

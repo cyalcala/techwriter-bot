@@ -1,4 +1,5 @@
 import { embedChunks, validateDocument, type EmbedProgress } from './embed-pipeline';
+import { extractDocumentText } from './document-parsers';
 import { storeVectors, getStoredVectors } from './rag-db';
 import { searchInWorker } from './sim-search';
 
@@ -86,34 +87,82 @@ function headingForLine(lines: string[], line: number): string | undefined {
   return undefined;
 }
 
-export function createDocumentChunks(
+// Paragraph/heading-aware chunking: cut on blank-line boundaries when one
+// falls within the size window (keeps semantic units intact), else fall
+// back to the nearest newline/space, else a hard cut. Chunks are pure
+// slices of the source so line/heading citations stay accurate. Returns a
+// `truncated` flag when the document exceeds maxChunks so the UI can say so
+// instead of silently dropping content.
+export function chunkDocument(
   text: string,
   filename: string,
-  chunkSize: number = 500,
-  overlap: number = 100,
-  maxChunks: number = 100,
-): DocumentChunk[] {
+  chunkSize: number = 700,
+  overlap: number = 120,
+  maxChunks: number = 500,
+): { chunks: DocumentChunk[]; truncated: boolean } {
   const chunks: DocumentChunk[] = [];
-  const step = Math.max(1, chunkSize - overlap);
   const safeName = safeFilename(filename);
   const lines = text.split(/\r?\n/);
 
-  for (let start = 0; start < text.length && chunks.length < maxChunks; start += step) {
-    const end = Math.min(start + chunkSize, text.length);
+  // Preferred cut points = offset at the start of each new paragraph.
+  const cutPoints: number[] = [];
+  const paraRe = /\n[ \t]*\n/g;
+  let m: RegExpExecArray | null;
+  while ((m = paraRe.exec(text)) !== null) cutPoints.push(m.index + m[0].length);
+
+  const step = Math.max(1, chunkSize - overlap);
+  let start = 0;
+  let truncated = false;
+
+  while (start < text.length) {
+    if (chunks.length >= maxChunks) { truncated = true; break; }
+
+    const hardEnd = Math.min(start + chunkSize, text.length);
+    let end: number;
+    if (hardEnd >= text.length) {
+      end = text.length;
+    } else {
+      let cut = -1;
+      for (const c of cutPoints) {
+        if (c > start && c <= hardEnd) cut = c;
+        else if (c > hardEnd) break;
+      }
+      if (cut > start) {
+        end = cut;
+      } else {
+        let br = text.lastIndexOf('\n', hardEnd);
+        if (br <= start) br = text.lastIndexOf(' ', hardEnd);
+        end = br > start ? br + 1 : hardEnd;
+      }
+    }
+
     const chunk = text.slice(start, end);
-    if (!chunk.trim()) continue;
-    const startLine = lineForOffset(text, start);
-    const endLine = lineForOffset(text, Math.max(start, end - 1));
-    chunks.push({
-      text: chunk,
-      filename: safeName,
-      startLine,
-      endLine,
-      heading: headingForLine(lines, startLine),
-    });
+    if (chunk.trim()) {
+      const startLine = lineForOffset(text, start);
+      chunks.push({
+        text: chunk,
+        filename: safeName,
+        startLine,
+        endLine: lineForOffset(text, Math.max(start, end - 1)),
+        heading: headingForLine(lines, startLine),
+      });
+    }
+
+    if (end >= text.length) break;
+    start = Math.max(end - overlap, start + step);
   }
 
-  return chunks;
+  return { chunks, truncated };
+}
+
+export function createDocumentChunks(
+  text: string,
+  filename: string,
+  chunkSize: number = 700,
+  overlap: number = 120,
+  maxChunks: number = 500,
+): DocumentChunk[] {
+  return chunkDocument(text, filename, chunkSize, overlap, maxChunks).chunks;
 }
 
 export function createRagRetrievalMessage({ embedFailed }: { embedFailed: boolean }): string {
@@ -137,15 +186,16 @@ export async function handleFileUpload(
   let sourceText: string | undefined;
 
   try {
-    sourceText = await file.text();
+    const extracted = await extractDocumentText(file);
+    sourceText = extracted.text;
     const text = sourceText;
     if (!text.trim()) {
       onStatusChange('error');
-      return { success: false, chunkCount: 0, skipped: 0, degraded: false, message: 'Upload failed: File is empty.' };
+      return { success: false, chunkCount: 0, skipped: 0, degraded: false, sourceText, message: `Upload failed: ${extracted.note || 'No readable text found in this file.'}` };
     }
 
     const documentId = createDocumentId(file.name);
-    const chunks = createDocumentChunks(text, file.name, 500, 100, 100);
+    const { chunks, truncated } = chunkDocument(text, file.name);
     const chunkTexts = chunks.map((chunk) => chunk.text);
     onProgress({ done: 0, total: chunks.length, skipped: 0, stage: 'embedding' });
 
@@ -167,6 +217,7 @@ export async function handleFileUpload(
 
     const modeNote = degraded ? ' (partial indexing)' : '';
     const skipNote = skipped > 0 ? ` (${skipped} skipped)` : '';
+    const truncNote = truncated ? ' — large document, indexed the leading portion' : '';
 
     onStatusChange('done');
     onProgress({ done: chunks.length, total: chunks.length, skipped, stage: 'done' });
@@ -178,7 +229,7 @@ export async function handleFileUpload(
       degraded,
       sourceText,
       document: { id: documentId, filename: safeFilename(file.name), chunkCount: validChunks.length },
-      message: `I've processed **${file.name}** — ${validChunks.length} chunks indexed${skipNote}${modeNote}. You can now ask questions about it.`,
+      message: `I've processed **${file.name}** — ${validChunks.length} chunks indexed${skipNote}${truncNote}${modeNote}. You can now ask questions about it.`,
     };
   } catch (err: any) {
     onStatusChange('error');
