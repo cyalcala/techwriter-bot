@@ -16,6 +16,7 @@ export interface PromptContext {
   documentContext?: string;
   searchResult?: SearchResult;
   needsArtifact: boolean;
+  needsDeck?: boolean;
   clientSystemPrompt?: string;
 }
 
@@ -41,6 +42,26 @@ const ARTIFACT_COMPACT = [
   '',
   'Infographic: output <artifact type="html"> with self-contained HTML+CSS. Rounded cards, emoji icons, grid layout. Pure HTML — no JS, no external resources.',
   'Code request: If user explicitly asks for code, output ONLY code inside <artifact type="code"> — no diagram.',
+].join('\n');
+
+// Deck contract mirrors src/lib/deck-schema.ts — keep layouts/fields in sync.
+const DECK_COMPACT = [
+  'CRITICAL PRESENTATION RULES — YOU MUST FOLLOW THESE EXACTLY:',
+  '1. Output ONE <artifact type="deck" title="Deck Title">...</artifact> tag as your ENTIRE response. The artifact tag MUST be FIRST. No commentary before, after, or inside the tag.',
+  '2. The tag content is ONE valid JSON object. No markdown fences, no comments, no trailing commas.',
+  '3. Shape: {"title":"Deck Title","subtitle":"optional","slides":[{"layout":"<name>","data":{...}}]}',
+  '4. EXACTLY 7 or 8 slides total. NEVER more than 8. First slide layout "title", last slide layout "closing".',
+  '5. Layouts and their exact data fields:',
+  'title: {"heading","subheading","kicker"} — kicker is a short 2-4 word eyebrow label.',
+  'agenda: {"heading","items":["..."]} — 3-6 items.',
+  'bullets: {"heading","bullets":["..."],"icon"} — 3-5 bullets, each 12 words max; icon is ONE emoji.',
+  'two-column: {"heading","leftTitle","leftItems":["..."],"rightTitle","rightItems":["..."]} — 2-4 items per side.',
+  'stat: {"heading","value","label","context"} — value is the big number/figure, e.g. "99.9%".',
+  'quote: {"text","attribution"}',
+  'code: {"heading","language","code"} — 12 short lines max.',
+  'closing: {"heading","subheading","items"} — items optional, 2-3 takeaways.',
+  '6. Icons: ONE emoji in "icon" fields only. NO image URLs, NO HTML, NO markdown inside strings.',
+  '7. Write specific, concrete, presentation-grade content drawn from the user\'s topic — never filler headings like "Slide 2" or "Introduction" alone.',
 ].join('\n');
 
 const CORE_PERSONA_FAST = `You are a helpful, concise technical writing assistant. Respond naturally and briefly.`;
@@ -172,7 +193,8 @@ export function buildSystemPrompt(query: string, ctx: PromptContext): string {
   }
 
   if (ctx.needsArtifact) {
-    layers.push({ priority: 4, content: ARTIFACT_COMPACT });
+    // Deck requests get the deck contract INSTEAD of diagram syntax rules — token-lean both ways
+    layers.push({ priority: 4, content: ctx.needsDeck ? DECK_COMPACT : ARTIFACT_COMPACT });
   }
 
   return enforceBudget(layers, 2048);

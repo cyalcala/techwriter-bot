@@ -1,7 +1,7 @@
 import { normalizeArtifactSource } from './diagram-source-normalizer';
 import { KROKI_RENDERABLE } from './kroki-renderer';
 
-export type ArtifactType = 'code' | 'html' | 'svg' | 'mermaid' | 'react' | 'katex' | 'markmap' | 'd2' | 'vega' | 'graphviz' | 'plantuml' | 'flowchart' | string;
+export type ArtifactType = 'code' | 'html' | 'svg' | 'mermaid' | 'react' | 'katex' | 'markmap' | 'd2' | 'vega' | 'graphviz' | 'plantuml' | 'flowchart' | 'deck' | string;
 export type ArtifactPlacement = 'inline' | 'side' | 'modal';
 
 export interface Artifact {
@@ -241,6 +241,7 @@ export function detectCodeFenceFallback(text: string): Artifact[] {
     if (lang === 'html' || lang === 'htm') { type = 'html'; title = 'HTML'; }
     else if (lang === 'svg') { type = 'svg'; title = 'SVG'; }
     else if (lang === 'mermaid') { type = 'mermaid'; title = 'Mermaid Diagram'; }
+    else if (lang === 'deck') { type = 'deck'; title = 'Presentation'; }
     else if (KROKI_RENDERABLE.has(lang)) { type = lang; title = `${lang.charAt(0).toUpperCase() + lang.slice(1)} Diagram`; }
     
     artifacts.push({

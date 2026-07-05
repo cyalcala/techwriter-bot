@@ -1,5 +1,6 @@
 import type { ArtifactType } from './stream-parser';
 import { KROKI_RENDERABLE } from './kroki-renderer';
+import { looksLikeDeckSpec } from './deck-schema';
 
 export const SUPPORTED_ARTIFACT_TYPES = [
   'code',
@@ -14,6 +15,7 @@ export const SUPPORTED_ARTIFACT_TYPES = [
   'graphviz',
   'plantuml',
   'flowchart',
+  'deck',
 ] as const satisfies readonly ArtifactType[];
 
 export const PREVIEWABLE_ARTIFACT_TYPES = [
@@ -28,6 +30,7 @@ export const PREVIEWABLE_ARTIFACT_TYPES = [
   'graphviz',
   'plantuml',
   'flowchart',
+  'deck',
 ] as const satisfies readonly ArtifactType[];
 
 const TYPE_ALIASES: Record<string, ArtifactType> = {
@@ -57,6 +60,10 @@ const TYPE_ALIASES: Record<string, ArtifactType> = {
   plantuml: 'plantuml',
   puml: 'plantuml',
   flowchart: 'flowchart',
+  deck: 'deck',
+  slides: 'deck',
+  slidedeck: 'deck',
+  presentation: 'deck',
 };
 
 const CODE_LANGS = new Set([
@@ -95,7 +102,10 @@ export const ARTIFACT_LANGUAGE_ALIASES = new Set([
 export function normalizeArtifactType(raw: string | null | undefined, code = ''): ArtifactType | null {
   const key = (raw || '').trim().toLowerCase();
   if (!key) return null;
-  if (key === 'json') return looksLikeVegaSpec(code) ? 'vega' : null;
+  if (key === 'json') {
+    if (looksLikeVegaSpec(code)) return 'vega';
+    return looksLikeDeckSpec(code) ? 'deck' : null;
+  }
   if (TYPE_ALIASES[key]) return TYPE_ALIASES[key];
   if (CODE_LANGS.has(key)) return 'code';
   return null;
@@ -108,6 +118,7 @@ export function getDefaultArtifactTitle(type: ArtifactType, language?: string): 
   if (type === 'react') return 'React Component';
   if (type === 'katex') return 'Math Formula';
   if (type === 'vega') return 'Vega Chart';
+  if (type === 'deck') return 'Presentation';
   return `${type.charAt(0).toUpperCase() + type.slice(1)} Diagram`;
 }
 
@@ -156,6 +167,8 @@ export function validateArtifact(type: ArtifactType, rawCode: string): boolean {
       return /<svg\b[\s\S]*<\/svg>/i.test(code);
     case 'react':
       return /(function|class|const|import|export|jsx|render|App|ReactDOM)/i.test(code);
+    case 'deck':
+      return looksLikeDeckSpec(code);
     default:
       return KROKI_RENDERABLE.has(type as string) ? code.length >= 5 : false;
   }

@@ -52,6 +52,7 @@ const ARTIFACT_TYPES = new Set([
   'graphviz',
   'plantuml',
   'flowchart',
+  'deck',
 ]);
 const ARTIFACT_PLACEMENTS = new Set(['inline', 'side', 'modal']);
 const ARTIFACT_STATUSES = new Set(['generating', 'ready', 'updating', 'error']);

@@ -121,6 +121,7 @@ export async function loadRenderer(type: ArtifactType): Promise<void> {
     case 'svg':
     case 'html':
     case 'react':
+    case 'deck':
       return;
     default:
       if (KROKI_RENDERABLE.has(type as string)) return;
