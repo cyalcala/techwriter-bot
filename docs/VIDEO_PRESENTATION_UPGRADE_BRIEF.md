@@ -1,11 +1,14 @@
 # Video + Presentation Generation Upgrade — Task Brief (2026-07-04)
 
-Status: **RESEARCH IN PROGRESS (2 of 6 dimensions complete)** — see
-`docs/VIDEO_PRESENTATION_RESEARCH_NOTES.md` for all completed findings
-(presenton + OpenMontage deep-dives with sources and license analysis), a
-preliminary strategy direction, the remaining research checklist, and
-handoff instructions. Strategy/architecture docs NOT yet written; no code
-exists. This brief's constraints and expected outputs still govern.
+Status (2026-07-05): **DECIDED — see `docs/VIDEO_PRESENTATION_STRATEGY.md`.**
+**Video is PARKED** (deliberate user decision — do not resume without an
+explicit user request; resume point is the "Remaining research" section
+of `docs/VIDEO_PRESENTATION_RESEARCH_NOTES.md`). **Presentations are
+being implemented** as a `deck` artifact type per the strategy doc's
+approved v1 parameters. Research evidence:
+`docs/VIDEO_PRESENTATION_RESEARCH_NOTES.md` (presenton + OpenMontage
+deep-dives complete; 4 dimensions intentionally left unfinished when
+video was parked).
 
 ## User Request (verbatim intent)
 

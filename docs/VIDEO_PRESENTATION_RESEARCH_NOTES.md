@@ -1,10 +1,12 @@
 # Video + Presentation Upgrade — Research Notes (Session 4, 2026-07-05)
 
-Status: **RESEARCH PARTIALLY COMPLETE — HALTED BY USER.** The user stopped
-the session mid-research and asked for a full handoff so another AI can
-continue. This file preserves ALL research completed so far. Read it
-together with `docs/VIDEO_PRESENTATION_UPGRADE_BRIEF.md` (the original
-task brief — its constraints and expected outputs still govern).
+Status (updated 2026-07-05): **VIDEO PARKED / PRESENTATIONS DECIDED.**
+The user approved the strategy in `docs/VIDEO_PRESENTATION_STRATEGY.md`:
+presentations ship as a `deck` artifact type; video is parked
+deliberately (do not resume without an explicit user request — the
+"Remaining research" section below is the resume point, and the
+tts-imagegen + zero-cost-render dimensions decide video feasibility).
+This file remains the research evidence base.
 
 ## Where this task stands
 
