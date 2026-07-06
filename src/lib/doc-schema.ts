@@ -1,6 +1,7 @@
 // Document artifact contract: the model emits a structured multi-section
 // document as strict JSON; it renders as a rich artifact and exports to
 // PDF / DOCX / Markdown. Strategy: docs/DOCUMENT_ARTIFACT_STRATEGY.md.
+import { salvageObjectArray, salvageStringField } from './json-salvage';
 
 export const DOC_MAX_BLOCKS = 60;
 export const DOC_MAX_LIST_ITEMS = 24;
@@ -111,11 +112,15 @@ function normalizeBlock(raw: unknown): DocBlock | null {
 
 // Validate + repair into a renderable document, or null when unsalvageable.
 export function repairDocSpec(rawCode: string): DocSpec | null {
+  const stripped = stripFence(String(rawCode ?? ''));
   const parsed = parseDocSpec(rawCode);
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
-  const obj = parsed as Record<string, unknown>;
+  const obj = (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed as Record<string, unknown> : null;
 
-  const rawBlocks = Array.isArray(obj.blocks) ? obj.blocks : null;
+  let rawBlocks = obj && Array.isArray(obj.blocks) ? obj.blocks : null;
+  if (!rawBlocks || rawBlocks.length === 0) {
+    const salvaged = salvageObjectArray(stripped, 'blocks');
+    if (salvaged.length) rawBlocks = salvaged;
+  }
   if (!rawBlocks || rawBlocks.length === 0) return null;
 
   const blocks = rawBlocks
@@ -124,8 +129,8 @@ export function repairDocSpec(rawCode: string): DocSpec | null {
     .slice(0, DOC_MAX_BLOCKS);
   if (blocks.length === 0) return null;
 
-  const title = str(obj.title, 200).trim() || 'Document';
-  const subtitle = str(obj.subtitle, 300).trim() || undefined;
+  const title = (obj ? str(obj.title, 200).trim() : '') || salvageStringField(stripped, 'title') || 'Document';
+  const subtitle = (obj ? str(obj.subtitle, 300).trim() : '') || undefined;
   return { title, subtitle, blocks };
 }
 

@@ -1,6 +1,7 @@
 // Deck artifact contract: the LLM emits strict JSON against hand-crafted
 // layouts; design quality lives in the templates, not the model.
 // Strategy: docs/VIDEO_PRESENTATION_STRATEGY.md (7-8 slide hard cap).
+import { salvageObjectArray, salvageStringField } from './json-salvage';
 
 export const DECK_MAX_SLIDES = 8;
 
@@ -92,13 +93,18 @@ function normalizeSlide(raw: unknown): DeckSlide | null {
 // Validate + repair into a renderable spec, or null when unsalvageable.
 // Unknown layouts coerce to 'bullets'; slides beyond DECK_MAX_SLIDES are
 // dropped (the cap is a strict product decision, enforced in code, not
-// just in the prompt).
+// just in the prompt). Truncated model output (cut off by the token limit)
+// is salvaged so a partial deck still renders instead of erroring.
 export function repairDeckSpec(rawCode: string): DeckSpec | null {
+  const stripped = stripFence(String(rawCode ?? ''));
   const parsed = parseDeckSpec(rawCode);
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
-  const obj = parsed as Record<string, unknown>;
+  const obj = (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed as Record<string, unknown> : null;
 
-  const rawSlides = Array.isArray(obj.slides) ? obj.slides : null;
+  let rawSlides = obj && Array.isArray(obj.slides) ? obj.slides : null;
+  if (!rawSlides || rawSlides.length === 0) {
+    const salvaged = salvageObjectArray(stripped, 'slides');
+    if (salvaged.length) rawSlides = salvaged;
+  }
   if (!rawSlides || rawSlides.length === 0) return null;
 
   const slides = rawSlides
@@ -107,12 +113,14 @@ export function repairDeckSpec(rawCode: string): DeckSpec | null {
     .slice(0, DECK_MAX_SLIDES);
   if (slides.length === 0) return null;
 
-  const title = typeof obj.title === 'string' && obj.title.trim()
-    ? obj.title.trim()
-    : 'Presentation';
-  const subtitle = typeof obj.subtitle === 'string' && obj.subtitle.trim()
-    ? obj.subtitle.trim()
-    : undefined;
+  const rawTitle = obj?.title;
+  const title = (typeof rawTitle === 'string' && rawTitle.trim())
+    ? rawTitle.trim()
+    : (rawTitle && typeof rawTitle === 'object' && !Array.isArray(rawTitle) && typeof (rawTitle as any).heading === 'string' && (rawTitle as any).heading.trim())
+      ? (rawTitle as any).heading.trim()
+      : (salvageStringField(stripped, 'title') || 'Presentation');
+  const rawSub = obj?.subtitle;
+  const subtitle = typeof rawSub === 'string' && rawSub.trim() ? rawSub.trim() : undefined;
 
   return { title, subtitle, slides };
 }
