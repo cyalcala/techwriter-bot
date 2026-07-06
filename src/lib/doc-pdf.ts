@@ -4,7 +4,7 @@
 import type { DocBlock, DocSpec } from './doc-schema';
 import { loadExternalScript } from './renderer-loader';
 
-const JSPDF_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js';
+const JSPDF_CDN = 'https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js';
 
 const PAGE_W = 595.28; // A4 pt
 const PAGE_H = 841.89;

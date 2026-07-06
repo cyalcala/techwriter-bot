@@ -5,7 +5,7 @@
 import type { DeckSlide, DeckSpec } from './deck-schema';
 import { loadExternalScript } from './renderer-loader';
 
-const JSPDF_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js';
+const JSPDF_CDN = 'https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js';
 
 const IN = 72;
 const W = 10 * IN;
