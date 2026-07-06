@@ -13,9 +13,23 @@ export function checkCSRF(request: Request, allowed?: string[]): boolean {
   const origin = request.headers.get('origin');
   const referer = request.headers.get('referer');
   if (!origin && !referer) return true;
+
+  // The origin actually serving this request. In production the page and the
+  // /api/* route are the same host, so a request whose Origin matches this is
+  // the site itself — not a cross-site attacker (browsers set Origin, it can't
+  // be forged). This lets the app work on ANY host it is legitimately served
+  // from: the canonical domain, per-deploy *.pages.dev URLs, and custom
+  // domains — without hard-coding each one, while still blocking cross-origin
+  // POSTs (a different Origin never equals our served host).
+  let selfOrigin: string | null = null;
+  try { selfOrigin = new URL(request.url).origin; } catch {}
+
   const ok = (url: string) => {
-    try { return origins.includes(new URL(url).origin); }
-    catch { return false; }
+    try {
+      const o = new URL(url).origin;
+      if (selfOrigin && o === selfOrigin) return true;
+      return origins.includes(o);
+    } catch { return false; }
   };
   if (origin && !ok(origin)) return false;
   if (referer && !ok(referer)) return false;

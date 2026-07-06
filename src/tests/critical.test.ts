@@ -1,17 +1,34 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
 describe('Security checks', () => {
-  it('CSRF rejects invalid origin', async () => {
+  it('CSRF rejects a cross-origin POST to our host', async () => {
     const { checkCSRF } = await import('../lib/csrf');
-    const req = new Request('https://evil.com', { headers: { origin: 'https://evil.com' } });
+    // Real CSRF shape: the request hits OUR host, the attacker's Origin does not match.
+    const req = new Request('https://tw-bot.pages.dev/api/chat', { headers: { origin: 'https://evil.com' } });
     expect(checkCSRF(req)).toBe(false);
   });
 
   it('CSRF rejects origins that merely prefix-match a trusted origin', async () => {
     const { checkCSRF } = await import('../lib/csrf');
-    const req = new Request('http://localhost:43210/test', {
+    // localhost:43210 is a port-prefix lookalike of the trusted :4321 — reject it
+    // as a cross-origin request against our served host.
+    const req = new Request('https://tw-bot.pages.dev/api/chat', {
       headers: { origin: 'http://localhost:43210' }
     });
+    expect(checkCSRF(req)).toBe(false);
+  });
+
+  it('CSRF allows same-origin requests on any served host (preview URLs / custom domains)', async () => {
+    const { checkCSRF } = await import('../lib/csrf');
+    const preview = new Request('https://abc123def.tw-bot.pages.dev/api/chat', { headers: { origin: 'https://abc123def.tw-bot.pages.dev' } });
+    const custom = new Request('https://docs.example.com/api/chat', { headers: { origin: 'https://docs.example.com', referer: 'https://docs.example.com/' } });
+    expect(checkCSRF(preview)).toBe(true);
+    expect(checkCSRF(custom)).toBe(true);
+  });
+
+  it('CSRF still blocks a cross-origin POST even when served from a custom domain', async () => {
+    const { checkCSRF } = await import('../lib/csrf');
+    const req = new Request('https://docs.example.com/api/chat', { headers: { origin: 'https://evil.test' } });
     expect(checkCSRF(req)).toBe(false);
   });
 
@@ -28,7 +45,9 @@ describe('Security checks', () => {
     const preview = new Request('https://codex-privacy-first-disclosu.tw-bot.pages.dev/api/chat', {
       headers: { origin: 'https://codex-privacy-first-disclosu.tw-bot.pages.dev' }
     });
-    const lookalike = new Request('https://codex-privacy-first-disclosu.tw-bot.pages.dev.evil.test/api/chat', {
+    // A lookalike domain cannot impersonate the alias: served from the real
+    // alias host, its cross-origin Origin is rejected.
+    const lookalike = new Request('https://codex-privacy-first-disclosu.tw-bot.pages.dev/api/chat', {
       headers: { origin: 'https://codex-privacy-first-disclosu.tw-bot.pages.dev.evil.test' }
     });
 
