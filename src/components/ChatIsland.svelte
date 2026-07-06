@@ -179,6 +179,7 @@
   let conversationId = $state('');
   let conversationRecords = $state<ConversationSnapshot[]>([]);
   let conversationHistoryOpen = $state(false);
+  let actionsMenuOpen = $state(false);
   let renamingConversationId = $state<string | null>(null);
   let conversationRenameValue = $state('');
   const visibleConversations = $derived(listVisibleConversations(conversationRecords));
@@ -1493,26 +1494,39 @@
             </div>
           {/if}
         </div>
-        <button onclick={exportMarkdown} class="text-[10px] md:text-xs text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 px-2 md:px-3 py-1 md:py-1.5 rounded-lg transition-all flex items-center gap-1" title="Export chat as Markdown">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 md:h-3.5 md:w-3.5" viewBox="0 0 20 20" fill="currentColor"><path d="M4 2.5A1.5 1.5 0 015.5 1h5.879a1.5 1.5 0 011.06.44l3.122 3.12A1.5 1.5 0 0116 5.622V17.5a1.5 1.5 0 01-1.5 1.5h-9A1.5 1.5 0 014 17.5v-15zM11 2.75V5a1 1 0 001 1h2.25L11 2.75z"/><path d="M6.75 9.25a.75.75 0 000 1.5h6.5a.75.75 0 000-1.5h-6.5zm0 3a.75.75 0 000 1.5h6.5a.75.75 0 000-1.5h-6.5z"/></svg>
-          <span class="hidden sm:inline">Markdown</span>
-        </button>
-        <button onclick={exportSession} class="text-[10px] md:text-xs text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 px-2 md:px-3 py-1 md:py-1.5 rounded-lg transition-all flex items-center gap-1" title="Export session">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 md:h-3.5 md:w-3.5" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a1 1 0 011 1v7.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4A1 1 0 016.707 8.293L9 10.586V3a1 1 0 011-1z"/><path d="M3 14a1 1 0 011-1h2.5a1 1 0 110 2H5v1h10v-1h-1.5a1 1 0 110-2H16a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1v-3z"/></svg>
-          <span class="hidden sm:inline">Export</span>
-        </button>
-        <button onclick={() => sessionImportInput.click()} class="text-[10px] md:text-xs text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 px-2 md:px-3 py-1 md:py-1.5 rounded-lg transition-all flex items-center gap-1" title="Import session">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 md:h-3.5 md:w-3.5" viewBox="0 0 20 20" fill="currentColor"><path d="M10 18a1 1 0 01-1-1V9.414l-2.293 2.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 9.414V17a1 1 0 01-1 1z"/><path d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 11-2 0V4H5v2a1 1 0 01-2 0V3z"/></svg>
-          <span class="hidden sm:inline">Import</span>
-        </button>
-        <button onclick={clearChat} class="text-[10px] md:text-xs text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 px-2 md:px-3 py-1 md:py-1.5 rounded-lg transition-all flex items-center gap-1" title="Clear">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 md:h-3.5 md:w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-          <span class="hidden sm:inline">Clear</span>
-        </button>
-        <button onclick={newChat} class="text-[10px] md:text-xs text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 px-2 md:px-3 py-1 md:py-1.5 rounded-lg transition-all flex items-center gap-1" title="New">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 md:h-3.5 md:w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/></svg>
+        <button onclick={newChat} class="text-[11px] md:text-xs font-medium text-stone-500 hover:text-stone-800 hover:bg-stone-200/60 px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1.5" title="New chat">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 4v12M4 10h12"/></svg>
           <span class="hidden sm:inline">New</span>
         </button>
+        <div class="relative">
+          {#if actionsMenuOpen}
+            <button class="fixed inset-0 z-30 cursor-default" aria-label="Close menu" onclick={() => actionsMenuOpen = false}></button>
+          {/if}
+          <button type="button" onclick={() => actionsMenuOpen = !actionsMenuOpen} aria-haspopup="true" aria-expanded={actionsMenuOpen} class="text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 p-1.5 rounded-lg transition-all" title="More">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M6 10a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM11.5 10a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15.5 11.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"/></svg>
+          </button>
+          {#if actionsMenuOpen}
+            <div class="absolute right-0 top-full mt-2 z-40 w-52 overflow-hidden rounded-xl border border-stone-200 bg-white py-1 shadow-xl" role="menu">
+              <button role="menuitem" onclick={() => { actionsMenuOpen = false; exportMarkdown(); }} class="flex w-full items-center gap-2.5 px-3 py-2 text-left text-xs text-stone-600 hover:bg-stone-50">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-stone-400" viewBox="0 0 20 20" fill="currentColor"><path d="M4 2.5A1.5 1.5 0 015.5 1h5.879a1.5 1.5 0 011.06.44l3.122 3.12A1.5 1.5 0 0116 5.622V17.5a1.5 1.5 0 01-1.5 1.5h-9A1.5 1.5 0 014 17.5v-15z"/></svg>
+                Export as Markdown
+              </button>
+              <button role="menuitem" onclick={() => { actionsMenuOpen = false; exportSession(); }} class="flex w-full items-center gap-2.5 px-3 py-2 text-left text-xs text-stone-600 hover:bg-stone-50">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-stone-400" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a1 1 0 011 1v7.586l2.293-2.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4A1 1 0 016.707 8.293L9 10.586V3a1 1 0 011-1z"/><path d="M3 14a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1v-3z"/></svg>
+                Export session
+              </button>
+              <button role="menuitem" onclick={() => { actionsMenuOpen = false; sessionImportInput.click(); }} class="flex w-full items-center gap-2.5 px-3 py-2 text-left text-xs text-stone-600 hover:bg-stone-50">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-stone-400" viewBox="0 0 20 20" fill="currentColor"><path d="M10 18a1 1 0 01-1-1V9.414l-2.293 2.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 9.414V17a1 1 0 01-1 1z"/><path d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-1 1H4a1 1 0 01-1-1V3z"/></svg>
+                Import session
+              </button>
+              <div class="my-1 border-t border-stone-100"></div>
+              <button role="menuitem" onclick={() => { actionsMenuOpen = false; clearChat(); }} class="flex w-full items-center gap-2.5 px-3 py-2 text-left text-xs text-red-500 hover:bg-red-50">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                Clear chat
+              </button>
+            </div>
+          {/if}
+        </div>
       </div>
     </header>
 
@@ -1552,9 +1566,9 @@
 
     {#if showActiveSessionResetNotice}
       <div class="px-4 md:px-8 pb-2">
-        <div role="status" aria-live="polite" aria-label="Active session refresh notice" class="mx-auto max-w-3xl rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900">
-          <span class="font-semibold">Refresh or navigation clears this open-session chat.</span>
-          <span class="ml-1">Export session before leaving. Import session to restore messages, artifacts, and document metadata.</span>
+        <div role="status" aria-live="polite" aria-label="Active session refresh notice" class="mx-auto max-w-3xl flex items-start gap-1.5 text-[11px] leading-relaxed text-stone-400">
+          <svg xmlns="http://www.w3.org/2000/svg" class="mt-px h-3.5 w-3.5 shrink-0 text-stone-300" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+          <span><span class="font-medium text-stone-500">Refresh or navigation clears this open-session chat.</span> Export session before leaving. Import session to restore messages, artifacts, and document metadata.</span>
         </div>
       </div>
     {/if}

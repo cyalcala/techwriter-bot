@@ -264,27 +264,11 @@
       <div class="flex justify-between items-center text-[10px] md:text-[11px] text-stone-400 mt-2">
         <div class="flex items-center gap-2 min-w-0">
           {#if responseTransparency}
-            <span class="hidden min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[10px] text-stone-300 sm:flex" aria-label="Response details">
-              <span>Provider {responseTransparency.provider}</span>
-              {#if responseTransparency.activeProviderCount != null}
-                <span>{responseTransparency.activeProviderCount} providers</span>
-              {/if}
-              <span>{formatLatency(responseTransparency.latencyMs)}</span>
-              {#if responseTransparency.tokensIn != null}
-                <span>{tokenDisplay?.cached ? 'cached' : `~${responseTransparency.tokensIn} tokens`}</span>
-              {/if}
-              {#if responseTransparency.graphTokens}
-                <span>{responseTransparency.graphTokens} graph</span>
-              {/if}
-              {#if responseTransparency.chatPath}
-                <span>{responseTransparency.chatPath}</span>
-              {/if}
-              {#if responseTransparency.requestId}
-                <span title={`Request ${responseTransparency.requestId}`}>req {shortRequestId(responseTransparency.requestId)}</span>
-              {/if}
-            </span>
-          {:else if tokenDisplay}
-            <span class="text-[10px] text-stone-300 hidden sm:inline">{tokenDisplay.cached ? '⚡ cached' : `~${tokenDisplay.in} tokens`}{chatPath ? ` · ${chatPath}` : ''}</span>
+            <span
+              class="hidden sm:inline truncate text-[10px] text-stone-300"
+              aria-label="Response details"
+              title={`Provider ${responseTransparency.provider}${responseTransparency.activeProviderCount != null ? ` · ${responseTransparency.activeProviderCount} active` : ''}${responseTransparency.chatPath ? ` · ${responseTransparency.chatPath}` : ''}${responseTransparency.tokensIn != null ? ` · ~${responseTransparency.tokensIn} tokens` : ''}${responseTransparency.graphTokens ? ` · ${responseTransparency.graphTokens} graph` : ''}${responseTransparency.requestId ? ` · req ${shortRequestId(responseTransparency.requestId)}` : ''}`}
+            >{responseTransparency.provider} · {formatLatency(responseTransparency.latencyMs)}</span>
           {/if}
         </div>
         <div class="flex items-center gap-2 shrink-0">

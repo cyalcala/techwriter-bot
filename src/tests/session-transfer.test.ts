@@ -139,8 +139,8 @@ describe('explicit session transfer', () => {
     expect(island).toContain('function onSessionImportSelected');
     expect(island).toContain('bind:this={sessionImportInput}');
     expect(island).toContain('accept=".json,application/json"');
-    expect(island).toContain('onclick={exportSession}');
-    expect(island).toContain('onclick={() => sessionImportInput.click()}');
+    expect(island).toContain('exportSession();');
+    expect(island).toContain('sessionImportInput.click();');
     expect(island).not.toContain('localStorage.setItem');
 
     expect(importHandler).toContain('safeAbort()');

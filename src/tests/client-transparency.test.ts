@@ -40,9 +40,10 @@ describe('client transparency metadata', () => {
     expect(input).toContain('interface ResponseTransparency');
     expect(input).toContain('responseTransparency: ResponseTransparency | null');
     expect(input).toContain('aria-label="Response details"');
-    expect(input).toContain('Provider {responseTransparency.provider}');
-    expect(input).toContain('{responseTransparency.activeProviderCount} providers');
-    expect(input).toContain('req {shortRequestId(responseTransparency.requestId)}');
+    // Surfaced as a compact "provider · latency" chip with full details in the title tooltip.
+    expect(input).toContain('{responseTransparency.provider}');
+    expect(input).toContain('responseTransparency.activeProviderCount');
+    expect(input).toContain('shortRequestId(responseTransparency.requestId)');
   });
 
   it('keeps transparency capture active-session only and content-free', () => {

@@ -169,8 +169,8 @@ describe('active-session Markdown chat export', () => {
     expect(island).toContain('createChatMarkdownExport');
     expect(island).toContain('chatMarkdownExportFilename');
     expect(island).toContain('function exportMarkdown()');
-    expect(island).toContain('onclick={exportMarkdown}');
-    expect(island).toContain('title="Export chat as Markdown"');
+    expect(island).toContain('exportMarkdown();');
+    expect(island).toContain('Export as Markdown');
     expect(island).toContain('text/markdown;charset=utf-8');
     expect(exportMarkdown).toContain('messages');
     expect(exportMarkdown).toContain('artifactQueue.entries');
