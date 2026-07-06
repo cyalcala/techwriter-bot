@@ -701,6 +701,28 @@ live and verified.
   carousel), zero console/page errors. Evidence:
   `output/playwright/artifact-export-v1/`.
 
+### Session 9 hotfix (2026-07-05) — CSRF "Request origin is not allowed" on mobile
+
+- User report: "connection error: request origin is not allowed" on
+  mobile, couldn't use the app. Root cause: `src/lib/csrf.ts` `checkCSRF`
+  only accepted a hard-coded origin allowlist (`tw-bot.pages.dev` +
+  localhost). Users reaching the app on a **per-deploy `*.pages.dev` URL
+  or a custom domain** were 403'd (canonical-domain mobile always worked
+  in smokes — that's why it looked mobile-specific: the user was on a
+  different host).
+- Fix (`e08fbe5`): allow the request when its `Origin`/`Referer` matches
+  the **exact host actually serving the request** (same-origin) OR the
+  allowlist. Browsers set `Origin` trustworthily, so a real cross-site
+  POST (attacker Origin ≠ our served host) is still blocked; this only
+  stops rejecting legitimate alternate hosts. No cookie auth, so the
+  posture is unchanged for real attacks. CSRF tests rewritten to model
+  the real threat shape (served host = ours, attacker Origin differs) +
+  same-origin positive cases. Suite 259/259.
+- **Production-verified** (`curl`): preview host `862f45de.tw-bot.pages.dev`
+  same-origin now PASSES CSRF (reaches normal validation); preview
+  cross-origin and canonical cross-origin still BLOCKED; canonical
+  same-origin unaffected.
+
 ## Recovery Prompt
 
 Use this prompt when handing work to another AI agent:
