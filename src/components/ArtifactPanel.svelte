@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Artifact, ArtifactType } from '../lib/stream-parser';
-  import { loadRenderer, renderCodeArtifact, renderHtmlArtifact, renderSvgArtifact, renderMermaidArtifact, renderReactArtifact, renderKatexArtifact, renderMarkmapArtifact, renderD2Artifact, renderVegaArtifact, renderGraphvizArtifact, renderPlantUMLArtifact, renderFlowchartArtifact, renderGenericKrokiArtifact, renderDeckArtifact } from '../lib/renderer-loader';
+  import { loadRenderer, renderCodeArtifact, renderHtmlArtifact, renderSvgArtifact, renderMermaidArtifact, renderReactArtifact, renderKatexArtifact, renderMarkmapArtifact, renderD2Artifact, renderVegaArtifact, renderGraphvizArtifact, renderPlantUMLArtifact, renderFlowchartArtifact, renderGenericKrokiArtifact, renderDeckArtifact, renderDocumentArtifact } from '../lib/renderer-loader';
   import { PREVIEWABLE_ARTIFACT_TYPES } from '../lib/artifact-types';
   import { exportFormatsFor, exportArtifactAs, downloadBlob } from '../lib/artifact-export';
   import { formatArtifactRendererError } from '../lib/artifact-error-boundary';
@@ -47,6 +47,7 @@
     svg: 'bg-amber-600 text-white',
     react: 'bg-sky-600 text-white',
     deck: 'bg-amber-700 text-white',
+    document: 'bg-stone-700 text-white',
   };
 
   const typeBadge = $derived(typeBadgeMap[artifact.type] || 'bg-gray-600 text-white');
@@ -84,6 +85,7 @@
           case 'svg': renderedHtml = renderSvgArtifact(a.code); break;
           case 'mermaid': renderedHtml = renderMermaidArtifact(a.code); break;
           case 'deck': renderedHtml = renderDeckArtifact(a.code); break;
+          case 'document': renderedHtml = renderDocumentArtifact(a.code); break;
           case 'react': renderedHtml = renderReactArtifact(a.code); break;
           case 'katex': renderedHtml = renderKatexArtifact(a.code); break;
           case 'markmap': renderedHtml = renderMarkmapArtifact(a.code); break;

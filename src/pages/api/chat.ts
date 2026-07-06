@@ -5,7 +5,7 @@ import { searchRouter, searchDuckDuckGo } from '../../lib/search';
 import { buildSystemPrompt, type SearchResult, type PromptContext } from '../../lib/prompts';
 import { readEnvKeys } from '../../lib/env-reader';
 import { updateReputation, getDefaultState, deserializeReputation, serializeReputation, getTierProviderPool, getDailyLimits, type ReputationState } from '../../lib/reputation';
-import { determineChatPath, isArtifactGenerationRequest, isDeckGenerationRequest } from '../../lib/path-router';
+import { determineChatPath, isArtifactGenerationRequest, isDeckGenerationRequest, isDocGenerationRequest } from '../../lib/path-router';
 import { ensureGraph, queryGraph } from '../../lib/graph-query';
 import { logTokenUsage, estimateTokens, isWithinBudget } from '../../lib/token-counter';
 import { apiError, createRequestId } from '../../lib/api-response';
@@ -207,8 +207,9 @@ export const POST: APIRoute = async (ctx) => {
     }
 
     const needsArtifact = isArtifactGenerationRequest(query, messages);
-    // Deck artifacts need a larger output budget than diagram source (strategy doc: 4096 deck-only)
+    // Deck/document artifacts need a larger output budget than diagram source (4096)
     const needsDeck = needsArtifact && isDeckGenerationRequest(query);
+    const needsDoc = needsArtifact && isDocGenerationRequest(query);
 
     // For artifact requests: route as 'fast' for minimal latency but bump max tokens to 2048
     const effectivePath = needsArtifact ? 'fast' : pathCtx.path;
@@ -219,6 +220,7 @@ export const POST: APIRoute = async (ctx) => {
       searchResult,
       needsArtifact,
       needsDeck,
+      needsDoc,
       clientSystemPrompt: typeof env.SYSTEM_PROMPT === 'string' && env.SYSTEM_PROMPT.trim() ? env.SYSTEM_PROMPT : undefined,
     };
 
@@ -339,7 +341,7 @@ export const POST: APIRoute = async (ctx) => {
       effectivePath === 'fast' ? 'chat-fast' : body.intent || 'chat-fast',
       messages, locals, env, sessionId, searchResult.sources, meta, pool, effectivePath,
       forceSticky,
-      needsArtifact ? (needsDeck ? 4096 : 2048) : undefined,
+      needsArtifact ? ((needsDeck || needsDoc) ? 4096 : 2048) : undefined,
       parseProviderFaultInjection(env, request.headers),
     );
 

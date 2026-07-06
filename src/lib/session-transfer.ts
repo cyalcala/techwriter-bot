@@ -53,6 +53,7 @@ const ARTIFACT_TYPES = new Set([
   'plantuml',
   'flowchart',
   'deck',
+  'document',
 ]);
 const ARTIFACT_PLACEMENTS = new Set(['inline', 'side', 'modal']);
 const ARTIFACT_STATUSES = new Set(['generating', 'ready', 'updating', 'error']);

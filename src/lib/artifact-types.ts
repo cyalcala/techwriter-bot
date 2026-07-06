@@ -1,6 +1,7 @@
 import type { ArtifactType } from './stream-parser';
 import { KROKI_RENDERABLE } from './kroki-renderer';
 import { looksLikeDeckSpec } from './deck-schema';
+import { looksLikeDocSpec } from './doc-schema';
 
 export const SUPPORTED_ARTIFACT_TYPES = [
   'code',
@@ -16,6 +17,7 @@ export const SUPPORTED_ARTIFACT_TYPES = [
   'plantuml',
   'flowchart',
   'deck',
+  'document',
 ] as const satisfies readonly ArtifactType[];
 
 export const PREVIEWABLE_ARTIFACT_TYPES = [
@@ -31,6 +33,7 @@ export const PREVIEWABLE_ARTIFACT_TYPES = [
   'plantuml',
   'flowchart',
   'deck',
+  'document',
 ] as const satisfies readonly ArtifactType[];
 
 const TYPE_ALIASES: Record<string, ArtifactType> = {
@@ -64,6 +67,9 @@ const TYPE_ALIASES: Record<string, ArtifactType> = {
   slides: 'deck',
   slidedeck: 'deck',
   presentation: 'deck',
+  document: 'document',
+  doc: 'document',
+  report: 'document',
 };
 
 const CODE_LANGS = new Set([
@@ -104,7 +110,8 @@ export function normalizeArtifactType(raw: string | null | undefined, code = '')
   if (!key) return null;
   if (key === 'json') {
     if (looksLikeVegaSpec(code)) return 'vega';
-    return looksLikeDeckSpec(code) ? 'deck' : null;
+    if (looksLikeDeckSpec(code)) return 'deck';
+    return looksLikeDocSpec(code) ? 'document' : null;
   }
   if (TYPE_ALIASES[key]) return TYPE_ALIASES[key];
   if (CODE_LANGS.has(key)) return 'code';
@@ -119,6 +126,7 @@ export function getDefaultArtifactTitle(type: ArtifactType, language?: string): 
   if (type === 'katex') return 'Math Formula';
   if (type === 'vega') return 'Vega Chart';
   if (type === 'deck') return 'Presentation';
+  if (type === 'document') return 'Document';
   return `${type.charAt(0).toUpperCase() + type.slice(1)} Diagram`;
 }
 
@@ -169,6 +177,8 @@ export function validateArtifact(type: ArtifactType, rawCode: string): boolean {
       return /(function|class|const|import|export|jsx|render|App|ReactDOM)/i.test(code);
     case 'deck':
       return looksLikeDeckSpec(code);
+    case 'document':
+      return looksLikeDocSpec(code);
     default:
       return KROKI_RENDERABLE.has(type as string) ? code.length >= 5 : false;
   }

@@ -56,7 +56,14 @@ export async function exportArtifactAs(
     if (formatId === 'json') { downloadBlob(code, `${filenameBase}.json`, 'application/json'); return true; }
   }
 
-  // 'document' formats are wired in Phase 2c once doc-* modules exist.
+  if (type === 'document') {
+    const { repairDocSpec, docToMarkdown } = await import('./doc-schema');
+    const spec = repairDocSpec(code);
+    if (!spec) return false;
+    if (formatId === 'pdf') { const { exportDocToPdf } = await import('./doc-pdf'); await exportDocToPdf(spec, filenameBase); return true; }
+    if (formatId === 'docx') { const { exportDocToDocx } = await import('./doc-docx'); await exportDocToDocx(spec, filenameBase); return true; }
+    if (formatId === 'md') { downloadBlob(docToMarkdown(spec), `${filenameBase}.md`, 'text/markdown'); return true; }
+  }
 
   return false;
 }

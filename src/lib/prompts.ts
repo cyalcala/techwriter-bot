@@ -17,6 +17,7 @@ export interface PromptContext {
   searchResult?: SearchResult;
   needsArtifact: boolean;
   needsDeck?: boolean;
+  needsDoc?: boolean;
   clientSystemPrompt?: string;
 }
 
@@ -62,6 +63,24 @@ const DECK_COMPACT = [
   'closing: {"heading","subheading","items"} — items optional, 2-3 takeaways.',
   '6. Icons: ONE emoji in "icon" fields only. NO image URLs, NO HTML, NO markdown inside strings.',
   '7. Write specific, concrete, presentation-grade content drawn from the user\'s topic — never filler headings like "Slide 2" or "Introduction" alone.',
+].join('\n');
+
+// Document contract mirrors src/lib/doc-schema.ts — keep block types in sync.
+const DOC_COMPACT = [
+  'CRITICAL DOCUMENT RULES — YOU MUST FOLLOW THESE EXACTLY:',
+  '1. Output ONE <artifact type="document" title="Document Title">...</artifact> tag as your ENTIRE response. The tag MUST be FIRST. No commentary before, after, or inside the tag.',
+  '2. The tag content is ONE valid JSON object. No markdown fences, no trailing commas.',
+  '3. Shape: {"title":"Title","subtitle":"optional","blocks":[{"type":"<name>",...}]}',
+  '4. Block types and their exact fields:',
+  'heading: {"type":"heading","level":1|2|3,"text":"..."}',
+  'paragraph: {"type":"paragraph","text":"..."}',
+  'bullets: {"type":"bullets","items":["...","..."]}',
+  'numbered: {"type":"numbered","items":["...","..."]}',
+  'code: {"type":"code","language":"js","code":"..."}',
+  'quote: {"type":"quote","text":"...","attribution":"optional"}',
+  'table: {"type":"table","headers":["A","B"],"rows":[["1","2"],["3","4"]]}',
+  '5. Structure the document with headings; write substantive, specific, well-organized prose grounded in the user\'s topic. Aim for 6-24 blocks.',
+  '6. Plain text only inside string values — no markdown, no HTML, no images.',
 ].join('\n');
 
 const CORE_PERSONA_FAST = `You are a helpful, concise technical writing assistant. Respond naturally and briefly.`;
@@ -193,8 +212,9 @@ export function buildSystemPrompt(query: string, ctx: PromptContext): string {
   }
 
   if (ctx.needsArtifact) {
-    // Deck requests get the deck contract INSTEAD of diagram syntax rules — token-lean both ways
-    layers.push({ priority: 4, content: ctx.needsDeck ? DECK_COMPACT : ARTIFACT_COMPACT });
+    // Each artifact family gets ONLY its own contract — token-lean all ways
+    const contract = ctx.needsDeck ? DECK_COMPACT : ctx.needsDoc ? DOC_COMPACT : ARTIFACT_COMPACT;
+    layers.push({ priority: 4, content: contract });
   }
 
   return enforceBudget(layers, 2048);

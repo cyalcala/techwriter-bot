@@ -1,6 +1,7 @@
 import type { ArtifactType } from './stream-parser';
 import { formatArtifactRendererError } from './artifact-error-boundary';
 import { repairDeckSpec, type DeckSlide, type DeckSpec } from './deck-schema';
+import { repairDocSpec, type DocBlock, type DocSpec } from './doc-schema';
 import { normalizeArtifactSource, normalizeMermaidSource } from './diagram-source-normalizer';
 import { KROKI_RENDERABLE } from './kroki-renderer';
 
@@ -128,6 +129,7 @@ export async function loadRenderer(type: ArtifactType): Promise<void> {
     case 'html':
     case 'react':
     case 'deck':
+    case 'document':
       return;
     default:
       if (KROKI_RENDERABLE.has(type as string)) return;
@@ -235,15 +237,64 @@ export function renderDeckSpecHtml(spec: DeckSpec): string {
   const slides = spec.slides.map((slide, i) => {
     const centered = slide.layout === 'title' || slide.layout === 'stat' || slide.layout === 'quote' || slide.layout === 'closing';
     const accentBar = centered ? '' : `<span style="position:absolute;top:0;left:7%;width:44px;height:4px;background:#f59e0b;border-radius:0 0 4px 4px"></span>`;
-    return `<section style="position:relative;background:#fff;border:1px solid ${DECK_BORDER};border-radius:12px;box-shadow:0 1px 3px rgba(28,25,23,.06);aspect-ratio:16/9;min-height:230px;padding:6.5% 7% 7.5%;display:flex;flex-direction:column;justify-content:center;${DECK_FONT};color:${DECK_TEXT}">${accentBar}${renderDeckSlideBody(slide)}${i > 0 ? `<span style="position:absolute;bottom:11px;left:16px;font-size:11px;color:${DECK_FAINT}">${deckTitle}</span>` : ''}<span style="position:absolute;bottom:11px;right:16px;font-size:11px;color:${DECK_FAINT}">${i + 1} / ${total}</span></section>`;
+    return `<section style="position:relative;flex:0 0 100%;min-width:100%;scroll-snap-align:center;background:#fff;border:1px solid ${DECK_BORDER};border-radius:12px;box-shadow:0 1px 3px rgba(28,25,23,.06);aspect-ratio:16/9;min-height:230px;padding:6.5% 7% 7.5%;display:flex;flex-direction:column;justify-content:center;box-sizing:border-box;${DECK_FONT};color:${DECK_TEXT}">${accentBar}${renderDeckSlideBody(slide)}${i > 0 ? `<span style="position:absolute;bottom:11px;left:16px;font-size:11px;color:${DECK_FAINT}">${deckTitle}</span>` : ''}<span style="position:absolute;bottom:11px;right:16px;font-size:11px;color:${DECK_FAINT}">${i + 1} / ${total}</span></section>`;
   }).join('');
-  return `<div class="deck-artifact" data-deck-slides="${total}" style="display:flex;flex-direction:column;gap:16px;padding:4px">${slides}</div>`;
+  // Horizontal scroll-snap carousel: flip through slides one at a time
+  // (swipe on touch, scroll/trackpad on desktop) — pure CSS, no JS wiring.
+  return `<div class="deck-artifact" data-deck-slides="${total}" style="display:flex;gap:16px;padding:4px 4px 12px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:thin">${slides}</div>`;
 }
 
 export function renderDeckArtifact(code: string): string {
   const spec = repairDeckSpec(code);
   if (!spec) return renderError('Deck', 'Invalid presentation JSON. Expected {"title", "slides":[{"layout","data"}]}.', code);
   return renderDeckSpecHtml(spec);
+}
+
+// --- Document (report) rendering: paper-style artifact from validated
+// JSON. Inline styles on the stone/amber palette; all content escaped.
+
+const DOC_HEADING_SIZE: Record<number, number> = { 1: 21, 2: 17, 3: 15 };
+
+function renderDocBlock(b: DocBlock): string {
+  switch (b.type) {
+    case 'heading': {
+      const size = DOC_HEADING_SIZE[b.level] || 17;
+      return `<div style="margin:22px 0 8px;font-size:${size}px;font-weight:700;line-height:1.3;color:${DECK_TEXT}">${escapeHtml(b.text)}</div>`;
+    }
+    case 'paragraph':
+      return `<p style="margin:0 0 13px;font-size:14.5px;line-height:1.7;color:${DECK_MUTED}">${escapeHtml(b.text)}</p>`;
+    case 'bullets':
+      return `<ul style="margin:0 0 13px;padding-left:22px">${b.items.map(i => `<li style="margin:0 0 6px;font-size:14.5px;line-height:1.6;color:${DECK_MUTED}">${escapeHtml(i)}</li>`).join('')}</ul>`;
+    case 'numbered':
+      return `<ol style="margin:0 0 13px;padding-left:24px">${b.items.map(i => `<li style="margin:0 0 6px;font-size:14.5px;line-height:1.6;color:${DECK_MUTED}">${escapeHtml(i)}</li>`).join('')}</ol>`;
+    case 'code':
+      return `<pre style="margin:0 0 13px;background:#292524;color:#e7e5e4;border-radius:8px;padding:12px 14px;font-size:12.5px;line-height:1.55;overflow:auto"><code>${escapeHtml(b.code)}</code></pre>`;
+    case 'quote':
+      return `<blockquote style="margin:0 0 13px;padding:2px 0 2px 14px;border-left:3px solid ${DECK_ACCENT};font-style:italic;color:${DECK_TEXT};font-size:15px;line-height:1.6">${escapeHtml(b.text)}${b.attribution ? `<div style="margin-top:6px;font-style:normal;font-size:12px;color:${DECK_FAINT}">— ${escapeHtml(b.attribution)}</div>` : ''}</blockquote>`;
+    case 'table': {
+      const head = b.headers.length
+        ? `<thead><tr>${b.headers.map(h => `<th style="text-align:left;padding:7px 10px;border-bottom:2px solid ${DECK_BORDER};font-size:12.5px;font-weight:700;color:${DECK_TEXT}">${escapeHtml(h)}</th>`).join('')}</tr></thead>`
+        : '';
+      const body = b.rows.map(r => `<tr>${r.map(c => `<td style="padding:7px 10px;border-bottom:1px solid ${DECK_BORDER};font-size:13px;color:${DECK_MUTED}">${escapeHtml(c)}</td>`).join('')}</tr>`).join('');
+      return `<div style="overflow-x:auto;margin:0 0 13px"><table style="width:100%;border-collapse:collapse">${head}<tbody>${body}</tbody></table></div>`;
+    }
+    default:
+      return '';
+  }
+}
+
+export function renderDocSpecHtml(spec: DocSpec): string {
+  const blocks = spec.blocks.map(renderDocBlock).join('');
+  const subtitle = spec.subtitle ? `<p style="margin:4px 0 0;font-size:15px;color:${DECK_MUTED}">${escapeHtml(spec.subtitle)}</p>` : '';
+  return `<div class="document-artifact" data-doc-blocks="${spec.blocks.length}" style="max-width:760px;margin:0 auto;padding:30px 34px;background:#fff;border:1px solid ${DECK_BORDER};border-radius:12px;box-shadow:0 1px 3px rgba(28,25,23,.06);${DECK_FONT};color:${DECK_TEXT}">`
+    + `<h1 style="margin:0;font-size:26px;font-weight:700;line-height:1.25;color:${DECK_TEXT}">${escapeHtml(spec.title)}</h1>${subtitle}`
+    + `<hr style="border:none;border-top:1px solid ${DECK_BORDER};margin:16px 0 18px"/>${blocks}</div>`;
+}
+
+export function renderDocumentArtifact(code: string): string {
+  const spec = repairDocSpec(code);
+  if (!spec) return renderError('Document', 'Invalid document JSON. Expected {"title", "blocks":[{"type", …}]}.', code);
+  return renderDocSpecHtml(spec);
 }
 
 export function renderMermaidArtifact(code: string): string {
