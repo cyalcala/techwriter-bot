@@ -1,7 +1,9 @@
 // Deck artifact contract: the LLM emits strict JSON against hand-crafted
 // layouts; design quality lives in the templates, not the model.
 // Strategy: docs/VIDEO_PRESENTATION_STRATEGY.md (7-8 slide hard cap).
-import { salvageObjectArray, salvageStringField } from './json-salvage';
+import { salvageObjectArrayByKeys, salvageFirstObjectArray, salvageStringField } from './json-salvage';
+
+const SLIDE_KEYS = ['slides', 'slideList', 'pages', 'cards'];
 
 export const DECK_MAX_SLIDES = 8;
 
@@ -100,10 +102,19 @@ export function repairDeckSpec(rawCode: string): DeckSpec | null {
   const parsed = parseDeckSpec(rawCode);
   const obj = (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed as Record<string, unknown> : null;
 
-  let rawSlides = obj && Array.isArray(obj.slides) ? obj.slides : null;
+  // 1) top-level array of slides; 2) a known slides-array key; 3) salvage
+  // that key from truncated JSON; 4) any array of objects anywhere.
+  let rawSlides: unknown[] | null = Array.isArray(parsed) ? parsed as unknown[] : null;
+  if (!rawSlides && obj) {
+    for (const k of SLIDE_KEYS) { if (Array.isArray(obj[k])) { rawSlides = obj[k] as unknown[]; break; } }
+  }
   if (!rawSlides || rawSlides.length === 0) {
-    const salvaged = salvageObjectArray(stripped, 'slides');
+    const salvaged = salvageObjectArrayByKeys(stripped, SLIDE_KEYS);
     if (salvaged.length) rawSlides = salvaged;
+  }
+  if (!rawSlides || rawSlides.length === 0) {
+    const any = salvageFirstObjectArray(stripped);
+    if (any.length) rawSlides = any;
   }
   if (!rawSlides || rawSlides.length === 0) return null;
 

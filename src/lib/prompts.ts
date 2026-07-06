@@ -63,6 +63,7 @@ const DECK_COMPACT = [
   'closing: {"heading","subheading","items"} — items optional, 2-3 takeaways.',
   '6. Icons: ONE emoji in "icon" fields only. NO image URLs, NO HTML, NO markdown inside strings.',
   '7. Write specific, concrete, presentation-grade content drawn from the user\'s topic — never filler headings like "Slide 2" or "Introduction" alone.',
+  '8. BREVITY IS MANDATORY: keep every text value to a short phrase (not sentences) so the ENTIRE JSON object is complete and closed. A finished 7-slide deck is far better than a detailed one that gets cut off. Close every bracket and brace.',
 ].join('\n');
 
 // Document contract mirrors src/lib/doc-schema.ts — keep block types in sync.
@@ -81,6 +82,7 @@ const DOC_COMPACT = [
   'table: {"type":"table","headers":["A","B"],"rows":[["1","2"],["3","4"]]}',
   '5. Structure the document with headings; write substantive, specific, well-organized prose grounded in the user\'s topic. Aim for 6-24 blocks.',
   '6. Plain text only inside string values — no markdown, no HTML, no images.',
+  '7. The ENTIRE JSON object must be complete and closed — every bracket and brace. If space is tight, use fewer blocks rather than letting the JSON get cut off mid-object.',
 ].join('\n');
 
 const CORE_PERSONA_FAST = `You are a helpful, concise technical writing assistant. Respond naturally and briefly.`;

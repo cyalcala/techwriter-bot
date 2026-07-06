@@ -1,7 +1,9 @@
 // Document artifact contract: the model emits a structured multi-section
 // document as strict JSON; it renders as a rich artifact and exports to
 // PDF / DOCX / Markdown. Strategy: docs/DOCUMENT_ARTIFACT_STRATEGY.md.
-import { salvageObjectArray, salvageStringField } from './json-salvage';
+import { salvageObjectArrayByKeys, salvageFirstObjectArray, salvageStringField } from './json-salvage';
+
+const BLOCK_KEYS = ['blocks', 'content', 'sections', 'body'];
 
 export const DOC_MAX_BLOCKS = 60;
 export const DOC_MAX_LIST_ITEMS = 24;
@@ -116,10 +118,17 @@ export function repairDocSpec(rawCode: string): DocSpec | null {
   const parsed = parseDocSpec(rawCode);
   const obj = (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed as Record<string, unknown> : null;
 
-  let rawBlocks = obj && Array.isArray(obj.blocks) ? obj.blocks : null;
+  let rawBlocks: unknown[] | null = Array.isArray(parsed) ? parsed as unknown[] : null;
+  if (!rawBlocks && obj) {
+    for (const k of BLOCK_KEYS) { if (Array.isArray(obj[k])) { rawBlocks = obj[k] as unknown[]; break; } }
+  }
   if (!rawBlocks || rawBlocks.length === 0) {
-    const salvaged = salvageObjectArray(stripped, 'blocks');
+    const salvaged = salvageObjectArrayByKeys(stripped, BLOCK_KEYS);
     if (salvaged.length) rawBlocks = salvaged;
+  }
+  if (!rawBlocks || rawBlocks.length === 0) {
+    const any = salvageFirstObjectArray(stripped);
+    if (any.length) rawBlocks = any;
   }
   if (!rawBlocks || rawBlocks.length === 0) return null;
 
