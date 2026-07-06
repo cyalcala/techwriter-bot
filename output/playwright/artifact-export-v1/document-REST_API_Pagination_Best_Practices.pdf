@@ -1,0 +1,618 @@
+%PDF-1.3
+%ºß¬à
+3 0 obj
+<</Type /Page
+/Parent 1 0 R
+/Resources 2 0 R
+/MediaBox [0 0 595.2799999999999727 841.8899999999999864]
+/Contents 4 0 R
+>>
+endobj
+4 0 obj
+<<
+/Length 5990
+>>
+stream
+0.200025 w
+0 G
+BT
+/F2 22 Tf
+25.2999999999999972 TL
+0.11 0.098 0.09 rg
+56. 759.1899999999999409 Td
+(REST API Pagination Best Practices) Tj
+ET
+0.84 0.83 0.82 RG
+0.5 w
+56. 739.9900000000000091 m
+539.2799999999999727 739.9900000000000091 l
+S
+BT
+/F2 17 Tf
+19.5499999999999972 TL
+0.11 0.098 0.09 rg
+56. 703.5399999999999636 Td
+(Introduction) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0.251 0.235 0.22 rg
+56. 679.9900000000000091 Td
+(REST APIs often return large datasets, which can be overwhelming for clients. Pagination is a) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0.251 0.235 0.22 rg
+56. 664.0399999999999636 Td
+(technique used to divide the data into smaller, manageable chunks, making it easier for clients to) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0.251 0.235 0.22 rg
+56. 648.0900000000000318 Td
+(consume and process.) Tj
+ET
+BT
+/F2 14 Tf
+16.0999999999999979 TL
+0.11 0.098 0.09 rg
+56. 613.5900000000000318 Td
+(Why Pagination is Important) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0.851 0.467 0.024 rg
+62. 591.8400000000000318 Td
+(•) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0.251 0.235 0.22 rg
+82. 591.8400000000000318 Td
+(Reduces data transfer overhead) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0.851 0.467 0.024 rg
+62. 572.8899999999999864 Td
+(•) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0.251 0.235 0.22 rg
+82. 572.8899999999999864 Td
+(Improves client performance) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0.851 0.467 0.024 rg
+62. 553.9400000000000546 Td
+(•) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0.251 0.235 0.22 rg
+82. 553.9400000000000546 Td
+(Enhances user experience) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0.851 0.467 0.024 rg
+62. 534.9900000000000091 Td
+(•) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0.251 0.235 0.22 rg
+82. 534.9900000000000091 Td
+(Simplifies data processing and caching) Tj
+ET
+BT
+/F2 14 Tf
+16.0999999999999979 TL
+0.11 0.098 0.09 rg
+56. 499.4900000000000659 Td
+(Best Practices for Pagination) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0.251 0.235 0.22 rg
+56. 477.7400000000000091 Td
+(Here are some best practices to follow when implementing pagination in your REST API:) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0.851 0.467 0.024 rg
+62. 453.7900000000000205 Td
+(•) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0.251 0.235 0.22 rg
+82. 453.7900000000000205 Td
+(Use a consistent pagination scheme) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0.851 0.467 0.024 rg
+62. 434.8400000000000318 Td
+(•) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0.251 0.235 0.22 rg
+82. 434.8400000000000318 Td
+(Provide clear documentation on pagination parameters) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0.851 0.467 0.024 rg
+62. 415.8900000000000432 Td
+(•) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0.251 0.235 0.22 rg
+82. 415.8900000000000432 Td
+(Use query parameters to control pagination) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0.851 0.467 0.024 rg
+62. 396.9400000000000546 Td
+(•) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0.251 0.235 0.22 rg
+82. 396.9400000000000546 Td
+(Default to a reasonable page size) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0.851 0.467 0.024 rg
+62. 377.9900000000000659 Td
+(•) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0.251 0.235 0.22 rg
+82. 377.9900000000000659 Td
+(Allow clients to specify a custom page size) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0.851 0.467 0.024 rg
+62. 359.0400000000000773 Td
+(•) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0.251 0.235 0.22 rg
+82. 359.0400000000000773 Td
+(Use a well-defined pagination scheme \(e.g., offset-based, cursor-based\)) Tj
+ET
+BT
+/F2 14 Tf
+16.0999999999999979 TL
+0.11 0.098 0.09 rg
+56. 323.5400000000000773 Td
+(Comparison of Pagination Schemes) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.11 0.098 0.09 rg
+62. 296.6400000000001 Td
+(Scheme) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.11 0.098 0.09 rg
+223.0933333333333337 296.6400000000001 Td
+(Description) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.11 0.098 0.09 rg
+384.1866666666666674 296.6400000000001 Td
+(Example) Tj
+ET
+0.84 0.83 0.82 RG
+1. w
+56. 288.1400000000001 m
+539.2799999999999727 288.1400000000001 l
+S
+BT
+/F1 9.5 Tf
+10.9249999999999989 TL
+0.251 0.235 0.22 rg
+62. 274.0650000000000546 Td
+(Offset-Based) Tj
+ET
+BT
+/F1 9.5 Tf
+10.9249999999999989 TL
+0.251 0.235 0.22 rg
+223.0933333333333337 274.0650000000000546 Td
+(Uses an offset to determine the) Tj
+T* (starting point of the page) Tj
+ET
+BT
+/F1 9.5 Tf
+10.9249999999999989 TL
+0.251 0.235 0.22 rg
+384.1866666666666674 274.0650000000000546 Td
+(GET /users?offset=10&limit=20) Tj
+ET
+0.84 0.83 0.82 RG
+0.5 w
+56. 252.1400000000001 m
+539.2799999999999727 252.1400000000001 l
+S
+BT
+/F1 9.5 Tf
+10.9249999999999989 TL
+0.251 0.235 0.22 rg
+62. 238.0650000000000546 Td
+(Cursor-Based) Tj
+ET
+BT
+/F1 9.5 Tf
+10.9249999999999989 TL
+0.251 0.235 0.22 rg
+223.0933333333333337 238.0650000000000546 Td
+(Uses a cursor to determine the) Tj
+T* (starting point of the page) Tj
+ET
+BT
+/F1 9.5 Tf
+10.9249999999999989 TL
+0.251 0.235 0.22 rg
+384.1866666666666674 238.0650000000000546 Td
+(GET) Tj
+T* (/users?cursor=123456789&limit=20) Tj
+ET
+0.84 0.83 0.82 RG
+0.5 w
+56. 216.1400000000001 m
+539.2799999999999727 216.1400000000001 l
+S
+BT
+/F2 14 Tf
+16.0999999999999979 TL
+0.11 0.098 0.09 rg
+56. 186.2400000000001228 Td
+(Conclusion) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0.251 0.235 0.22 rg
+56. 164.4900000000001228 Td
+(By following these best practices and using a well-defined pagination scheme, you can create a) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0.251 0.235 0.22 rg
+56. 148.5400000000000773 Td
+(more efficient, scalable, and user-friendly REST API.) Tj
+ET
+BT
+/F2 14 Tf
+16.0999999999999979 TL
+0.11 0.098 0.09 rg
+56. 114.0400000000000773 Td
+(References) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0.251 0.235 0.22 rg
+56. 92.2900000000000773 Td
+(For more information on REST API pagination best practices, refer to the following resources:) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0.851 0.467 0.024 rg
+62. 68.3400000000000318 Td
+(•) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0.251 0.235 0.22 rg
+82. 68.3400000000000318 Td
+(RFC 5988: Web Linking) Tj
+ET
+endstream
+endobj
+5 0 obj
+<</Type /Page
+/Parent 1 0 R
+/Resources 2 0 R
+/MediaBox [0 0 595.2799999999999727 841.8899999999999864]
+/Contents 6 0 R
+>>
+endobj
+6 0 obj
+<<
+/Length 523
+>>
+stream
+0.5 w
+0.84 0.83 0.82 RG
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0.851 0.467 0.024 rg
+62. 768.5399999999999636 Td
+(•) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0.251 0.235 0.22 rg
+82. 768.5399999999999636 Td
+(RFC 7233: Hypertext Transfer Protocol \(HTTP/1.1\): Range Requests) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0.851 0.467 0.024 rg
+62. 749.5899999999999181 Td
+(•) Tj
+ET
+BT
+/F1 11 Tf
+12.6499999999999986 TL
+0.251 0.235 0.22 rg
+82. 749.5899999999999181 Td
+(API Design Handbook by API Design Handbook by Brian Mulloy) Tj
+ET
+endstream
+endobj
+1 0 obj
+<</Type /Pages
+/Kids [3 0 R 5 0 R ]
+/Count 2
+>>
+endobj
+7 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+8 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica-Bold
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+9 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica-Oblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+10 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica-BoldOblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+11 0 obj
+<<
+/Type /Font
+/BaseFont /Courier
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+12 0 obj
+<<
+/Type /Font
+/BaseFont /Courier-Bold
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+13 0 obj
+<<
+/Type /Font
+/BaseFont /Courier-Oblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+14 0 obj
+<<
+/Type /Font
+/BaseFont /Courier-BoldOblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+15 0 obj
+<<
+/Type /Font
+/BaseFont /Times-Roman
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+16 0 obj
+<<
+/Type /Font
+/BaseFont /Times-Bold
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+17 0 obj
+<<
+/Type /Font
+/BaseFont /Times-Italic
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+18 0 obj
+<<
+/Type /Font
+/BaseFont /Times-BoldItalic
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+19 0 obj
+<<
+/Type /Font
+/BaseFont /ZapfDingbats
+/Subtype /Type1
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+20 0 obj
+<<
+/Type /Font
+/BaseFont /Symbol
+/Subtype /Type1
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+2 0 obj
+<<
+/ProcSet [/PDF /Text /ImageB /ImageC /ImageI]
+/Font <<
+/F1 7 0 R
+/F2 8 0 R
+/F3 9 0 R
+/F4 10 0 R
+/F5 11 0 R
+/F6 12 0 R
+/F7 13 0 R
+/F8 14 0 R
+/F9 15 0 R
+/F10 16 0 R
+/F11 17 0 R
+/F12 18 0 R
+/F13 19 0 R
+/F14 20 0 R
+>>
+/XObject <<
+>>
+>>
+endobj
+21 0 obj
+<<
+/Producer (jsPDF 2.5.2)
+/CreationDate (D:20260706193727+08'00')
+>>
+endobj
+22 0 obj
+<<
+/Type /Catalog
+/Pages 1 0 R
+/OpenAction [3 0 R /FitH null]
+/PageLayout /OneColumn
+>>
+endobj
+xref
+0 23
+0000000000 65535 f 
+0000006905 00000 n 
+0000008730 00000 n 
+0000000015 00000 n 
+0000000152 00000 n 
+0000006194 00000 n 
+0000006331 00000 n 
+0000006968 00000 n 
+0000007093 00000 n 
+0000007223 00000 n 
+0000007356 00000 n 
+0000007494 00000 n 
+0000007618 00000 n 
+0000007747 00000 n 
+0000007879 00000 n 
+0000008015 00000 n 
+0000008143 00000 n 
+0000008270 00000 n 
+0000008399 00000 n 
+0000008532 00000 n 
+0000008634 00000 n 
+0000008980 00000 n 
+0000009066 00000 n 
+trailer
+<<
+/Size 23
+/Root 22 0 R
+/Info 21 0 R
+/ID [ <A6CDAEF3705729278A140AFE3F657B3F> <A6CDAEF3705729278A140AFE3F657B3F> ]
+>>
+startxref
+9170
+%%EOF

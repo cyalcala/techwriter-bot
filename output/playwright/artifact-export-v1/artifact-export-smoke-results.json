@@ -1,0 +1,47 @@
+{
+  "steps": [
+    "document-sent",
+    "document-rendered at 4s",
+    "document-downloaded REST_API_Pagination_Best_Practices.pdf (9787 bytes)",
+    "document-downloaded REST_API_Pagination_Best_Practices.docx (8371 bytes)",
+    "document-downloaded REST_API_Pagination_Best_Practices.md (1603 bytes)",
+    "deck-sent",
+    "deck-rendered at 3s",
+    "deck-downloaded Onboarding_New_Engineers.pdf (14438 bytes)",
+    "deck-downloaded Onboarding_New_Engineers.pptx (106760 bytes)"
+  ],
+  "consoleErrors": [],
+  "pageErrors": [],
+  "downloads": [
+    {
+      "label": "document",
+      "fmt": "PDF",
+      "fname": "REST_API_Pagination_Best_Practices.pdf",
+      "size": 9787
+    },
+    {
+      "label": "document",
+      "fmt": "Word",
+      "fname": "REST_API_Pagination_Best_Practices.docx",
+      "size": 8371
+    },
+    {
+      "label": "document",
+      "fmt": "Markdown",
+      "fname": "REST_API_Pagination_Best_Practices.md",
+      "size": 1603
+    },
+    {
+      "label": "deck",
+      "fmt": "PDF",
+      "fname": "Onboarding_New_Engineers.pdf",
+      "size": 14438
+    },
+    {
+      "label": "deck",
+      "fmt": "PowerPoint",
+      "fname": "Onboarding_New_Engineers.pptx",
+      "size": 106760
+    }
+  ]
+}

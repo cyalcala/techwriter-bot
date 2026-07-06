@@ -2154,10 +2154,21 @@ allowlist, and matched embed capacity. Commit `3efac97`, deploy
 `28755678608`; suite 241/241. **Verified in production**
 (`scripts/rag-doc-smoke.mjs`): a real PDF and DOCX were uploaded,
 indexed, and answered with `[Doc: …, line n]` citations, zero errors
-(evidence `output/playwright/rag-doc-v1/`). **Pending: Phase 2** (deck→PDF
-+ a `document` artifact type exporting PDF/DOCX) and **Phase 3**
-(Claude-style artifact viewer + download-format menu). No other open
-roadmap items; next work is user-directed.
+(evidence `output/playwright/rag-doc-v1/`).
+
+**Session 8 (2026-07-05): document artifact + downloads — Phases 2 & 3
+SHIPPED (all phases done).** A new `document` artifact type generates a
+Claude-style rich preview and exports **PDF / DOCX / Markdown**; decks
+export **PDF / PPTX** and render as a slide carousel; a shared
+download-format menu drives both. Truncated-model-JSON salvage
+(`json-salvage.ts`) makes deck/document rendering robust. Commits
+`5fda761`, `71831b0`, `daec390` (jsPDF CDN fix), `b6b4ba4` (salvage).
+Suite 257/257. **Verified in production** (`scripts/artifact-export-smoke.mjs`):
+document → PDF/DOCX/MD and deck → PDF/PPTX all produced real files with
+both artifacts rendering and zero errors (evidence
+`output/playwright/artifact-export-v1/`). The full loop **ingest → 
+Claude-style artifact → download in PDF and other major formats** is
+live. Next work is user-directed.
 
 Phase 5B is closure-accepted. Continue with post-Phase-5 readiness work:
 

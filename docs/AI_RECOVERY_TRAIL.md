@@ -662,6 +662,45 @@ Full detail in `docs/MOBILE_AUDIT_2026-07-04.md` "Session 3". Summary:
   exporting PDF + DOCX) and **Phase 3** (Claude-style artifact viewer +
   download-format menu). Per `docs/DOCUMENT_ARTIFACT_STRATEGY.md`.
 
+### Session 8 update (2026-07-05) — document artifact + multi-format downloads (Phases 2 & 3)
+
+Completed the document-artifact system per
+`docs/DOCUMENT_ARTIFACT_STRATEGY.md`. The full loop the user asked for —
+ingest → Claude-style artifact → download as PDF and other formats — is
+live and verified.
+
+- **Phase 2a `5fda761`:** `deck-pdf.ts` (jsPDF) + shared
+  `artifact-export.ts` format registry/dispatcher; download-format menu
+  on ArtifactPanel + ArtifactOverlay (deck: PPTX / PDF / JSON).
+- **Phase 2b/2c/3 `71831b0`:** new **`document`** artifact type —
+  `doc-schema.ts` (heading/paragraph/bullets/numbered/code/quote/table,
+  lenient parse + repair + `docToMarkdown`), `renderDocumentArtifact`
+  (paper-style rich preview, stone/amber, escaped), exporters
+  `doc-pdf.ts` (jsPDF flowing A4 + pagination) and `doc-docx.ts` (docx
+  lib) + Markdown. Registered across stream-parser / artifact-types
+  (incl. json-sniff order vega→deck→document) / session-transfer /
+  renderer-loader / ArtifactPanel; path-router doc triggers +
+  `isDocGenerationRequest` (deck precedence); `DOC_COMPACT` prompt;
+  chat.ts 4096-token budget for deck OR doc. Phase 3: deck renders as a
+  horizontal scroll-snap slide carousel (one slide at a time + counter).
+- **Fixes surfaced by production smoke:**
+  - `daec390` jsPDF CDN path (cdnjs 404 → jsdelivr npm dist) — PDF export
+    had been silently falling back to raw text.
+  - `b6b4ba4` `json-salvage.ts` — a deck whose model output was truncated
+    by the token limit (and emitted `title` as an object) made
+    `repairDeckSpec` return null → "Deck renderer unavailable". Now both
+    schemas salvage complete objects from truncated JSON so a partial
+    artifact renders. This is a real robustness win for BOTH deck and
+    document.
+- Tests: `document-artifacts.test.ts`, `json-salvage.test.ts` (+ deck
+  tests). Suite **257/257 / 48 files**; new files type-clean.
+- **Production verification (PASSED)** via `scripts/artifact-export-smoke.mjs`:
+  a generated **document** downloaded as PDF (9.8KB) / DOCX (8.4KB) / MD
+  (1.6KB); a generated **deck** as PDF (14.4KB) / PPTX (106.8KB) — real
+  files, both artifacts render (document = rich preview, deck = slide
+  carousel), zero console/page errors. Evidence:
+  `output/playwright/artifact-export-v1/`.
+
 ## Recovery Prompt
 
 Use this prompt when handing work to another AI agent:

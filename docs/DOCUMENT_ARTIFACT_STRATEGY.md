@@ -1,7 +1,8 @@
 # Document Ingestion + Artifact System — Strategy (2026-07-05)
 
-Status: **Phase 1 SHIPPED + verified in production (2026-07-05).**
-Phases 2–3 pending. The user asked for: ingest PDF and other major
+Status: **ALL PHASES SHIPPED + verified in production (2026-07-05).**
+Phases 1, 2, and 3 are complete (see roadmap below). The user asked for:
+ingest PDF and other major
 document formats (reasonable, feasible size), then "spit back" a
 downloadable artifact in PDF and other major formats, with a
 **Claude-style artifact experience**. Phase 1 (ingest versatility) is
@@ -132,13 +133,27 @@ upload path):
   DOCX were each uploaded, indexed, and answered with `[Doc: …, line n]`
   citations — zero console/page errors. Evidence:
   `output/playwright/rag-doc-v1/`.
-- **Phase 2 — Downloads.** deck→PDF; new `document` artifact type with
-  PDF + DOCX export. Outcome: "get a downloadable PDF/Word artifact."
-- **Phase 3 — Claude-style artifact UX.** Dedicated viewer (slide nav
-  for decks, rich preview for documents) + download-format menu.
+- **Phase 2 — Downloads. ✅ DONE (2026-07-05).** deck→PDF (`deck-pdf.ts`,
+  jsPDF); new `document` artifact type (`doc-schema.ts` +
+  `renderDocumentArtifact`) exporting PDF (`doc-pdf.ts`), DOCX
+  (`doc-docx.ts`, docx lib) and Markdown; shared per-type download-format
+  menu (`artifact-export.ts`) on ArtifactPanel + ArtifactOverlay.
+  Hardened both schemas to salvage token-truncated model JSON
+  (`json-salvage.ts`) so partial artifacts render instead of erroring.
+  **Verified in production** (`scripts/artifact-export-smoke.mjs`): a
+  generated document downloaded as PDF (9.8KB) / DOCX (8.4KB) / MD
+  (1.6KB) and a generated deck as PDF (14.4KB) / PPTX (106.8KB) — real
+  files, zero errors. Evidence: `output/playwright/artifact-export-v1/`.
+- **Phase 3 — Claude-style artifact UX. ✅ DONE (2026-07-05).** The
+  `document` renders as a rich paper-style preview and the `deck` as a
+  horizontal scroll-snap slide carousel (one slide at a time + counter),
+  both in the existing dedicated side panel (desktop) / overlay (mobile)
+  with the download-format menu. Screenshots in
+  `output/playwright/artifact-export-v1/`.
 
-Suggested order matches the user's loop (ingest → artifact → download);
-Phase 1 is the highest-value gap (real document ingestion).
+The full loop the user asked for — **ingest a document → generate a
+Claude-style artifact → download as PDF and other major formats** — is
+live and verified end-to-end.
 
 ## Open decisions (for the user before/within implementation)
 
