@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import ArtifactPanel from './ArtifactPanel.svelte';
   import type { Artifact, ArtifactType } from '../lib/stream-parser';
+  import { exportFormatsFor, exportArtifactAs, downloadBlob } from '../lib/artifact-export';
 
   interface Props {
     svg: string;
@@ -161,33 +162,34 @@
   };
 
   let exporting = $state(false);
+  let menuOpen = $state(false);
+  const exportFormats = $derived(exportFormatsFor(type));
 
-  async function downloadContent() {
-    if (type === 'deck' && !exporting) {
-      const { repairDeckSpec } = await import('../lib/deck-schema');
-      const spec = repairDeckSpec(svg || code);
-      if (spec) {
-        exporting = true;
-        try {
-          const { exportDeckToPptx } = await import('../lib/deck-pptx');
-          await exportDeckToPptx(spec, (title || 'presentation').replace(/[^a-zA-Z0-9_-]/g, '_'));
-          return;
-        } catch {
-          // fall through to raw download
-        } finally {
-          exporting = false;
-        }
-      }
-    }
+  function rawDownload() {
     const content = svg || code;
     const ext = svg ? '.svg' : '.txt';
     const mime = svg ? 'image/svg+xml' : 'text/plain';
-    const blob = new Blob([content], { type: mime });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = (title || 'artifact').replace(/[^a-zA-Z0-9_-]/g, '_') + ext;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+    downloadBlob(content, (title || 'artifact').replace(/[^a-zA-Z0-9_-]/g, '_') + ext, mime);
+  }
+
+  async function runExport(formatId: string) {
+    if (exporting) return;
+    menuOpen = false;
+    exporting = true;
+    try {
+      const handled = await exportArtifactAs(type, svg || code, (title || 'artifact').replace(/[^a-zA-Z0-9_-]/g, '_'), formatId);
+      if (!handled) rawDownload();
+    } catch {
+      rawDownload();
+    } finally {
+      exporting = false;
+    }
+  }
+
+  function handleDownloadClick() {
+    if (exporting) return;
+    if (exportFormats.length > 1) { menuOpen = !menuOpen; return; }
+    rawDownload();
   }
 
   async function copyContent() {
@@ -242,9 +244,25 @@
             {/if}
           </button>
         {/if}
-        <button onclick={downloadContent} class="text-stone-400 hover:text-white transition-colors p-1" title="Download">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-        </button>
+        <div class="relative">
+          {#if menuOpen}
+            <button class="fixed inset-0 z-10 cursor-default" aria-label="Close menu" onclick={() => menuOpen = false}></button>
+          {/if}
+          <button onclick={handleDownloadClick} disabled={exporting} aria-haspopup={exportFormats.length > 1} aria-expanded={menuOpen} class="text-stone-400 hover:text-white transition-colors p-1 disabled:opacity-40" title="Download">
+            {#if exporting}
+              <span class="inline-block h-5 w-5 border-2 border-stone-500 border-t-white rounded-full animate-spin"></span>
+            {:else}
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            {/if}
+          </button>
+          {#if menuOpen && exportFormats.length > 1}
+            <div class="absolute right-0 mt-1 z-20 min-w-[168px] rounded-lg border border-stone-600 bg-stone-800 py-1 shadow-xl" role="menu">
+              {#each exportFormats as fmt (fmt.id)}
+                <button role="menuitem" onclick={() => runExport(fmt.id)} class="block w-full px-3 py-2 text-left text-xs text-stone-200 hover:bg-white/10 transition-colors">{fmt.label}</button>
+              {/each}
+            </div>
+          {/if}
+        </div>
       </div>
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div
