@@ -2170,6 +2170,19 @@ both artifacts rendering and zero errors (evidence
 Claude-style artifact → download in PDF and other major formats** is
 live. Next work is user-directed.
 
+**Session 10 (2026-07-05): systems quality pass + premium UI
+modernization.** Ingestion bottleneck fixed — `embedChunks` now uses a
+bounded-concurrency pool (4-wide, order-preserving) instead of sequential
+batches (~4× faster large-doc ingestion). UI decluttered to
+ChatGPT/Claude simplicity with no palette changes: header 6→3 (History ·
+New · overflow menu), muted `provider · latency` transparency chip,
+quiet session-reset hint, and a calm vertically-centered empty state with
+the welcome greeting's action buttons removed (they return on real
+messages). Commits `a92d07a`, `a5441bf`; suite 259/259; verified in
+production on desktop + mobile (evidence `output/playwright/ui-modernize/`).
+A CSRF same-origin fix earlier this session (`e08fbe5`) also unblocked
+users on non-canonical hosts. Next work is user-directed.
+
 Phase 5B is closure-accepted. Continue with post-Phase-5 readiness work:
 
 - Phase 1 through Phase 4 are closure-verified and accepted. Phase 5A Client

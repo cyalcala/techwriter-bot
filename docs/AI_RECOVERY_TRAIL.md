@@ -723,6 +723,41 @@ live and verified.
   cross-origin and canonical cross-origin still BLOCKED; canonical
   same-origin unaffected.
 
+### Session 10 (2026-07-05) — systems quality pass + premium UI modernization
+
+User asked for a major quality/bottleneck pass on ingestion/parsers/
+renderers, plus a ChatGPT/Claude-simple, premium ("$50k feel") UI on
+mobile + desktop.
+
+**Systems / performance:**
+- **Ingestion bottleneck fixed:** `embedChunks` (`src/lib/embed-pipeline.ts`)
+  processed batches sequentially — a ~500-chunk upload was 50 serial
+  round-trips (~20s+). Now a bounded-concurrency pool (4-wide,
+  order-preserving via indexed writes, rate-limit-aware via a shared
+  `serverDown` short-circuit) cuts wall-clock ~4×. Batch size stays 10
+  (server MAX_TEXTS_PER_REQUEST); 4×10 stays under the per-minute window.
+- Audited parsers (`document-parsers.ts`), `renderer-loader.ts`,
+  `sim-search.ts` (worker + fallback), `rag-db.ts` (in-memory,
+  session-scoped) — all sound; no other real bottleneck.
+
+**UI declutter + premium (commits `a92d07a`, `a5441bf`):**
+- Header 6 buttons → **History · New · ⋯**; Export-Markdown / Export-
+  session / Import-session / Clear moved into a clean overflow menu.
+- Composer meta line collapsed from a 6-field technical string to a
+  muted `provider · latency` chip (full details on hover).
+- Amber session-reset banner → quiet muted hint.
+- **Empty state**: welcome greeting no longer shows the per-message
+  action row (Copy/Markdown/Slack/Webhook/Retry) and is vertically
+  centered — calm, ChatGPT/Claude-like. Actions + normal top-aligned
+  scroll return the instant a real conversation starts.
+- **No palette/design-token changes** (layout/hierarchy only).
+- Tests updated for the new wiring; suite **259/259 / 48 files**.
+- **Verified in production** (`scripts/ui-shot.mjs`,
+  `scripts/ui-convo-check.mjs`): decluttered empty state + overflow menu
+  on desktop & mobile; a live conversation renders correctly (3 message
+  groups, actions on the real reply, muted `groq-fast · 244 ms` footer),
+  zero console errors. Screenshots: `output/playwright/ui-modernize/`.
+
 ## Recovery Prompt
 
 Use this prompt when handing work to another AI agent:
