@@ -758,6 +758,24 @@ mobile + desktop.
   groups, actions on the real reply, muted `groq-fast · 244 ms` footer),
   zero console errors. Screenshots: `output/playwright/ui-modernize/`.
 
+### Session 10 addendum (2026-07-05) — "deck renderer unavailable" hardened
+
+- User hit an intermittent "Deck renderer unavailable" (repairDeckSpec →
+  null). Reproduction confirmed it is model-output variance (7 of 9 test
+  decks rendered; the failures were structural/truncation shapes, not a
+  regression). Two other "timeouts" were just my test runs hitting the
+  per-IP daily embed/chat limit (429) — unrelated.
+- Fix (`0128698`): recovery now covers, beyond the existing truncation
+  salvage, (1) a bare top-level array of slides/blocks, (2) slides/blocks
+  under an alternate key (slideList/pages/cards, content/sections/body),
+  (3) prose-wrapped/nested JSON via an any-array-of-objects fallback that
+  skips string arrays. `json-salvage.ts` refactored with a shared scanner
+  + `salvageObjectArrayByKeys`/`salvageFirstObjectArray`. DECK_COMPACT and
+  DOC_COMPACT now mandate brevity + a fully-closed JSON object to reduce
+  truncation at the source. 7 new recovery tests; suite 265/265.
+- Verified in production (`scripts/deck-smoke.mjs`): a deck rendered
+  (partial deck recovered to slides, no error, zero bad responses).
+
 ## Recovery Prompt
 
 Use this prompt when handing work to another AI agent:

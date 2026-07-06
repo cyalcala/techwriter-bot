@@ -6,12 +6,12 @@
   "steps": [
     "navigate",
     "deck-request-sent",
-    "deck-rendered at 11s {\"deckRendered\":true,\"slideCount\":6,\"badgeVisible\":true}",
+    "deck-rendered at 3s {\"deckRendered\":true,\"slideCount\":4,\"badgeVisible\":true}",
     "overflow {\"bodyScrollWidth\":390,\"innerWidth\":390}"
   ],
   "deckState": {
     "deckRendered": true,
-    "slideCount": 6,
+    "slideCount": 4,
     "badgeVisible": true
   },
   "overflow": {
