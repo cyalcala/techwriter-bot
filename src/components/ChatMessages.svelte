@@ -46,6 +46,10 @@
 
   let artifactEntries = $state<ArtifactEntry[]>([]);
 
+  // The first assistant message is the welcome greeting. When it's the only
+  // message, center it (calm empty state) and hide per-message actions.
+  const soloGreeting = $derived(messages.length <= 1);
+
   $effect(() => {
     return queue.subscribeDebounced((entries) => {
       artifactEntries = entries;
@@ -53,7 +57,7 @@
   });
 </script>
 
-<div class="flex-1 overflow-y-auto px-4 md:px-8 py-4 md:py-6 space-y-6 w-full scroll-smooth max-w-3xl mx-auto" style="overscroll-behavior: contain;" role="log" aria-label="Chat messages" aria-live="polite">
+<div class="flex-1 flex flex-col overflow-y-auto px-4 md:px-8 py-4 md:py-6 space-y-6 w-full scroll-smooth max-w-3xl mx-auto {soloGreeting ? 'justify-center' : ''}" style="overscroll-behavior: contain;" role="log" aria-label="Chat messages" aria-live="polite">
   {#each messages as msg, i}
     <div class="msg-group relative {msg.role === 'user' ? 'flex flex-row-reverse' : ''}" id="msg-{i}">
       <div class="{msg.role === 'user' ? 'ml-auto text-right max-w-[95%] md:max-w-[75%]' : 'max-w-full overflow-hidden'}">
@@ -63,7 +67,7 @@
           {:else}
             <div class="ai-content whitespace-pre-wrap break-words min-w-0">{@html formatMarkdown(stripDisclaimers(msg.content), msg.sources)}</div>
           {/if}
-          {#if !isStreaming && msg.content && !msg.empty}
+          {#if !isStreaming && msg.content && !msg.empty && !(soloGreeting && i === 0)}
             <div class="flex flex-wrap items-center gap-2 mt-2 md:mt-1.5 opacity-100 md:opacity-0 md:hover:opacity-100 transition-opacity duration-150">
               <button onclick={() => onCopyMessage(i)} class="text-[12px] md:text-[11px] px-3 py-1.5 md:px-2 md:py-0.5 rounded-md text-stone-500 md:text-stone-400 hover:text-stone-800 md:hover:text-stone-700 bg-stone-100 md:bg-transparent hover:bg-stone-200/50 transition-all">
                 {copiedMessageIdx === i ? 'Copied' : 'Copy'}
