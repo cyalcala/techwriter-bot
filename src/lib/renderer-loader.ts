@@ -216,13 +216,27 @@ function renderDeckSlideBody(slide: DeckSlide): string {
       return `${icon ? `<div style="font-size:22px;margin-bottom:8px">${icon}</div>` : ''}${deckHeading(deckStr(d, 'heading', 120))}${deckBulletRows(deckList(d, 'bullets', 5), () => `<span style="color:${DECK_ACCENT}">&bull;</span>`)}`;
     }
     case 'two-column':
-      return `${deckHeading(deckStr(d, 'heading', 120))}<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">${deckColumn(deckStr(d, 'leftTitle', 60) || 'Left', deckList(d, 'leftItems', 4))}${deckColumn(deckStr(d, 'rightTitle', 60) || 'Right', deckList(d, 'rightItems', 4))}</div>`;
+      // auto-fit + minmax lets the two columns stack into one on a narrow
+      // phone instead of squeezing into unreadable slivers.
+      return `${deckHeading(deckStr(d, 'heading', 120))}<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px 22px">${deckColumn(deckStr(d, 'leftTitle', 60) || 'Left', deckList(d, 'leftItems', 4))}${deckColumn(deckStr(d, 'rightTitle', 60) || 'Right', deckList(d, 'rightItems', 4))}</div>`;
     case 'stat':
       return `<div style="text-align:center">${deckStr(d, 'heading', 120) ? `<div style="font-size:15px;color:${DECK_MUTED};margin-bottom:10px">${deckStr(d, 'heading', 120)}</div>` : ''}<div style="font-size:46px;font-weight:700;color:${DECK_ACCENT};line-height:1.1">${deckStr(d, 'value', 40) || '&mdash;'}</div>${deckStr(d, 'label') ? `<div style="font-size:15px;font-weight:600;color:${DECK_TEXT};margin-top:10px">${deckStr(d, 'label')}</div>` : ''}${deckStr(d, 'context') ? `<div style="font-size:13px;color:${DECK_FAINT};margin-top:8px">${deckStr(d, 'context')}</div>` : ''}</div>`;
     case 'quote':
       return `<div style="text-align:center;padding:0 6%"><div style="font-size:34px;line-height:1;color:${DECK_ACCENT};font-weight:700">&ldquo;</div><p style="margin:4px 0 0;font-size:19px;font-style:italic;line-height:1.5;color:${DECK_TEXT}">${deckStr(d, 'text', 280)}</p>${deckStr(d, 'attribution', 80) ? `<div style="margin-top:14px;font-size:13px;color:${DECK_FAINT}">&mdash; ${deckStr(d, 'attribution', 80)}</div>` : ''}</div>`;
-    case 'code':
-      return `${deckHeading(deckStr(d, 'heading', 120), 18)}<pre style="margin:0;background:#292524;color:${DECK_BORDER};border-radius:8px;padding:14px 16px;font-size:12.5px;line-height:1.55;overflow:auto;max-height:100%"><code>${deckStr(d, 'code', 900)}</code></pre>`;
+    case 'code': {
+      const codeText = deckStr(d, 'code', 900);
+      if (!codeText.trim()) {
+        // A model sometimes tags a non-code slide as 'code' with an empty code
+        // field, which would render an empty dark box. Degrade to whatever
+        // content is present (bullets, then a paragraph) instead.
+        const fallbackBullets = deckList(d, 'bullets', 5);
+        const body = fallbackBullets.length
+          ? deckBulletRows(fallbackBullets, () => `<span style="color:${DECK_ACCENT}">&bull;</span>`)
+          : (deckStr(d, 'text', 400) ? `<p style="margin:0;font-size:15px;line-height:1.6;color:${DECK_MUTED}">${deckStr(d, 'text', 400)}</p>` : '');
+        return `${deckHeading(deckStr(d, 'heading', 120), 18)}${body}`;
+      }
+      return `${deckHeading(deckStr(d, 'heading', 120), 18)}<pre style="margin:0;background:#292524;color:${DECK_BORDER};border-radius:8px;padding:14px 16px;font-size:12.5px;line-height:1.55;overflow:auto;max-height:100%"><code>${codeText}</code></pre>`;
+    }
     case 'closing': {
       const items = deckList(d, 'items', 3);
       return `<div style="text-align:center"><h2 style="margin:0;font-size:26px;font-weight:700;line-height:1.25;color:${DECK_TEXT}">${deckStr(d, 'heading', 120) || 'Thank you'}</h2>${deckStr(d, 'subheading') ? `<p style="margin:12px 0 0;font-size:15px;color:${DECK_MUTED}">${deckStr(d, 'subheading')}</p>` : ''}${items.length ? `<div style="margin-top:18px;display:inline-block;text-align:left">${deckBulletRows(items, () => `<span style="color:${DECK_ACCENT}">&bull;</span>`)}</div>` : ''}</div>`;
@@ -238,7 +252,12 @@ export function renderDeckSpecHtml(spec: DeckSpec): string {
   const slides = spec.slides.map((slide, i) => {
     const centered = slide.layout === 'title' || slide.layout === 'stat' || slide.layout === 'quote' || slide.layout === 'closing';
     const accentBar = centered ? '' : `<span style="position:absolute;top:0;left:7%;width:44px;height:4px;background:#f59e0b;border-radius:0 0 4px 4px"></span>`;
-    return `<section style="position:relative;flex:0 0 100%;min-width:100%;scroll-snap-align:center;background:#fff;border:1px solid ${DECK_BORDER};border-radius:12px;box-shadow:0 1px 3px rgba(28,25,23,.06);aspect-ratio:16/9;min-height:230px;padding:6.5% 7% 7.5%;display:flex;flex-direction:column;justify-content:center;box-sizing:border-box;${DECK_FONT};color:${DECK_TEXT}">${accentBar}${renderDeckSlideBody(slide)}${i > 0 ? `<span style="position:absolute;bottom:11px;left:16px;font-size:11px;color:${DECK_FAINT}">${deckTitle}</span>` : ''}<span style="position:absolute;bottom:11px;right:16px;font-size:11px;color:${DECK_FAINT}">${i + 1} / ${total}</span></section>`;
+    // Height grows to fit content (with a min for short slides) instead of a
+    // rigid 16/9 box: on a narrow phone a fixed aspect ratio is too short, so
+    // centered content used to spill out of the card. The flex row stretches
+    // every slide to the tallest, so they stay uniform. Bottom padding clears
+    // the absolutely-positioned footer badges.
+    return `<section style="position:relative;flex:0 0 100%;min-width:100%;scroll-snap-align:center;background:#fff;border:1px solid ${DECK_BORDER};border-radius:12px;box-shadow:0 1px 3px rgba(28,25,23,.06);min-height:240px;padding:30px 26px 42px;display:flex;flex-direction:column;justify-content:center;box-sizing:border-box;overflow-wrap:anywhere;word-break:break-word;${DECK_FONT};color:${DECK_TEXT}">${accentBar}${renderDeckSlideBody(slide)}${i > 0 ? `<span style="position:absolute;bottom:11px;left:16px;font-size:11px;color:${DECK_FAINT}">${deckTitle}</span>` : ''}<span style="position:absolute;bottom:11px;right:16px;font-size:11px;color:${DECK_FAINT}">${i + 1} / ${total}</span></section>`;
   }).join('');
   // Horizontal scroll-snap carousel: flip through slides one at a time
   // (swipe on touch, scroll/trackpad on desktop) — pure CSS, no JS wiring.

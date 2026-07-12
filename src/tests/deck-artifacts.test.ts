@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { DECK_MAX_SLIDES, looksLikeDeckSpec, parseDeckSpec, repairDeckSpec } from '../lib/deck-schema';
 import { normalizeArtifactType, validateArtifact } from '../lib/artifact-types';
 import { isArtifactGenerationRequest, isDeckGenerationRequest } from '../lib/path-router';
+import { renderDeckArtifact } from '../lib/renderer-loader';
 
 const VALID_DECK = JSON.stringify({
   title: 'Docs Platform Pitch',
@@ -68,6 +69,54 @@ describe('deck schema', () => {
     const spec = repairDeckSpec(JSON.stringify({ slides: [{ layout: 'bullets', data: 'oops' }] }));
     expect(spec!.title).toBe('Presentation');
     expect(spec!.slides[0].data).toEqual({});
+  });
+});
+
+describe('deck rendering (mobile layout)', () => {
+  it('does not render an empty dark code box when a code slide has no code', () => {
+    const withEmptyCode = JSON.stringify({
+      title: 'T',
+      slides: [
+        { layout: 'title', data: { heading: 'T' } },
+        { layout: 'code', data: { heading: "Duterte's Social Media Presence", code: '' } },
+      ],
+    });
+    const html = renderDeckArtifact(withEmptyCode);
+    // the dark <pre> background must not appear for an empty code slide…
+    expect(html).not.toContain('background:#292524');
+    // …but the heading is still shown.
+    expect(html).toContain("Duterte's Social Media Presence");
+  });
+
+  it('degrades a mislabeled code slide to its bullets when code is empty', () => {
+    const html = renderDeckArtifact(JSON.stringify({
+      title: 'T',
+      slides: [{ layout: 'code', data: { heading: 'Presence', bullets: ['High engagement', 'Viral reach'] } }],
+    }));
+    expect(html).not.toContain('background:#292524');
+    expect(html).toContain('High engagement');
+    expect(html).toContain('Viral reach');
+  });
+
+  it('still renders the dark code box for a real code slide', () => {
+    const html = renderDeckArtifact(JSON.stringify({
+      title: 'T',
+      slides: [{ layout: 'code', data: { heading: 'Snippet', code: 'const x = 1;' } }],
+    }));
+    expect(html).toContain('background:#292524');
+    expect(html).toContain('const x = 1;');
+  });
+
+  it('uses a growth-friendly, non-fixed-aspect slide box and a responsive two-column grid', () => {
+    const html = renderDeckArtifact(JSON.stringify({
+      title: 'T',
+      slides: [{ layout: 'two-column', data: { heading: 'H', leftTitle: 'L', leftItems: ['a'], rightTitle: 'R', rightItems: ['b'] } }],
+    }));
+    // no rigid 16/9 box (which clipped/overflowed content on mobile)
+    expect(html).not.toContain('aspect-ratio:16/9');
+    expect(html).toContain('min-height:240px');
+    // two columns can stack on a narrow screen
+    expect(html).toContain('repeat(auto-fit,minmax(150px,1fr))');
   });
 });
 
