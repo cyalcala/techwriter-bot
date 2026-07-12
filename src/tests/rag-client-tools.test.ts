@@ -6,7 +6,6 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('../lib/embed-pipeline', () => ({
   validateDocument: () => null,
-  chunkText: () => ['Document content'],
   embedChunks: async () => ({ vectors: [], skipped: 1, degraded: true }),
 }));
 

@@ -101,14 +101,6 @@ export async function embedChunks(
   return { vectors: allVectors, skipped, degraded };
 }
 
-export function chunkText(text: string, chunkSize: number = 500, overlap: number = 100, maxChunks: number = 100): string[] {
-  const chunks: string[] = [];
-  for (let i = 0; i < text.length && chunks.length < maxChunks; i += chunkSize - overlap) {
-    chunks.push(text.slice(i, i + chunkSize));
-  }
-  return chunks;
-}
-
 export function validateDocument(file: File): string | null {
   const validTypes = [
     'text/plain', 'text/markdown', 'text/x-markdown', 'application/json', 'text/csv',
