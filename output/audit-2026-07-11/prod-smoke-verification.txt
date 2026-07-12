@@ -1,0 +1,18 @@
+Production smoke of the deployed E2E-audit fixes (2026-07-11).
+Ran output/audit-2026-07-11/prod-smoke.mjs against https://tw-bot.pages.dev/
+after the fea58ef deploy (GitHub Actions run 29178004186, success) which
+includes all of slices 1-4.
+
+hydration/state: { hydrated: true, inputPresent: true, inputEnabled: true,
+                   sendBtnPresent: true, bodyHasContent: true }
+consoleErrors: 0
+pageErrors: 0
+cspViolations: 0
+
+VERDICT: PASS — deployed build loads & hydrates cleanly.
+
+This confirms the touched client modules (renderer-loader with the DOMPurify
+import, markdown memo, token-batcher, unified artifact-detector) load and run
+in the real deployed bundle with no runtime/CSP errors. Provider-independent
+(does not send a chat message), so it is unaffected by the separately-tracked
+AI provider outage in docs/MOBILE_AUDIT_2026-07-04.md.
