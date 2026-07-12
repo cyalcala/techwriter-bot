@@ -1,7 +1,7 @@
 // Document artifact contract: the model emits a structured multi-section
 // document as strict JSON; it renders as a rich artifact and exports to
 // PDF / DOCX / Markdown. Strategy: docs/DOCUMENT_ARTIFACT_STRATEGY.md.
-import { salvageObjectArrayByKeys, salvageFirstObjectArray, salvageStringField, arrayHasTextContent } from './json-salvage';
+import { salvageObjectArrayByKeys, salvageFirstObjectArray, salvageStringField, arrayHasTextContent, stripJsonFence, parseLenientJson } from './json-salvage';
 
 const BLOCK_KEYS = ['blocks', 'content', 'sections', 'body'];
 
@@ -25,27 +25,8 @@ export interface DocSpec {
   blocks: DocBlock[];
 }
 
-function stripFence(code: string): string {
-  const match = code.match(/^\s*```[^\r\n`]*\r?\n([\s\S]*?)\r?\n?```\s*$/);
-  return (match ? match[1] : code).trim();
-}
-
-function extractJsonObject(code: string): string {
-  const start = code.indexOf('{');
-  const end = code.lastIndexOf('}');
-  if (start === -1 || end === -1 || end <= start) return code;
-  return code.slice(start, end + 1);
-}
-
-function tryParse(text: string): unknown | null {
-  try { return JSON.parse(text); } catch { return null; }
-}
-
 export function parseDocSpec(rawCode: string): unknown | null {
-  const stripped = stripFence(String(rawCode ?? ''));
-  return tryParse(stripped)
-    ?? tryParse(extractJsonObject(stripped))
-    ?? tryParse(extractJsonObject(stripped).replace(/,\s*([}\]])/g, '$1'));
+  return parseLenientJson(rawCode);
 }
 
 function str(value: unknown, max = 4000): string {
@@ -114,7 +95,7 @@ function normalizeBlock(raw: unknown): DocBlock | null {
 
 // Validate + repair into a renderable document, or null when unsalvageable.
 export function repairDocSpec(rawCode: string): DocSpec | null {
-  const stripped = stripFence(String(rawCode ?? ''));
+  const stripped = stripJsonFence(String(rawCode ?? ''));
   const parsed = parseDocSpec(rawCode);
   const obj = (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed as Record<string, unknown> : null;
 

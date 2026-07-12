@@ -137,6 +137,33 @@ export function arrayHasTextContent(objs: any[]): boolean {
   );
 }
 
+// --- Shared lenient JSON parsing for the deck/document artifact schemas ---
+
+// Strip a single outer ```lang ... ``` fence (models often wrap JSON in one).
+export function stripJsonFence(code: string): string {
+  const match = String(code ?? '').match(/^\s*```[^\r\n`]*\r?\n([\s\S]*?)\r?\n?```\s*$/);
+  return (match ? match[1] : String(code ?? '')).trim();
+}
+
+// Slice from the first `{` to the last `}` — drops prose wrapped around a JSON
+// object. Returns the input unchanged when no balanced pair is present.
+export function extractJsonObject(code: string): string {
+  const start = code.indexOf('{');
+  const end = code.lastIndexOf('}');
+  if (start === -1 || end === -1 || end <= start) return code;
+  return code.slice(start, end + 1);
+}
+
+// Parse with the lenient fallbacks free-tier models need: outer fences, prose
+// around the object, and trailing commas. Returns null when nothing parses.
+export function parseLenientJson(rawCode: unknown): unknown | null {
+  const tryParse = (t: string): unknown | null => { try { return JSON.parse(t); } catch { return null; } };
+  const stripped = stripJsonFence(String(rawCode ?? ''));
+  return tryParse(stripped)
+    ?? tryParse(extractJsonObject(stripped))
+    ?? tryParse(extractJsonObject(stripped).replace(/,\s*([}\]])/g, '$1'));
+}
+
 // Extract a `"key": "value"` string from raw text (first match).
 export function salvageStringField(text: string, key: string): string | undefined {
   const re = new RegExp(`"${key}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`);

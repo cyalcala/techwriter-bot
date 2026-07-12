@@ -1,7 +1,7 @@
 // Deck artifact contract: the LLM emits strict JSON against hand-crafted
 // layouts; design quality lives in the templates, not the model.
 // Strategy: docs/VIDEO_PRESENTATION_STRATEGY.md (7-8 slide hard cap).
-import { salvageObjectArrayByKeys, salvageFirstObjectArray, salvageStringField, arrayHasTextContent } from './json-salvage';
+import { salvageObjectArrayByKeys, salvageFirstObjectArray, salvageStringField, arrayHasTextContent, stripJsonFence, parseLenientJson } from './json-salvage';
 
 const SLIDE_KEYS = ['slides', 'slideList', 'pages', 'cards'];
 
@@ -54,29 +54,10 @@ const LAYOUT_ALIASES: Record<string, DeckLayout> = {
   summary: 'closing',
 };
 
-function stripFence(code: string): string {
-  const match = code.match(/^\s*```[^\r\n`]*\r?\n([\s\S]*?)\r?\n?```\s*$/);
-  return (match ? match[1] : code).trim();
-}
-
-function extractJsonObject(code: string): string {
-  const start = code.indexOf('{');
-  const end = code.lastIndexOf('}');
-  if (start === -1 || end === -1 || end <= start) return code;
-  return code.slice(start, end + 1);
-}
-
-function tryParse(text: string): unknown | null {
-  try { return JSON.parse(text); } catch { return null; }
-}
-
-// Parse with the lenient fallbacks free-tier models need: outer fences,
-// prose around the object, trailing commas.
+// Parse with the lenient fallbacks free-tier models need (fences, prose,
+// trailing commas) — shared with the document schema via json-salvage.
 export function parseDeckSpec(rawCode: string): unknown | null {
-  const stripped = stripFence(String(rawCode ?? ''));
-  return tryParse(stripped)
-    ?? tryParse(extractJsonObject(stripped))
-    ?? tryParse(extractJsonObject(stripped).replace(/,\s*([}\]])/g, '$1'));
+  return parseLenientJson(rawCode);
 }
 
 function normalizeSlide(raw: unknown): DeckSlide | null {
@@ -98,7 +79,7 @@ function normalizeSlide(raw: unknown): DeckSlide | null {
 // just in the prompt). Truncated model output (cut off by the token limit)
 // is salvaged so a partial deck still renders instead of erroring.
 export function repairDeckSpec(rawCode: string): DeckSpec | null {
-  const stripped = stripFence(String(rawCode ?? ''));
+  const stripped = stripJsonFence(String(rawCode ?? ''));
   const parsed = parseDeckSpec(rawCode);
   const obj = (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed as Record<string, unknown> : null;
 
