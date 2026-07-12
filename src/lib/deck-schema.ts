@@ -1,7 +1,7 @@
 // Deck artifact contract: the LLM emits strict JSON against hand-crafted
 // layouts; design quality lives in the templates, not the model.
 // Strategy: docs/VIDEO_PRESENTATION_STRATEGY.md (7-8 slide hard cap).
-import { salvageObjectArrayByKeys, salvageFirstObjectArray, salvageStringField } from './json-salvage';
+import { salvageObjectArrayByKeys, salvageFirstObjectArray, salvageStringField, arrayHasTextContent } from './json-salvage';
 
 const SLIDE_KEYS = ['slides', 'slideList', 'pages', 'cards'];
 
@@ -113,7 +113,7 @@ export function repairDeckSpec(rawCode: string): DeckSpec | null {
     if (salvaged.length) rawSlides = salvaged;
   }
   if (!rawSlides || rawSlides.length === 0) {
-    const any = salvageFirstObjectArray(stripped);
+    const any = salvageFirstObjectArray(stripped, arrayHasTextContent);
     if (any.length) rawSlides = any;
   }
   if (!rawSlides || rawSlides.length === 0) return null;

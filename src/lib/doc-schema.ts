@@ -1,7 +1,7 @@
 // Document artifact contract: the model emits a structured multi-section
 // document as strict JSON; it renders as a rich artifact and exports to
 // PDF / DOCX / Markdown. Strategy: docs/DOCUMENT_ARTIFACT_STRATEGY.md.
-import { salvageObjectArrayByKeys, salvageFirstObjectArray, salvageStringField } from './json-salvage';
+import { salvageObjectArrayByKeys, salvageFirstObjectArray, salvageStringField, arrayHasTextContent } from './json-salvage';
 
 const BLOCK_KEYS = ['blocks', 'content', 'sections', 'body'];
 
@@ -127,7 +127,7 @@ export function repairDocSpec(rawCode: string): DocSpec | null {
     if (salvaged.length) rawBlocks = salvaged;
   }
   if (!rawBlocks || rawBlocks.length === 0) {
-    const any = salvageFirstObjectArray(stripped);
+    const any = salvageFirstObjectArray(stripped, arrayHasTextContent);
     if (any.length) rawBlocks = any;
   }
   if (!rawBlocks || rawBlocks.length === 0) return null;
