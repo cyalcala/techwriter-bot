@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeArtifactSource, normalizeMermaidSource } from '../lib/diagram-source-normalizer';
+import { normalizeArtifactSource, normalizeMermaidSource, joinDanglingEdges } from '../lib/diagram-source-normalizer';
 import { loadRenderer } from '../lib/renderer-loader';
 
 const bpoDiagram = [
@@ -42,6 +42,64 @@ describe('diagram source normalization', () => {
     ].join('\n'));
 
     expect(normalized).toBe('graph TD\nA[Start] -->|ready| B[Done]');
+  });
+
+  it('joins edges a model split across two lines (the Kroki 400 "got NODE_STRING" bug)', () => {
+    // Reproduces the user-reported failure: labeled edges wrapped onto two lines
+    // so the target node starts a new line, which Kroki/mermaid reject.
+    const split = [
+      'graph TD',
+      '    T[Tokenizer] -->|breaks|',
+      '    InputText[Input Text]',
+      '    AST -->|optimizes|',
+      '    OptimizedAST[Optimized AST]',
+    ].join('\n');
+
+    const normalized = normalizeMermaidSource(split);
+
+    expect(normalized).toContain('T[Tokenizer] -->|breaks| InputText[Input Text]');
+    expect(normalized).toContain('AST -->|optimizes| OptimizedAST[Optimized AST]');
+  });
+
+  it('joinDanglingEdges leaves valid one-line and multi-node edges untouched', () => {
+    const valid = [
+      'graph LR',
+      'A[Start] -->|go| B[End]',
+      'A & B --> C',
+      'C --> D & E',
+    ].join('\n');
+    expect(joinDanglingEdges(valid)).toBe(valid);
+  });
+
+  it('joinDanglingEdges never merges structural lines (subgraph/end/style)', () => {
+    const src = [
+      'graph TD',
+      'A -->|x|',
+      'B',
+      'subgraph Group',
+      'B --> C',
+      'end',
+      'style A fill:#fff',
+    ].join('\n');
+    const out = joinDanglingEdges(src);
+    expect(out).toContain('A -->|x| B');
+    // the `subgraph`, `end`, and `style` lines stay on their own lines
+    expect(out).toContain('\nsubgraph Group');
+    expect(out).toContain('\nend');
+    expect(out).toContain('\nstyle A fill:#fff');
+  });
+
+  it('joinDanglingEdges does not merge frontmatter delimiters or dash-ending comments', () => {
+    const frontmatter = ['---', 'title: My Diagram', '---', 'graph LR', 'A --> B'].join('\n');
+    // The `---` fences must not swallow the `title:`/`graph` lines.
+    expect(joinDanglingEdges(frontmatter)).toBe(frontmatter);
+
+    const withComment = ['graph LR', '%% a comment ---', 'A --> B'].join('\n');
+    expect(joinDanglingEdges(withComment)).toBe(withComment);
+
+    // A node label ending in dashes is not a dangling edge.
+    const dashLabel = ['graph LR', 'A[Section ---]', 'B --> C'].join('\n');
+    expect(joinDanglingEdges(dashLabel)).toBe(dashLabel);
   });
 
   it('does not require optional browser CDN renderers before server-rendered diagram fallbacks', async () => {

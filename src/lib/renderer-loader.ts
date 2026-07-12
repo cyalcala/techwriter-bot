@@ -308,10 +308,12 @@ export function renderMermaidArtifact(code: string): string {
       await loadScript('https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js');
       const mm = window.mermaid || (window as any).mermaid;
       if (!mm) throw new Error('Mermaid library failed to load.');
-      // htmlLabels:false makes mermaid render label text as native SVG <text>
-      // (not <foreignObject> XHTML), so the output is pure SVG that DOMPurify
-      // can sanitize strictly without blanking the labels.
-      mm.initialize({ startOnLoad: false, securityLevel: 'loose', htmlLabels: false, flowchart: { htmlLabels: false }, theme: 'base', themeVariables: { primaryColor: '#f1f5f9', primaryTextColor: '#1e293b', primaryBorderColor: '#475569', lineColor: '#475569', secondaryColor: '#f8fafc', tertiaryColor: '#f1f5f9' } });
+      // Use mermaid's default HTML labels: they carry a solid background that
+      // masks edge lines behind the label text. (htmlLabels:false renders bare
+      // SVG <text> with no mask, so edge lines cut through labels — the
+      // "crossed out" bug.) The resulting <foreignObject> output is handled by
+      // sanitizeSvg's foreignObject branch, which preserves the labels.
+      mm.initialize({ startOnLoad: false, securityLevel: 'loose', theme: 'base', themeVariables: { primaryColor: '#f1f5f9', primaryTextColor: '#1e293b', primaryBorderColor: '#475569', lineColor: '#475569', secondaryColor: '#f8fafc', tertiaryColor: '#f1f5f9' } });
       const renderPromise = mm.render(`${id}-s`, sanitized);
       const timeoutPromise = new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Mermaid render timed out after 5s')), 5000));
       const { svg } = await Promise.race([renderPromise, timeoutPromise]);
