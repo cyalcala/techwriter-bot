@@ -110,7 +110,6 @@ export function chunkDocument(
   let m: RegExpExecArray | null;
   while ((m = paraRe.exec(text)) !== null) cutPoints.push(m.index + m[0].length);
 
-  const step = Math.max(1, chunkSize - overlap);
   let start = 0;
   let truncated = false;
 
@@ -149,7 +148,14 @@ export function chunkDocument(
     }
 
     if (end >= text.length) break;
-    start = Math.max(end - overlap, start + step);
+    // Advance to the next chunk start. A full-size chunk overlaps the previous
+    // one by `overlap` for context continuity. But when a paragraph boundary
+    // forced an early `end` (a chunk shorter than the overlap), continue from
+    // `end` itself: overlapping backwards would re-cut the same early boundary
+    // (chunk spam), while striding forward by chunkSize-overlap would skip
+    // [end, start+stride] and drop it from the index. Continuing at `end` keeps
+    // the text contiguous with no loss and no duplication.
+    start = (end - start >= overlap) ? end - overlap : end;
   }
 
   return { chunks, truncated };

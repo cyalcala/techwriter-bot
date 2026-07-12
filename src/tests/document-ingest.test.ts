@@ -74,4 +74,23 @@ describe('chunkDocument (paragraph-aware, capped, truncation-aware)', () => {
     const chunks = createDocumentChunks('a\n\nb\n\nc', 'x.txt');
     expect(Array.isArray(chunks)).toBe(true);
   });
+
+  it('does not drop content when a short paragraph precedes a long one', () => {
+    // "Intro." then a long unbroken paragraph. The only paragraph break is at
+    // the very start, so the first chunk cuts early at "Intro."; a full-stride
+    // advance would then skip the start of the long paragraph. Distinct NEEDLE
+    // tokens are planted across exactly that skipped region and must all survive
+    // into some chunk. Filler is made of distinct words so chunks stay locatable.
+    const filler = (tag: string, n: number) => Array.from({ length: n }, (_, i) => `${tag}${i}`).join(' ');
+    const longPara = `${filler('a', 40)} NEEDLE_EARLY ${filler('b', 40)} NEEDLE_MID ${filler('c', 200)}`;
+    const text = `Intro.\n\n${longPara}`;
+    const { chunks } = chunkDocument(text, 'doc.txt', 700, 120, 500);
+
+    const joined = chunks.map((c) => c.text).join('');
+    expect(joined).toContain('NEEDLE_EARLY');
+    expect(joined).toContain('NEEDLE_MID');
+    // The tiny "Intro." chunk plus contiguous body chunks — not fragment spam.
+    expect(chunks.length).toBeLessThan(10);
+    expect(chunks[0].text.trim()).toBe('Intro.');
+  });
 });
