@@ -2076,6 +2076,22 @@ Latest incremental verification on 2026-06-01:
 
 ## Next Task
 
+**2026-07-11: End-to-end audit + fixes shipped (6 commits, all tests green).**
+See `docs/E2E_AUDIT_2026-07-11.md` and the matching checkpoint in
+`docs/AI_RECOVERY_TRAIL.md`. Fixed, with tests: deck/document JSON salvage
+data-loss on malformed arrays; plain-JSON-misclassified-as-Vega in the fallback
+detector (unified onto the canonical classifier); RAG chunker content-loss on
+early paragraph cuts; DOMPurify-based SVG sanitization + encoded-URL bypass
+close (browser-verified); markdown-render memoization + background-safe token
+batching; dead-code removal; shared lenient-JSON dedup. All 49 test files pass
+(run in memory-sized batches — the host was RAM-starved so a single `npm test`
+OOM-crashes with false timeouts; reconfirm on a machine with more free RAM).
+Open follow-up leads and the re-runnable audit workflow are in the audit doc.
+The mobile-provider-outage item below remains the prior active task where
+unresolved.
+
+---
+
 **Active as of 2026-07-04: user-reported mobile bug audit — Session 3 fix
 session complete, awaiting deploy verification + user key rotation.** The
 user reported `https://tw-bot.pages.dev/` "does not work on mobile"

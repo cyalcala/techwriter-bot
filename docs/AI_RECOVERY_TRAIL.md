@@ -94,7 +94,46 @@ Unless the user explicitly changes strategy in writing, do not rebuild:
 - Complex dashboards
 - WebContainer or arbitrary browser package runtime tooling
 
-## Latest Checkpoint
+## Latest Checkpoint (2026-07-11) — End-to-End Audit + Fixes
+
+User asked to "improve diagram and presentation parsing and ingestion and
+overall performance end to end … do a major end-to-end audit then strategize
+and improve all code." Full detail in `docs/E2E_AUDIT_2026-07-11.md` (read it
+first). Six commits pushed to `main`, each with tests:
+
+- `58c2819` fix: harden deck/document JSON salvage against non-object array
+  elements — `scanObjectsFrom` used to lose EVERY object if a slides/blocks
+  array began with a string containing `]`/`{` or a nested array; also
+  `salvageFirstObjectArray` could grab a non-slide coordinate array. Root
+  cause was found from a probe test an audit finder left behind before the
+  workflow hit the account rate limit. +6 regression tests.
+- `293bfe4` fix(security): route pure SVG (graphviz/d2/plantuml, user SVG
+  artifacts, primary mermaid) through DOMPurify instead of bypassable regex;
+  keep the hardened regex only for `<foreignObject>` SVG (kroki mermaid) since
+  DOMPurify blanks its labels; close an encoded-`javascript:` URL bypass; set
+  mermaid `htmlLabels:false`. Verified in real Chrome — evidence under
+  `output/audit-2026-07-11/`.
+- `2dc16aa` perf: memoize `formatMarkdown` (bounded LRU), background-safe token
+  batching (rAF + timer fallback + long-response throttle), remove dead
+  `chunkText`.
+- `4f13a44` fix: stop misclassifying plain ```json blocks as Vega charts —
+  unified the post-stream fallback detector onto the canonical
+  `artifact-types.ts` classifier (removed ~60 lines of divergent duplication).
+  +2 tests.
+- `d72b248` fix(ingestion): RAG `chunkDocument` dropped text after an early
+  paragraph cut (short para then long para) — content vanished from the index.
+  +1 regression test.
+- `682f003` refactor: hoist shared lenient-JSON parsing into `json-salvage`.
+- Verification: all 49 test files pass (run in memory-sized batches; the host
+  was RAM-starved so the single-command `npm test` OOM-crashes with false
+  timeouts — see the audit doc's "Final verification" table). Net +4 new tests
+  beyond slice 1's +6.
+- Still-open leads (documented, not yet done): client mermaid re-render on
+  `renderNonce`; `path-router` artifact-suppression heuristic. The multi-agent
+  audit workflow (`wf_f110323a-01a`) can be re-run after the account limit
+  resets to sweep for more findings.
+
+## Previous Checkpoint
 
 As of 2026-06-05:
 
