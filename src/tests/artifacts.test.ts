@@ -74,6 +74,36 @@ describe('artifact detection', () => {
     expect(result.cleanText).toContain('```json');
   });
 
+  it('leaves a plain json code block inline even in a long message (past the length guard)', () => {
+    const text = [
+      'Here is the API response shape you asked about for the user endpoint:',
+      '```json',
+      '{"id": 42, "name": "Ada", "roles": ["admin", "editor"], "active": true}',
+      '```',
+      'Let me know if you need the error cases too.',
+    ].join('\n');
+
+    const result = detectAllArtifacts(text, []);
+
+    expect(result.artifacts).toEqual([]);
+    expect(result.cleanText).toContain('```json');
+    expect(result.cleanText).toContain('"name": "Ada"');
+  });
+
+  it('still promotes a json fence that is actually a Vega-Lite spec to a chart', () => {
+    const text = [
+      'Here is the chart spec:',
+      '```json',
+      '{"$schema":"https://vega.github.io/schema/vega-lite/v5.json","data":{"values":[{"a":"A","b":1}]},"mark":"bar","encoding":{"x":{"field":"a"},"y":{"field":"b","type":"quantitative"}}}',
+      '```',
+    ].join('\n');
+
+    const result = detectAllArtifacts(text, []);
+
+    expect(result.artifacts).toHaveLength(1);
+    expect(result.artifacts[0].type).toBe('vega');
+  });
+
   it('degrades legacy webcontainer artifacts to inert code', () => {
     const result = detectAllArtifacts(
       '<artifact type="webcontainer" title="Old app">{"files":{"package.json":{"contents":"{}"}}}</artifact>',

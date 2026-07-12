@@ -1,11 +1,25 @@
 import type { Artifact, ArtifactType } from './stream-parser';
 import { normalizeArtifactSource } from './diagram-source-normalizer';
+import { normalizeArtifactType, validateArtifact, getDefaultArtifactTitle, detectCodeLanguage } from './artifact-types';
 
 interface RawArtifact {
   type: ArtifactType;
   title: string;
   code: string;
   confidence: 'tag' | 'fence' | 'heuristic';
+}
+
+// Legacy runtime types that no longer render; degrade to inert code so old
+// exported sessions still open. Mirrors INERT_LEGACY_TYPES in stream-parser.
+const INERT_LEGACY_TYPES = new Set(['webcontainer', 'webcontainers']);
+
+// Resolve a raw type/lang token (plus its content, needed to disambiguate a
+// bare `json` fence into vega/deck/document/none) to a supported artifact type.
+// This delegates to the canonical classifier in artifact-types.ts so the
+// post-stream fallback stays in lockstep with the streaming tag path — the two
+// used to diverge (e.g. this file blindly mapped every `json` block to vega).
+function resolveType(raw: string, code: string): ArtifactType | null {
+  return normalizeArtifactType(raw, code) ?? (INERT_LEGACY_TYPES.has(raw.trim().toLowerCase()) ? 'code' : null);
 }
 
 export function detectAllArtifacts(text: string, streamArtifacts: Artifact[]): { artifacts: Artifact[]; cleanText: string } {
@@ -23,16 +37,16 @@ export function detectAllArtifacts(text: string, streamArtifacts: Artifact[]): {
     const openEnd = clean.indexOf('>', openStart);
     if (openEnd === -1) break;
     const openTag = clean.slice(openStart, openEnd + 1);
-    const typeMatch = openTag.match(/\btype\s*=\s*"(\w+)"/i);
+    const typeMatch = openTag.match(/\btype\s*=\s*"([\w-]+)"/i);
     const titleMatch = openTag.match(/\btitle\s*=\s*"([^"]*)"/i);
-    const type = typeMatch ? normalizeType(typeMatch[1]) : null;
     const title = titleMatch ? titleMatch[1] : null;
     const closeTag = `</artifact>`;
     const closeIdx = clean.indexOf(closeTag, openEnd);
     if (closeIdx === -1) { searchFrom = openEnd + 1; continue; }
     const code = clean.slice(openEnd + 1, closeIdx).trim();
+    const type = typeMatch && code ? resolveType(typeMatch[1], code) : null;
     if (type && code) {
-      found.push({ type, title: title || `${type} Diagram`, code, confidence: 'tag' });
+      found.push({ type, title: title || getDefaultArtifactTitle(type), code, confidence: 'tag' });
       clean = clean.slice(0, openStart) + clean.slice(closeIdx + closeTag.length);
       searchFrom = openStart;
     } else {
@@ -46,10 +60,9 @@ export function detectAllArtifacts(text: string, streamArtifacts: Artifact[]): {
   while ((fenceMatch = fenceRe.exec(clean)) !== null) {
     const lang = (fenceMatch[1] || '').toLowerCase();
     const code = fenceMatch[2].trim();
-    const type = langToType(lang);
+    const type = code ? resolveType(lang, code) : null;
     if (type && code && !found.some(f => f.type === type && f.code === code)) {
-      const title = lang ? `${lang.toUpperCase()} Diagram` : 'Code Block';
-      found.push({ type, title, code, confidence: 'fence' });
+      found.push({ type, title: getDefaultArtifactTitle(type), code, confidence: 'fence' });
       clean = clean.replace(fenceMatch[0], '');
       fenceRe.lastIndex = 0;
     }
@@ -87,77 +100,12 @@ export function detectAllArtifacts(text: string, streamArtifacts: Artifact[]): {
     artifacts.push({
       id: `${f.type}-${Date.now().toString(36)}-${artifacts.length}`,
       type: f.type,
-      title: f.title || `${f.type} Diagram`,
+      title: f.title || getDefaultArtifactTitle(f.type),
       placement: 'inline',
       code,
-      language: f.type === 'code' ? detectLang(code) : undefined,
+      language: f.type === 'code' ? detectCodeLanguage(code) : undefined,
     });
   }
 
   return { artifacts, cleanText: clean.trim() };
-}
-
-function langToType(lang: string): ArtifactType | null {
-  switch (lang) {
-    case 'code': return 'code';
-    case 'html': case 'htm': return 'html';
-    case 'svg': return 'svg';
-    case 'mermaid': return 'mermaid';
-    case 'jsx': case 'tsx': case 'react': return 'react';
-    case 'graphviz': case 'dot': return 'graphviz';
-    case 'd2': return 'd2';
-    case 'plantuml': case 'puml': return 'plantuml';
-    case 'katex': case 'latex': case 'tex': return 'katex';
-    case 'vega': case 'vega-lite': case 'json': return 'vega';
-    case 'flowchart': return 'flowchart';
-    case 'markmap': case 'md': return 'markmap';
-    case 'webcontainer': case 'webcontainers': return 'code';
-    case 'python': case 'javascript': case 'typescript': case 'js': case 'ts':
-    case 'bash': case 'sh': case 'css': case 'sql': case 'go': case 'rust':
-    case 'java': case 'cpp': case 'c': return 'code';
-    default: return null;
-  }
-}
-
-function normalizeType(raw: string): ArtifactType | null {
-  return langToType(raw);
-}
-
-function detectLang(code: string): string {
-  if (/^\s*(import|export|const|let|var|function|class|=>|async|await)/.test(code)) return 'javascript';
-  if (/def\s|class\s|print\(/.test(code)) return 'python';
-  if (/<[a-z][\s\S]*>/i.test(code)) return 'markup';
-  return 'plaintext';
-}
-
-function validateArtifact(type: ArtifactType, code: string): boolean {
-  if (!type || !code || code.trim().length < 5) return false;
-  switch (type) {
-    case 'mermaid':
-      return /(graph\s+(TB|TD|BT|RL|LR)|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|flowchart|gitgraph|mindmap|timeline|quadrantChart|block-beta|requirementDiagram|C4Context|C4Container)/i.test(code);
-    case 'graphviz':
-      return /\b(digraph|graph|strict)\s+\w+\s*\{/i.test(code) && (code.match(/\{/g) || []).length === (code.match(/\}/g) || []).length;
-    case 'd2':
-      return /(?:->|<->|--|\.shape|\.style|\.label)/.test(code) && code.length > 20;
-    case 'plantuml':
-      return /@startuml/i.test(code) && /@enduml/i.test(code);
-    case 'katex':
-      return /[\\\^_{}]/.test(code) || /\\\w+/.test(code);
-    case 'vega':
-      try { JSON.parse(code); return true; } catch { return false; }
-    case 'flowchart':
-      return /=>|->|:>/.test(code) && code.length > 30;
-    case 'markmap':
-      return /^#+\s/m.test(code) && code.length > 20;
-    case 'code':
-      return code.trim().length >= 5;
-    case 'html':
-      return /<[a-z][\s\S]*>/i.test(code);
-    case 'svg':
-      return /<svg[\s\S]*<\/svg>/i.test(code);
-    case 'react':
-      return /(function|class|const|import|export|jsx|render|App)/i.test(code);
-    default:
-      return true;
-  }
 }
