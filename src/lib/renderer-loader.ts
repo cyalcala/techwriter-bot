@@ -1,3 +1,4 @@
+import DOMPurify from 'dompurify';
 import type { ArtifactType } from './stream-parser';
 import { formatArtifactRendererError } from './artifact-error-boundary';
 import { repairDeckSpec, type DeckSlide, type DeckSpec } from './deck-schema';
@@ -307,7 +308,10 @@ export function renderMermaidArtifact(code: string): string {
       await loadScript('https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js');
       const mm = window.mermaid || (window as any).mermaid;
       if (!mm) throw new Error('Mermaid library failed to load.');
-      mm.initialize({ startOnLoad: false, securityLevel: 'loose', theme: 'base', themeVariables: { primaryColor: '#f1f5f9', primaryTextColor: '#1e293b', primaryBorderColor: '#475569', lineColor: '#475569', secondaryColor: '#f8fafc', tertiaryColor: '#f1f5f9' } });
+      // htmlLabels:false makes mermaid render label text as native SVG <text>
+      // (not <foreignObject> XHTML), so the output is pure SVG that DOMPurify
+      // can sanitize strictly without blanking the labels.
+      mm.initialize({ startOnLoad: false, securityLevel: 'loose', htmlLabels: false, flowchart: { htmlLabels: false }, theme: 'base', themeVariables: { primaryColor: '#f1f5f9', primaryTextColor: '#1e293b', primaryBorderColor: '#475569', lineColor: '#475569', secondaryColor: '#f8fafc', tertiaryColor: '#f1f5f9' } });
       const renderPromise = mm.render(`${id}-s`, sanitized);
       const timeoutPromise = new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Mermaid render timed out after 5s')), 5000));
       const { svg } = await Promise.race([renderPromise, timeoutPromise]);
@@ -509,19 +513,56 @@ async function renderServerSvgInto(el: HTMLElement, type: ArtifactType, code: st
 
 function escapeHtml(s: string): string { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 function escapeAttr(s: string): string { return escapeHtml(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+// Decode HTML entities in an attribute value so a scheme like
+// `&#106;avascript:` or `java&Tab;script:` can't hide from the URL check below.
+function decodeEntitiesForUrlCheck(value: string): string {
+  return value
+    .replace(/&#x([0-9a-f]+);?/gi, (_, h) => { try { return String.fromCodePoint(parseInt(h, 16)); } catch { return ''; } })
+    .replace(/&#(\d+);?/g, (_, d) => { try { return String.fromCodePoint(parseInt(d, 10)); } catch { return ''; } })
+    .replace(/&(?:tab|newline|lt|gt|amp|quot|apos|colon|NewLine|Tab);/gi, (m) => (/colon/i.test(m) ? ':' : ''))
+    .replace(/[\s -]+/g, '');
+}
+const DANGEROUS_URL_RE = /^(?:javascript|vbscript|data):/i;
+
+function stripDangerousUrlAttrs(input: string): string {
+  return input.replace(
+    /\s(href|src|xlink:href|xlink:src)\s*=\s*(?:(['"])([\s\S]*?)\2|([^\s>]+))/gi,
+    (match, _attr, _q, quoted, bare) => {
+      const raw = quoted !== undefined ? quoted : bare || '';
+      const decoded = decodeEntitiesForUrlCheck(raw);
+      // Allow safe data:image/* (used for embedded raster images); block the rest.
+      if (DANGEROUS_URL_RE.test(decoded) && !/^data:image\//i.test(decoded)) return '';
+      return match;
+    },
+  );
+}
+
 function sanitizeHtml(html: string): string {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, '')
-    .replace(/<(iframe|object|embed|form|meta|link|base)[\s\S]*?<\/\1>/gi, '')
-    .replace(/<(iframe|object|embed|form|meta|link|base)\b[^>]*\/?>/gi, '')
-    .replace(/\son[\w:-]+\s*=\s*"[^"]*"/gi, '')
-    .replace(/\son[\w:-]+\s*=\s*'[^']*'/gi, '')
-    .replace(/\son[\w:-]+\s*=\s*[^\s>]+/gi, '')
-    .replace(/\s(href|src|xlink:href)\s*=\s*(['"])\s*javascript:[\s\S]*?\2/gi, '');
+  return stripDangerousUrlAttrs(
+    html
+      .replace(/<script[\s\S]*?<\/script>/gi, '')
+      .replace(/<(iframe|object|embed|form|meta|link|base)[\s\S]*?<\/\1>/gi, '')
+      .replace(/<(iframe|object|embed|form|meta|link|base)\b[^>]*\/?>/gi, '')
+      .replace(/\son[\w:-]+\s*=\s*"[^"]*"/gi, '')
+      .replace(/\son[\w:-]+\s*=\s*'[^']*'/gi, '')
+      .replace(/\son[\w:-]+\s*=\s*[^\s>]+/gi, ''),
+  );
 }
 function sanitizeSvg(svg: string): string {
-  return sanitizeHtml(svg)
-    .replace(/\s(href|src|xlink:href)\s*=\s*(['"])\s*data:text\/html[\s\S]*?\2/gi, '');
+  // Pure SVG (graphviz/d2/plantuml, user SVG artifacts, and the primary
+  // mermaid path which we render with htmlLabels:false) is sanitized by
+  // DOMPurify's parser — regexes cannot safely match arbitrary SVG. SVGs that
+  // embed <foreignObject> XHTML (kroki's mermaid fallback still uses it) are
+  // the one case DOMPurify would blank the labels of, so they fall back to the
+  // hardened regex scrubber that preserves the text while stripping scripts,
+  // event handlers, and encoded javascript:/data: URLs.
+  if (typeof DOMPurify?.sanitize === 'function' && DOMPurify.isSupported && !/<foreignObject/i.test(svg)) {
+    return DOMPurify.sanitize(svg, {
+      USE_PROFILES: { svg: true, svgFilters: true },
+      FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'meta', 'link', 'base'],
+    });
+  }
+  return sanitizeHtml(svg);
 }
 export function preserveScrollableDiagramSvgSize(svg: string): string {
   return svg.replace(/<svg\b([^>]*)>/i, (match, attrs: string) => {
