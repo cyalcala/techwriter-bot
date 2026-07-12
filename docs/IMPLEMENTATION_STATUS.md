@@ -2076,6 +2076,18 @@ Latest incremental verification on 2026-06-01:
 
 ## Next Task
 
+**2026-07-12: Mobile diagram + deck rendering fixes shipped and verified
+live.** Crossed-out mermaid labels (htmlLabels regression, reverted),
+persistent Kroki 400 (line-broken edges, fixed by `joinDanglingEdges`),
+deck empty black-box slide (empty `code` layout, now degrades gracefully),
+and deck content overflowing the card on phones (rigid 16/9 box removed,
+responsive two-column). See `docs/DIAGRAM_MOBILE_FIX_2026-07-12.md` and
+`docs/DECK_MOBILE_FIX_2026-07-12.md`; evidence under
+`output/diagram-fix-2026-07-12/` and `output/deck-fix-2026-07-12/`. Suite
+282/282; fixes confirmed present in the deployed production JS bundle.
+
+---
+
 **2026-07-11: End-to-end audit + fixes shipped (6 commits, all tests green).**
 See `docs/E2E_AUDIT_2026-07-11.md` and the matching checkpoint in
 `docs/AI_RECOVERY_TRAIL.md`. Fixed, with tests: deck/document JSON salvage

@@ -94,7 +94,32 @@ Unless the user explicitly changes strategy in writing, do not rebuild:
 - Complex dashboards
 - WebContainer or arbitrary browser package runtime tooling
 
-## Latest Checkpoint (2026-07-11) — End-to-End Audit + Fixes
+## Latest Checkpoint (2026-07-12) — Mobile Diagram + Deck Rendering Fixes
+
+Two user-reported mobile rendering bug rounds, both reproduced with real
+evidence before fixing, both verified live in the deployed production bundle
+(`ArtifactPanel.Cx-mr7ms.js` marker check after deploys 29182984807 and
+29183611023, both green):
+
+- `6b14b58` fix(diagram) — **crossed-out labels** (a regression from the
+  2026-07-11 security slice's `htmlLabels:false`; reverted — foreignObject
+  output is already safely handled by sanitizeSvg) and the **persistent
+  Kroki 400 "got NODE_STRING"** (models wrap labeled edges across two lines;
+  new `joinDanglingEdges` in `diagram-source-normalizer.ts` stitches them
+  back). Adversarial ground-truth vs kroki.io: 16 valid diagram types
+  unbroken, 4 line-broken variants repaired 400→200. Full detail:
+  `docs/DIAGRAM_MOBILE_FIX_2026-07-12.md` + `output/diagram-fix-2026-07-12/`.
+- `5413fe0` fix(deck) — **empty black-box slide** (a `code`-layout slide with
+  an empty code field rendered a bare dark `<pre>`; now degrades to
+  bullets/text/heading) and **content overflowing the slide card on phones**
+  (rigid `aspect-ratio:16/9` box too short at 390 px; slides now grow to fit,
+  stay uniform via the flex row, and two-column stacks via
+  `auto-fit,minmax`). Before/after screenshots + 0-px-overflow measurements:
+  `docs/DECK_MOBILE_FIX_2026-07-12.md` + `output/deck-fix-2026-07-12/`.
+- Tests: full suite **282/282** (+4 normalizer, +4 deck-render regression
+  tests since the 2026-07-11 audit).
+
+## Previous Checkpoint (2026-07-11) — End-to-End Audit + Fixes
 
 User asked to "improve diagram and presentation parsing and ingestion and
 overall performance end to end … do a major end-to-end audit then strategize
