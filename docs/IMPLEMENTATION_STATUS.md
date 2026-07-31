@@ -2076,11 +2076,11 @@ Latest incremental verification on 2026-06-01:
 
 ## Next Task
 
-**2026-07-31: YouTube Transcript Feature shipped.** Users can paste a YouTube
-URL in chat and the transcript is auto-fetched and injected as AI context.
-Zero cost, no API keys. 29 new tests added (311/311 total). See
-`docs/YOUTUBE_TRANSCRIPT_FEATURE.md` for full documentation. Next: verify
-live after deploy, then explore Kimi-style Vega-Lite chart artifacts.
+**2026-07-31: YouTube Transcripts + Vega-Lite Charts shipped.** Two features:
+(1) YouTube URL paste auto-fetches transcript as AI context (zero cost, no API
+keys, 29 tests), (2) Vega-Lite chart artifacts activated with CDN loading,
+chart AI prompt contract, dark mode, responsive sizing (27 tests). 338/338
+total. See `docs/YOUTUBE_TRANSCRIPT_FEATURE.md` for YouTube docs.
 
 ---
 
