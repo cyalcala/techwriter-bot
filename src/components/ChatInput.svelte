@@ -66,6 +66,14 @@
     primaryColor = '#16a34a',
     footerText = 'AI can make mistakes. Verify important info.',
   }: Props = $props();
+  const YT_DETECT = /(?:youtube\.com\/(?:watch|embed|shorts|live|v\/)|youtu\.be\/)/i;
+  const YT_TITLE_RE = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?(?:[^&]*&)*v=|youtu\.be\/|youtube\.com\/shorts\/|youtube\.com\/live\/)([a-zA-Z0-9_-]{11})/;
+  function detectYtId(text: string): string | null {
+    const m = text.match(YT_TITLE_RE);
+    return m?.[1] || null;
+  }
+  const detectedYtId = $derived(detectYtId(inputMessage));
+
   let privacyOpen = $state(false);
   let inputEl = $state<HTMLTextAreaElement | null>(null);
 
@@ -183,6 +191,24 @@
           <span class="inline-flex max-w-full items-center rounded-lg border border-amber-200 bg-amber-50 px-2 py-1">
             Live search temporarily unavailable. Continuing without live results.
           </span>
+        </div>
+      {/if}
+
+      {#if detectedYtId}
+        <div class="mb-2 flex items-center gap-2 px-1 animate-in" role="status">
+          <div class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-red-100 bg-red-50/80 shadow-sm">
+            <svg width="20" height="14" viewBox="0 0 28 20" fill="none" class="shrink-0"><rect width="28" height="20" rx="4" fill="#FF0000"/><polygon points="11,4 11,16 21,10" fill="white"/></svg>
+            <div class="min-w-0">
+              <div class="text-[11px] font-semibold text-red-800">YouTube video detected</div>
+              <div class="text-[10px] text-red-600/80">Transcript will be auto-fetched when you send</div>
+            </div>
+            <img
+              src="https://i.ytimg.com/vi/{detectedYtId}/default.jpg"
+              alt=""
+              class="w-10 h-8 rounded object-cover shrink-0 border border-red-200/60"
+              onerror={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+            />
+          </div>
         </div>
       {/if}
 

@@ -129,9 +129,9 @@
             <div class="bg-stone-100 rounded-2xl px-4 py-2.5 inline-block text-left">
               <div class="leading-relaxed text-[15px] text-[#1a1a1a]">{msg.content}</div>
               {#if hasYouTubeLink(msg.content)}
-                <div class="mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-red-50 border border-red-100">
-                  <svg width="14" height="10" viewBox="0 0 28 20" fill="none"><rect width="28" height="20" rx="4" fill="#FF0000"/><polygon points="11,4 11,16 21,10" fill="white"/></svg>
-                  <span class="text-[10px] font-medium text-red-700">Transcript auto-fetched</span>
+                <div class="mt-2 flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-red-50/80 border border-red-100">
+                  <svg width="16" height="12" viewBox="0 0 28 20" fill="none" class="shrink-0"><rect width="28" height="20" rx="4" fill="#FF0000"/><polygon points="11,4 11,16 21,10" fill="white"/></svg>
+                  <span class="text-[11px] font-medium text-red-700">Video transcript included as context</span>
                 </div>
               {/if}
             </div>
@@ -158,15 +158,21 @@
   {/each}
 
   {#if isLoading && !isStreaming}
+    {@const lastUserMsg = [...messages].reverse().find(m => m.role === 'user')}
+    {@const isYtFetch = lastUserMsg && YT_DETECT.test(lastUserMsg.content)}
     <div class="flex justify-start w-full">
-      <div class="w-full max-w-md px-4 py-3 rounded-2xl border border-amber-200/60 bg-amber-50/30 transition-all">
+      <div class="w-full max-w-md px-4 py-3 rounded-2xl border {isYtFetch ? 'border-red-200/60 bg-red-50/30' : 'border-amber-200/60 bg-amber-50/30'} transition-all">
         <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-amber-100">
-            <div class="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center {isYtFetch ? 'bg-red-100' : 'bg-amber-100'}">
+            {#if isYtFetch}
+              <svg width="18" height="13" viewBox="0 0 28 20" fill="none"><rect width="28" height="20" rx="4" fill="#FF0000"/><polygon points="11,4 11,16 21,10" fill="white"/></svg>
+            {:else}
+              <div class="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
+            {/if}
           </div>
           <div class="flex-1 min-w-0">
-            <span class="text-[13px] font-semibold text-stone-600">Thinking...</span>
-            <div class="text-[10px] text-stone-400 mt-0.5">Analyzing your request</div>
+            <span class="text-[13px] font-semibold text-stone-600">{isYtFetch ? 'Fetching transcript...' : 'Thinking...'}</span>
+            <div class="text-[10px] text-stone-400 mt-0.5">{isYtFetch ? 'Reading video captions from YouTube' : 'Analyzing your request'}</div>
           </div>
         </div>
       </div>
