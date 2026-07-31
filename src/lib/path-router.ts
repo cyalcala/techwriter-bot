@@ -78,6 +78,12 @@ export function isDeckGenerationRequest(query: string): boolean {
 export function isDocGenerationRequest(query: string): boolean {
   return DOC_REQUEST_RE.test(query) && !DECK_REQUEST_RE.test(query);
 }
+
+const CHART_REQUEST_RE = /\b(chart|pie\s?chart|bar\s?chart|line\s?chart|scatter\s?plot|histogram|heatmap|area\s?chart|time\s?series|data\s?viz|data\s?visualization|vega|vega-?lite|plot\s+(?:the|my|this|a)|graph\s+(?:the|my|this|a)\s+data|visualize\s+(?:the|my|this|a)\s+data)\b/i;
+
+export function isChartGenerationRequest(query: string): boolean {
+  return CHART_REQUEST_RE.test(query) && !DECK_REQUEST_RE.test(query);
+}
 const FORMAT_CHOICE = /^[123]$|^(mermaid|graphviz|d2|plantuml|flowchart|markmap|vega|katex|code|react)$/i;
 const LAST_AI_SUGGESTED = /\b(Mermaid|Graphviz|D2|PlantUML|Flowchart|Markmap|Vega|KaTeX)\b.*\bbest for\b/i;
 const CODE_EXPLICIT_REQUEST = /\b(write|show|give me|need|want|create|generate|build)\s+(a|the|some|me\s+)?\s*(python|javascript|typescript|js|ts|code|script|function|class|program|app|component)\b/i;

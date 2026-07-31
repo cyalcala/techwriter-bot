@@ -5,7 +5,7 @@ import { searchRouter, searchDuckDuckGo } from '../../lib/search';
 import { buildSystemPrompt, type SearchResult, type PromptContext } from '../../lib/prompts';
 import { readEnvKeys } from '../../lib/env-reader';
 import { updateReputation, getDefaultState, deserializeReputation, serializeReputation, getTierProviderPool, getDailyLimits, type ReputationState } from '../../lib/reputation';
-import { determineChatPath, isArtifactGenerationRequest, isDeckGenerationRequest, isDocGenerationRequest } from '../../lib/path-router';
+import { determineChatPath, isArtifactGenerationRequest, isDeckGenerationRequest, isDocGenerationRequest, isChartGenerationRequest } from '../../lib/path-router';
 import { hasYouTubeUrl, detectYouTubeUrls, fetchTranscript, isTranscriptError, formatTranscriptForContext } from '../../lib/youtube-transcript';
 import { ensureGraph, queryGraph } from '../../lib/graph-query';
 import { logTokenUsage, estimateTokens, isWithinBudget } from '../../lib/token-counter';
@@ -230,6 +230,7 @@ export const POST: APIRoute = async (ctx) => {
     const needsArtifact = isArtifactGenerationRequest(query, messages);
     const needsDeck = needsArtifact && isDeckGenerationRequest(query);
     const needsDoc = needsArtifact && isDocGenerationRequest(query);
+    const needsChart = needsArtifact && isChartGenerationRequest(query);
 
     const effectivePath = needsArtifact ? 'fast' : pathCtx.path;
 
@@ -241,6 +242,7 @@ export const POST: APIRoute = async (ctx) => {
       needsArtifact,
       needsDeck,
       needsDoc,
+      needsChart,
       clientSystemPrompt: typeof env.SYSTEM_PROMPT === 'string' && env.SYSTEM_PROMPT.trim() ? env.SYSTEM_PROMPT : undefined,
     };
 

@@ -19,6 +19,7 @@ export interface PromptContext {
   needsArtifact: boolean;
   needsDeck?: boolean;
   needsDoc?: boolean;
+  needsChart?: boolean;
   clientSystemPrompt?: string;
 }
 
@@ -84,6 +85,26 @@ const DOC_COMPACT = [
   '5. Structure the document with headings; write substantive, specific, well-organized prose grounded in the user\'s topic. Aim for 6-24 blocks.',
   '6. Plain text only inside string values — no markdown, no HTML, no images.',
   '7. The ENTIRE JSON object must be complete and closed — every bracket and brace. If space is tight, use fewer blocks rather than letting the JSON get cut off mid-object.',
+].join('\n');
+
+const CHART_COMPACT = [
+  'CRITICAL CHART RULES — YOU MUST FOLLOW THESE EXACTLY:',
+  '1. Output ONE <artifact type="vega" title="Chart Title">...</artifact> tag as your ENTIRE response. The tag MUST be FIRST. No commentary before, after, or inside the tag.',
+  '2. The tag content is ONE valid Vega-Lite JSON spec. No markdown fences, no comments, no trailing commas.',
+  '3. ALWAYS use Vega-Lite format (NOT full Vega). Include "$schema": "https://vega.github.io/schema/vega-lite/v5.json".',
+  '4. Use "width": "container" for responsive sizing. Set "height": 300 unless the data needs more vertical space.',
+  '5. Chart types to use:',
+  'Bar chart: {"mark":"bar","encoding":{"x":{"field":"...","type":"nominal"},"y":{"field":"...","type":"quantitative"}}}',
+  'Line chart: {"mark":"line","encoding":{"x":{"field":"...","type":"temporal"},"y":{"field":"...","type":"quantitative"}}}',
+  'Pie/donut: {"mark":{"type":"arc","innerRadius":50},"encoding":{"theta":{"field":"...","type":"quantitative"},"color":{"field":"...","type":"nominal"}}}',
+  'Scatter plot: {"mark":"point","encoding":{"x":{"field":"...","type":"quantitative"},"y":{"field":"...","type":"quantitative"}}}',
+  'Area chart: {"mark":"area","encoding":{"x":{"field":"...","type":"temporal"},"y":{"field":"...","type":"quantitative"}}}',
+  'Histogram: {"mark":"bar","encoding":{"x":{"bin":true,"field":"...","type":"quantitative"},"y":{"aggregate":"count","type":"quantitative"}}}',
+  'Heatmap: {"mark":"rect","encoding":{"x":{"field":"...","type":"ordinal"},"y":{"field":"...","type":"ordinal"},"color":{"field":"...","type":"quantitative"}}}',
+  '6. Embed data inline using "data":{"values":[...]}. Use realistic, specific data that matches the user\'s topic — never placeholder/random data.',
+  '7. Add a title with "title":"Chart Title". Use descriptive axis labels via "axis":{"title":"Label"}.',
+  '8. For multiple series, use "color":{"field":"series","type":"nominal"} encoding.',
+  '9. Keep the spec simple and valid. The ENTIRE JSON must be complete and closed.',
 ].join('\n');
 
 const CORE_PERSONA_FAST = `You are a helpful, concise technical writing assistant. Respond naturally and briefly.`;
@@ -219,8 +240,7 @@ export function buildSystemPrompt(query: string, ctx: PromptContext): string {
   }
 
   if (ctx.needsArtifact) {
-    // Each artifact family gets ONLY its own contract — token-lean all ways
-    const contract = ctx.needsDeck ? DECK_COMPACT : ctx.needsDoc ? DOC_COMPACT : ARTIFACT_COMPACT;
+    const contract = ctx.needsChart ? CHART_COMPACT : ctx.needsDeck ? DECK_COMPACT : ctx.needsDoc ? DOC_COMPACT : ARTIFACT_COMPACT;
     layers.push({ priority: 4, content: contract });
   }
 

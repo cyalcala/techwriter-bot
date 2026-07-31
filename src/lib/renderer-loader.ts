@@ -13,6 +13,7 @@ const loadingStyles = new Map<string, Promise<void>>();
 const LOAD_TIMEOUT_MS = 12_000;
 
 function loadScript(src: string): Promise<void> {
+  if (typeof document === 'undefined') return Promise.resolve();
   if (loadedScripts.has(src)) return Promise.resolve();
   const pending = loadingScripts.get(src);
   if (pending) return pending;
@@ -119,6 +120,9 @@ export async function loadRenderer(type: ArtifactType): Promise<void> {
     case 'd2':
       return;
     case 'vega':
+      await loadScript('https://cdn.jsdelivr.net/npm/vega@5/build/vega.min.js');
+      await loadScript('https://cdn.jsdelivr.net/npm/vega-lite@5/build/vega-lite.min.js');
+      await loadScript('https://cdn.jsdelivr.net/npm/vega-embed@6/build/vega-embed.min.js');
       return;
     case 'graphviz':
       return;
@@ -427,11 +431,29 @@ export function renderVegaArtifact(code: string): string {
     const el = document.getElementById(id);
     if (!el) return;
     try {
-      // Validate JSON first before attempting render
       let spec: any;
       try { spec = JSON.parse(code); } catch { el.innerHTML = renderError('Vega', 'Invalid JSON in Vega specification.', code); return; }
+      await loadRenderer('vega');
       if ((window as any).vegaEmbed) {
-        await withTimeout((window as any).vegaEmbed(`#${id}`, spec, { actions: true, renderer: 'svg' }), 10_000);
+        const isDark = window.matchMedia?.('(prefers-color-scheme: dark)')?.matches;
+        const embedOpts: any = {
+          actions: { export: true, source: false, compiled: false, editor: false },
+          renderer: 'svg',
+          config: {
+            background: 'transparent',
+            autosize: { type: 'fit', contains: 'padding', resize: true },
+          },
+        };
+        if (isDark) {
+          embedOpts.theme = 'dark';
+          embedOpts.config.title = { color: '#d4d4d8' };
+          embedOpts.config.axis = { labelColor: '#a1a1aa', titleColor: '#d4d4d8', gridColor: '#3f3f46', domainColor: '#52525b' };
+          embedOpts.config.legend = { labelColor: '#a1a1aa', titleColor: '#d4d4d8' };
+          embedOpts.config.view = { stroke: '#3f3f46' };
+        }
+        if (!spec.width && !spec.autosize) spec.width = 'container';
+        if (!spec.height) spec.height = 300;
+        await withTimeout((window as any).vegaEmbed(`#${id}`, spec, embedOpts), 10_000);
       } else {
         await withTimeout(renderServerSvgInto(el, 'vega', code, 'Vega'), 15_000);
       }
@@ -439,7 +461,7 @@ export function renderVegaArtifact(code: string): string {
       if (el) el.innerHTML = renderError('Vega', e.message || String(e), code);
     }
   });
-  return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm" style="min-height:200px"><div class="inline-block w-5 h-5 border-2 border-stone-300 border-t-teal-500 rounded-full animate-spin mb-2"></div><br/>Rendering chart...</div>`;
+  return `<div id="${id}" class="p-4 text-center text-[#8c8576] text-sm" style="min-height:200px;max-width:100%;overflow-x:auto"><div class="inline-block w-5 h-5 border-2 border-stone-300 border-t-teal-500 rounded-full animate-spin mb-2"></div><br/>Rendering chart...</div>`;
 }
 
 export function renderGraphvizArtifact(code: string): string {
