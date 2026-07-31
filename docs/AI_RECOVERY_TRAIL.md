@@ -94,7 +94,27 @@ Unless the user explicitly changes strategy in writing, do not rebuild:
 - Complex dashboards
 - WebContainer or arbitrary browser package runtime tooling
 
-## Latest Checkpoint (2026-07-12) — Mobile Diagram + Deck Rendering Fixes
+## Latest Checkpoint (2026-07-31) — YouTube Transcript Feature
+
+New feature: users can paste a YouTube URL in chat and the system automatically
+fetches the video's transcript and injects it as AI context. Zero cost, no API
+keys — uses YouTube's public innertube captions API.
+
+**Files added/modified:**
+- `src/lib/youtube-transcript.ts` — core module (URL parsing, caption fetching, formatting)
+- `src/pages/api/youtube-transcript.ts` — standalone API endpoint with rate limiting
+- `src/pages/api/chat.ts` — auto-detects YouTube URLs, fetches transcript, injects as context
+- `src/lib/prompts.ts` — added `youtubeContext` to PromptContext, injected as priority-2 layer
+- `src/components/ChatMessages.svelte` — YouTube badge indicator on user messages
+- `src/tests/youtube-transcript.test.ts` — 29 unit tests (URL parsing, detection, formatting)
+- `docs/YOUTUBE_TRANSCRIPT_FEATURE.md` — full feature documentation
+
+**Test results:** 311/311 (50 files), up from 282 in the previous checkpoint.
+
+**Next:** Verify live on tw-bot.pages.dev after deploy. Future enhancements: Whisper fallback
+for videos without captions, timestamp-linked responses, multi-video support.
+
+## Checkpoint (2026-07-12) — Mobile Diagram + Deck Rendering Fixes
 
 Two user-reported mobile rendering bug rounds, both reproduced with real
 evidence before fixing, both verified live in the deployed production bundle

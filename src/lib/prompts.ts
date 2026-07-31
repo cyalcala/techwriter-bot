@@ -14,6 +14,7 @@ export interface PromptContext {
   path: 'fast' | 'balanced' | 'heavy';
   graphContext?: string;
   documentContext?: string;
+  youtubeContext?: string;
   searchResult?: SearchResult;
   needsArtifact: boolean;
   needsDeck?: boolean;
@@ -184,6 +185,10 @@ export function buildSystemPrompt(query: string, ctx: PromptContext): string {
 
   if (ctx.documentContext) {
     layers.push({ priority: 2, content: ctx.documentContext });
+  }
+
+  if (ctx.youtubeContext) {
+    layers.push({ priority: 2, content: `YOUTUBE VIDEO TRANSCRIPT — the user shared a YouTube link. Use this transcript to answer their question. Cite specific timestamps when relevant.\n\n${ctx.youtubeContext}` });
   }
 
   if (ctx.path === 'heavy' && ctx.searchResult) {

@@ -6,6 +6,7 @@ import { buildSystemPrompt, type SearchResult, type PromptContext } from '../../
 import { readEnvKeys } from '../../lib/env-reader';
 import { updateReputation, getDefaultState, deserializeReputation, serializeReputation, getTierProviderPool, getDailyLimits, type ReputationState } from '../../lib/reputation';
 import { determineChatPath, isArtifactGenerationRequest, isDeckGenerationRequest, isDocGenerationRequest } from '../../lib/path-router';
+import { hasYouTubeUrl, detectYouTubeUrls, fetchTranscript, isTranscriptError, formatTranscriptForContext } from '../../lib/youtube-transcript';
 import { ensureGraph, queryGraph } from '../../lib/graph-query';
 import { logTokenUsage, estimateTokens, isWithinBudget } from '../../lib/token-counter';
 import { apiError, createRequestId } from '../../lib/api-response';
@@ -206,17 +207,36 @@ export const POST: APIRoute = async (ctx) => {
 
     }
 
+    let youtubeContextStr = '';
+    if (hasYouTubeUrl(query)) {
+      const videoIds = detectYouTubeUrls(query);
+      if (videoIds.length > 0) {
+        const transcriptId = videoIds[0];
+        log('youtube', { videoId: transcriptId });
+        try {
+          const tr = await fetchTranscript(transcriptId, { timeoutMs: 6000 });
+          if (!isTranscriptError(tr)) {
+            youtubeContextStr = formatTranscriptForContext(tr);
+            log('youtube_ok', { videoId: transcriptId, title: tr.title, segments: tr.segments.length });
+          } else {
+            log('youtube_fail', { videoId: transcriptId, code: tr.code });
+          }
+        } catch (e: any) {
+          log('youtube_error', { videoId: transcriptId, error: e?.message });
+        }
+      }
+    }
+
     const needsArtifact = isArtifactGenerationRequest(query, messages);
-    // Deck/document artifacts need a larger output budget than diagram source (4096)
     const needsDeck = needsArtifact && isDeckGenerationRequest(query);
     const needsDoc = needsArtifact && isDocGenerationRequest(query);
 
-    // For artifact requests: route as 'fast' for minimal latency but bump max tokens to 2048
     const effectivePath = needsArtifact ? 'fast' : pathCtx.path;
 
     const promptCtx: PromptContext = {
       path: effectivePath,
       graphContext: graphContextStr || undefined,
+      youtubeContext: youtubeContextStr || undefined,
       searchResult,
       needsArtifact,
       needsDeck,

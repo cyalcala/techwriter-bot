@@ -3,6 +3,9 @@
   import type { ArtifactQueue, ArtifactEntry } from '../lib/artifact-queue';
   import ChatArtifactChip from './ChatArtifactChip.svelte';
 
+  const YT_DETECT = /(?:youtube\.com\/(?:watch|embed|shorts|live|v\/)|youtu\.be\/)/i;
+  function hasYouTubeLink(text: string): boolean { return YT_DETECT.test(text); }
+
   type WebhookDeliveryState = {
     messageIdx: number;
     status: 'sending' | 'sent' | 'failed';
@@ -125,6 +128,12 @@
           {:else}
             <div class="bg-stone-100 rounded-2xl px-4 py-2.5 inline-block text-left">
               <div class="leading-relaxed text-[15px] text-[#1a1a1a]">{msg.content}</div>
+              {#if hasYouTubeLink(msg.content)}
+                <div class="mt-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-red-50 border border-red-100">
+                  <svg width="14" height="10" viewBox="0 0 28 20" fill="none"><rect width="28" height="20" rx="4" fill="#FF0000"/><polygon points="11,4 11,16 21,10" fill="white"/></svg>
+                  <span class="text-[10px] font-medium text-red-700">Transcript auto-fetched</span>
+                </div>
+              {/if}
             </div>
             <div class="flex items-center gap-2 mt-1 justify-end opacity-100 md:opacity-0 md:hover:opacity-100 transition-opacity duration-150">
               <button onclick={() => onEditMessage(i)} class="text-[11px] px-2 py-0.5 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-200/50 transition-all">Edit</button>
