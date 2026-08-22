@@ -57,3 +57,13 @@ Statuses: OPEN / IN_PROGRESS / terminal (KEEP, REVISE, REVERT, FIXED, DELETED, B
 - User impact: an agent reading only the savepoint gets wrong baselines.
 - Recommended intervention: KEEP + DOCUMENT — mark savepoint as historical, point to IMPLEMENTATION_STATUS.md.
 - Status: FIXED (UNIT-02, 2026-08-23). Historical banner added to `docs/SYSTEM_SAVEPOINT.md`.
+
+## F-06 — Production health shows 4 of 6 providers probing unhealthy (observation)
+- Severity: P3 (informational)
+- Subsystem: provider credentials/deployment config (not application code)
+- Evidence: /api/health at 	w-bot.pages.dev on 2026-08-23 returned status ok, version match, but cerebras http_402 (payment/billing), groq http_404, gemini http_404 (model/probe mismatch), cloudflare retryable error. nvidia + openrouter active. Historical docs recorded 3-4/6 as normal variance; 2/6 is lower than any recorded baseline.
+- User impact: reduced headroom before failover pressure; circuit breaker keeps service up while >=1 provider lives.
+- Root cause: likely expired/changed upstream keys or model deprecations in deployed secret values. Cannot be fixed from repository evidence alone.
+- Recommended intervention: owner should refresh CEREBRAS/GROQ/GEMINI/NVIDIA keys via sync-secrets.ps1 or Cloudflare dashboard; consider updating stale model IDs if providers deprecated them.
+- Python relevance: NONE.
+- Status: ESCALATE (requires owner credentials)
