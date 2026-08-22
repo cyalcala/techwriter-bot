@@ -31,7 +31,7 @@ Statuses: OPEN / IN_PROGRESS / terminal (KEEP, REVISE, REVERT, FIXED, DELETED, B
 - Recommended intervention: DELETE debris. `deploy-final.js` (referenced by `npm run deploy:pages`) and `sync-secrets.ps1` (generic) stay.
 - Python relevance: NONE.
 - Test: `npm.cmd test` + `npm.cmd run build` still green after deletion; `git grep` confirms no references.
-- Status: OPEN (UNIT-02)
+- Status: FIXED (UNIT-02, 2026-08-23). Deleted: `projects.txt`, `debug_final.json`, `debug_output.json`, `fuse-deploy.js`, `fix-config.js`, `setup-receptionist.js`, `sync-fixed.ps1`, `sync-sovereign.ps1`. Kept: `deploy-final.js` (referenced by `npm run deploy:pages`), `sync-secrets.ps1` (generic `-ProjectName` supersedes both fixed variants).
 
 ## F-03 — graphify CI installs unpinned pip package each run
 - Severity: P3
@@ -56,4 +56,4 @@ Statuses: OPEN / IN_PROGRESS / terminal (KEEP, REVISE, REVERT, FIXED, DELETED, B
 - Evidence: savepoint references commit `b2ac2c0` and "12/12 tests"; reality is 51 files / 338 tests at `0433879`. IMPLEMENTATION_STATUS.md and AI_RECOVERY_TRAIL.md are current.
 - User impact: an agent reading only the savepoint gets wrong baselines.
 - Recommended intervention: KEEP + DOCUMENT — mark savepoint as historical, point to IMPLEMENTATION_STATUS.md.
-- Status: OPEN (fold into UNIT-02 docs pass)
+- Status: FIXED (UNIT-02, 2026-08-23). Historical banner added to `docs/SYSTEM_SAVEPOINT.md`.

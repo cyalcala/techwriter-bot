@@ -1,4 +1,9 @@
 # TechWriter Bot — System Savepoint
+> **HISTORICAL SNAPSHOT** (commit `b2ac2c0`, mid-2026). Do not use as a current
+> baseline — the test surface and architecture have grown substantially since.
+> For the live relay state read `docs/IMPLEMENTATION_STATUS.md` and
+> `docs/AI_RECOVERY_TRAIL.md` first. Kept for decision-history context only.
+
 ## Commit: `b2ac2c0` | Branch: `main` | Deployed: `tw-bot.pages.dev`
 
 ### State Summary
