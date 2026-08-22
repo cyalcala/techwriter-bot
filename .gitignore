@@ -26,6 +26,7 @@ AppData/
 debug_*.json
 projects.txt
 .tmp-config/
+.tmp-rag-eval/
 .tmp_sandbox_write_test.txt
 .codex-scratch/
 .codex-staging-*/
@@ -42,3 +43,8 @@ graphify-out/graph.html
 
 # jetbrains setting folder
 .idea/
+
+# python
+__pycache__/
+*.pyc
+.venv/

@@ -1,0 +1,200 @@
+{
+  "generated_at": "2026-08-22T23:11:23.071421+00:00",
+  "evaluator": "python/techwriter/rag_eval.py",
+  "note": "TF-IDF lexical retrieval is a structural proxy floor for the product's bge-small-en-v1.5 embedding retrieval; it detects chunking/citation regressions, not semantic drift.",
+  "metrics": {
+    "recall_at_3": 0.9,
+    "mrr": 1.0,
+    "hit_rate_at_3": 1.0
+  },
+  "floors": {
+    "recall_at_3": 0.95
+  },
+  "floors_passed": false,
+  "contract_passed": true,
+  "contract_failures": [],
+  "corpora": [
+    {
+      "documents": [
+        {
+          "filename": "release-notes-guide.md",
+          "chunks": 4,
+          "truncated": false
+        }
+      ],
+      "queries": [
+        {
+          "question": "What versioning scheme does Acme Analytics use?",
+          "relevant_chunks": [
+            0,
+            1
+          ],
+          "top_k": [
+            {
+              "index": 0,
+              "score": 0.2947,
+              "filename": "release-notes-guide.md",
+              "startLine": 1,
+              "endLine": 22
+            },
+            {
+              "index": 1,
+              "score": 0.0,
+              "filename": "release-notes-guide.md",
+              "startLine": 16,
+              "endLine": 33
+            },
+            {
+              "index": 2,
+              "score": 0.0,
+              "filename": "release-notes-guide.md",
+              "startLine": 29,
+              "endLine": 43
+            }
+          ],
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "hit_at_k": true
+        },
+        {
+          "question": "How should breaking changes and migration steps be documented?",
+          "relevant_chunks": [
+            1,
+            2,
+            3
+          ],
+          "top_k": [
+            {
+              "index": 2,
+              "score": 0.233,
+              "filename": "release-notes-guide.md",
+              "startLine": 29,
+              "endLine": 43
+            },
+            {
+              "index": 1,
+              "score": 0.062,
+              "filename": "release-notes-guide.md",
+              "startLine": 16,
+              "endLine": 33
+            },
+            {
+              "index": 3,
+              "score": 0.0468,
+              "filename": "release-notes-guide.md",
+              "startLine": 39,
+              "endLine": 57
+            }
+          ],
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "hit_at_k": true
+        },
+        {
+          "question": "When are release note drafts due?",
+          "relevant_chunks": [
+            1,
+            2
+          ],
+          "top_k": [
+            {
+              "index": 1,
+              "score": 0.2004,
+              "filename": "release-notes-guide.md",
+              "startLine": 16,
+              "endLine": 33
+            },
+            {
+              "index": 0,
+              "score": 0.1187,
+              "filename": "release-notes-guide.md",
+              "startLine": 1,
+              "endLine": 22
+            },
+            {
+              "index": 3,
+              "score": 0.0961,
+              "filename": "release-notes-guide.md",
+              "startLine": 39,
+              "endLine": 57
+            }
+          ],
+          "recall_at_k": 0.5,
+          "reciprocal_rank": 1.0,
+          "hit_at_k": true
+        },
+        {
+          "question": "What items belong on the publishing checklist?",
+          "relevant_chunks": [
+            2,
+            3
+          ],
+          "top_k": [
+            {
+              "index": 2,
+              "score": 0.0807,
+              "filename": "release-notes-guide.md",
+              "startLine": 29,
+              "endLine": 43
+            },
+            {
+              "index": 3,
+              "score": 0.0717,
+              "filename": "release-notes-guide.md",
+              "startLine": 39,
+              "endLine": 57
+            },
+            {
+              "index": 0,
+              "score": 0.0,
+              "filename": "release-notes-guide.md",
+              "startLine": 1,
+              "endLine": 22
+            }
+          ],
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "hit_at_k": true
+        },
+        {
+          "question": "How do I roll back a release and what must be included?",
+          "relevant_chunks": [
+            3
+          ],
+          "top_k": [
+            {
+              "index": 3,
+              "score": 0.1558,
+              "filename": "release-notes-guide.md",
+              "startLine": 39,
+              "endLine": 57
+            },
+            {
+              "index": 1,
+              "score": 0.0908,
+              "filename": "release-notes-guide.md",
+              "startLine": 16,
+              "endLine": 33
+            },
+            {
+              "index": 0,
+              "score": 0.0793,
+              "filename": "release-notes-guide.md",
+              "startLine": 1,
+              "endLine": 22
+            }
+          ],
+          "recall_at_k": 1.0,
+          "reciprocal_rank": 1.0,
+          "hit_at_k": true
+        }
+      ],
+      "metrics": {
+        "recall_at_3": 0.9,
+        "mrr": 1.0,
+        "hit_rate_at_3": 1.0
+      },
+      "name": "release-notes-corpus"
+    }
+  ]
+}

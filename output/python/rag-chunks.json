@@ -1,0 +1,101 @@
+{
+  "tool": "dump-rag-chunks",
+  "chunker": "src/lib/rag-client.ts#chunkDocument",
+  "generated_at": "2026-08-22T23:06:11.482Z",
+  "corpora": [
+    {
+      "name": "release-notes-corpus",
+      "source_file": "python/corpora/release-notes-corpus.json",
+      "params": {
+        "chunkSize": 700,
+        "overlap": 120,
+        "maxChunks": 500
+      },
+      "documents": [
+        {
+          "filename": "release-notes-guide.md",
+          "source_text": "# Release Notes Writing Guide\n\nThis guide defines how our team drafts, reviews, and publishes release\nnotes for the Acme Analytics platform.\n\n## Audience and tone\n\nRelease notes serve two audiences: administrators planning upgrades and\nsupport engineers triaging incidents. Write in present tense, second\nperson. Avoid marketing language entirely.\n\n## Versioning scheme\n\nAcme Analytics uses semantic versioning: MAJOR.MINOR.PATCH. A MAJOR\nbump may remove or change existing behavior. A MINOR bump adds\nfeatures without breaking changes. A PATCH bump fixes defects only.\n\nEvery release must state its version and release date in the first\nheading block of the notes.\n\n## Drafting workflow\n\nStart from the merged pull-request list for the milestone. For each\nuser-facing change, capture what changed, why it matters, and any\naction the reader must take. Changes that require no action still\nneed a plain-language sentence.\n\nDrafts are due three business days before the release date. The\ndocumentation reviewer checks terminology against the glossary and\nverifies every command example runs on a staging environment.\n\n## Breaking changes section\n\nAny release that renames, removes, or changes the default value of a\npublic setting MUST include a migration step. Migration steps follow\nthis pattern: state the old behavior, state the new behavior, then\ngive the exact command or setting change required.\n\nIf no migration is possible, say so explicitly and describe the\nsupported workaround and its expiration date.\n\n## Publishing checklist\n\n- Version and date appear in the header\n- Every breaking change has a migration step\n- Commands were verified on staging\n- Terminology matches the current glossary\n- Known issues list links to incident tickets\n\n## Rollback guidance\n\nEach minor or major release note must describe how to roll back to\nthe previous version. Include the rollback command, the expected\ndowntime, and which data, if any, is affected.\n\nPatch releases do not require rollback guidance unless they touch\ndatabase migrations.\n",
+          "chunks": [
+            {
+              "text": "# Release Notes Writing Guide\n\nThis guide defines how our team drafts, reviews, and publishes release\nnotes for the Acme Analytics platform.\n\n## Audience and tone\n\nRelease notes serve two audiences: administrators planning upgrades and\nsupport engineers triaging incidents. Write in present tense, second\nperson. Avoid marketing language entirely.\n\n## Versioning scheme\n\nAcme Analytics uses semantic versioning: MAJOR.MINOR.PATCH. A MAJOR\nbump may remove or change existing behavior. A MINOR bump adds\nfeatures without breaking changes. A PATCH bump fixes defects only.\n\nEvery release must state its version and release date in the first\nheading block of the notes.\n\n## Drafting workflow\n\n",
+              "filename": "release-notes-guide.md",
+              "startLine": 1,
+              "endLine": 22,
+              "heading": "Release Notes Writing Guide"
+            },
+            {
+              "text": "\n\nEvery release must state its version and release date in the first\nheading block of the notes.\n\n## Drafting workflow\n\nStart from the merged pull-request list for the milestone. For each\nuser-facing change, capture what changed, why it matters, and any\naction the reader must take. Changes that require no action still\nneed a plain-language sentence.\n\nDrafts are due three business days before the release date. The\ndocumentation reviewer checks terminology against the glossary and\nverifies every command example runs on a staging environment.\n\n## Breaking changes section\n\n",
+              "filename": "release-notes-guide.md",
+              "startLine": 16,
+              "endLine": 33,
+              "heading": "Versioning scheme"
+            },
+            {
+              "text": "gy against the glossary and\nverifies every command example runs on a staging environment.\n\n## Breaking changes section\n\nAny release that renames, removes, or changes the default value of a\npublic setting MUST include a migration step. Migration steps follow\nthis pattern: state the old behavior, state the new behavior, then\ngive the exact command or setting change required.\n\nIf no migration is possible, say so explicitly and describe the\nsupported workaround and its expiration date.\n\n## Publishing checklist\n\n",
+              "filename": "release-notes-guide.md",
+              "startLine": 29,
+              "endLine": 43,
+              "heading": "Drafting workflow"
+            },
+            {
+              "text": "is possible, say so explicitly and describe the\nsupported workaround and its expiration date.\n\n## Publishing checklist\n\n- Version and date appear in the header\n- Every breaking change has a migration step\n- Commands were verified on staging\n- Terminology matches the current glossary\n- Known issues list links to incident tickets\n\n## Rollback guidance\n\nEach minor or major release note must describe how to roll back to\nthe previous version. Include the rollback command, the expected\ndowntime, and which data, if any, is affected.\n\nPatch releases do not require rollback guidance unless they touch\ndatabase migrations.\n",
+              "filename": "release-notes-guide.md",
+              "startLine": 39,
+              "endLine": 57,
+              "heading": "Breaking changes section"
+            }
+          ],
+          "truncated": false,
+          "chunk_count": 4
+        }
+      ],
+      "queries": [
+        {
+          "question": "What versioning scheme does Acme Analytics use?",
+          "evidence_lines": [
+            [
+              12,
+              19
+            ]
+          ]
+        },
+        {
+          "question": "How should breaking changes and migration steps be documented?",
+          "evidence_lines": [
+            [
+              32,
+              39
+            ]
+          ]
+        },
+        {
+          "question": "When are release note drafts due?",
+          "evidence_lines": [
+            [
+              28,
+              30
+            ]
+          ]
+        },
+        {
+          "question": "What items belong on the publishing checklist?",
+          "evidence_lines": [
+            [
+              41,
+              47
+            ]
+          ]
+        },
+        {
+          "question": "How do I roll back a release and what must be included?",
+          "evidence_lines": [
+            [
+              49,
+              56
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}

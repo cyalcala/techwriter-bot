@@ -1,0 +1,9 @@
+[project]
+name = "techwriter-tools"
+version = "0.1.0"
+description = "Offline analytical tooling for Techwriter Bot (Lane A/B). Stdlib-only runtime."
+requires-python = ">=3.11"
+dependencies = []
+
+[dependency-groups]
+dev = ["pytest>=8.0"]
