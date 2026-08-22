@@ -21,6 +21,33 @@ Then continue from the "Next Task" section below.
 
 Phase 5C: Portfolio And Buyer Narrative.
 
+### 2026-08-23 Gauntlet checkpoint (UNIT-01, UNIT-02 complete)
+
+Evidence-driven audit gauntlet started; ledger lives in `docs/gauntlet/`
+(AUDIT_BASELINE, FINDINGS, PYTHON_TOOLING). Baseline at `0433879`: 51 files /
+338 tests green, build green.
+
+- UNIT-01 (`8d96199`): Python Lane A/B offline RAG evaluation harness.
+  `scripts/dump-rag-chunks.ts` bundles the real TypeScript
+  `chunkDocument()` and dumps chunks to `output/python/rag-chunks.json`;
+  `python/techwriter/rag_eval.py` (stdlib-only, uv-managed) computes
+  TF-IDF Recall@3/MRR/hit-rate with regression floors plus a
+  citation-metadata contract check. Baseline: recall@3 0.9, MRR 1.0,
+  hit@3 1.0 (floors 0.7/0.85/0.8); contract PASS. The heading check
+  caught an off-by-one vs `headingForLine()` during calibration and was
+  aligned to the TypeScript ground truth. No runtime impact; zero new
+  runtime dependencies.
+- UNIT-02 (`3a8f28d`): removed seven committed debris files
+  (projects.txt UTF-16 console capture, empty debug JSONs,
+  fuse-deploy.js, fix-config.js, setup-receptionist.js,
+  sync-fixed.ps1, sync-sovereign.ps1) and marked
+  `docs/SYSTEM_SAVEPOINT.md` historical. Kept deploy-final.js (npm
+  script reference) and sync-secrets.ps1 (generic).
+- Verification for both units: full `npm.cmd test` (51 files, 338
+  tests), `npm.cmd run build`, `uv run pytest python/tests -q` (9
+  tests), evaluator exit codes 0/2/3 exercised, `git diff --check`.
+
+
 The accepted Phase 4 work followed Phase 3 conversation/export/client
 transparency slices with privacy-first active-session boundaries:
 
