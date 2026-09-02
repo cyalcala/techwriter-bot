@@ -94,7 +94,21 @@ Unless the user explicitly changes strategy in writing, do not rebuild:
 - Complex dashboards
 - WebContainer or arbitrary browser package runtime tooling
 
-## Latest Checkpoint (2026-07-31) — YouTube Transcripts + Vega-Lite Charts
+## Latest Checkpoint (2026-09-03) — Provider health F-06 remediation (model + key)
+
+F-06 gauntlet finding was ESCALATE (2/6 providers, stale models + stale key). Remediation closed the code/credential gap and restored normal headroom.
+
+- **Root cause**: three model IDs removed upstream (Groq `llama-3.3-70b-versatile` 404, Gemini `gemini-2.0-flash` 404, Nvidia `meta/llama-3.1-8b-instruct` 410) + stale `GEMINI_API_KEY` in Cloudflare (Gemini OpenAI-compat returns 400 for a bad key, not 401).
+- **Code fix** (`src/lib/providers.ts` only):
+  - `d0d0fb8` — `groq-fast: openai/gpt-oss-20b`, `gemini-flash: gemini-flash-latest`, `nvidia-fast: openai/gpt-oss-20b` (live-probed OK 2026-09-03, vitest 51/338, astro build Complete, commit pushed to main).
+  - `f23c316` — `gemini-flash-latest` (400 on `/v1beta/openai` alias) → `gemini-2.5-flash` (GA, live-probed OK; same gates). Both deployed via GitHub Actions runs `33670361209` (52s) and `33670998995` (47s).
+- **Credential fix**: `GEMINI_API_KEY` rotated at 2026-09-02T19:27:50Z via `gh secret set` from `~/Desktop/gemini777.txt` (AQ.A…, 53B, 2026-09-03) and redeployed via workflow_dispatch run `33673471880` (38s). Before rotation health was `4/6 active, gemini 400`; after rotation health is `4/6 active, gemini 429` (valid, quota-limited) — `400→429` proves the key is now accepted. Local exact-body probes confirm `gemini-2.5-flash`, `gemini-flash-latest`, `gemini-2.5-flash-lite`, and `openai/gpt-oss-20b` (Groq/Nvidia) all OK; invalid Gemini key correctly yields 400.
+- **Production health** after fixes (2026-09-02T19:31Z): `status ok, 4/6 active, version 0.0.1 match` — cerebras 402 (parked, billing, owner decision), groq 200 (≈418ms), gemini 429 (79ms, retryable quota), nvidia 200 (≈738ms), openrouter 200, cloudflare 200. Baseline was 2/6; normal variance is 3-4/6. Cerebras remains intentionally unhealthy. Gemini should be 5/6 when its quota resets without further code change.
+- **Verification**: `npm test` 51 files/338 tests pass; `npm run build` Complete (known deck/doc-schema chunk warnings); `git diff --check` clean; three production health snapshots with activeProviders and per-provider status logged in `docs/gauntlet/FINDINGS.md` F-06.
+- **Docs checkpoint**: `docs/gauntlet/FINDINGS.md` F-06 → FIXED (2026-09-03) with full evidence table; this trail entry.
+- **Next**: no code change needed for F-06. Monitor `/api/health` after Gemini quota reset for 5/6. Remaining gauntlet items: F-03 (graphify pip pin) and F-04 (Vite chunk warnings) are DEFER.
+
+## Previous Checkpoint (2026-07-31) — YouTube Transcripts + Vega-Lite Charts
 
 Two new features shipped in this session:
 

@@ -60,10 +60,19 @@ Statuses: OPEN / IN_PROGRESS / terminal (KEEP, REVISE, REVERT, FIXED, DELETED, B
 
 ## F-06 — Production health shows 4 of 6 providers probing unhealthy (observation)
 - Severity: P3 (informational)
-- Subsystem: provider credentials/deployment config (not application code)
-- Evidence: /api/health at 	w-bot.pages.dev on 2026-08-23 returned status ok, version match, but cerebras http_402 (payment/billing), groq http_404, gemini http_404 (model/probe mismatch), cloudflare retryable error. nvidia + openrouter active. Historical docs recorded 3-4/6 as normal variance; 2/6 is lower than any recorded baseline.
-- User impact: reduced headroom before failover pressure; circuit breaker keeps service up while >=1 provider lives.
-- Root cause: likely expired/changed upstream keys or model deprecations in deployed secret values. Cannot be fixed from repository evidence alone.
-- Recommended intervention: owner should refresh CEREBRAS/GROQ/GEMINI/NVIDIA keys via sync-secrets.ps1 or Cloudflare dashboard; consider updating stale model IDs if providers deprecated them.
+- Subsystem: provider credentials/deployment config + stale model IDs (`src/lib/providers.ts`)
+- Evidence (baseline 2026-08-23): /api/health at tw-bot.pages.dev returned status ok, version match, but cerebras http_402 (payment/billing), groq http_404, gemini http_404 (model/probe mismatch), nvidia timeout. Only openrouter + nvidia active in that snapshot (2/6). Historical docs recorded 3-4/6 as normal variance; 2/6 was lower than any recorded baseline.
+- Evidence (after fix, 2026-09-02T19:31Z): /api/health returns `status ok, 4/6 active, version 0.0.1 match` — cerebras http_402 (parked, billing), groq 200, **gemini http_429** (valid key, quota), nvidia 200, openrouter 200, cloudflare 200. Latencies: groq 418ms, nvidia 738ms, gemini 79ms (429), openrouter 525ms, cloudflare 298ms. Previous post-model-fix snapshot (pre-key-sync, 19:22Z) was `4/6 active, gemini http_400` — the 400 was an **invalid GEMINI_API_KEY**, not a model error (Gemini OpenAI-compat returns 400 for a bad key, not 401).
+- User impact: reduced headroom before failover pressure; circuit breaker keeps service up while >=1 provider lives. After fix, headroom restored from 2/6 to 4/6 (5/6 when Gemini quota allows).
+- Root cause:
+  - **Groq** `llama-3.3-70b-versatile` removed 2026-06-17 (404) → `openai/gpt-oss-20b` (fast-tier migration target).
+  - **Gemini** `gemini-2.0-flash` shut down 2026-06-01 (404) → `gemini-2.5-flash` (GA, live-probed OK 2026-09-03 via `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions` with Bearer). `gemini-flash-latest` also probes OK locally but the alias is not stable on the OpenAI path in all accounts; `gemini-2.5-flash` is the pinned GA choice.
+  - **Nvidia** `meta/llama-3.1-8b-instruct` permanently 410 Gone on `https://integrate.api.nvidia.com/v1` → `openai/gpt-oss-20b` (catalog GET 200, all meta/llama + nemotron IDs 410).
+  - **Gemini key** in Cloudflare was stale (http_400 = bad key on this endpoint). Rotating `GEMINI_API_KEY` to the working Desktop key (`gemini777.txt`, prefix `AQ.A…`, len 53, lastWrite 2026-09-03) resolved 400→429.
+  - **Cerebras** http_402 is billing (Payment Required) — intentionally parked per owner decision; no code change.
+- Fix applied:
+  - Code `src/lib/providers.ts` commits `d0d0fb8` (groq/nvidia/gemini model refresh, vitest 51/338 pass, astro build Complete) + `f23c316` (gemini `gemini-flash-latest` → `gemini-2.5-flash`, same gates), both deployed via GitHub Actions runs `33670361209` (52s) and `33670998995` (47s).
+  - Secret rotation: `gh secret set GEMINI_API_KEY --repo cyalcala/techwriter-bot` from `~/Desktop/gemini777.txt` at 2026-09-02T19:27:50Z, redeployed via workflow_dispatch run `33673471880` (38s, graphify 44s). Health after key sync: `4/6 active, gemini 429` (valid, quota) vs `4/6 active, gemini 400` before.
+  - Local probe verification (2026-09-03, exact provider-health body): `gemini-2.5-flash` OK, `gemini-flash-latest` OK, `gemini-2.5-flash-lite` OK, `gemini-2.0-flash` 404, `openai/gpt-oss-20b` OK on both Groq and Nvidia. Invalid Gemini key correctly returns 400 (not 401), explaining the 400.
 - Python relevance: NONE.
-- Status: ESCALATE (requires owner credentials)
+- Status: FIXED (2026-09-03). Code/model IDs corrected and deployed; Gemini key rotated and now valid (429 = configured correctly, rate-limited). Cerebras remains 402 parked by design. Next health check when Gemini quota resets should show 5/6 active without further code change. Collateral: runbook `F-06_PROVIDER_HEALTH_RUNBOOK.md` already documents the 402/404/410 diagnostic table and probing steps.
