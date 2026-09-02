@@ -2,7 +2,7 @@
 set -e
 
 echo "::group::Installing Graphify"
-python3 -m pip install graphifyy -q
+python3 -m pip install graphifyy==0.9.53 -q
 echo "::endgroup::"
 
 echo "::group::Running extraction pipeline"
@@ -77,7 +77,7 @@ Path('graphify-out').mkdir(parents=True, exist_ok=True)
 with open('graphify-out/graph.json', 'w') as f:
     json.dump(data, f, indent=2)
 print(f'graph.json written')
-" 2>&1 || echo "Graph extraction failed — continuing without graph"
+" 2>&1
 echo "::endgroup::"
 
 if [ -f graphify-out/graph.json ]; then
