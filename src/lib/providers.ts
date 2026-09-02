@@ -26,7 +26,8 @@ export const ZEN_REGISTRY: Provider[] = [
     name: 'groq',
     role: 'fast',
     endpoint: 'https://api.groq.com/openai/v1',
-    model: 'llama-3.3-70b-versatile',
+    // Groq deprecated llama-3.1-8b-instant + llama-3.3-70b-versatile 2026-06-17 (404); openai/gpt-oss-20b is the published fast-tier migration target
+    model: 'openai/gpt-oss-20b',
     timeoutMs: 18000,
     freeTier: true,
   },
@@ -35,7 +36,8 @@ export const ZEN_REGISTRY: Provider[] = [
     name: 'gemini',
     role: 'heavy',
     endpoint: 'https://generativelanguage.googleapis.com/v1beta',
-    model: 'gemini-2.0-flash',
+    // gemini-2.0-flash shut down 2026-06-01 (404); using the gemini-flash-latest alias to auto-track the current flash (live-probed working 2026-09-03; gemini-2.5-flash also works but shuts down ~2026-10-16)
+    model: 'gemini-flash-latest',
     timeoutMs: 15000,
     freeTier: true,
   },
@@ -44,7 +46,8 @@ export const ZEN_REGISTRY: Provider[] = [
     name: 'nvidia',
     role: 'fallback',
     endpoint: 'https://integrate.api.nvidia.com/v1',
-    model: 'meta/llama-3.1-8b-instruct',
+    // meta/llama + nemotron IDs all return 410 Gone on this endpoint (2026-09) though GET /v1/models is healthy; openai/gpt-oss-20b is live-probed working here (2026-09-03)
+    model: 'openai/gpt-oss-20b',
     timeoutMs: 12000,
     freeTier: true,
   },
