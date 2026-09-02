@@ -36,8 +36,8 @@ export const ZEN_REGISTRY: Provider[] = [
     name: 'gemini',
     role: 'heavy',
     endpoint: 'https://generativelanguage.googleapis.com/v1beta',
-    // gemini-2.0-flash shut down 2026-06-01 (404); using the gemini-flash-latest alias to auto-track the current flash (live-probed working 2026-09-03; gemini-2.5-flash also works but shuts down ~2026-10-16)
-    model: 'gemini-flash-latest',
+    // gemini-2.0-flash shut down 2026-06-01 (404); gemini-flash-latest alias returns 400 on /v1beta/openai path (not a valid alias there); gemini-2.5-flash is GA and live-probed working on 2026-09-03
+    model: 'gemini-2.5-flash',
     timeoutMs: 15000,
     freeTier: true,
   },
