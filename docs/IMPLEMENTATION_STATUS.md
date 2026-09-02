@@ -19,7 +19,16 @@ Then continue from the "Next Task" section below.
 
 ## Current Focus
 
-Phase 5C: Portfolio And Buyer Narrative.
+Gauntlet complete — all findings FIXED (2026-09-03). Current HEAD `3d6fa1e` (`main` == `origin/main`), 51 files / 338 tests green, build green (0 deck/doc Vite warnings), health `4/6 active` (gemini 429 valid, cerebras 402 parked). Next is client pilot per `docs/CLIENT_DEPLOYMENT_KIT.md` — no code DEFER remains.
+
+### 2026-09-03 Gauntlet closure (F-03, F-04, F-06 complete)
+
+All six gauntlet findings are now terminal (see `docs/gauntlet/FINDINGS.md`):
+
+- **F-06** (`d0d0fb8` + `f23c316`, secret `GEMINI_API_KEY` rotated 2026-09-02T19:27Z): provider models refreshed (`groq openai/gpt-oss-20b`, `gemini gemini-2.5-flash`, `nvidia openai/gpt-oss-20b`), health `2/6 → 4/6 active` (2026-09-02T19:31Z; `33670361209`/`33670998995`/`33673471880`). Local exact-body probes OK, invalid Gemini → 400.
+- **F-03** (`606eb10`): `scripts/graphify-ci.sh` pinned `graphifyy==0.9.53` (pypi), removed swallow `|| echo continuing`; `continue-on-error` keeps deploy alive. GA `33675382690` success.
+- **F-04** (`a4b1773`): `src/lib/artifact-export.ts` static imports for `deck-schema`/`doc-schema` (heavy exporters remain dynamic), Vite warnings `2 → 0`. GA `33676354848` success; `FINDINGS.md` finalized in `3d6fa1e` (GA `33682168398`).
+- **F-01, F-02, F-05** remain FIXED from 2026-08-23. Verification: `npm test 51/338`, `npm run build Complete`, prod `/api/health` 4/6, `gh run list` all success.
 
 ### 2026-08-23 Gauntlet checkpoint (UNIT-01, UNIT-02 complete)
 
