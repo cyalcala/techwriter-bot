@@ -40,7 +40,7 @@ Statuses: OPEN / IN_PROGRESS / terminal (KEEP, REVISE, REVERT, FIXED, DELETED, B
 - User impact: low today (CI-only); a compromised/broken upstream could poison the runtime code graph or silently freeze it.
 - Recommended intervention: pin the package version and fail loudly on extraction failure while keeping deploy alive. Defer unless CI shows instability.
 - Python relevance: CI TOOL.
-- Status: OPEN (DEFER candidate)
+- Status: FIXED (2026-09-03, commit 606eb10). Pinned `graphifyy==0.9.53` (latest at fix time, pypi.org) and removed `|| echo "Graph extraction failed — continuing without graph"` swallow; `set -e` now propagates extraction failure. Job-level `continue-on-error: true` in `.github/workflows/deploy.yml` keeps deploy alive while failure is visible. Verification: `python3 -m pip install graphifyy==0.9.53 -q` syntax, `bash -n` ok, vitest 51/338 pass, GA run 33675382690 `graphify 33s success` + `deploy 35s success`; privacy-first.test still passes via `python3 -m pip install graphifyy` substring.
 
 ## F-04 — Vite chunk warnings for deck/doc schemas
 - Severity: P3

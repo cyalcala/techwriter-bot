@@ -94,7 +94,16 @@ Unless the user explicitly changes strategy in writing, do not rebuild:
 - Complex dashboards
 - WebContainer or arbitrary browser package runtime tooling
 
-## Latest Checkpoint (2026-09-03) — Provider health F-06 remediation (model + key)
+## Latest Checkpoint (2026-09-03) — Graphify CI supply-chain hardening (F-03)
+
+F-03 was DEFER (unpinned `graphifyy` + silent `|| echo continuing`). Activated as best-path hardening — pin reproducibility + visible failure without risking deploy.
+
+- **Fix**: `scripts/graphify-ci.sh:5` → `graphifyy==0.9.53` (latest at 2026-09-03 per pypi.org); removed `|| echo "Graph extraction failed — continuing without graph"` swallow at `:80`. `set -e` now fails the `graphify` job loudly; `.github/workflows/deploy.yml` retains `continue-on-error: true` on the `graphify` job and `deploy` job runs independently, so deploy stays alive while breakage is visible.
+- **Verification**: `bash -n` syntax ok, `vitest 51/338 pass` (privacy-first.test still expects `python3 -m pip install graphifyy` substring), GA run `33675382690` `graphify 33s success` + `deploy 35s success` on commit `606eb10`.
+- **Docs**: `docs/gauntlet/FINDINGS.md` F-03 → FIXED (2026-09-03). Remaining DEFER: F-04 Vite chunk warnings (marginal, not worth churn).
+- **Next**: F-04 remains DEFER unless bundle work justifies it; otherwise return to client pilot per `docs/CLIENT_DEPLOYMENT_KIT.md`.
+
+## Checkpoint (2026-09-03) — Provider health F-06 remediation (model + key)
 
 F-06 gauntlet finding was ESCALATE (2/6 providers, stale models + stale key). Remediation closed the code/credential gap and restored normal headroom.
 
@@ -106,7 +115,7 @@ F-06 gauntlet finding was ESCALATE (2/6 providers, stale models + stale key). Re
 - **Production health** after fixes (2026-09-02T19:31Z): `status ok, 4/6 active, version 0.0.1 match` — cerebras 402 (parked, billing, owner decision), groq 200 (≈418ms), gemini 429 (79ms, retryable quota), nvidia 200 (≈738ms), openrouter 200, cloudflare 200. Baseline was 2/6; normal variance is 3-4/6. Cerebras remains intentionally unhealthy. Gemini should be 5/6 when its quota resets without further code change.
 - **Verification**: `npm test` 51 files/338 tests pass; `npm run build` Complete (known deck/doc-schema chunk warnings); `git diff --check` clean; three production health snapshots with activeProviders and per-provider status logged in `docs/gauntlet/FINDINGS.md` F-06.
 - **Docs checkpoint**: `docs/gauntlet/FINDINGS.md` F-06 → FIXED (2026-09-03) with full evidence table; this trail entry.
-- **Next**: no code change needed for F-06. Monitor `/api/health` after Gemini quota reset for 5/6. Remaining gauntlet items: F-03 (graphify pip pin) and F-04 (Vite chunk warnings) are DEFER.
+- **Next**: no code change needed for F-06. Monitor `/api/health` after Gemini quota reset for 5/6. Remaining gauntlet: F-03 now FIXED (this checkpoint), F-04 Vite chunk warnings remains DEFER (marginal).
 
 ## Previous Checkpoint (2026-07-31) — YouTube Transcripts + Vega-Lite Charts
 
