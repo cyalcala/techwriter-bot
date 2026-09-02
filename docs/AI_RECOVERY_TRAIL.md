@@ -94,14 +94,22 @@ Unless the user explicitly changes strategy in writing, do not rebuild:
 - Complex dashboards
 - WebContainer or arbitrary browser package runtime tooling
 
-## Latest Checkpoint (2026-09-03) — Graphify CI supply-chain hardening (F-03)
+## Latest Checkpoint (2026-09-03) — Build chunk warning fix (F-04)
+
+F-04 was DEFER (Vite `deck-schema`/`doc-schema` both static+dynamic). Activated as best-path cleanup — low churn, clears build noise.
+
+- **Fix**: `src/lib/artifact-export.ts:8-9` now statically imports `{repairDeckSpec}` + `{repairDocSpec, docToMarkdown}` with `F-04` comment; removed `await import('./deck-schema')`/`await import('./doc-schema')` dynamic paths at `:56,64`. Heavy exporters `deck-pptx/pdf`, `doc-pdf/docx` remain `await import()` for lazy CDN loads. Previously `artifact-types.ts:3-4` + `renderer-loader.ts:4-5` static vs `artifact-export.ts` dynamic caused `(!) ... is dynamically imported ... but also statically imported ... will not move module` (2 warnings).
+- **Verification**: `npm test 51/338 pass`, `npm run build` now 0 Vite deck/doc warnings (was 2 → 0, only punycode + AI-binding warnings remain), `bash -n` ok, GA run `33676354848` `graphify 27s success` + `deploy 57s success` on commit `a4b1773`.
+- **Docs**: `docs/gauntlet/FINDINGS.md` F-04 → FIXED (2026-09-03).
+- **Next**: All gauntlet findings now FIXED (F-01,02,03,04,05,06). Remaining best paths are client pilot per `docs/CLIENT_DEPLOYMENT_KIT.md` or 5/6 health when Gemini quota resets; no further code DEFER remains.
+
+## Checkpoint (2026-09-03) — Graphify CI supply-chain hardening (F-03)
 
 F-03 was DEFER (unpinned `graphifyy` + silent `|| echo continuing`). Activated as best-path hardening — pin reproducibility + visible failure without risking deploy.
 
 - **Fix**: `scripts/graphify-ci.sh:5` → `graphifyy==0.9.53` (latest at 2026-09-03 per pypi.org); removed `|| echo "Graph extraction failed — continuing without graph"` swallow at `:80`. `set -e` now fails the `graphify` job loudly; `.github/workflows/deploy.yml` retains `continue-on-error: true` on the `graphify` job and `deploy` job runs independently, so deploy stays alive while breakage is visible.
 - **Verification**: `bash -n` syntax ok, `vitest 51/338 pass` (privacy-first.test still expects `python3 -m pip install graphifyy` substring), GA run `33675382690` `graphify 33s success` + `deploy 35s success` on commit `606eb10`.
-- **Docs**: `docs/gauntlet/FINDINGS.md` F-03 → FIXED (2026-09-03). Remaining DEFER: F-04 Vite chunk warnings (marginal, not worth churn).
-- **Next**: F-04 remains DEFER unless bundle work justifies it; otherwise return to client pilot per `docs/CLIENT_DEPLOYMENT_KIT.md`.
+- **Docs**: `docs/gauntlet/FINDINGS.md` F-03 → FIXED (2026-09-03). Was remaining DEFER: F-04 (now also FIXED).
 
 ## Checkpoint (2026-09-03) — Provider health F-06 remediation (model + key)
 
