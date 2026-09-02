@@ -45,10 +45,10 @@ Statuses: OPEN / IN_PROGRESS / terminal (KEEP, REVISE, REVERT, FIXED, DELETED, B
 ## F-04 — Vite chunk warnings for deck/doc schemas
 - Severity: P3
 - Subsystem: build (`deck-schema.ts`, `doc-schema.ts`, `artifact-export.ts`)
-- Evidence: build output warns these modules are both statically and dynamically imported, so dynamic chunking is defeated.
-- User impact: marginal bundle size; non-failing, known.
-- Recommended intervention: DEFER — not worth churn now.
-- Status: DEFER
+- Evidence: build output warned these modules were both statically and dynamically imported, so dynamic chunking was defeated (`deck-schema`/`doc-schema` static in `artifact-types.ts`/`renderer-loader.ts` but dynamic `await import('./deck-schema')` in `artifact-export.ts`).
+- User impact: marginal bundle size; non-failing, known. Contributed to build noise after Phase 5B deck/doc slices.
+- Recommended intervention: make deck/doc schema imports consistent (static everywhere; heavy exporters `deck-pptx/pdf`, `doc-pdf/docx` remain dynamic for lazy CDN loads).
+- Status: FIXED (2026-09-03, commit pending). `src/lib/artifact-export.ts` now statically imports `{repairDeckSpec}` and `{repairDocSpec, docToMarkdown}` with comment `F-04`; the `await import('./deck-schema')` / `await import('./doc-schema')` paths removed. Verification: `npm run build` no longer emits `deck-schema.ts`/`doc-schema.ts` Vite warnings (previously 2 warnings, now 0), `npm test` 51/338 pass, `bash -n` ok. Chunking now static-only for schemas.
 
 ## F-05 — Documentation drift: SYSTEM_SAVEPOINT.md is stale
 - Severity: P3

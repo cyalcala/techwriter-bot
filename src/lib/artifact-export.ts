@@ -1,7 +1,12 @@
 // Central registry of downloadable formats per artifact type + a lazy
 // dispatcher so components (ArtifactPanel, ArtifactOverlay) share one code
 // path. Exporters are dynamically imported so their CDN libs load only on
-// use. document-* formats are added in Phase 2c.
+// use. document-* formats are added in Phase 2c. Deck/doc schemas are
+// statically imported (not dynamically) to avoid Vite's
+// "both static and dynamic import" chunk warning (F-04); their exporters
+// (deck-pptx/pdf, doc-pdf/docx) remain dynamic.
+import { repairDeckSpec } from './deck-schema';
+import { docToMarkdown, repairDocSpec } from './doc-schema';
 
 export interface ExportFormat {
   id: string;
@@ -48,7 +53,6 @@ export async function exportArtifactAs(
   formatId: string,
 ): Promise<boolean> {
   if (type === 'deck') {
-    const { repairDeckSpec } = await import('./deck-schema');
     const spec = repairDeckSpec(code);
     if (!spec) return false;
     if (formatId === 'pptx') { const { exportDeckToPptx } = await import('./deck-pptx'); await exportDeckToPptx(spec, filenameBase); return true; }
@@ -57,7 +61,6 @@ export async function exportArtifactAs(
   }
 
   if (type === 'document') {
-    const { repairDocSpec, docToMarkdown } = await import('./doc-schema');
     const spec = repairDocSpec(code);
     if (!spec) return false;
     if (formatId === 'pdf') { const { exportDocToPdf } = await import('./doc-pdf'); await exportDocToPdf(spec, filenameBase); return true; }
