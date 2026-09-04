@@ -17,7 +17,7 @@ const SOURCE_DIR = resolve(ROOT, 'docs/diagrams/src');
 const OUTPUT_DIR = resolve(ROOT, 'public/diagrams');
 const RECEIPT_DIR = resolve(ROOT, 'docs/diagrams/receipts');
 const TYPES = new Set(['architecture', 'workflow', 'sequence', 'dataflow', 'lifecycle']);
-const CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; media-src blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
+const CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; media-src blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'";
 
 export const ARCHIFY_DIAGRAMS = Object.freeze({
   'techwriter-architecture': { type: 'architecture', source: 'techwriter-architecture.architecture.json', output: 'techwriter-architecture.html' },

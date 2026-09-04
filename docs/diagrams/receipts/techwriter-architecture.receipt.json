@@ -15,13 +15,13 @@
   },
   "artifact": {
     "path": "public/diagrams/techwriter-architecture.html",
-    "sha256": "b909dacedbe19316840611550677513bb53c409ccf1fa8713bee14b7940ee656",
+    "sha256": "01a4ccf8a078ecca4759ce29e9ce7600d31801e644e50e28951906596bdf07fa",
     "bytes": 627832
   },
   "hardening": {
     "staticOnly": true,
     "remoteLinksRemoved": 18,
-    "csp": "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; media-src blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+    "csp": "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; media-src blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'",
     "sandboxRequirement": "allow-scripts allow-downloads; no allow-same-origin"
   },
   "quality": {

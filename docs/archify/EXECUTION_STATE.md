@@ -7,7 +7,7 @@
 | WU-02 | Target-grounded diagram sources and generated artifacts | receipts and visual checks pass | KEEP |
 | WU-03 | Allowlisted `archify` artifact contract and UI integration | unit and sandbox tests pass | KEEP |
 | WU-04 | CI, backup/restore drill, GitHub checkpoint, deployment verification | CI and configured deployment evidence | ACTIVE |
-| WU-05 | Independent critic and final acceptance | no unresolved critical finding | PENDING |
+| WU-05 | Independent critic and final acceptance | no unresolved critical finding | KEEP |
 
 Terminal vocabulary: **KEEP** accepted, **REVISE** change required,
 **REVERT** backing out, **PAUSE** blocked by an evidenced boundary.

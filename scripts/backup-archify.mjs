@@ -45,6 +45,9 @@ function createBundle(args) {
   const bundle = resolve(output, `techwriter-archify-${commit}.bundle`);
   const checksum = resolve(output, `${basename(bundle)}.sha256`);
   const manifest = resolve(output, `techwriter-archify-${commit}.manifest.json`);
+  const sourceShallowPath = resolve(ROOT, run(['rev-parse', '--git-path', 'shallow']));
+  const shallowBoundary = existsSync(sourceShallowPath) ? readFileSync(sourceShallowPath) : null;
+  const shallowSidecar = resolve(output, `${basename(bundle)}.shallow`);
 
   // Pass the symbolic ref, not only its object id: Git bundles advertise refs,
   // and a bare object id produces an empty bundle even when it resolves to HEAD.
@@ -52,6 +55,7 @@ function createBundle(args) {
   run(['bundle', 'verify', bundle]);
   const digest = sha256(bundle);
   writeFileSync(checksum, `${digest}  ${basename(bundle)}\n`);
+  if (shallowBoundary?.byteLength) writeFileSync(shallowSidecar, shallowBoundary);
 
   const restoreRoot = mkdtempSync(resolve(tmpdir(), 'techwriter-archify-restore-'));
   let restoredCommit;
@@ -59,6 +63,10 @@ function createBundle(args) {
     run(['clone', '--no-checkout', bundle, restoreRoot], ROOT);
     restoredCommit = run(['rev-parse', 'HEAD'], restoreRoot);
     if (restoredCommit !== commit) throw new Error(`restore drill resolved ${restoredCommit}, expected ${commit}`);
+    if (shallowBoundary?.byteLength) {
+      const restoredGitDir = resolve(restoreRoot, run(['rev-parse', '--git-dir'], restoreRoot));
+      writeFileSync(resolve(restoredGitDir, 'shallow'), shallowBoundary);
+    }
     run(['fsck', '--no-reflogs'], restoreRoot);
   } finally {
     rmSync(restoreRoot, { recursive: true, force: true });
@@ -72,7 +80,16 @@ function createBundle(args) {
     workingTreeClean: !dirty,
     bundle: { file: basename(bundle), sha256: digest },
     checksum: basename(checksum),
-    restoreDrill: { ok: true, restoredCommit, command: 'git clone --no-checkout <bundle> && git fsck --no-reflogs' },
+    shallowBoundary: shallowBoundary?.byteLength
+      ? { file: basename(shallowSidecar), sha256: sha256(shallowSidecar) }
+      : null,
+    restoreDrill: {
+      ok: true,
+      restoredCommit,
+      command: shallowBoundary?.byteLength
+        ? 'git clone --no-checkout <bundle> && copy <bundle>.shallow <clone>/.git/shallow && git fsck --no-reflogs'
+        : 'git clone --no-checkout <bundle> && git fsck --no-reflogs',
+    },
   };
   writeFileSync(manifest, `${JSON.stringify(result, null, 2)}\n`);
   console.log(JSON.stringify({ ok: true, output: relative(ROOT, output).replaceAll('\\', '/'), commit, bundle: basename(bundle), sha256: digest }, null, 2));

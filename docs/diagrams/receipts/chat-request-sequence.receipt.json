@@ -15,13 +15,13 @@
   },
   "artifact": {
     "path": "public/diagrams/chat-request-sequence.html",
-    "sha256": "9c432230a4c6d759fae89828ebd928c29ce0571883a75cdb8cc9c5e0568cac4c",
+    "sha256": "67c36f07af092af6e1d092509f720708850923fa7b4c2ad98d674703ea791e95",
     "bytes": 625085
   },
   "hardening": {
     "staticOnly": true,
     "remoteLinksRemoved": 4,
-    "csp": "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; media-src blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+    "csp": "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; media-src blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'",
     "sandboxRequirement": "allow-scripts allow-downloads; no allow-same-origin"
   },
   "quality": {

@@ -21,6 +21,12 @@ runtime renderer outcome is **PAUSE**. We deliberately ship static output:
 4. Serve the page under `public/diagrams` only through a sandboxed iframe with
    `allow-scripts allow-downloads` and no `allow-same-origin`.
 
+`public/_headers` is the enforcement point for the diagram-route CSP. It uses
+`frame-ancestors 'self'` and `X-Frame-Options: SAMEORIGIN` so the app can embed
+its own static page while third-party sites cannot frame it. The same CSP also
+appears in the page for static-file portability, but the response header is the
+authoritative framing control.
+
 The user-visible `archify` artifact type accepts only a small JSON reference to
 the five checked-in pages. It has no URL or path field and is validated before
 the iframe is created.
@@ -45,6 +51,11 @@ in the ignored `.archify-backups/` directory. It verifies the bundle, performs
 a clean clone into a temporary directory, and runs `git fsck` before reporting
 success. Run it after each committed checkpoint; CI independently uploads the
 same source and generated-artifact evidence.
+
+If the checkout itself is shallow, the command also records a small `.shallow`
+boundary sidecar. A restore uses that sidecar as the clone's `.git/shallow`
+file before `git fsck`, preserving the available history boundary rather than
+claiming unavailable parent commits were backed up.
 
 ## Supported static references
 

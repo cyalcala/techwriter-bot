@@ -15,13 +15,13 @@
   },
   "artifact": {
     "path": "public/diagrams/provider-circuit-lifecycle.html",
-    "sha256": "b2a3e44af9f069b58a51ba2528029a62dffd6bfa5d0976d0d8ca4fbaf1e48078",
+    "sha256": "97519354297ea32de6da78ba9df47f36f3255d6b83e1b0386a746363b62961c4",
     "bytes": 624757
   },
   "hardening": {
     "staticOnly": true,
     "remoteLinksRemoved": 4,
-    "csp": "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; media-src blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+    "csp": "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; media-src blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'",
     "sandboxRequirement": "allow-scripts allow-downloads; no allow-same-origin"
   },
   "quality": {

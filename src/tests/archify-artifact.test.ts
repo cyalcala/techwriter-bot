@@ -96,12 +96,20 @@ describe('Archify parser and routing integration', () => {
 
 describe('checked-in Archify delivery outputs', () => {
   it('keeps all five static pages and receipts hardened and byte-attested', () => {
+    const headers = readFileSync(join(process.cwd(), 'public', '_headers'), 'utf8');
+    const diagramHeaders = headers.slice(headers.indexOf('/diagrams/*'));
+
+    expect(diagramHeaders).toContain('X-Frame-Options: SAMEORIGIN');
+    expect(diagramHeaders).toContain("frame-ancestors 'self'");
+    expect(diagramHeaders).toContain("connect-src 'none'");
+
     for (const [diagramId, diagram] of Object.entries(ARCHIFY_STATIC_DIAGRAMS)) {
       const page = readFileSync(join(process.cwd(), 'public', diagram.src.replace(/^\//, '')), 'utf8');
       const receipt = JSON.parse(readFileSync(join(process.cwd(), 'docs', 'diagrams', 'receipts', `${diagramId}.receipt.json`), 'utf8'));
 
       expect(page).toContain('Content-Security-Policy');
       expect(page).toContain("connect-src 'none'");
+      expect(page).toContain("frame-ancestors 'self'");
       expect(page).not.toMatch(/\b(?:src|href)\s*=\s*["'](?:https?:)?\/\//i);
       expect(page).not.toContain('"href":"https://');
       expect(receipt).toMatchObject({ diagramId, type: diagram.type, ok: true, hardening: { staticOnly: true } });

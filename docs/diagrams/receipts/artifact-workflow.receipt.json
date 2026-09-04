@@ -15,13 +15,13 @@
   },
   "artifact": {
     "path": "public/diagrams/artifact-workflow.html",
-    "sha256": "b2e4665983f340ea087d18a4d5d446e0b2b6b211426461770b7a4fcc57088db3",
+    "sha256": "91620afb49436d5f1385c3e64d50b30c116d4c96c603e196bf43cdda7f926b7e",
     "bytes": 634021
   },
   "hardening": {
     "staticOnly": true,
     "remoteLinksRemoved": 4,
-    "csp": "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; media-src blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+    "csp": "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; media-src blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'",
     "sandboxRequirement": "allow-scripts allow-downloads; no allow-same-origin"
   },
   "quality": {

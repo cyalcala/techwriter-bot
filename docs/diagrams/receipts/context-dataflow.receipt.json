@@ -15,13 +15,13 @@
   },
   "artifact": {
     "path": "public/diagrams/context-dataflow.html",
-    "sha256": "9f93c2b08cc85afbb832f39610d5fbe09eba59e83e8e79f145bc87fadc83bee3",
+    "sha256": "55cd665ea1cad9ca21c3a64562f1f7e7df28c682d41b69397d2017b6f609c2e1",
     "bytes": 630480
   },
   "hardening": {
     "staticOnly": true,
     "remoteLinksRemoved": 4,
-    "csp": "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; media-src blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+    "csp": "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; media-src blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'",
     "sandboxRequirement": "allow-scripts allow-downloads; no allow-same-origin"
   },
   "quality": {
