@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "Chat request and provider failover sequence",
+    "subtitle": "A grounded view of the `/api/chat` request, optional graph context, and streamed provider response",
+    "animation": "trace",
+    "visual_preset": "editorial",
+    "quality_profile": "showcase",
+    "viewBox": [920, 760],
+    "views": [
+      { "id": "request", "label": "Request setup", "focus": ["writer", "client", "api", "graph"], "note": "The client reaches the chat API, which may enrich the request with graph context." },
+      { "id": "provider", "label": "Provider loop", "focus": ["api", "router", "provider"], "note": "The router selects an eligible provider and records failures for a later request." },
+      { "id": "stream", "label": "Stream to UI", "focus": ["provider", "router", "api", "client", "writer"], "note": "SSE chunks flow back through the API to the client parser and display." }
+    ]
+  },
+  "participants": [
+    { "id": "writer", "type": "external", "label": "Writer", "sublabel": "browser" },
+    { "id": "client", "type": "frontend", "label": "ChatIsland", "sublabel": "client UI" },
+    { "id": "api", "type": "backend", "label": "/api/chat", "sublabel": "Pages Function" },
+    { "id": "graph", "type": "database", "label": "Graph", "sublabel": "optional context" },
+    { "id": "router", "type": "backend", "label": "Zen router", "sublabel": "provider pool" },
+    { "id": "provider", "type": "cloud", "label": "Provider", "sublabel": "streaming model" }
+  ],
+  "segments": [
+    { "from": 150, "to": 300, "label": "Request and context" },
+    { "from": 325, "to": 490, "label": "Provider selection" },
+    { "from": 520, "to": 675, "label": "Stream and display" }
+  ],
+  "messages": [
+    { "id": "ask", "from": "writer", "to": "client", "y": 185, "label": "submit prompt", "variant": "default" },
+    { "id": "post", "from": "client", "to": "api", "y": 230, "label": "POST messages + session", "variant": "emphasis" },
+    { "id": "graph-query", "from": "api", "to": "graph", "y": 275, "label": "query if enabled", "variant": "dashed" },
+    { "id": "graph-context", "from": "graph", "to": "api", "y": 315, "label": "bounded context", "variant": "return" },
+    { "id": "route", "from": "api", "to": "router", "y": 365, "label": "messages + prompt contract", "variant": "emphasis" },
+    { "id": "attempt", "from": "router", "to": "provider", "y": 412, "label": "stream completion", "variant": "default" },
+    { "id": "failover", "from": "provider", "to": "router", "y": 455, "label": "retryable failure → next provider", "variant": "security" },
+    { "id": "sse", "from": "provider", "to": "router", "y": 525, "label": "SSE tokens", "variant": "return" },
+    { "id": "api-stream", "from": "router", "to": "api", "y": 570, "label": "response stream", "variant": "return" },
+    { "id": "client-stream", "from": "api", "to": "client", "y": 615, "label": "SSE + provider headers", "variant": "return" },
+    { "id": "render", "from": "client", "to": "writer", "y": 660, "label": "render answer / artifact", "variant": "return" }
+  ],
+  "activations": [
+    { "participant": "client", "from": 220, "to": 670, "type": "frontend" },
+    { "participant": "api", "from": 230, "to": 620, "type": "backend" },
+    { "participant": "graph", "from": 270, "to": 320, "type": "database" },
+    { "participant": "router", "from": 360, "to": 575, "type": "backend" },
+    { "participant": "provider", "from": 407, "to": 530, "type": "cloud" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Grounded behavior", "items": ["`/api/chat` initializes circuit persistence when SESSION KV is available.", "Graph context is conditional and bounded before prompt construction."] },
+    { "dot": "rose", "title": "Failure path", "items": ["Retryable provider outcomes can move to another eligible pool entry.", "The diagram does not promise a particular provider will always answer."] }
+  ]
+}

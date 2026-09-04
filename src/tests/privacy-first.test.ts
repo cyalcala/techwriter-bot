@@ -120,9 +120,9 @@ describe('privacy-first content retention', () => {
     const workflow = source('.github/workflows/deploy.yml');
     const graphify = source('scripts/graphify-ci.sh');
 
-    expect(workflow).toContain('actions/checkout@v6');
-    expect(workflow).toContain('actions/setup-node@v6');
-    expect(workflow).toContain('actions/setup-python@v6');
+    expect(workflow).toMatch(/actions\/checkout@[a-f0-9]{40}\s+# v6/);
+    expect(workflow).toMatch(/actions\/setup-node@[a-f0-9]{40}\s+# v6/);
+    expect(workflow).toMatch(/actions\/setup-python@[a-f0-9]{40}\s+# v6/);
     expect(workflow).not.toContain('FORCE_JAVASCRIPT_ACTIONS_TO_NODE24');
     expect(workflow).not.toContain('cloudflare/wrangler-action@');
     expect(workflow).toContain('run: npx wrangler pages deploy dist/client');

@@ -158,6 +158,7 @@
     mermaid: 'bg-indigo-600 text-white', graphviz: 'bg-purple-600 text-white',
     d2: 'bg-emerald-600 text-white', plantuml: 'bg-orange-600 text-white',
     vega: 'bg-teal-600 text-white', flowchart: 'bg-blue-600 text-white',
+    archify: 'bg-violet-700 text-white',
     svg: 'bg-amber-600 text-white', code: 'bg-slate-700 text-slate-100',
   };
 
@@ -167,8 +168,8 @@
 
   function rawDownload() {
     const content = svg || code;
-    const ext = svg ? '.svg' : '.txt';
-    const mime = svg ? 'image/svg+xml' : 'text/plain';
+    const ext = svg ? '.svg' : type === 'archify' ? '.json' : '.txt';
+    const mime = svg ? 'image/svg+xml' : type === 'archify' ? 'application/json' : 'text/plain';
     downloadBlob(content, (title || 'artifact').replace(/[^a-zA-Z0-9_-]/g, '_') + ext, mime);
   }
 

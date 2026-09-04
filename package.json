@@ -12,7 +12,12 @@
     "preview": "astro preview",
     "astro": "astro",
     "deploy:pages": "npm run build && node ./deploy-final.js",
-    "test": "vitest run"
+    "test": "vitest run",
+    "archify:doctor": "node ./scripts/archify.mjs doctor",
+    "archify:validate": "node ./scripts/archify.mjs validate all",
+    "archify:deliver": "node ./scripts/archify.mjs build all",
+    "archify:check": "node ./scripts/archify.mjs check all",
+    "backup:archify": "node ./scripts/backup-archify.mjs create"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^13.2.1",

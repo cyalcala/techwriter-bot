@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "diagramId": "provider-circuit-lifecycle",
+  "type": "lifecycle",
+  "provider": {
+    "name": "Archify",
+    "tag": "v2.13.0",
+    "commit": "2c1f8ac2ca28a26d0b68043ec80c9554e20ff0e3"
+  },
+  "source": {
+    "path": "docs/diagrams/src/provider-circuit-lifecycle.lifecycle.json",
+    "sha256": "c55616844b997ed05e704a87e124fc731e82fed4d2532b059cbd2abf9a872d96",
+    "bytes": 4686
+  },
+  "artifact": {
+    "path": "public/diagrams/provider-circuit-lifecycle.html",
+    "sha256": "b2a3e44af9f069b58a51ba2528029a62dffd6bfa5d0976d0d8ca4fbaf1e48078",
+    "bytes": 624757
+  },
+  "hardening": {
+    "staticOnly": true,
+    "remoteLinksRemoved": 4,
+    "csp": "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; media-src blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+    "sandboxRequirement": "allow-scripts allow-downloads; no allow-same-origin"
+  },
+  "quality": {
+    "ok": true,
+    "file": "public/diagrams/provider-circuit-lifecycle.html",
+    "checks": [
+      {
+        "name": "single_svg",
+        "ok": true,
+        "details": [
+          "found 1 <svg> block(s)"
+        ]
+      },
+      {
+        "name": "finite_svg",
+        "ok": true,
+        "details": []
+      },
+      {
+        "name": "orthogonal_arrows",
+        "ok": true,
+        "details": []
+      },
+      {
+        "name": "label_route_clearance",
+        "ok": true,
+        "details": []
+      },
+      {
+        "name": "relationship_crossings",
+        "ok": true,
+        "details": []
+      },
+      {
+        "name": "relationship_corridors",
+        "ok": true,
+        "details": []
+      },
+      {
+        "name": "container_border_runs",
+        "ok": true,
+        "details": []
+      },
+      {
+        "name": "route_rhythm",
+        "ok": true,
+        "details": []
+      },
+      {
+        "name": "legend_clearance",
+        "ok": true,
+        "details": []
+      }
+    ],
+    "composition": {
+      "schemaVersion": 1,
+      "profile": "showcase",
+      "status": "pass",
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      },
+      "metrics": {
+        "properCrossings": 0,
+        "ambiguousCorridors": 0,
+        "containerBorderRuns": 0,
+        "labelRouteClearanceIssues": 0,
+        "minLabelRouteClearance": null,
+        "maxBends": 3,
+        "routesOverSuggestedBends": 2,
+        "maxStretch": 3.267,
+        "routesOverSuggestedStretch": 2,
+        "minSegmentPx": 18,
+        "minInteriorSegmentPx": 78,
+        "shortSegmentCount": 0,
+        "shortEndpointSegmentCount": 0,
+        "shortInteriorSegmentCount": 0,
+        "microSegmentCount": 0
+      },
+      "suggestedLimits": {
+        "bendsPerRelationship": 2,
+        "stretch": 1.35,
+        "segmentPx": 16,
+        "microSegmentPx": 8
+      },
+      "issues": []
+    }
+  }
+}

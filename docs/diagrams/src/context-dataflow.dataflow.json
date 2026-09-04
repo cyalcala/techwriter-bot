@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "Techwriter Bot context and answer data flow",
+    "subtitle": "Target-grounded input, local context, prompt construction, provider streaming, and artifact display",
+    "viewBox": [1080, 760],
+    "animation": "trace",
+    "quality_profile": "showcase",
+    "views": [
+      { "id": "collection-path", "label": "Collection path", "focus": ["web", "mobile", "edge", "stream"], "note": "Follow product events from clients into the ordered event stream." },
+      { "id": "consent-boundary", "label": "Consent and PII", "focus": ["edge", "consent", "pii"], "note": "Isolate the policy gate and restricted identity store." },
+      { "id": "analytics-consumers", "label": "Curated consumers", "focus": ["stream", "warehouse", "dashboard", "features", "model"], "note": "See curated facts, dashboards, and the derived feature path." }
+    ]
+  },
+  "stages": [
+    { "label": "Input" },
+    { "label": "Route" },
+    { "label": "Context" },
+    { "label": "Generate" },
+    { "label": "Display" }
+  ],
+  "nodes": [
+    { "id": "web", "type": "frontend", "label": "Chat UI", "sublabel": "browser", "stage": 0, "row": 0, "tag": "prompt" },
+    { "id": "mobile", "type": "frontend", "label": "RAG", "sublabel": "session", "stage": 0, "row": 2, "tag": "local" },
+    { "id": "edge", "type": "cloud", "label": "Chat API", "sublabel": "request", "stage": 1, "row": 1, "tag": "TLS" },
+    { "id": "consent", "type": "security", "label": "Router", "sublabel": "path policy", "stage": 2, "row": 0, "tag": "guard" },
+    { "id": "stream", "type": "messagebus", "label": "Prompt", "sublabel": "layers", "stage": 2, "row": 2, "tag": "bounded" },
+    { "id": "pii", "type": "security", "label": "Graph", "sublabel": "code context", "stage": 3, "row": 0, "tag": "optional" },
+    { "id": "warehouse", "type": "database", "label": "Provider", "sublabel": "selected", "stage": 3, "row": 2, "tag": "stream" },
+    { "id": "features", "type": "database", "label": "SSE", "sublabel": "chunks", "stage": 3, "row": 4, "tag": "response" },
+    { "id": "dashboard", "type": "backend", "label": "Parser", "sublabel": "artifact tags", "stage": 4, "row": 1, "tag": "client" },
+    { "id": "model", "type": "backend", "label": "Panel", "sublabel": "preview", "stage": 4, "row": 4, "tag": "UI" }
+  ],
+  "flows": [
+    { "id": "web-clickstream", "from": "web", "to": "edge", "label": "prompt", "classification": "user input", "variant": "emphasis", "fromSide": "right", "toSide": "left", "via": [[205, 157], [205, 271]], "labelAt": [204, 190] },
+    { "id": "mobile-events", "from": "mobile", "to": "edge", "label": "chunks", "classification": "local context", "variant": "default", "fromSide": "right", "toSide": "left", "via": [[222, 385], [222, 271]], "labelAt": [220, 342] },
+    { "id": "consent-enrichment", "from": "edge", "to": "consent", "label": "route", "classification": "path policy", "variant": "security", "fromSide": "top", "toSide": "left", "via": [[315, 112], [450, 112], [450, 157]], "labelAt": [382, 100] },
+    { "id": "accepted-events", "from": "edge", "to": "stream", "label": "request", "classification": "normalized", "variant": "emphasis", "fromSide": "right", "toSide": "left", "via": [[420, 271], [420, 385]], "labelAt": [438, 324] },
+    { "id": "identity-map", "from": "consent", "to": "pii", "label": "lookup", "classification": "optional graph", "variant": "security", "route": "straight", "labelAt": [638, 144] },
+    { "id": "normalized-facts", "from": "stream", "to": "warehouse", "label": "messages", "classification": "prompt", "variant": "emphasis", "route": "straight", "labelAt": [638, 372] },
+    { "id": "daily-aggregates", "from": "warehouse", "to": "features", "label": "SSE", "classification": "stream", "variant": "dashed", "fromSide": "bottom", "toSide": "top", "route": "straight", "labelAt": [745, 496] },
+    { "id": "metrics-query", "from": "warehouse", "to": "dashboard", "label": "tags", "classification": "artifact source", "variant": "default", "fromSide": "right", "toSide": "left", "via": [[852, 385], [852, 271]], "labelAt": [830, 326] },
+    { "id": "feature-vectors", "from": "features", "to": "model", "label": "preview", "classification": "client UI", "variant": "dashed", "route": "straight", "labelAt": [852, 598] },
+    { "id": "restricted-join", "from": "pii", "to": "dashboard", "label": "context", "classification": "bounded", "variant": "security", "fromSide": "right", "toSide": "top", "via": [[878, 157], [878, 212], [960, 212]], "labelAt": [880, 198] }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Primary Data Path",
+      "items": [
+        "Input reaches the chat API from the browser and session-local context.",
+        "Path policy and prompt construction remain explicit before generation.",
+        "The provider output is returned as a stream."
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Sensitive Boundary",
+      "items": [
+        "Graph lookup and static artifact references are bounded paths.",
+        "The source does not claim durable content storage in KV.",
+        "Request-time Archify rendering is intentionally absent."
+      ]
+    },
+    {
+      "dot": "orange",
+      "title": "Derived Consumers",
+      "items": [
+        "The client parser recognizes artifact tags in streamed content.",
+        "The panel is the preview and download surface.",
+        "Archify pages are built ahead of deployment."
+      ]
+    }
+  ]
+}

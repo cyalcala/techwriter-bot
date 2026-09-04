@@ -12,6 +12,7 @@ const LABELS: Partial<Record<ArtifactType, string>> = {
   react: 'React',
   svg: 'SVG',
   vega: 'Vega',
+  archify: 'Archify',
 };
 
 const HINTS: Partial<Record<ArtifactType, string>> = {
@@ -26,6 +27,7 @@ const HINTS: Partial<Record<ArtifactType, string>> = {
   react: 'Make sure the React artifact defines an App component before retrying.',
   svg: 'Check the SVG markup, then view the source if rendering is still blocked.',
   vega: 'Check the Vega or Vega-Lite JSON, then retry the renderer or view the source.',
+  archify: 'Use one allowlisted static diagram reference, then retry or view the source.',
 };
 
 export function getArtifactRecoveryHint(type: string): string {

@@ -1,0 +1,19 @@
+schema_version: 1
+project: techwriter-bot
+governance:
+  authority: target-owned
+  execution_route: DESCARTES -> KARPATHY -> Addy -> optional Obra -> specialist
+  automatic_provider_activation: false
+providers:
+  ai_skills:
+    role: advisory-routing-only
+    local_path: C:/Users/admin/Desktop/ai-skills
+    approved_commit: 2821e1726e30de3410324244a527ace828df7f30
+    dynamic_install: false
+  archify:
+    role: vendored-reviewed-build-time-only
+    path: vendor/archify
+    repository: https://github.com/tt-a1i/archify.git
+    tag: v2.13.0
+    commit: 2c1f8ac2ca28a26d0b68043ec80c9554e20ff0e3
+    runtime_import_allowed: false

@@ -15,6 +15,14 @@ describe('artifact iframe sandboxing', () => {
     expect(rendererLoader).toContain('React artifact preview" sandbox=');
   });
 
+  it('keeps Archify previews on an allowlisted static page without same-origin privilege', () => {
+    const contract = source('src/lib/archify-artifact.ts');
+
+    expect(contract).toContain('sandbox="allow-scripts allow-downloads"');
+    expect(contract).toContain("src: '/diagrams/techwriter-architecture.html'");
+    expect(contract).not.toContain('allow-same-origin');
+  });
+
   it('does not load a third-party app runtime for artifact previews', () => {
     const rendererLoader = source('src/lib/renderer-loader.ts');
 

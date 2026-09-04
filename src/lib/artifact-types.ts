@@ -2,6 +2,7 @@ import type { ArtifactType } from './stream-parser';
 import { KROKI_RENDERABLE } from './kroki-renderer';
 import { looksLikeDeckSpec } from './deck-schema';
 import { looksLikeDocSpec } from './doc-schema';
+import { validateArchifyArtifact } from './archify-artifact';
 
 export const SUPPORTED_ARTIFACT_TYPES = [
   'code',
@@ -18,6 +19,7 @@ export const SUPPORTED_ARTIFACT_TYPES = [
   'flowchart',
   'deck',
   'document',
+  'archify',
 ] as const satisfies readonly ArtifactType[];
 
 export const PREVIEWABLE_ARTIFACT_TYPES = [
@@ -34,6 +36,7 @@ export const PREVIEWABLE_ARTIFACT_TYPES = [
   'flowchart',
   'deck',
   'document',
+  'archify',
 ] as const satisfies readonly ArtifactType[];
 
 const TYPE_ALIASES: Record<string, ArtifactType> = {
@@ -70,6 +73,7 @@ const TYPE_ALIASES: Record<string, ArtifactType> = {
   document: 'document',
   doc: 'document',
   report: 'document',
+  archify: 'archify',
 };
 
 const CODE_LANGS = new Set([
@@ -127,6 +131,7 @@ export function getDefaultArtifactTitle(type: ArtifactType, language?: string): 
   if (type === 'vega') return 'Vega Chart';
   if (type === 'deck') return 'Presentation';
   if (type === 'document') return 'Document';
+  if (type === 'archify') return 'Archify Diagram';
   return `${type.charAt(0).toUpperCase() + type.slice(1)} Diagram`;
 }
 
@@ -179,6 +184,8 @@ export function validateArtifact(type: ArtifactType, rawCode: string): boolean {
       return looksLikeDeckSpec(code);
     case 'document':
       return looksLikeDocSpec(code);
+    case 'archify':
+      return validateArchifyArtifact(code);
     default:
       return KROKI_RENDERABLE.has(type as string) ? code.length >= 5 : false;
   }

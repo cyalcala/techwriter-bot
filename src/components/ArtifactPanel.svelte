@@ -5,6 +5,7 @@
   import { exportFormatsFor, exportArtifactAs, downloadBlob } from '../lib/artifact-export';
   import { formatArtifactRendererError } from '../lib/artifact-error-boundary';
   import { KROKI_RENDERABLE } from '../lib/kroki-renderer';
+  import { renderArchifyArtifactFrame } from '../lib/archify-artifact';
 
   interface Props { artifact: Artifact; progressive?: boolean; onrenderererror?: (message: string) => void; }
   let { artifact, progressive = false, onrenderererror = () => {} }: Props = $props();
@@ -48,6 +49,7 @@
     react: 'bg-sky-600 text-white',
     deck: 'bg-amber-700 text-white',
     document: 'bg-stone-700 text-white',
+    archify: 'bg-violet-700 text-white',
   };
 
   const typeBadge = $derived(typeBadgeMap[artifact.type] || 'bg-gray-600 text-white');
@@ -74,6 +76,21 @@
     const renderTimeout = setTimeout(() => {
       if (!isLoaded) fail('Renderer took too long to load. Retry the renderer or view the source.');
     }, 15_000);
+
+    // Archify is an allowlisted, checked-in static page. It must not fall
+    // through to a dynamic renderer or accept a model-controlled URL.
+    if (a.type === 'archify') {
+      clearTimeout(renderTimeout);
+      try {
+        renderedHtml = renderArchifyArtifactFrame(a.code);
+        isLoaded = true;
+      } catch (error) {
+        fail(error instanceof Error ? error.message : String(error));
+      }
+      return () => {
+        cancelled = true;
+      };
+    }
 
     loadRenderer(a.type).then(() => {
       if (cancelled) return;
@@ -157,6 +174,7 @@
       html: '.html', svg: '.svg', mermaid: '.mmd', react: '.jsx',
       katex: '.tex', markmap: '.md', d2: '.d2', vega: '.json',
       graphviz: '.dot', plantuml: '.puml', flowchart: '.fc.js', deck: '.json',
+      archify: '.json',
     };
     const ext = extMap[artifact.type] || '.txt';
     downloadBlob(artifact.code, filenameBase() + ext, 'text/plain');
@@ -245,7 +263,7 @@
               <button type="button" onclick={() => activeTab = 'code'}>View code</button>
             </div>
           {/if}
-          {#if artifact.type === 'html' || artifact.type === 'react'}
+          {#if artifact.type === 'html' || artifact.type === 'react' || artifact.type === 'archify'}
             <div class="artifact-preview-shell artifact-preview-frame w-full">{@html renderedHtml}</div>
           {:else if artifact.type === 'svg' || artifact.type === 'plantuml'}
             <div class="artifact-preview-shell flex justify-center p-3 md:p-4 bg-[#fafafa]">{@html renderedHtml}</div>
@@ -299,6 +317,10 @@
 
   :global(.artifact-frame-html) {
     min-height: clamp(240px, 48vh, 620px);
+  }
+
+  :global(.artifact-frame-archify) {
+    min-height: clamp(400px, 62vh, 760px);
   }
 
   :global(.artifact-svg-host),

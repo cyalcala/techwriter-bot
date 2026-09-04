@@ -40,11 +40,13 @@
     graphviz: '.dot',
     plantuml: '.puml',
     flowchart: '.fc.js',
+    archify: '.json',
   };
   const SOURCE_MIME_TYPES: Record<string, string> = {
     html: 'text/html;charset=utf-8',
     svg: 'image/svg+xml;charset=utf-8',
     vega: 'application/json;charset=utf-8',
+    archify: 'application/json;charset=utf-8',
   };
   const SVG_DOWNLOAD_TYPES = new Set(['svg', 'mermaid', 'markmap', 'd2', 'vega', 'graphviz', 'plantuml', 'flowchart']);
 

@@ -54,6 +54,7 @@ const ARTIFACT_TYPES = new Set([
   'flowchart',
   'deck',
   'document',
+  'archify',
 ]);
 const ARTIFACT_PLACEMENTS = new Set(['inline', 'side', 'modal']);
 const ARTIFACT_STATUSES = new Set(['generating', 'ready', 'updating', 'error']);

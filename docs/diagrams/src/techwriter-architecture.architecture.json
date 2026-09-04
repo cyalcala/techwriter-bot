@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Techwriter Bot delivery architecture",
+    "subtitle": "Static application map grounded in the Astro, API, provider-routing, graph, and session modules",
+    "animation": "trace",
+    "visual_preset": "blueprint",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "https://github.com/cyalcala/techwriter-bot.git",
+      "revision": "476c4d9eabe78e8f21d18a7fe3f9e278bd1676ec"
+    },
+    "viewBox": [1180, 700],
+    "views": [
+      { "id": "chat-path", "label": "Chat request", "focus": ["user", "client", "chat-api", "router", "providers"], "note": "Follow a streamed chat request through the provider router." },
+      { "id": "context-path", "label": "Context enrichment", "focus": ["chat-api", "graph", "session"], "note": "Graph context and operational session state remain separate from generated artifacts." },
+      { "id": "artifact-path", "label": "Artifact delivery", "focus": ["client", "artifacts", "archify"], "note": "Interactive Archify pages are checked-in static assets, not request-time renders." }
+    ]
+  },
+  "components": [
+    { "id": "user", "type": "external", "label": "Technical writer", "sublabel": "browser session", "pos": [35, 315], "size": [130, 62] },
+    { "id": "client", "type": "frontend", "label": "Astro + Svelte client", "sublabel": "ChatIsland and artifact UI", "tag": "browser", "pos": [230, 315], "size": [170, 62], "sources": [{ "path": "src/components/ChatIsland.svelte", "label": "chat UI" }, { "path": "src/components/ArtifactPanel.svelte", "label": "artifact panel" }] },
+    { "id": "chat-api", "type": "backend", "label": "POST /api/chat", "sublabel": "input, CSRF, rate, SSE", "tag": "Pages Function", "pos": [475, 315], "size": [170, 62], "sources": [{ "path": "src/pages/api/chat.ts", "label": "chat route" }] },
+    { "id": "router", "type": "backend", "label": "Zen router", "sublabel": "role pool and failover", "tag": "SSE provider choice", "pos": [715, 315], "size": [170, 62], "sources": [{ "path": "src/lib/zen-router.ts", "label": "router" }, { "path": "src/lib/providers.ts", "label": "registry" }] },
+    { "id": "providers", "type": "external", "label": "AI provider pool", "sublabel": "Cerebras, Groq, Gemini, NVIDIA, OpenRouter, Workers AI", "tag": "six configured providers", "pos": [970, 315], "size": [180, 62], "sources": [{ "path": "src/lib/providers.ts", "label": "provider registry" }] },
+    { "id": "graph", "type": "database", "label": "Knowledge graph", "sublabel": "optional codebase context", "tag": "session-backed graph", "pos": [475, 130], "size": [170, 62], "sources": [{ "path": "src/lib/graph-query.ts", "label": "graph query" }, { "path": "src/pages/api/tool-graph-lookup.ts", "label": "tool route" }] },
+    { "id": "session", "type": "database", "label": "SESSION KV", "sublabel": "circuit and operational telemetry", "tag": "Cloudflare KV", "pos": [715, 130], "size": [170, 62], "sources": [{ "path": "wrangler.json", "label": "KV binding" }, { "path": "src/lib/zen-router.ts", "label": "circuit persistence" }] },
+    { "id": "artifacts", "type": "backend", "label": "Artifact pipeline", "sublabel": "parser, queue, preview", "tag": "client-side display", "pos": [230, 510], "size": [170, 62], "sources": [{ "path": "src/lib/stream-parser.ts", "label": "stream parser" }, { "path": "src/lib/artifact-queue.ts", "label": "artifact queue" }] },
+    { "id": "archify", "type": "cloud", "label": "Static Archify pages", "sublabel": "pinned build output only", "tag": "sandboxed iframe", "pos": [475, 510], "size": [170, 62], "sources": [{ "path": "src/components/ArtifactPanel.svelte", "label": "preview surface" }, { "path": "src/lib/artifact-types.ts", "label": "artifact contract" }] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Cloudflare Pages / Workers deployment", "wraps": ["chat-api", "router", "graph", "session", "archify"] },
+    { "kind": "security-group", "label": "Static-only Archify boundary", "wraps": ["archify"] }
+  ],
+  "connections": [
+    { "id": "user-client", "from": "user", "to": "client", "variant": "emphasis" },
+    { "id": "client-api", "from": "client", "to": "chat-api", "label": "POST + SSE", "variant": "emphasis" },
+    { "id": "api-router", "from": "chat-api", "to": "router" },
+    { "id": "router-providers", "from": "router", "to": "providers", "label": "stream request" },
+    { "id": "api-graph", "from": "chat-api", "to": "graph", "label": "optional context", "variant": "dashed", "fromSide": "top", "toSide": "bottom" },
+    { "id": "router-session", "from": "router", "to": "session", "label": "circuit state", "variant": "security", "fromSide": "top", "toSide": "bottom" },
+    { "id": "client-artifacts", "from": "client", "to": "artifacts", "label": "parse streamed artifact", "variant": "dashed", "fromSide": "bottom", "toSide": "top", "labelAt": [315, 445] },
+    { "id": "artifacts-archify", "from": "artifacts", "to": "archify", "label": "allowlisted static reference", "variant": "security", "labelAt": [438, 590] }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Request path", "items": ["The API enriches a chat request before the Zen router selects a configured provider.", "The route returns a server-sent stream to the client."] },
+    { "dot": "violet", "title": "Context and operations", "items": ["Knowledge-graph context is optional.", "KV persists provider circuit state and operational telemetry."] },
+    { "dot": "rose", "title": "Archify constraint", "items": ["Archify is not imported by a request handler.", "Only hardened, checked-in static HTML is embedded in a sandboxed iframe."] }
+  ]
+}

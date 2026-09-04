@@ -20,6 +20,7 @@ export interface PromptContext {
   needsDeck?: boolean;
   needsDoc?: boolean;
   needsChart?: boolean;
+  needsArchify?: boolean;
   clientSystemPrompt?: string;
 }
 
@@ -45,6 +46,15 @@ const ARTIFACT_COMPACT = [
   '',
   'Infographic: output <artifact type="html"> with self-contained HTML+CSS. Rounded cards, emoji icons, grid layout. Pure HTML — no JS, no external resources.',
   'Code request: If user explicitly asks for code, output ONLY code inside <artifact type="code"> — no diagram.',
+].join('\n');
+
+const ARCHIFY_COMPACT = [
+  'CRITICAL STATIC ARCHIFY RULES — YOU MUST FOLLOW THESE EXACTLY:',
+  '1. This request may use only a checked-in Techwriter Bot static diagram. Output exactly ONE <artifact type="archify" title="Title">...</artifact> as the entire response.',
+  '2. The tag body must be a compact JSON object with no markdown fence, no URL, no path, no HTML, and no extra fields.',
+  '3. Exact shape: {"schemaVersion":1,"diagramId":"<id>","diagramType":"<type>"}. An optional title is allowed.',
+  '4. Choose only one matching pair: techwriter-architecture/architecture, artifact-workflow/workflow, chat-request-sequence/sequence, context-dataflow/dataflow, provider-circuit-lifecycle/lifecycle.',
+  '5. Never invent a diagram ID and never use Archify for an unrelated request. These pages are static build output, not a runtime renderer.',
 ].join('\n');
 
 // Deck contract mirrors src/lib/deck-schema.ts — keep layouts/fields in sync.
@@ -240,7 +250,7 @@ export function buildSystemPrompt(query: string, ctx: PromptContext): string {
   }
 
   if (ctx.needsArtifact) {
-    const contract = ctx.needsChart ? CHART_COMPACT : ctx.needsDeck ? DECK_COMPACT : ctx.needsDoc ? DOC_COMPACT : ARTIFACT_COMPACT;
+    const contract = ctx.needsArchify ? ARCHIFY_COMPACT : ctx.needsChart ? CHART_COMPACT : ctx.needsDeck ? DECK_COMPACT : ctx.needsDoc ? DOC_COMPACT : ARTIFACT_COMPACT;
     layers.push({ priority: 4, content: contract });
   }
 

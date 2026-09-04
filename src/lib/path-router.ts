@@ -84,6 +84,19 @@ const CHART_REQUEST_RE = /\b(chart|pie\s?chart|bar\s?chart|line\s?chart|scatter\
 export function isChartGenerationRequest(query: string): boolean {
   return CHART_REQUEST_RE.test(query) && !DECK_REQUEST_RE.test(query);
 }
+
+// Archify is intentionally not a general runtime diagram engine. It is only
+// useful when the request is explicitly about this checked-in application map.
+// Other named diagram engines keep their established routing behavior.
+const ARCHIFY_TARGET_SCOPE_RE = /\b(?:techwriter[-\s]?bot|this\s+(?:app|codebase|repository))\b/i;
+const ARCHIFY_TOPIC_RE = /\b(?:archify|architecture|artifact\s+workflow|chat\s+(?:request|sequence)|context\s+(?:flow|dataflow)|provider\s+(?:circuit|lifecycle)|lifecycle)\b/i;
+const EXPLICIT_OTHER_DIAGRAM_ENGINE_RE = /\b(?:mermaid|graphviz|dot|d2|plantuml|puml|bpmn|archimate|vega(?:-lite)?|flowchart|katex|markmap)\b/i;
+
+export function isArchifyGenerationRequest(query: string): boolean {
+  return ARCHIFY_TARGET_SCOPE_RE.test(query)
+    && ARCHIFY_TOPIC_RE.test(query)
+    && !EXPLICIT_OTHER_DIAGRAM_ENGINE_RE.test(query);
+}
 const FORMAT_CHOICE = /^[123]$|^(mermaid|graphviz|d2|plantuml|flowchart|markmap|vega|katex|code|react)$/i;
 const LAST_AI_SUGGESTED = /\b(Mermaid|Graphviz|D2|PlantUML|Flowchart|Markmap|Vega|KaTeX)\b.*\bbest for\b/i;
 const CODE_EXPLICIT_REQUEST = /\b(write|show|give me|need|want|create|generate|build)\s+(a|the|some|me\s+)?\s*(python|javascript|typescript|js|ts|code|script|function|class|program|app|component)\b/i;

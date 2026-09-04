@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "Provider circuit lifecycle",
+    "subtitle": "Source-grounded Zen router eligibility, attempt, retry, ejection, and terminal pool outcomes",
+    "viewBox": [980, 660],
+    "animation": "trace",
+    "quality_profile": "showcase",
+    "views": [
+      { "id": "main-lifecycle", "label": "Main lifecycle", "focus": ["queued", "planning", "executing", "reviewing", "completed"], "note": "Follow the ordered phases from accepted request to completed response." },
+      { "id": "human-waits", "label": "Human and input waits", "focus": ["executing", "approval", "reviewing", "blocked"], "note": "See where the run pauses without becoming terminal." },
+      { "id": "recovery-and-exits", "label": "Recovery and terminal exits", "focus": ["executing", "failed", "blocked", "cancelled", "expired"], "note": "Separate retryable failure from cancellation and expiry." }
+    ]
+  },
+  "lanes": [
+    { "id": "main", "label": "Lifecycle phases" },
+    { "id": "waiting", "label": "Interruptions" },
+    { "id": "exceptions", "label": "Recovery loop" },
+    { "id": "terminal", "label": "Terminal exits" }
+  ],
+  "states": [
+    { "id": "queued", "type": "start", "label": "Eligible", "sublabel": "not ejected", "lane": "main", "col": 0, "step": "01", "tag": "candidate" },
+    { "id": "planning", "type": "active", "label": "Select", "sublabel": "role pool", "lane": "main", "col": 1, "step": "02", "tag": "route" },
+    { "id": "executing", "type": "active", "label": "Attempt", "sublabel": "call provider", "lane": "main", "col": 2, "step": "03", "tag": "stream" },
+    { "id": "reviewing", "type": "decision", "label": "Result", "sublabel": "classify outcome", "lane": "main", "col": 3, "step": "04", "tag": "check" },
+    { "id": "completed", "type": "success", "label": "Success", "sublabel": "clear failures", "lane": "main", "col": 4, "step": "05", "tag": "reset" },
+    { "id": "approval", "type": "waiting", "label": "Ejected", "sublabel": "until timeout", "lane": "waiting", "col": 0, "tag": "pause" },
+    { "id": "blocked", "type": "waiting", "label": "Retry wait", "sublabel": "next candidate", "lane": "waiting", "col": 1, "tag": "wait" },
+    { "id": "failed", "type": "failure", "label": "Retryable", "sublabel": "408, 429, 5xx", "lane": "exceptions", "col": 0, "yOffset": 78, "tag": "counter" },
+    { "id": "cancelled", "type": "failure", "label": "Permanent", "sublabel": "401", "lane": "terminal", "col": 0, "tag": "terminal" },
+    { "id": "expired", "type": "failure", "label": "No pool", "sublabel": "unavailable", "lane": "terminal", "col": 1, "tag": "terminal" }
+  ],
+  "transitions": [
+    { "id": "approval-needed", "from": "executing", "to": "approval", "variant": "security", "fromSide": "bottom", "toSide": "top", "route": "straight" },
+    { "id": "review-blocked", "from": "reviewing", "to": "blocked", "variant": "default", "route": "drop" },
+    { "id": "execution-failed", "from": "executing", "to": "failed", "variant": "security", "fromSide": "left", "toSide": "left", "via": [[320, 157], [320, 385]] },
+    { "id": "failed-retry", "from": "failed", "to": "executing", "variant": "emphasis", "fromSide": "left", "toSide": "top", "via": [[20, 385], [20, 80], [402, 80]] },
+    { "id": "block-expired", "from": "blocked", "to": "expired", "variant": "security", "fromSide": "bottom", "toSide": "top", "route": "straight" },
+    { "id": "approval-cancelled", "from": "approval", "to": "cancelled", "variant": "security", "fromSide": "bottom", "toSide": "top", "via": [[480, 336], [480, 432], [402, 432]] }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Main Path",
+      "items": [
+        "Eligible providers are selected by role, attempted, and classified.",
+        "A successful response clears failure timestamps and ejection state.",
+        "The main rail describes circuit eligibility rather than a service guarantee."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Human + Input Gates",
+      "items": [
+        "Three failures in the rolling 60-second window trigger ejection.",
+        "Temporary ejection is 30 seconds; a 401 uses a 10-minute path.",
+        "Artifact requests can intentionally remain session-locked to a provider."
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Terminal + Recovery",
+      "items": [
+        "Retryable outcomes can move to another eligible provider.",
+        "Permanent credential failure and pool exhaustion are terminal outcomes.",
+        "The router records telemetry and persists circuit state when KV is available."
+      ]
+    }
+  ]
+}

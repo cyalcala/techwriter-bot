@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "provider": "Archify",
+  "activation": "VENDORED_REVIEWED_BUILD_TIME_ONLY",
+  "repository": "https://github.com/tt-a1i/archify.git",
+  "tag": "v2.13.0",
+  "commit": "2c1f8ac2ca28a26d0b68043ec80c9554e20ff0e3",
+  "tree": "bc3a0ba6888663323afd57ff7d3cc7cf9627d2be",
+  "retrievedAt": "2026-09-05",
+  "vendorPath": "vendor/archify",
+  "license": {
+    "spdx": "MIT",
+    "file": "vendor/archify/LICENSE",
+    "sha256": "CDCD7064F3B27BDA0B8158B1C69C227C7BBF3E589AF566C4E3020BBBA56C6781"
+  },
+  "sourceHashes": {
+    "packageJsonSha256": "5F3F94AD87CB9AF35D79E1DDFEDF122F84D24EC3D019AA78B4E3D615BAC4C97A",
+    "skillSha256": "2C597700742CBC220ACDE6AE1D48A8567151AA87CABD96AA8D7164547C8E602A"
+  },
+  "runtime": {
+    "minimumNode": "18",
+    "verifiedWith": "22.13.0",
+    "edgeRuntimeCompatible": false,
+    "reason": "CLI and renderers import node:fs, node:path, node:child_process, node:os, and process APIs."
+  },
+  "allowances": {
+    "buildTimeCli": true,
+    "staticOutputs": true,
+    "requestTimeRendering": false,
+    "remoteAssetLoading": false,
+    "dynamicDependencyInstallation": false
+  }
+}

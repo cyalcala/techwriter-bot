@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "diagramId": "techwriter-architecture",
+  "type": "architecture",
+  "provider": {
+    "name": "Archify",
+    "tag": "v2.13.0",
+    "commit": "2c1f8ac2ca28a26d0b68043ec80c9554e20ff0e3"
+  },
+  "source": {
+    "path": "docs/diagrams/src/techwriter-architecture.architecture.json",
+    "sha256": "9fc8bf753c7db228e56e425ab667d9df20a374e706e588e372eb142641c0c981",
+    "bytes": 5665
+  },
+  "artifact": {
+    "path": "public/diagrams/techwriter-architecture.html",
+    "sha256": "b909dacedbe19316840611550677513bb53c409ccf1fa8713bee14b7940ee656",
+    "bytes": 627832
+  },
+  "hardening": {
+    "staticOnly": true,
+    "remoteLinksRemoved": 18,
+    "csp": "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; media-src blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+    "sandboxRequirement": "allow-scripts allow-downloads; no allow-same-origin"
+  },
+  "quality": {
+    "ok": true,
+    "file": "public/diagrams/techwriter-architecture.html",
+    "checks": [
+      {
+        "name": "single_svg",
+        "ok": true,
+        "details": [
+          "found 1 <svg> block(s)"
+        ]
+      },
+      {
+        "name": "finite_svg",
+        "ok": true,
+        "details": []
+      },
+      {
+        "name": "orthogonal_arrows",
+        "ok": true,
+        "details": []
+      },
+      {
+        "name": "label_route_clearance",
+        "ok": true,
+        "details": []
+      },
+      {
+        "name": "relationship_crossings",
+        "ok": true,
+        "details": []
+      },
+      {
+        "name": "relationship_corridors",
+        "ok": true,
+        "details": []
+      },
+      {
+        "name": "container_border_runs",
+        "ok": true,
+        "details": []
+      },
+      {
+        "name": "route_rhythm",
+        "ok": true,
+        "details": []
+      },
+      {
+        "name": "legend_clearance",
+        "ok": true,
+        "details": []
+      }
+    ],
+    "composition": {
+      "schemaVersion": 1,
+      "profile": "showcase",
+      "status": "pass",
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      },
+      "metrics": {
+        "properCrossings": 0,
+        "ambiguousCorridors": 0,
+        "containerBorderRuns": 0,
+        "labelRouteClearanceIssues": 0,
+        "minLabelRouteClearance": 55.7,
+        "maxBends": 0,
+        "routesOverSuggestedBends": 0,
+        "maxStretch": 1,
+        "routesOverSuggestedStretch": 0,
+        "minSegmentPx": 65,
+        "minInteriorSegmentPx": null,
+        "shortSegmentCount": 0,
+        "shortEndpointSegmentCount": 0,
+        "shortInteriorSegmentCount": 0,
+        "microSegmentCount": 0
+      },
+      "suggestedLimits": {
+        "bendsPerRelationship": 2,
+        "stretch": 1.35,
+        "segmentPx": 16,
+        "microSegmentPx": 8
+      },
+      "issues": []
+    }
+  }
+}

@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "diagramId": "artifact-workflow",
+  "type": "workflow",
+  "provider": {
+    "name": "Archify",
+    "tag": "v2.13.0",
+    "commit": "2c1f8ac2ca28a26d0b68043ec80c9554e20ff0e3"
+  },
+  "source": {
+    "path": "docs/diagrams/src/artifact-workflow.workflow.json",
+    "sha256": "913a399ad3c37bda2c3879a043e34e9df6da455253e88c2b0a03762a972c6ba2",
+    "bytes": 6689
+  },
+  "artifact": {
+    "path": "public/diagrams/artifact-workflow.html",
+    "sha256": "b2e4665983f340ea087d18a4d5d446e0b2b6b211426461770b7a4fcc57088db3",
+    "bytes": 634021
+  },
+  "hardening": {
+    "staticOnly": true,
+    "remoteLinksRemoved": 4,
+    "csp": "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; media-src blob:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+    "sandboxRequirement": "allow-scripts allow-downloads; no allow-same-origin"
+  },
+  "quality": {
+    "ok": true,
+    "file": "public/diagrams/artifact-workflow.html",
+    "checks": [
+      {
+        "name": "single_svg",
+        "ok": true,
+        "details": [
+          "found 1 <svg> block(s)"
+        ]
+      },
+      {
+        "name": "finite_svg",
+        "ok": true,
+        "details": []
+      },
+      {
+        "name": "orthogonal_arrows",
+        "ok": true,
+        "details": []
+      },
+      {
+        "name": "label_route_clearance",
+        "ok": true,
+        "details": []
+      },
+      {
+        "name": "relationship_crossings",
+        "ok": true,
+        "details": []
+      },
+      {
+        "name": "relationship_corridors",
+        "ok": true,
+        "details": []
+      },
+      {
+        "name": "container_border_runs",
+        "ok": true,
+        "details": []
+      },
+      {
+        "name": "route_rhythm",
+        "ok": true,
+        "details": []
+      },
+      {
+        "name": "legend_clearance",
+        "ok": true,
+        "details": []
+      }
+    ],
+    "composition": {
+      "schemaVersion": 1,
+      "profile": "showcase",
+      "status": "pass",
+      "summary": {
+        "errors": 0,
+        "warnings": 0
+      },
+      "metrics": {
+        "properCrossings": 0,
+        "ambiguousCorridors": 0,
+        "containerBorderRuns": 0,
+        "labelRouteClearanceIssues": 0,
+        "minLabelRouteClearance": 52.1,
+        "maxBends": 2,
+        "routesOverSuggestedBends": 0,
+        "maxStretch": 1.257,
+        "routesOverSuggestedStretch": 0,
+        "minSegmentPx": 13,
+        "minInteriorSegmentPx": 70,
+        "shortSegmentCount": 1,
+        "shortEndpointSegmentCount": 1,
+        "shortInteriorSegmentCount": 0,
+        "microSegmentCount": 0
+      },
+      "suggestedLimits": {
+        "bendsPerRelationship": 2,
+        "stretch": 1.35,
+        "segmentPx": 16,
+        "microSegmentPx": 8
+      },
+      "issues": []
+    }
+  }
+}

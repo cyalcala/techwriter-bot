@@ -30,6 +30,8 @@ projects.txt
 .tmp_sandbox_write_test.txt
 .codex-scratch/
 .codex-staging-*/
+.archify-backups/
+ci-artifacts/
 .playwright-cli/
 .gh-config/
 .uv-bin/
