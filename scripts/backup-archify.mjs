@@ -46,7 +46,9 @@ function createBundle(args) {
   const checksum = resolve(output, `${basename(bundle)}.sha256`);
   const manifest = resolve(output, `techwriter-archify-${commit}.manifest.json`);
 
-  run(['bundle', 'create', bundle, commit]);
+  // Pass the symbolic ref, not only its object id: Git bundles advertise refs,
+  // and a bare object id produces an empty bundle even when it resolves to HEAD.
+  run(['bundle', 'create', bundle, 'HEAD']);
   run(['bundle', 'verify', bundle]);
   const digest = sha256(bundle);
   writeFileSync(checksum, `${digest}  ${basename(bundle)}\n`);
