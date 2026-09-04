@@ -99,6 +99,9 @@ describe('checked-in Archify delivery outputs', () => {
     const headers = readFileSync(join(process.cwd(), 'public', '_headers'), 'utf8');
     const diagramHeaders = headers.slice(headers.indexOf('/diagrams/*'));
 
+    expect(diagramHeaders).toContain('! X-Frame-Options');
+    expect(diagramHeaders).toContain('! Referrer-Policy');
+    expect(diagramHeaders).toContain('! Content-Security-Policy');
     expect(diagramHeaders).toContain('X-Frame-Options: SAMEORIGIN');
     expect(diagramHeaders).toContain("frame-ancestors 'self'");
     expect(diagramHeaders).toContain("connect-src 'none'");

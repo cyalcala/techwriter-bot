@@ -23,9 +23,11 @@ runtime renderer outcome is **PAUSE**. We deliberately ship static output:
 
 `public/_headers` is the enforcement point for the diagram-route CSP. It uses
 `frame-ancestors 'self'` and `X-Frame-Options: SAMEORIGIN` so the app can embed
-its own static page while third-party sites cannot frame it. The same CSP also
-appears in the page for static-file portability, but the response header is the
-authoritative framing control.
+its own static page while third-party sites cannot frame it. The rule first
+detaches the broader site-wide CSP, framing, and referrer headers because Pages
+combines matching header values. The same CSP also appears in the page for
+static-file portability, but the response header is the authoritative framing
+control.
 
 The user-visible `archify` artifact type accepts only a small JSON reference to
 the five checked-in pages. It has no URL or path field and is validated before
