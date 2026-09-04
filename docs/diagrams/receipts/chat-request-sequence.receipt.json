@@ -15,7 +15,7 @@
   },
   "artifact": {
     "path": "public/diagrams/chat-request-sequence.html",
-    "sha256": "67c36f07af092af6e1d092509f720708850923fa7b4c2ad98d674703ea791e95",
+    "sha256": "3e2006e40c8233b737908c6915491fee451a812f0ee139062d968e47b39f20df",
     "bytes": 625085
   },
   "hardening": {

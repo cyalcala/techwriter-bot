@@ -10,12 +10,12 @@
   },
   "source": {
     "path": "docs/diagrams/src/provider-circuit-lifecycle.lifecycle.json",
-    "sha256": "c55616844b997ed05e704a87e124fc731e82fed4d2532b059cbd2abf9a872d96",
+    "sha256": "ff424355877115749d4d7f1a29c6d9e49445e976ca79ad8f67e3358725f0ccf6",
     "bytes": 4686
   },
   "artifact": {
     "path": "public/diagrams/provider-circuit-lifecycle.html",
-    "sha256": "97519354297ea32de6da78ba9df47f36f3255d6b83e1b0386a746363b62961c4",
+    "sha256": "238dfbcc600f0cf1bd5771b22ac6070b3f79ad0a096b8bdb42574ac672797857",
     "bytes": 624757
   },
   "hardening": {

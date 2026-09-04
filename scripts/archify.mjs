@@ -33,7 +33,10 @@ function fail(message) {
 }
 
 function sha256(value) {
-  return createHash('sha256').update(value).digest('hex');
+  // Generated sources and pages are textual Git artifacts. Normalize CRLF so
+  // a Windows author and Linux CI attest to the same committed content.
+  const text = Buffer.isBuffer(value) ? value.toString('utf8') : String(value);
+  return createHash('sha256').update(text.replace(/\r\n/g, '\n')).digest('hex');
 }
 
 function isInside(parent, candidate) {

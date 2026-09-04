@@ -10,12 +10,12 @@
   },
   "source": {
     "path": "docs/diagrams/src/artifact-workflow.workflow.json",
-    "sha256": "913a399ad3c37bda2c3879a043e34e9df6da455253e88c2b0a03762a972c6ba2",
+    "sha256": "56c1cc9dd1ee8382b48baf13a0f365ecc4e85078919acc15a27fb12eb9f5574d",
     "bytes": 6689
   },
   "artifact": {
     "path": "public/diagrams/artifact-workflow.html",
-    "sha256": "91620afb49436d5f1385c3e64d50b30c116d4c96c603e196bf43cdda7f926b7e",
+    "sha256": "38dc8e0d2492d7cdfdbb4aababcbf8d9cae1090fb4b539c7fd2ecae899b0583d",
     "bytes": 634021
   },
   "hardening": {

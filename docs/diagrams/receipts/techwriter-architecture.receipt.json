@@ -15,7 +15,7 @@
   },
   "artifact": {
     "path": "public/diagrams/techwriter-architecture.html",
-    "sha256": "01a4ccf8a078ecca4759ce29e9ce7600d31801e644e50e28951906596bdf07fa",
+    "sha256": "41651c36d5b69be6f7199b549f401f195146c0ef965769245fef1cf77d160cce",
     "bytes": 627832
   },
   "hardening": {
