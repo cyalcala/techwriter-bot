@@ -210,6 +210,9 @@ export const POST: APIRoute = async (ctx) => {
     // diagrams are additive to the normal answer and must not disable search,
     // graph context, provider failover, or the selected chat path.
     const effectivePath = needsArtifact ? 'fast' : pathCtx.path;
+    // Agent is a routing mode with its own loop below, not a provider chat
+    // path. Use the balanced accounting/prompt layer for each agent turn.
+    const responsePath = effectivePath === 'agent' ? 'balanced' : effectivePath;
     log('path', { path: pathCtx.path, reason: pathCtx.reason });
 
     let searchResult: SearchResult = { contextParts: [], sources: [], searchTier: 'none', searchAttempted: false };
@@ -251,7 +254,7 @@ export const POST: APIRoute = async (ctx) => {
     }
 
     const promptCtx: PromptContext = {
-      path: effectivePath,
+      path: responsePath,
       graphContext: graphContextStr || undefined,
       youtubeContext: youtubeContextStr || undefined,
       searchResult,
@@ -302,7 +305,7 @@ export const POST: APIRoute = async (ctx) => {
       searchTier: searchResult.searchTier,
       searchRemaining: searchResult.enhancedRemaining != null ? String(searchResult.enhancedRemaining) : (isDev ? 'unlimited' : '0'),
       tier: isDev ? 'dev' : tier,
-      chatPath: effectivePath,
+      chatPath: responsePath,
       inputTokens,
     };
 
@@ -327,7 +330,7 @@ export const POST: APIRoute = async (ctx) => {
           while (loopCount < maxLoops) {
             loopCount++;
             const res = await routeChat(
-              body.intent || 'chat-fast', messages, locals, env, sessionId, searchResult.sources, meta, pool, effectivePath,
+              body.intent || 'chat-fast', messages, locals, env, sessionId, searchResult.sources, meta, pool, responsePath,
               true, 2048, parseProviderFaultInjection(env, request.headers), agenticTools, false
             );
             
@@ -380,7 +383,7 @@ export const POST: APIRoute = async (ctx) => {
 
     const response = await routeChat(
       effectivePath === 'fast' ? 'chat-fast' : body.intent || 'chat-fast',
-      messages, locals, env, sessionId, searchResult.sources, meta, pool, effectivePath,
+      messages, locals, env, sessionId, searchResult.sources, meta, pool, responsePath,
       forceSticky,
       needsArtifact
         ? ((needsDeck || needsDoc) ? 4096 : 2048)
