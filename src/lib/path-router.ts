@@ -237,6 +237,58 @@ function hasConflictingViews(query: string, rankedTypes: DiagramType[]): boolean
     && top - second <= 3;
 }
 
+function isDiagramType(value: unknown): value is DiagramType {
+  return typeof value === 'string' && DIAGRAM_OPTIONS.some((option) => option.type === value);
+}
+
+function readLastDiagramChoicePayload(messages?: any[]): DiagramChoicePayload | null {
+  if (!Array.isArray(messages)) return null;
+  const lastAssistant = [...messages]
+    .reverse()
+    .find((message: any) => message?.role === 'assistant' && typeof message.content === 'string');
+  if (!lastAssistant) return null;
+
+  const match = lastAssistant.content.match(/<diagram-options\s*>\s*([\s\S]*?)\s*<\/diagram-options\s*>/i);
+  if (!match) return null;
+
+  try {
+    const payload = JSON.parse(match[1]) as Partial<DiagramChoicePayload>;
+    if (payload.schemaVersion !== 1 || payload.kind !== 'diagram-options' || !isDiagramType(payload.recommended)) return null;
+    if (!Array.isArray(payload.options) || payload.options.length === 0) return null;
+    const options = payload.options.filter((option: any) => isDiagramType(option?.type)
+      && typeof option?.label === 'string'
+      && typeof option?.description === 'string') as DiagramOption[];
+    if (options.length !== payload.options.length) return null;
+    return {
+      schemaVersion: 1,
+      kind: 'diagram-options',
+      recommended: payload.recommended,
+      confidence: typeof payload.confidence === 'number' ? payload.confidence : 0,
+      options: options.map((option) => ({ ...option })),
+      prompt: typeof payload.prompt === 'string' ? payload.prompt : 'Choose a visual angle, or use the recommended view.',
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Resolve a follow-up choice only when the preceding assistant message
+ * contains our validated option payload. This prevents a bare “1” in a
+ * normal conversation from becoming an artifact request.
+ */
+export function resolveDiagramChoice(query: string, messages?: any[]): DiagramType | null {
+  const value = query.trim().toLowerCase().replace(/[.!?]+$/, '');
+  const payload = readLastDiagramChoicePayload(messages);
+  if (!payload) return null;
+
+  if (isDiagramType(value)) return value;
+  if (!/^[1-5]$/.test(value)) return null;
+
+  const option = payload.options[Number(value) - 1];
+  return option?.type || null;
+}
+
 /**
  * Infer the least-surprising diagram experience for a user request.
  *
@@ -246,7 +298,7 @@ function hasConflictingViews(query: string, rankedTypes: DiagramType[]): boolean
  *   underspecified; show a recommended view first and let the user choose.
  * - `none`: retain ordinary prose or the existing explicit artifact route.
  */
-export function inferDiagramPlan(query: string): DiagramPlan {
+export function inferDiagramPlan(query: string, messages?: any[]): DiagramPlan {
   const normalized = query.trim();
   const emptyPlan: DiagramPlan = {
     mode: 'none',
@@ -257,6 +309,19 @@ export function inferDiagramPlan(query: string): DiagramPlan {
     archifyEligible: false,
   };
   if (!normalized) return emptyPlan;
+
+  const selected = resolveDiagramChoice(normalized, messages);
+  if (selected) {
+    return {
+      mode: 'automatic',
+      recommended: selected,
+      confidence: 0.99,
+      options: copyDiagramOptions(selected),
+      rationale: `The user selected the ${selected} view.`,
+      explicit: true,
+      archifyEligible: false,
+    };
+  }
 
   // A request for a different artifact should not accidentally become a
   // diagram. “Chart” and “table” are deliberately left to their own routes.
@@ -310,16 +375,16 @@ export function inferDiagramPlan(query: string): DiagramPlan {
   return emptyPlan;
 }
 
-export function isAutomaticDiagramGenerationRequest(query: string): boolean {
-  return inferDiagramPlan(query).mode === 'automatic';
+export function isAutomaticDiagramGenerationRequest(query: string, messages?: any[]): boolean {
+  return inferDiagramPlan(query, messages).mode === 'automatic';
 }
 
-export function shouldOfferDiagramChoices(query: string): boolean {
-  return inferDiagramPlan(query).mode === 'choices';
+export function shouldOfferDiagramChoices(query: string, messages?: any[]): boolean {
+  return inferDiagramPlan(query, messages).mode === 'choices';
 }
 
-export function isDiagramGenerationRequest(query: string): boolean {
-  const mode = inferDiagramPlan(query).mode;
+export function isDiagramGenerationRequest(query: string, messages?: any[]): boolean {
+  const mode = inferDiagramPlan(query, messages).mode;
   return mode === 'automatic' || mode === 'choices';
 }
 
@@ -349,6 +414,7 @@ export function isArtifactGenerationRequest(query: string, messages?: any[]): bo
   if (GEN_ARTIFACT_TRIGGER.test(query)) return true;
 
   const trimmed = query.trim();
+  if (resolveDiagramChoice(trimmed, messages)) return true;
   if (FORMAT_CHOICE.test(trimmed) && messages) {
     const lastAI = [...messages].reverse().find((m: any) => m.role === 'assistant');
     if (lastAI && LAST_AI_SUGGESTED.test(lastAI.content || '')) return true;

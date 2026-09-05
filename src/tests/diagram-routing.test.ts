@@ -4,6 +4,8 @@ import {
   inferDiagramPlan,
   isAutomaticDiagramGenerationRequest,
   isDiagramGenerationRequest,
+  isArtifactGenerationRequest,
+  resolveDiagramChoice,
   shouldOfferDiagramChoices,
   toDiagramChoicePayload,
 } from '../lib/path-router';
@@ -79,6 +81,21 @@ describe('automatic diagram routing', () => {
     expect(plan.mode).toBe('automatic');
     expect(plan.recommended).toBe('workflow');
     expect(plan.archifyEligible).toBe(false);
+  });
+
+  it('resolves a numeric or named follow-up only after a validated choice payload', () => {
+    const plan = inferDiagramPlan('Create a diagram about this topic');
+    const payload = toDiagramChoicePayload(plan);
+    const messages = [{
+      role: 'assistant',
+      content: `Here are the available views.\n<diagram-options>${JSON.stringify(payload)}</diagram-options>`,
+    }];
+
+    expect(resolveDiagramChoice('2', messages)).toBe('workflow');
+    expect(resolveDiagramChoice('lifecycle', messages)).toBe('lifecycle');
+    expect(isArtifactGenerationRequest('2', messages)).toBe(true);
+    expect(isArtifactGenerationRequest('2', [{ role: 'assistant', content: 'Pick an option: 1, 2, or 3.' }])).toBe(false);
+    expect(inferDiagramPlan('2', messages).recommended).toBe('workflow');
   });
 });
 
