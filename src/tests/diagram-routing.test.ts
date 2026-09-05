@@ -44,6 +44,11 @@ describe('automatic diagram routing', () => {
     expect(plan.rationale).toContain('architecture');
   });
 
+  it('recognizes natural explanatory phrasing without special diagram words', () => {
+    expect(inferDiagramPlan('Tell me about political dynasties').mode).toBe('automatic');
+    expect(inferDiagramPlan('What is a political dynasty?').recommended).toBe('architecture');
+  });
+
   it('returns a recommended view plus all optional angles for an underspecified diagram request', () => {
     const plan = inferDiagramPlan('Create a diagram about this topic');
     const payload = toDiagramChoicePayload(plan);
