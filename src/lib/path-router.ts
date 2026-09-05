@@ -19,6 +19,76 @@ export interface PathContext {
   reason: string;
 }
 
+/**
+ * The five explanatory views we can produce for a conceptual question.
+ *
+ * These names are deliberately format-neutral. The model may render the view
+ * as Mermaid (the default) or the caller may map the selected view to one of
+ * the checked-in Archify pages when the request is in that repository's scope.
+ */
+export type DiagramType = 'architecture' | 'workflow' | 'sequence' | 'dataflow' | 'lifecycle';
+
+export interface DiagramOption {
+  type: DiagramType;
+  label: string;
+  description: string;
+}
+
+export const DIAGRAM_OPTIONS: DiagramOption[] = [
+  {
+    type: 'architecture',
+    label: 'Architecture',
+    description: 'Parts, boundaries, layers, and relationships',
+  },
+  {
+    type: 'workflow',
+    label: 'Workflow',
+    description: 'Steps, decisions, and the path from start to finish',
+  },
+  {
+    type: 'sequence',
+    label: 'Sequence',
+    description: 'Interactions and messages in time order',
+  },
+  {
+    type: 'dataflow',
+    label: 'Dataflow',
+    description: 'Where information comes from and how it moves',
+  },
+  {
+    type: 'lifecycle',
+    label: 'Lifecycle',
+    description: 'States, transitions, retries, and recovery',
+  },
+];
+
+export type DiagramPlanMode = 'none' | 'automatic' | 'choices';
+
+/**
+ * Server-side intent result shared by routing, prompt construction, and UI.
+ * `recommended` is always first in `options`; choices can still show every
+ * view so the user can choose a richer angle without knowing diagram jargon.
+ */
+export interface DiagramPlan {
+  mode: DiagramPlanMode;
+  recommended?: DiagramType;
+  confidence: number;
+  options: DiagramOption[];
+  rationale: string;
+  explicit: boolean;
+  archifyEligible: boolean;
+}
+
+/** Stable payload shape for an optional diagram picker in the chat UI. */
+export interface DiagramChoicePayload {
+  schemaVersion: 1;
+  kind: 'diagram-options';
+  recommended: DiagramType;
+  confidence: number;
+  options: DiagramOption[];
+  prompt: string;
+}
+
 const sessionPaths = new Map<string, ChatPath>();
 
 export function determineChatPath(
@@ -91,6 +161,179 @@ export function isChartGenerationRequest(query: string): boolean {
 const ARCHIFY_TARGET_SCOPE_RE = /\b(?:techwriter[-\s]?bot|this\s+(?:app|codebase|repository))\b/i;
 const ARCHIFY_TOPIC_RE = /\b(?:archify|architecture|artifact\s+workflow|chat\s+(?:request|sequence)|context\s+(?:flow|dataflow)|provider\s+(?:circuit|lifecycle)|lifecycle)\b/i;
 const EXPLICIT_OTHER_DIAGRAM_ENGINE_RE = /\b(?:mermaid|graphviz|dot|d2|plantuml|puml|bpmn|archimate|vega(?:-lite)?|flowchart|katex|markmap)\b/i;
+
+const EXPLICIT_VISUAL_RE = /\b(?:diagram|flowchart|visual(?:ization|ise|ize)?|graph|map|draw|plot|illustrate|render|architecture|workflow|sequence|dataflow|data\s+flow|lifecycle|relationship\s+map|concept\s+map)\b/i;
+const CONCEPTUAL_EXPLANATION_RE = /\b(?:discuss|explain|overview|summari[sz]e|break\s+down|how\s+(?:does|do|is|are)|why\s+(?:does|do|is|are)|compare|contrast|relationship|causes?|effects?|timeline|structure|framework|model|analy[sz]e)\b/i;
+const CHOICE_REQUEST_RE = /\b(?:options?|choices?|which\s+(?:kind|type|view|format)|pick|choose|perspective|angle|ways?\s+to\s+(?:show|view|map)|architecture\s+or\s+workflow|workflow\s+or\s+sequence)\b/i;
+const NON_DIAGRAM_ARTIFACT_RE = /\b(?:code|script|function|class|program|component|website|web\s+page|presentation|slide\s+deck|slides?|deck|document|report|memo|brief|white\s+paper|chart|table|spreadsheet|image|photo)\b/i;
+const MULTI_VIEW_RE = /\b(?:and|or|versus|vs\.?|rather\s+than|instead\s+of)\b/i;
+
+type DiagramSignal = { type: DiagramType; pattern: RegExp; weight: number };
+
+// Keep these patterns explicit and explainable. A model can still make the
+// final diagram rich; the router only decides which visual lens is most useful.
+const DIAGRAM_SIGNALS: DiagramSignal[] = [
+  { type: 'architecture', pattern: /\b(?:architecture|architectural|system\s+design|component|module|service|boundary|boundaries|layer|stack|deployment|topology|hierarch(?:y|ies)|organizational|dynast(?:y|ies)|family\s+tree|structure)\b/i, weight: 3 },
+  { type: 'workflow', pattern: /\b(?:workflow|work\s+flow|process|steps?|pipeline|procedure|stages?|onboarding|journey|decision|how\s+.+\s+works?)\b/i, weight: 3 },
+  { type: 'sequence', pattern: /\b(?:sequence|request[-\s]?response|call\s+flow|interaction|messages?\s+between|conversation|actor|time\s+order|chronolog(?:y|ical))\b/i, weight: 3 },
+  { type: 'dataflow', pattern: /\b(?:data\s*flow|dataflow|context|lineage|provenance|source(?:s)?|inputs?\s+and\s+outputs?|moves?\s+from|flows?\s+from|retrieval|rag|dependencies?|causes?|effects?|influences?)\b/i, weight: 3 },
+  { type: 'lifecycle', pattern: /\b(?:lifecycle|life\s+cycle|state(?:s)?|transition|retry|retries|recovery|circuit|rollout|phase(?:s)?|status|created|updated|deleted|open|closed|half[-\s]?open)\b/i, weight: 3 },
+];
+
+function copyDiagramOptions(recommended?: DiagramType, rankedTypes: DiagramType[] = []): DiagramOption[] {
+  const order = [
+    ...(recommended ? [recommended] : []),
+    ...rankedTypes,
+    ...DIAGRAM_OPTIONS.map((option) => option.type),
+  ];
+  const seen = new Set<DiagramType>();
+  return order
+    .filter((type): type is DiagramType => DIAGRAM_OPTIONS.some((option) => option.type === type))
+    .filter((type) => {
+      if (seen.has(type)) return false;
+      seen.add(type);
+      return true;
+    })
+    .map((type) => {
+      const option = DIAGRAM_OPTIONS.find((candidate) => candidate.type === type)!;
+      return { ...option };
+    });
+}
+
+function diagramScores(query: string): Map<DiagramType, number> {
+  const scores = new Map<DiagramType, number>(DIAGRAM_OPTIONS.map(({ type }) => [type, 0]));
+  for (const signal of DIAGRAM_SIGNALS) {
+    if (signal.pattern.test(query)) scores.set(signal.type, (scores.get(signal.type) || 0) + signal.weight);
+  }
+
+  // A question that describes an app/codebase without naming a view is most
+  // naturally answered with its structure. This also makes “discuss this
+  // repository” useful without requiring Archify terminology.
+  if (/\b(?:app|codebase|repository|system|platform|product|organization|family)\b/i.test(query)) {
+    scores.set('architecture', (scores.get('architecture') || 0) + 2);
+  }
+  if (/\b(?:before|after|then|finally|first|next)\b/i.test(query)) {
+    scores.set('workflow', (scores.get('workflow') || 0) + 1);
+    scores.set('sequence', (scores.get('sequence') || 0) + 1);
+  }
+  return scores;
+}
+
+function rankedDiagramTypes(scores: Map<DiagramType, number>): DiagramType[] {
+  return [...scores.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .filter(([, score]) => score > 0)
+    .map(([type]) => type);
+}
+
+function hasConflictingViews(query: string, rankedTypes: DiagramType[]): boolean {
+  if (rankedTypes.length < 2) return false;
+  const scores = diagramScores(query);
+  const top = scores.get(rankedTypes[0]) || 0;
+  const second = scores.get(rankedTypes[1]) || 0;
+  return (CHOICE_REQUEST_RE.test(query) || (EXPLICIT_VISUAL_RE.test(query) && MULTI_VIEW_RE.test(query)))
+    && top > 0
+    && second > 0
+    && top - second <= 3;
+}
+
+/**
+ * Infer the least-surprising diagram experience for a user request.
+ *
+ * - `automatic`: a clear view is selected and the answer should include one
+ *   diagram plus readable explanation.
+ * - `choices`: the request would benefit from a visual but the angle is
+ *   underspecified; show a recommended view first and let the user choose.
+ * - `none`: retain ordinary prose or the existing explicit artifact route.
+ */
+export function inferDiagramPlan(query: string): DiagramPlan {
+  const normalized = query.trim();
+  const emptyPlan: DiagramPlan = {
+    mode: 'none',
+    confidence: 0,
+    options: [],
+    rationale: 'No diagram intent detected.',
+    explicit: false,
+    archifyEligible: false,
+  };
+  if (!normalized) return emptyPlan;
+
+  // A request for a different artifact should not accidentally become a
+  // diagram. “Chart” and “table” are deliberately left to their own routes.
+  if (NON_DIAGRAM_ARTIFACT_RE.test(normalized) && !EXPLICIT_VISUAL_RE.test(normalized)) return emptyPlan;
+
+  const explicit = EXPLICIT_VISUAL_RE.test(normalized);
+  const conceptual = CONCEPTUAL_EXPLANATION_RE.test(normalized);
+  const scores = diagramScores(normalized);
+  const ranked = rankedDiagramTypes(scores);
+  const recommended = ranked[0] || (explicit ? 'architecture' : undefined);
+  const topScore = recommended ? (scores.get(recommended) || 0) : 0;
+  const secondScore = ranked[1] ? (scores.get(ranked[1]) || 0) : 0;
+  const conflicting = hasConflictingViews(normalized, ranked);
+  const archifyEligible = isArchifyGenerationRequest(normalized);
+
+  if (!explicit && !conceptual) return emptyPlan;
+
+  // A broad conceptual question with a strong structural cue is worth
+  // visualizing automatically. This is the path that makes e.g. “discuss
+  // political dynasties” receive a polished explanation plus relationship map.
+  if (recommended && topScore >= 3 && !conflicting) {
+    const confidence = Math.min(0.99, 0.72 + topScore * 0.045 + Math.max(0, topScore - secondScore) * 0.025);
+    return {
+      mode: 'automatic',
+      recommended,
+      confidence: Number(confidence.toFixed(2)),
+      options: copyDiagramOptions(recommended, ranked),
+      rationale: `The request strongly matches the ${recommended} view.`,
+      explicit,
+      archifyEligible,
+    };
+  }
+
+  // Explicitly asking for a diagram without saying which angle should expose
+  // optionality instead of making the user learn five trigger phrases.
+  if (explicit || conceptual) {
+    const fallback = recommended || 'architecture';
+    return {
+      mode: 'choices',
+      recommended: fallback,
+      confidence: Number(Math.min(0.7, 0.45 + topScore * 0.04).toFixed(2)),
+      options: copyDiagramOptions(fallback, ranked),
+      rationale: topScore > 0
+        ? `Several views could fit; ${fallback} is the recommended starting angle.`
+        : 'A visual could help, but the best angle is not yet clear.',
+      explicit,
+      archifyEligible,
+    };
+  }
+
+  return emptyPlan;
+}
+
+export function isAutomaticDiagramGenerationRequest(query: string): boolean {
+  return inferDiagramPlan(query).mode === 'automatic';
+}
+
+export function shouldOfferDiagramChoices(query: string): boolean {
+  return inferDiagramPlan(query).mode === 'choices';
+}
+
+export function isDiagramGenerationRequest(query: string): boolean {
+  const mode = inferDiagramPlan(query).mode;
+  return mode === 'automatic' || mode === 'choices';
+}
+
+export function toDiagramChoicePayload(plan: DiagramPlan): DiagramChoicePayload | null {
+  if (!plan.recommended || plan.mode === 'none') return null;
+  return {
+    schemaVersion: 1,
+    kind: 'diagram-options',
+    recommended: plan.recommended,
+    confidence: plan.confidence,
+    options: plan.options.map((option) => ({ ...option })),
+    prompt: 'Choose a visual angle, or use the recommended view.',
+  };
+}
 
 export function isArchifyGenerationRequest(query: string): boolean {
   return ARCHIFY_TARGET_SCOPE_RE.test(query)

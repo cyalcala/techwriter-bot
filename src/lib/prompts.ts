@@ -1,5 +1,6 @@
 import { classifyQuery, formatConversationalResponse } from './relevance';
 import { enforceBudget } from './token-counter';
+import { toDiagramChoicePayload, type DiagramPlan } from './path-router';
 
 export interface SearchResult {
   contextParts: string[];
@@ -21,17 +22,23 @@ export interface PromptContext {
   needsDoc?: boolean;
   needsChart?: boolean;
   needsArchify?: boolean;
+  /**
+   * Visual explanation is separate from `needsArtifact`: an automatically
+   * selected diagram should not force a research question onto the fast path.
+   */
+  needsVisualExplanation?: boolean;
+  diagramPlan?: DiagramPlan;
   clientSystemPrompt?: string;
 }
 
 const ARTIFACT_COMPACT = [
   'CRITICAL ARTIFACT RULES — YOU MUST FOLLOW THESE EXACTLY:',
-  '1. When a diagram or visual would help the user, output it IMMEDIATELY inside <artifact type="X" title="Title">...</artifact> tags. The artifact tag MUST be the FIRST thing in your response. Do NOT explain what you will do before outputting the artifact. Do NOT ask which format to use.',
-  '2. Choose the best format yourself. Do NOT ask the user to pick. Do NOT offer alternatives. Do NOT say "I will create a..." — just create it. Generate ONE detailed, substantive diagram.',
-  '3. Use Mermaid (type="mermaid") as the default for all diagram requests unless another format is specifically requested. Choose the simplest format that best represents the concept.',
-  '4. The artifact content must be raw diagram code only — no markdown fences, no ``` wrappers, no commentary inside the tags. Output ONLY the artifact tag as your entire response.',
-  '5. Make diagrams SUBSTANTIVE: use descriptive labels, include all key steps/components, add notes on edges where helpful.',
-  '6. NEVER generate text-based diagrams, ASCII art, or plain text bullet points when a visual diagram is requested. YOU MUST use a formal diagramming language inside an <artifact> tag.',
+  '1. When a diagram or visual would help, return a concise, readable explanation AND exactly ONE artifact inside <artifact type="X" title="Title">...</artifact> tags. The artifact may follow the explanation; do not force artifact-only output.',
+  '2. Keep the explanation outside the artifact: use a short heading and paragraphs or bullets, not a dense Markdown table unless the user explicitly asks for a table. Do not put commentary, Markdown fences, or prose inside the artifact tags.',
+  '3. Use Mermaid (type="mermaid") as the default for diagrams unless another format is specifically requested. Choose the simplest format that best represents the concept and follow any SERVER DIAGRAM PLAN supplied below.',
+  '4. Generate ONE detailed, substantive diagram. Do not ask the user to choose a format when the request is clear; when a SERVER DIAGRAM PLAN says choices, emit the requested <diagram-options> block instead and wait for the selection.',
+  '5. Make diagrams SUBSTANTIVE: use descriptive labels, include all key steps/components, add notes on edges where helpful, and keep labels short enough to render cleanly on mobile.',
+  '6. NEVER generate text-based diagrams or ASCII art when a visual diagram is requested. Use a formal diagramming language inside an <artifact> tag.',
   '',
   'Mermaid flowcharts EXACT syntax:',
   'graph LR',
@@ -48,10 +55,29 @@ const ARTIFACT_COMPACT = [
   'Code request: If user explicitly asks for code, output ONLY code inside <artifact type="code"> — no diagram.',
 ].join('\n');
 
+const DIAGRAM_AUTO_COMPACT = [
+  'CRITICAL VISUAL EXPLANATION RULES — YOU MUST FOLLOW THESE EXACTLY:',
+  '1. Answer the user normally first: use a clear heading plus concise paragraphs or bullets. Then include exactly ONE diagram artifact. Never return artifact-only output for this visual explanation path.',
+  '2. The SERVER DIAGRAM PLAN names the best initial view. Use it unless the user explicitly requests another view. Keep the diagram self-contained, substantive, and readable on mobile.',
+  '3. Default artifact format is <artifact type="mermaid" title="..."> with raw Mermaid only inside the tag. No Markdown fences, no commentary, and no external URLs inside the tag.',
+  '4. View syntax: architecture/workflow/dataflow use graph LR or flowchart TD; sequence uses sequenceDiagram; lifecycle uses stateDiagram-v2. Do not mix syntaxes.',
+  '5. Ground the explanation and diagram in the user question and supplied context. Do not invent specific facts, people, dates, or metrics when the topic is uncertain; label conceptual relationships as examples.',
+  '6. Do not use dense Markdown tables for the explanation unless the user requests one. Prefer stable headings, short paragraphs, and bullets so the response remains presentable when rendered.',
+].join('\n');
+
+const DIAGRAM_CHOICES_COMPACT = [
+  'CRITICAL VISUAL CHOICE RULES — YOU MUST FOLLOW THESE EXACTLY:',
+  '1. Answer the user normally with a concise explanation, then emit exactly ONE <diagram-options>JSON</diagram-options> block. Do not emit a diagram artifact until the user chooses a view.',
+  '2. The JSON must be valid, compact, and match the SERVER DIAGRAM OPTIONS payload exactly. Do not wrap it in Markdown fences and do not add fields. Preserve the recommended view as the first option.',
+  '3. The five available views are architecture (parts/boundaries), workflow (steps/decisions), sequence (interactions over time), dataflow (information movement), and lifecycle (states/recovery).',
+  '4. Keep the explanation readable: use a short heading and paragraphs or bullets, not a dense Markdown table. Explain why the recommended view is the best starting angle.',
+  '5. After the user selects a view, return the normal explanation plus exactly one diagram artifact using that selected view.',
+].join('\n');
+
 const ARCHIFY_COMPACT = [
   'CRITICAL STATIC ARCHIFY RULES — YOU MUST FOLLOW THESE EXACTLY:',
-  '1. This request may use only a checked-in Techwriter Bot static diagram. Output exactly ONE <artifact type="archify" title="Title">...</artifact> as the entire response.',
-  '2. The tag body must be a compact JSON object with no markdown fence, no URL, no path, no HTML, and no extra fields.',
+  '1. Answer the user with a concise explanation, then output exactly ONE <artifact type="archify" title="Title">...</artifact>. Do not return artifact-only output when an explanation is useful.',
+  '2. This request may use only a checked-in Techwriter Bot static diagram. The tag body must be a compact JSON object with no markdown fence, no URL, no path, no HTML, and no extra fields.',
   '3. Exact shape: {"schemaVersion":1,"diagramId":"<id>","diagramType":"<type>"}. An optional title is allowed.',
   '4. Choose only one matching pair: techwriter-architecture/architecture, artifact-workflow/workflow, chat-request-sequence/sequence, context-dataflow/dataflow, provider-circuit-lifecycle/lifecycle.',
   '5. Never invent a diagram ID and never use Archify for an unrelated request. These pages are static build output, not a runtime renderer.',
@@ -249,9 +275,36 @@ export function buildSystemPrompt(query: string, ctx: PromptContext): string {
     }
   }
 
-  if (ctx.needsArtifact) {
-    const contract = ctx.needsArchify ? ARCHIFY_COMPACT : ctx.needsChart ? CHART_COMPACT : ctx.needsDeck ? DECK_COMPACT : ctx.needsDoc ? DOC_COMPACT : ARTIFACT_COMPACT;
+  if (ctx.needsArtifact || ctx.needsVisualExplanation || (ctx.diagramPlan && ctx.diagramPlan.mode !== 'none')) {
+    const contract = ctx.needsArchify
+      ? ARCHIFY_COMPACT
+      : ctx.needsChart
+        ? CHART_COMPACT
+        : ctx.needsDeck
+          ? DECK_COMPACT
+          : ctx.needsDoc
+            ? DOC_COMPACT
+            : ctx.diagramPlan?.mode === 'choices'
+              ? DIAGRAM_CHOICES_COMPACT
+              : ctx.diagramPlan?.mode === 'automatic' || ctx.needsVisualExplanation
+                ? DIAGRAM_AUTO_COMPACT
+                : ARTIFACT_COMPACT;
     layers.push({ priority: 4, content: contract });
+
+    if (ctx.diagramPlan?.mode === 'automatic' && ctx.diagramPlan.recommended) {
+      layers.push({
+        priority: 4,
+        content: `SERVER DIAGRAM PLAN:\n${JSON.stringify({
+          mode: 'automatic',
+          recommended: ctx.diagramPlan.recommended,
+          confidence: ctx.diagramPlan.confidence,
+          rationale: ctx.diagramPlan.rationale,
+        })}`,
+      });
+    } else if (ctx.diagramPlan?.mode === 'choices') {
+      const payload = toDiagramChoicePayload(ctx.diagramPlan);
+      if (payload) layers.push({ priority: 4, content: `SERVER DIAGRAM OPTIONS:\n${JSON.stringify(payload)}` });
+    }
   }
 
   return enforceBudget(layers, 2048);
