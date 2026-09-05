@@ -35,6 +35,8 @@
   import { createCodeAreaExplanation, type CodeAreaExplanationResult } from '../lib/code-area-explanation';
   import { DEFAULT_FOOTER_TEXT, DEFAULT_PRIMARY_COLOR, readWhiteLabelConfig } from '../lib/white-label';
   import { createSampleDataFiles, SAMPLE_DATA_PROMPT, SAMPLE_DATA_READY_MESSAGE } from '../lib/sample-data';
+  import { diagramChoicePrompt, extractDiagramOptions } from '../lib/diagram-options';
+  import type { DiagramChoicePayload, DiagramOption, DiagramPlan, DiagramType } from '../lib/path-router';
   import {
     extractDocumentationCoverageTerms,
     reviewDocument,
@@ -58,6 +60,9 @@
     searchTier?: 'none' | 'basic' | 'enhanced';
     empty?: boolean;
     liveResponse?: boolean;
+    diagramOptions?: DiagramChoicePayload;
+    diagramPlan?: DiagramPlan;
+    selectedDiagramType?: DiagramType;
   }
 
   interface FailoverEvent {
@@ -1094,6 +1099,21 @@
     await sendMessage();
   }
 
+  async function selectDiagramOption(messageIdx: number, option: DiagramOption) {
+    if (isLoading || isStreaming) return;
+    const sourceMessage = messages[messageIdx];
+    if (!sourceMessage?.diagramOptions || sourceMessage.selectedDiagramType) return;
+
+    // Keep the choice visible on the original response, then add a normal
+    // user turn so the explanation, history, and selected visual stay in one
+    // coherent conversation.
+    messages = messages.map((message, index) => index === messageIdx
+      ? { ...message, selectedDiagramType: option.type }
+      : message);
+    messages = [...messages, createChatMessage({ role: 'user', content: diagramChoicePrompt(option) })];
+    await doSend();
+  }
+
   async function doSend() {
     safeAbort();
     liveOutage = null;
@@ -1293,6 +1313,12 @@
       {
         const existing = artifactQueue.forMessage(msgIdx);
         const alreadyResolved = new Set(existing.filter(e => e.artifact.type === 'svg').map(e => e.artifact.title));
+        const diagramOptions = extractDiagramOptions(messages[msgIdx].content, messages[msgIdx].diagramOptions || messages[msgIdx].diagramPlan);
+        if (diagramOptions.payload || diagramOptions.cleanText !== messages[msgIdx].content) {
+          messages = messages.map((m, i) => i === msgIdx
+            ? { ...m, content: diagramOptions.cleanText, diagramOptions: diagramOptions.payload || undefined }
+            : m);
+        }
         if (messages[msgIdx].content) {
           const result = detectAllArtifacts(messages[msgIdx].content, []);
           const resolvePromises: Promise<void>[] = [];
@@ -1558,6 +1584,7 @@
       onEditTextChange={(v: string) => { editText = v; }}
       onSaveEdit={saveEdit}
       onCancelEdit={cancelEdit}
+      onSelectDiagramOption={selectDiagramOption}
       {copiedMessageIdx}
       {copiedSlackMessageIdx}
       {webhookDelivery}

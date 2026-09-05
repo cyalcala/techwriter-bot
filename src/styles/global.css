@@ -27,6 +27,7 @@
 .ai-content a { color: #2563eb; text-decoration: underline; text-underline-offset: 2px; overflow-wrap: anywhere; }
 .ai-content hr { margin: 1.5em 0; border: 0; border-top: 1px solid #e4e4e7; }
 .ai-content img { max-width: 100%; height: auto; border-radius: 0.5rem; }
+.diagram-option:focus-visible { outline: 2px solid #d97706; outline-offset: 2px; }
 
 @media (max-width: 768px) {
   .ai-content h1 { font-size: 1.4em; margin-top: 1.2em; }

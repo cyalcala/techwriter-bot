@@ -1,6 +1,7 @@
 <script lang="ts">
   import { stripDisclaimers, formatMarkdown } from '../lib/markdown';
   import type { ArtifactQueue, ArtifactEntry } from '../lib/artifact-queue';
+  import type { DiagramChoicePayload, DiagramOption } from '../lib/path-router';
   import ChatArtifactChip from './ChatArtifactChip.svelte';
 
   const YT_DETECT = /(?:youtube\.com\/(?:watch|embed|shorts|live|v\/)|youtu\.be\/)/i;
@@ -15,7 +16,7 @@
   };
 
   interface Props {
-    messages: { role: string; content: string; provider?: string; sources?: { title: string; url: string }[]; searchTier?: string; empty?: boolean }[];
+    messages: { role: string; content: string; provider?: string; sources?: { title: string; url: string }[]; searchTier?: string; empty?: boolean; diagramOptions?: DiagramChoicePayload; selectedDiagramType?: DiagramChoicePayload['recommended'] }[];
     queue: ArtifactQueue;
     isStreaming: boolean;
     isLoading: boolean;
@@ -34,6 +35,7 @@
     onEditTextChange: (val: string) => void;
     onSaveEdit: (idx: number) => void;
     onCancelEdit: () => void;
+    onSelectDiagramOption: (messageIdx: number, option: DiagramOption) => void;
     copiedMessageIdx: number | null;
     copiedSlackMessageIdx: number | null;
     webhookDelivery: WebhookDeliveryState | null;
@@ -42,7 +44,7 @@
 
   let {
     messages, queue, isStreaming, isLoading, activeMessageIdx, activeArtifactId,
-    onChipClick, onCopyMessage, onCopySlackMessage, onExportMessageMarkdown, onExportMessageWebhook, onRetryWebhookExport, onRetryMessage, onEditMessage,
+    onChipClick, onCopyMessage, onCopySlackMessage, onExportMessageMarkdown, onExportMessageWebhook, onRetryWebhookExport, onRetryMessage, onEditMessage, onSelectDiagramOption,
     editingMessageIdx, editText, onEditTextChange, onSaveEdit, onCancelEdit,
     copiedMessageIdx, copiedSlackMessageIdx, webhookDelivery, chatPath,
   }: Props = $props();
@@ -102,6 +104,39 @@
                 {/if}
               </div>
             {/if}
+          {/if}
+          {#if !isStreaming && msg.diagramOptions && msg.diagramOptions.options.length > 0}
+            <div class="diagram-options mt-4 max-w-xl rounded-xl border border-amber-200/70 bg-white/80 p-3 shadow-sm" aria-label="Choose a diagram view">
+              <div class="flex flex-wrap items-start justify-between gap-2">
+                <div class="min-w-0">
+                  <div class="text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">Choose a visual angle</div>
+                  <p class="mt-1 text-xs leading-relaxed text-stone-500">{msg.diagramOptions.prompt}</p>
+                </div>
+                {#if msg.selectedDiagramType}
+                  <span class="shrink-0 rounded-full bg-amber-100 px-2 py-1 text-[10px] font-semibold text-amber-800">Selected</span>
+                {/if}
+              </div>
+              <div class="mt-3 grid gap-2 sm:grid-cols-2">
+                {#each msg.diagramOptions.options as option}
+                  <button
+                    type="button"
+                    disabled={isLoading || isStreaming || !!msg.selectedDiagramType}
+                    aria-pressed={msg.selectedDiagramType === option.type}
+                    onclick={() => onSelectDiagramOption(i, option)}
+                    class="diagram-option group rounded-lg border px-3 py-2 text-left transition-all disabled:cursor-default disabled:opacity-70
+                      {msg.selectedDiagramType === option.type ? 'border-amber-400 bg-amber-50' : 'border-stone-200 bg-stone-50/70 hover:border-amber-300 hover:bg-amber-50/60'}"
+                  >
+                    <span class="flex flex-wrap items-center gap-1.5">
+                      <span class="text-xs font-semibold text-stone-800">{option.label}</span>
+                      {#if msg.diagramOptions.recommended === option.type}
+                        <span class="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-800">Recommended</span>
+                      {/if}
+                    </span>
+                    <span class="mt-1 block text-[11px] leading-relaxed text-stone-500">{option.description}</span>
+                  </button>
+                {/each}
+              </div>
+            </div>
           {/if}
           {#if msg.sources && msg.sources.length > 0 && !isStreaming}
             <div class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
