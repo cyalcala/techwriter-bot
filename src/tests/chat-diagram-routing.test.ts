@@ -42,4 +42,12 @@ describe('chat API diagram routing', () => {
     expect(chat).toContain("headers.set('x-diagram-plan', JSON.stringify(diagramPlan));");
     expect(chat).toContain("if (diagramPlan.mode !== 'none') headers.set('x-diagram-plan'");
   });
+
+  it('keeps artifact requests failover-capable instead of pinning a hallucinating tool model', () => {
+    const chat = source('src/pages/api/chat.ts');
+
+    expect(chat).toContain("pool = isDev ? ['gemini-flash', 'cloudflare-llama', 'groq-fast']");
+    expect(chat).toContain('const routeSessionId = needsArtifact ? \'\' : sessionId;');
+    expect(chat).toContain('const forceSticky = false;');
+  });
 });

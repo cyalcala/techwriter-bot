@@ -297,7 +297,9 @@
 
     const cleanArt = { ...art, code };
     const repairTarget = pendingArtifactRepair;
-    const codeFingerprint = `${cleanArt.type}:${code.slice(0, 200)}:${code.length}`;
+    // Deduplicate repeated stream/final-parser callbacks within one message,
+    // but allow the same fallback visual to appear again on a later retry.
+    const codeFingerprint = `${msgIdx}:${cleanArt.type}:${code.slice(0, 200)}:${code.length}`;
     if (!repairTarget && renderedHashes.has(codeFingerprint)) return;
     renderedHashes.add(codeFingerprint);
     const title = cleanArt.title || extractArtifactTitle(code, cleanArt.type);
@@ -1116,6 +1118,63 @@
     await doSend();
   }
 
+  function readDiagramPlanHeader(headers: Headers): DiagramPlan | undefined {
+    const raw = headers.get('x-diagram-plan');
+    if (!raw) return undefined;
+    try {
+      const parsed = JSON.parse(raw) as Partial<DiagramPlan>;
+      if ((parsed.mode === 'choices' || parsed.mode === 'automatic') && parsed.recommended && Array.isArray(parsed.options)) {
+        return parsed as DiagramPlan;
+      }
+    } catch {}
+    return undefined;
+  }
+
+  function fallbackDiagramTopic(currentQuery: string, conversation: Message[]): string {
+    const genericDiagramRequest = /\b(?:generate|create|make|draw|show|give\s+me|i\s+(?:need|want))\b.*\b(?:diagram|visual(?:ization)?|flowchart|architecture|workflow|sequence|dataflow|lifecycle)\b/i;
+    const candidates = conversation
+      .filter((message) => message.role === 'user' && typeof message.content === 'string')
+      .map((message) => message.content.trim())
+      .filter(Boolean)
+      .reverse();
+    const topic = candidates.find((candidate) => candidate !== currentQuery.trim() && !genericDiagramRequest.test(candidate));
+    return topic || currentQuery.trim() || 'the topic';
+  }
+
+  async function recoverDiagramProviderFailure(
+    plan: DiagramPlan,
+    currentQuery: string,
+    conversation: Message[],
+    targetMessageIdx: number | null = null,
+  ): Promise<boolean> {
+    if (!plan.recommended || (plan.mode !== 'choices' && plan.mode !== 'automatic')) return false;
+
+    const topic = fallbackDiagramTopic(currentQuery, conversation);
+    const payload = extractDiagramOptions('', plan).payload || undefined;
+    const explanation = plan.mode === 'choices'
+      ? `I can turn this topic into a diagram. ${plan.rationale}`
+      : `Here is a conceptual ${plan.recommended} view of ${topic}.`;
+    const target = targetMessageIdx != null && messages[targetMessageIdx]?.role === 'assistant'
+      ? targetMessageIdx
+      : messages.length;
+
+    const recovered = createChatMessage({
+      role: 'assistant',
+      content: explanation,
+      provider: 'fallback',
+      diagramOptions: payload,
+      liveResponse: false,
+    });
+    if (target === messages.length) messages = [...messages, recovered];
+    else messages = messages.map((message, index) => index === target ? { ...message, ...recovered } : message);
+
+    if (plan.mode === 'automatic') {
+      await resolveArtifact(createFallbackDiagramArtifact(topic, plan.recommended), target);
+      activeArtifactEntry = artifactQueue.forMessage(target)[0] || null;
+    }
+    return true;
+  }
+
   async function doSend() {
     safeAbort();
     liveOutage = null;
@@ -1129,6 +1188,7 @@
     let sourcesFromHeaders: { title: string; url: string }[] = [];
     let msgSearchTier: 'none' | 'basic' | 'enhanced' = 'none';
     let serverDiagramPlan: DiagramPlan | undefined;
+    let providerStreamError: string | null = null;
 
     const lastUserMsgQ = [...messagesToSend].reverse().find((m: any) => m.role === 'user');
     const prevUserMsgQ = [...messagesToSend].reverse().slice(1).find((m: any) => m.role === 'user');
@@ -1190,6 +1250,11 @@
       captureFailoverHeader(response.headers);
 
       if (!response.ok) {
+        const responsePlan = readDiagramPlanHeader(response.headers) || clientDiagramPlan;
+        if (responsePlan?.mode === 'choices' || responsePlan?.mode === 'automatic') {
+          await recoverDiagramProviderFailure(responsePlan, lastUserMsgQ?.content || '', messagesToSend);
+          return;
+        }
         const errText = await response.text();
         let errorPayload: Record<string, unknown> | null = null;
         try { errorPayload = JSON.parse(errText) as Record<string, unknown>; } catch {}
@@ -1223,15 +1288,7 @@
       }
       const pathFromServer = response.headers.get('x-chat-path');
       if (pathFromServer) chatPath = pathFromServer;
-      const diagramPlanHeader = response.headers.get('x-diagram-plan');
-      if (diagramPlanHeader) {
-        try {
-          const parsed = JSON.parse(diagramPlanHeader) as Partial<DiagramPlan>;
-          if ((parsed.mode === 'choices' || parsed.mode === 'automatic') && parsed.recommended && Array.isArray(parsed.options)) {
-            serverDiagramPlan = parsed as DiagramPlan;
-          }
-        } catch {}
-      }
+      serverDiagramPlan = readDiagramPlanHeader(response.headers);
       const tokenUsageHeader = response.headers.get('x-token-usage');
       if (tokenUsageHeader) { try { tokenDisplay = JSON.parse(tokenUsageHeader); } catch {} } else { tokenDisplay = null; }
       if (response.headers.get('x-cached') === 'true' && tokenDisplay) tokenDisplay.cached = true;
@@ -1313,18 +1370,39 @@
                 artifactParser.feed(`\n\n*${json.message}*\n\n`);
                 continue;
               }
-              if (json.error) { artifactParser.feed(`\n\nError: ${json.error.message || JSON.stringify(json.error)}`); continue; }
+              if (json.error) {
+                // Provider protocol errors are not assistant prose. Keep the
+                // raw message out of the transcript and recover with the
+                // diagram picker/fallback after the stream closes.
+                providerStreamError = String(json.error.message || 'Provider response failed.');
+                continue;
+              }
+              if (json.type === 'provider_error') {
+                providerStreamError = String(json.message || json.error || 'Provider response failed.');
+                continue;
+              }
               const content = json.choices?.[0]?.delta?.content || json.choices?.[0]?.text || json.response || json.content || '';
               if (content) artifactParser.feed(content);
             } catch (e) {
-              if (rawData && !rawData.includes('{')) artifactParser.feed(rawData);
+              if (rawData && /tool\s+choice\s+is\s+none|tool_use_failed/i.test(rawData)) providerStreamError = rawData;
+              else if (rawData && !rawData.includes('{')) artifactParser.feed(rawData);
             }
           }
         }
         if (buffer.trim().startsWith('data:')) {
           const rawData = buffer.slice(buffer.indexOf(':') + 1).trim();
           if (rawData !== '[DONE]') {
-            try { const json = JSON.parse(rawData); const content = json.choices?.[0]?.delta?.content || json.choices?.[0]?.text || json.response || json.content || ''; if (content) artifactParser.feed(content); } catch {}
+            try {
+              const json = JSON.parse(rawData);
+              if (json.error) providerStreamError = String(json.error.message || 'Provider response failed.');
+              else if (json.type === 'provider_error') providerStreamError = String(json.message || json.error || 'Provider response failed.');
+              else {
+                const content = json.choices?.[0]?.delta?.content || json.choices?.[0]?.text || json.response || json.content || '';
+                if (content) artifactParser.feed(content);
+              }
+            } catch {
+              if (/tool\s+choice\s+is\s+none|tool_use_failed/i.test(rawData)) providerStreamError = rawData;
+            }
           }
         }
       } finally {
@@ -1334,6 +1412,18 @@
       }
 
       {
+        const existingBeforeRecovery = artifactQueue.forMessage(msgIdx);
+        const visualPlan = serverDiagramPlan || clientDiagramPlan;
+        if (providerStreamError && visualPlan?.mode === 'choices' && existingBeforeRecovery.length === 0) {
+          await recoverDiagramProviderFailure(visualPlan, lastUserMsgQ?.content || '', messagesToSend, msgIdx);
+        } else if (providerStreamError && visualPlan?.mode === 'automatic' && !messages[msgIdx].content.trim() && existingBeforeRecovery.length === 0) {
+          await recoverDiagramProviderFailure(visualPlan, lastUserMsgQ?.content || '', messagesToSend, msgIdx);
+        } else if (providerStreamError && !messages[msgIdx].content.trim() && existingBeforeRecovery.length === 0) {
+          messages = messages.map((message, index) => index === msgIdx
+            ? { ...message, content: 'The selected provider could not complete this response. Please try again.', provider: 'fallback', liveResponse: false }
+            : message);
+        }
+
         const existing = artifactQueue.forMessage(msgIdx);
         const alreadyResolved = new Set(existing.filter(e => e.artifact.type === 'svg').map(e => e.artifact.title));
         const diagramOptions = extractDiagramOptions(messages[msgIdx].content, messages[msgIdx].diagramOptions || messages[msgIdx].diagramPlan);
@@ -1356,7 +1446,6 @@
         }
 
         let msgArtifacts = artifactQueue.forMessage(msgIdx);
-        const visualPlan = serverDiagramPlan || clientDiagramPlan;
         if (visualPlan?.mode === 'automatic' && visualPlan.recommended && msgArtifacts.length === 0) {
           // Providers can satisfy the prose contract while dropping the
           // artifact tag. Keep the promised visual experience deterministic

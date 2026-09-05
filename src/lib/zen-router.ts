@@ -136,7 +136,7 @@ function getApiKey(provider: Provider, env: any): string | undefined {
   return typeof raw === 'string' ? raw.trim() : undefined;
 }
 
-async function callProvider(provider: Provider, messages: any[], env: any, maxTokens: number, maxTimeout?: number, agenticTools?: any[], stream: boolean = true): Promise<Response> {
+async function callProvider(provider: Provider, messages: any[], env: any, maxTokens: number, maxTimeout?: number, agenticTools?: any[], stream: boolean = true, allowBuiltInTools: boolean = true): Promise<Response> {
   const effectiveTimeout = maxTimeout && maxTimeout < provider.timeoutMs ? maxTimeout : provider.timeoutMs;
   if (provider.name === 'cloudflare') {
     const ai = env.AI;
@@ -163,8 +163,20 @@ async function callProvider(provider: Provider, messages: any[], env: any, maxTo
       body.stream = true;
       body.stream_options = { include_usage: true };
     }
-    if (provider.name === 'gemini' && !agenticTools) body.tools = [{ googleSearch: {} }];
-    if (agenticTools) body.tools = agenticTools;
+    if (agenticTools?.length) {
+      body.tools = agenticTools;
+      body.tool_choice = 'auto';
+    } else if (provider.name === 'gemini' && allowBuiltInTools) {
+      // Gemini's OpenAI-compatible endpoint exposes search as a built-in
+      // tool. Keep it opt-in for normal research requests.
+      body.tools = [{ googleSearch: {} }];
+      body.tool_choice = 'auto';
+    } else if (provider.name === 'groq') {
+      // GPT-OSS can hallucinate a tool call even when no schema is supplied.
+      // State the contract explicitly so Groq does not infer a tool mode from
+      // a prior agent turn or prompt text.
+      body.tool_choice = 'none';
+    }
     return await fetch(endpoint, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'Accept': stream ? 'text/event-stream' : 'application/json' },
@@ -278,7 +290,12 @@ export async function routeChat(
 ) {
   const role: ProviderRole = classifyQuery(messages, intent);
   let candidates = getProvidersForRole(role);
-  if (allowedProviders?.length) candidates = candidates.filter(p => allowedProviders.includes(p.id));
+  if (allowedProviders?.length) {
+    const allowedRank = new Map(allowedProviders.map((id, index) => [id, index]));
+    candidates = candidates
+      .filter(p => allowedRank.has(p.id))
+      .sort((a, b) => allowedRank.get(a.id)! - allowedRank.get(b.id)!);
+  }
   if (candidates.length === 0) candidates = getProvidersForRole('fallback').filter(p => !allowedProviders?.length || allowedProviders.includes(p.id));
 
   const session = sessionId ? (sessions.get(sessionId) || sessions.set(sessionId, { lockedProviderId: null, turnCount: 0, createdAt: Date.now() }).get(sessionId)!) : null;
@@ -368,7 +385,7 @@ export async function routeChat(
     const start = Date.now();
     try {
       const maxTimeout = chatPath === 'fast' ? 15_000 : undefined;
-      const res = await callProvider(provider, messages, env, requestedOutputTokens, maxTimeout, agenticTools, stream);
+      const res = await callProvider(provider, messages, env, requestedOutputTokens, maxTimeout, agenticTools, stream, chatPath !== 'fast');
       const latency = Date.now() - start;
 
       if (res.ok) {

@@ -288,14 +288,19 @@ export const POST: APIRoute = async (ctx) => {
       : getTierProviderPool(tier).pool;
 
     if (needsArtifact) {
-      // Keep session affinity for artifacts — lock to the session provider, don't cycle
-      pool = isDev ? ['groq-fast'] : getTierProviderPool(tier).pool;
+      // Artifacts need a reliable structured response. Keep the normal pool
+      // available even for dev sessions so a provider-side tool hallucination
+      // can fail over instead of surfacing as an artifact error.
+      pool = isDev ? ['gemini-flash', 'cloudflare-llama', 'groq-fast'] : getTierProviderPool(tier).pool;
     } else if (effectivePath === 'fast') {
       pool = ['groq-fast', 'cerebras-llama', 'gemini-flash', 'cloudflare-llama'];
     }
 
 
-    const forceSticky = needsArtifact;
+    // A streamed provider error cannot be repaired after the first byte if the
+    // request is pinned to one model. Let artifact requests fail over; the
+    // client also has a deterministic Mermaid fallback for a 200 error event.
+    const forceSticky = false;
     const systemPrompt = messages.find((m: any) => m.role === 'system');
     const inputTokens = estimateTokens(systemPrompt?.content || '') + messages.slice(1).reduce((s: number, m: any) => s + estimateTokens(m.content || ''), 0);
     const graphTokens = graphContextStr ? estimateTokens(graphContextStr) : 0;
@@ -382,9 +387,10 @@ export const POST: APIRoute = async (ctx) => {
       return new Response(readable, { status: 200, headers });
     }
 
+    const routeSessionId = needsArtifact ? '' : sessionId;
     const response = await routeChat(
       effectivePath === 'fast' ? 'chat-fast' : body.intent || 'chat-fast',
-      messages, locals, env, sessionId, searchResult.sources, meta, pool, responsePath,
+      messages, locals, env, routeSessionId, searchResult.sources, meta, pool, responsePath,
       forceSticky,
       needsArtifact
         ? ((needsDeck || needsDoc) ? 4096 : 2048)

@@ -156,4 +156,52 @@ describe('zen router failover metadata', () => {
       retryable: true,
     });
   });
+
+  it('explicitly disables Groq tools for ordinary requests and enables them only for agent turns', async () => {
+    vi.resetModules();
+    const { routeChat } = await import('../lib/zen-router');
+    const bodies: any[] = [];
+
+    vi.stubGlobal('fetch', async (_input: RequestInfo | URL, init?: RequestInit) => {
+      bodies.push(JSON.parse(String(init?.body)));
+      return new Response('data: {"choices":[{"delta":{"content":"ok"}}]}\n\ndata: [DONE]\n\n', {
+        status: 200,
+        headers: { 'Content-Type': 'text/event-stream' },
+      });
+    });
+
+    await routeChat(
+      'chat-fast',
+      [{ role: 'user', content: 'generate a diagram' }],
+      {},
+      { GROQ_API_KEY: 'gsk_test' },
+      'session-zen-no-tools',
+      [],
+      undefined,
+      ['groq-fast'],
+      'fast',
+    );
+
+    await routeChat(
+      'agent',
+      [{ role: 'user', content: 'search for the latest release' }],
+      {},
+      { GROQ_API_KEY: 'gsk_test' },
+      'session-zen-agent-tools',
+      [],
+      undefined,
+      ['groq-fast'],
+      'fast',
+      false,
+      undefined,
+      undefined,
+      [{ type: 'function', function: { name: 'search_web', parameters: { type: 'object' } } }],
+      false,
+    );
+
+    expect(bodies[0].tool_choice).toBe('none');
+    expect(bodies[0].tools).toBeUndefined();
+    expect(bodies[1].tool_choice).toBe('auto');
+    expect(bodies[1].tools).toHaveLength(1);
+  });
 });

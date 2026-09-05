@@ -36,6 +36,21 @@ describe('chat Markdown presentation', () => {
     expect(html).not.toContain('<h1>Political Dynasties |');
   });
 
+  it('repairs malformed pseudo-tables emitted as prose', () => {
+    const html = formatMarkdown([
+      'Political Dynasties – A Quick Technical Overview | Topic | Key Points |',
+      '|----------------|-----------|',
+      '| Definition | A political dynasty is a family in which multiple members hold public office over successive generations. |',
+      '| Common Forms | 1. Vertical succession – parent → child.',
+      '2. Horizontal spread – siblings or cousins holding different offices. |',
+    ].join('\n'));
+
+    expect(html).not.toContain('|');
+    expect(html).toContain('<strong>Definition</strong>');
+    expect(html).toContain('A political dynasty is a family');
+    expect(html).toContain('<strong>Common Forms</strong>');
+  });
+
   it('does not rewrite indentation inside fenced code blocks', () => {
     const source = [
       'Example:',

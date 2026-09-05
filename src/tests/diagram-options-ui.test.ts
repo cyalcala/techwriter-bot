@@ -89,4 +89,13 @@ describe('diagram choice UI wiring', () => {
     expect(island).toContain("visualPlan?.mode === 'automatic'");
     expect(island).toContain('msgArtifacts.length === 0');
   });
+
+  it('does not leak streamed provider tool errors into the assistant transcript', () => {
+    const island = source('src/components/ChatIsland.svelte');
+
+    expect(island).toContain('let providerStreamError: string | null = null;');
+    expect(island).toContain('recoverDiagramProviderFailure');
+    expect(island).toContain('The selected provider could not complete this response. Please try again.');
+    expect(island).not.toContain('artifactParser.feed(`\\n\\nError: ${json.error.message || JSON.stringify(json.error)}`)');
+  });
 });
