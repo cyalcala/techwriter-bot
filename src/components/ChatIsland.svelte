@@ -14,6 +14,8 @@
   import { createArtifactQueue, type ArtifactEntry } from '../lib/artifact-queue';
   import { extractArtifactTitle } from '../lib/artifact-lifecycle';
   import { createArtifactRegenerationPrompt, createArtifactRepairTarget, planArtifactRepairReplacement, type ArtifactRepairTarget } from '../lib/artifact-repair';
+  import { createFallbackDiagramArtifact } from '../lib/diagram-fallback';
+  import { inferDiagramPlan } from '../lib/path-router';
   import { createLiveOutageState, hasVisibleLiveResponse, type LiveOutageState } from '../lib/session-continuity';
   import { createSessionExport, parseSessionImport, sessionExportFilename } from '../lib/session-transfer';
   import {
@@ -1130,6 +1132,7 @@
 
     const lastUserMsgQ = [...messagesToSend].reverse().find((m: any) => m.role === 'user');
     const prevUserMsgQ = [...messagesToSend].reverse().slice(1).find((m: any) => m.role === 'user');
+    const clientDiagramPlan = lastUserMsgQ?.content ? inferDiagramPlan(lastUserMsgQ.content, messagesToSend) : undefined;
     if (lastUserMsgQ && prevUserMsgQ && isTopicShift(lastUserMsgQ.content, prevUserMsgQ.content)) {
       messagesToSend = [messagesToSend[0], ...messagesToSend.slice(-2)];
     }
@@ -1224,7 +1227,7 @@
       if (diagramPlanHeader) {
         try {
           const parsed = JSON.parse(diagramPlanHeader) as Partial<DiagramPlan>;
-          if (parsed.mode === 'choices' && parsed.recommended && Array.isArray(parsed.options)) {
+          if ((parsed.mode === 'choices' || parsed.mode === 'automatic') && parsed.recommended && Array.isArray(parsed.options)) {
             serverDiagramPlan = parsed as DiagramPlan;
           }
         } catch {}
@@ -1241,7 +1244,17 @@
       const reader = stream.getReader();
       const decoder = new TextDecoder();
 
-      messages = [...messages, createChatMessage({ role: 'assistant', content: '', provider: providerName, sources: sourcesFromHeaders, searchTier: msgSearchTier, liveResponse: true, diagramPlan: serverDiagramPlan })];
+      messages = [...messages, createChatMessage({
+        role: 'assistant',
+        content: '',
+        provider: providerName,
+        sources: sourcesFromHeaders,
+        searchTier: msgSearchTier,
+        liveResponse: true,
+        // Choice plans are shown in the picker; automatic plans stay an
+        // internal rendering hint so the response remains uncluttered.
+        diagramPlan: serverDiagramPlan?.mode === 'choices' ? serverDiagramPlan : undefined,
+      })];
       msgIdx = messages.length - 1;
 
       checkpointContent = '';
@@ -1342,7 +1355,15 @@
           messages = messages.map((m, i) => i === msgIdx ? { ...m, content: result.cleanText } : m);
         }
 
-        const msgArtifacts = artifactQueue.forMessage(msgIdx);
+        let msgArtifacts = artifactQueue.forMessage(msgIdx);
+        const visualPlan = serverDiagramPlan || clientDiagramPlan;
+        if (visualPlan?.mode === 'automatic' && visualPlan.recommended && msgArtifacts.length === 0) {
+          // Providers can satisfy the prose contract while dropping the
+          // artifact tag. Keep the promised visual experience deterministic
+          // and clearly conceptual rather than fabricating topic facts.
+          await resolveArtifact(createFallbackDiagramArtifact(lastUserMsgQ?.content || 'The topic', visualPlan.recommended), msgIdx);
+          msgArtifacts = artifactQueue.forMessage(msgIdx);
+        }
         if (msgArtifacts.length > 0) {
           activeArtifactEntry = msgArtifacts[0];
         }

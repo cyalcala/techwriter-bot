@@ -40,6 +40,6 @@ describe('chat API diagram routing', () => {
     const chat = source('src/pages/api/chat.ts');
 
     expect(chat).toContain("headers.set('x-diagram-plan', JSON.stringify(diagramPlan));");
-    expect(chat).toContain("if (diagramPlan.mode === 'choices') headers.set('x-diagram-plan'");
+    expect(chat).toContain("if (diagramPlan.mode !== 'none') headers.set('x-diagram-plan'");
   });
 });

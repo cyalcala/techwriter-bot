@@ -81,4 +81,12 @@ describe('diagram choice UI wiring', () => {
     expect(island).toContain('diagramChoicePrompt(option)');
     expect(island).toContain('onSelectDiagramOption={selectDiagramOption}');
   });
+
+  it('keeps an automatic visual available when a provider omits its artifact tag', () => {
+    const island = source('src/components/ChatIsland.svelte');
+
+    expect(island).toContain('createFallbackDiagramArtifact');
+    expect(island).toContain("visualPlan?.mode === 'automatic'");
+    expect(island).toContain('msgArtifacts.length === 0');
+  });
 });
