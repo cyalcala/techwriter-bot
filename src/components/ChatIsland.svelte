@@ -1126,6 +1126,7 @@
     let messagesToSend = [...messages];
     let sourcesFromHeaders: { title: string; url: string }[] = [];
     let msgSearchTier: 'none' | 'basic' | 'enhanced' = 'none';
+    let serverDiagramPlan: DiagramPlan | undefined;
 
     const lastUserMsgQ = [...messagesToSend].reverse().find((m: any) => m.role === 'user');
     const prevUserMsgQ = [...messagesToSend].reverse().slice(1).find((m: any) => m.role === 'user');
@@ -1219,6 +1220,15 @@
       }
       const pathFromServer = response.headers.get('x-chat-path');
       if (pathFromServer) chatPath = pathFromServer;
+      const diagramPlanHeader = response.headers.get('x-diagram-plan');
+      if (diagramPlanHeader) {
+        try {
+          const parsed = JSON.parse(diagramPlanHeader) as Partial<DiagramPlan>;
+          if (parsed.mode === 'choices' && parsed.recommended && Array.isArray(parsed.options)) {
+            serverDiagramPlan = parsed as DiagramPlan;
+          }
+        } catch {}
+      }
       const tokenUsageHeader = response.headers.get('x-token-usage');
       if (tokenUsageHeader) { try { tokenDisplay = JSON.parse(tokenUsageHeader); } catch {} } else { tokenDisplay = null; }
       if (response.headers.get('x-cached') === 'true' && tokenDisplay) tokenDisplay.cached = true;
@@ -1231,7 +1241,7 @@
       const reader = stream.getReader();
       const decoder = new TextDecoder();
 
-      messages = [...messages, createChatMessage({ role: 'assistant', content: '', provider: providerName, sources: sourcesFromHeaders, searchTier: msgSearchTier, liveResponse: true })];
+      messages = [...messages, createChatMessage({ role: 'assistant', content: '', provider: providerName, sources: sourcesFromHeaders, searchTier: msgSearchTier, liveResponse: true, diagramPlan: serverDiagramPlan })];
       msgIdx = messages.length - 1;
 
       checkpointContent = '';

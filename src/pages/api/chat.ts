@@ -378,6 +378,7 @@ export const POST: APIRoute = async (ctx) => {
       headers.set('Content-Type', 'text/event-stream');
       headers.set('x-request-id', rid);
       if (searchResult.sources.length) headers.set('x-sources', JSON.stringify(searchResult.sources));
+      if (diagramPlan.mode === 'choices') headers.set('x-diagram-plan', JSON.stringify(diagramPlan));
       return new Response(readable, { status: 200, headers });
     }
 
@@ -401,6 +402,10 @@ export const POST: APIRoute = async (ctx) => {
     headers.set('x-active-provider-count', String(pool.length));
     if (searchResult.searchUnavailable) headers.set('x-search-unavailable', 'true');
     if (graphContextStr) headers.set('x-graph-context', JSON.stringify({ available: true, tokens: graphTokens }));
+    // The picker is a UI affordance, so provide a validated server plan even
+    // if the model omits its optional <diagram-options> block. Automatic
+    // plans do not need a header because they render directly as one view.
+    if (diagramPlan.mode === 'choices') headers.set('x-diagram-plan', JSON.stringify(diagramPlan));
 
     return new Response(response.body, { status: response.status, headers });
   } catch {

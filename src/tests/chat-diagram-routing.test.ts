@@ -35,4 +35,11 @@ describe('chat API diagram routing', () => {
     expect(outputBudget).toContain('? 3072');
     expect(outputBudget).toContain(': undefined');
   });
+
+  it('returns a server choice plan so the picker is available even when the model omits its wrapper', () => {
+    const chat = source('src/pages/api/chat.ts');
+
+    expect(chat).toContain("headers.set('x-diagram-plan', JSON.stringify(diagramPlan));");
+    expect(chat).toContain("if (diagramPlan.mode === 'choices') headers.set('x-diagram-plan'");
+  });
 });
