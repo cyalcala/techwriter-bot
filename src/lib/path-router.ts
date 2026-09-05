@@ -162,7 +162,7 @@ const ARCHIFY_TARGET_SCOPE_RE = /\b(?:techwriter[-\s]?bot|this\s+(?:app|codebase
 const ARCHIFY_TOPIC_RE = /\b(?:archify|architecture|artifact\s+workflow|chat\s+(?:request|sequence)|context\s+(?:flow|dataflow)|provider\s+(?:circuit|lifecycle)|lifecycle)\b/i;
 const EXPLICIT_OTHER_DIAGRAM_ENGINE_RE = /\b(?:mermaid|graphviz|dot|d2|plantuml|puml|bpmn|archimate|vega(?:-lite)?|flowchart|katex|markmap)\b/i;
 
-const EXPLICIT_VISUAL_RE = /\b(?:diagram|flowchart|visual(?:ization|ise|ize)?|graph|map|draw|plot|illustrate|render|architecture|workflow|sequence|dataflow|data\s+flow|lifecycle|relationship\s+map|concept\s+map)\b/i;
+const EXPLICIT_VISUAL_RE = /\b(?:diagram|flowchart|visual(?:ization|ise|ize)?|graph|map|architecture|workflow|sequence|dataflow|data\s+flow|lifecycle|relationship\s+map|concept\s+map)\b/i;
 const CONCEPTUAL_EXPLANATION_RE = /\b(?:discuss|explain|overview|summari[sz]e|describe|define|tell\s+me\s+about|what\s+is|what\s+are|break\s+down|how\s+(?:does|do|is|are)|why\s+(?:does|do|is|are)|compare|contrast|relationship|causes?|effects?|timeline|structure|framework|model|analy[sz]e)\b/i;
 const SIMPLE_DEFINITION_RE = /\b(?:what\s+(?:is|are))\b/i;
 const CHOICE_REQUEST_RE = /\b(?:options?|choices?|which\s+(?:kind|type|view|format)|pick|choose|perspective|angle|ways?\s+to\s+(?:show|view|map)|architecture\s+or\s+workflow|workflow\s+or\s+sequence)\b/i;

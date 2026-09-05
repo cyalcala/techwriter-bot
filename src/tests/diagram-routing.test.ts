@@ -77,6 +77,8 @@ describe('automatic diagram routing', () => {
     expect(isDiagramGenerationRequest('Write a TypeScript function that formats dates')).toBe(false);
     expect(isDiagramGenerationRequest('Create a report about political dynasties')).toBe(false);
     expect(isDiagramGenerationRequest('Create a bar chart from these values')).toBe(false);
+    expect(isDiagramGenerationRequest('Draw a political cartoon')).toBe(false);
+    expect(isDiagramGenerationRequest('Render this code as an app')).toBe(false);
     expect(isDiagramGenerationRequest('What is the capital of France?')).toBe(false);
   });
 
