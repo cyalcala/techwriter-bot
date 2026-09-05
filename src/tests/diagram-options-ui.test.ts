@@ -76,7 +76,7 @@ describe('diagram choice UI wiring', () => {
   it('parses the choice wrapper before artifact fallback extraction', () => {
     const island = source('src/components/ChatIsland.svelte');
 
-    expect(island).toContain("extractDiagramOptions(messages[msgIdx].content)");
+    expect(island).toContain("extractDiagramOptions(messages[msgIdx].content,");
     expect(island).toContain('diagramOptions: diagramOptions.payload || undefined');
     expect(island).toContain('diagramChoicePrompt(option)');
     expect(island).toContain('onSelectDiagramOption={selectDiagramOption}');
