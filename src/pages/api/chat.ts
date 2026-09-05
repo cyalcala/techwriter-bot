@@ -5,7 +5,15 @@ import { searchRouter, searchDuckDuckGo } from '../../lib/search';
 import { buildSystemPrompt, type SearchResult, type PromptContext } from '../../lib/prompts';
 import { readEnvKeys } from '../../lib/env-reader';
 import { updateReputation, getDefaultState, deserializeReputation, serializeReputation, getTierProviderPool, getDailyLimits, type ReputationState } from '../../lib/reputation';
-import { determineChatPath, isArtifactGenerationRequest, isDeckGenerationRequest, isDocGenerationRequest, isChartGenerationRequest, isArchifyGenerationRequest } from '../../lib/path-router';
+import {
+  determineChatPath,
+  inferDiagramPlan,
+  isArtifactGenerationRequest,
+  isDeckGenerationRequest,
+  isDocGenerationRequest,
+  isChartGenerationRequest,
+  isArchifyGenerationRequest,
+} from '../../lib/path-router';
 import { hasYouTubeUrl, detectYouTubeUrls, fetchTranscript, isTranscriptError, formatTranscriptForContext } from '../../lib/youtube-transcript';
 import { ensureGraph, queryGraph } from '../../lib/graph-query';
 import { logTokenUsage, estimateTokens, isWithinBudget } from '../../lib/token-counter';
@@ -187,12 +195,27 @@ export const POST: APIRoute = async (ctx) => {
     }
 
     const pathCtx = determineChatPath(query, msgLen, body.intent || 'chat-fast', clientSessionId);
+    // Diagram intent is a presentation preference, not a reason to bypass
+    // research. Keep the selected plan separate from explicit artifact
+    // requests so a conceptual question can stay on the balanced/heavy path.
+    const diagramPlan = inferDiagramPlan(query, messages);
+    const needsArtifact = isArtifactGenerationRequest(query, messages);
+    const needsVisualExplanation = !needsArtifact && diagramPlan.mode === 'automatic';
+    const needsDeck = needsArtifact && isDeckGenerationRequest(query);
+    const needsDoc = needsArtifact && isDocGenerationRequest(query);
+    const needsChart = needsArtifact && isChartGenerationRequest(query);
+    const needsArchify = needsArtifact && isArchifyGenerationRequest(query);
+
+    // Explicit artifact commands retain their fast-path behavior. Automatic
+    // diagrams are additive to the normal answer and must not disable search,
+    // graph context, provider failover, or the selected chat path.
+    const effectivePath = needsArtifact ? 'fast' : pathCtx.path;
     log('path', { path: pathCtx.path, reason: pathCtx.reason });
 
     let searchResult: SearchResult = { contextParts: [], sources: [], searchTier: 'none', searchAttempted: false };
     let graphContextStr = '';
 
-    if (pathCtx.path !== 'fast') {
+    if (effectivePath !== 'fast') {
       if (!pathCtx.skipSearch) {
         searchResult = await searchRouter(query, liveSearch, env, ip, rep);
       }
@@ -227,14 +250,6 @@ export const POST: APIRoute = async (ctx) => {
       }
     }
 
-    const needsArtifact = isArtifactGenerationRequest(query, messages);
-    const needsDeck = needsArtifact && isDeckGenerationRequest(query);
-    const needsDoc = needsArtifact && isDocGenerationRequest(query);
-    const needsChart = needsArtifact && isChartGenerationRequest(query);
-    const needsArchify = needsArtifact && isArchifyGenerationRequest(query);
-
-    const effectivePath = needsArtifact ? 'fast' : pathCtx.path;
-
     const promptCtx: PromptContext = {
       path: effectivePath,
       graphContext: graphContextStr || undefined,
@@ -245,6 +260,8 @@ export const POST: APIRoute = async (ctx) => {
       needsDoc,
       needsChart,
       needsArchify,
+      needsVisualExplanation,
+      diagramPlan: diagramPlan.mode !== 'none' ? diagramPlan : undefined,
       clientSystemPrompt: typeof env.SYSTEM_PROMPT === 'string' && env.SYSTEM_PROMPT.trim() ? env.SYSTEM_PROMPT : undefined,
     };
 
@@ -365,7 +382,11 @@ export const POST: APIRoute = async (ctx) => {
       effectivePath === 'fast' ? 'chat-fast' : body.intent || 'chat-fast',
       messages, locals, env, sessionId, searchResult.sources, meta, pool, effectivePath,
       forceSticky,
-      needsArtifact ? ((needsDeck || needsDoc) ? 4096 : 2048) : undefined,
+      needsArtifact
+        ? ((needsDeck || needsDoc) ? 4096 : 2048)
+        : needsVisualExplanation
+          ? 3072
+          : undefined,
       parseProviderFaultInjection(env, request.headers),
     );
 
