@@ -68,7 +68,7 @@
           {#if msg.empty}
             <div class="text-[#71717a] italic text-sm">No response received.</div>
           {:else}
-            <div class="ai-content whitespace-pre-wrap break-words min-w-0">{@html formatMarkdown(stripDisclaimers(msg.content), msg.sources)}</div>
+            <div class="ai-content break-words min-w-0">{@html formatMarkdown(stripDisclaimers(msg.content), msg.sources)}</div>
           {/if}
           {#if !isStreaming && msg.content && !msg.empty && !(soloGreeting && i === 0)}
             <div class="flex flex-wrap items-center gap-2 mt-2 md:mt-1.5 opacity-100 md:opacity-0 md:hover:opacity-100 transition-opacity duration-150">
@@ -144,16 +144,24 @@
       </div>
     </div>
 
-    {#if !isStreaming}
-      {#each artifactEntries.filter(a => a.messageIdx === i) as entry}
-        <div class="flex justify-start w-full">
-          <ChatArtifactChip
-            entry={entry}
-            active={activeMessageIdx === i && activeArtifactId === entry.artifact.id}
-            onclick={() => onChipClick(entry)}
-          />
+    {#if !isStreaming && artifactEntries.some(a => a.messageIdx === i)}
+      <div class="message-artifacts mt-3 w-full max-w-xl" aria-label="Related visuals">
+        <div class="mb-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 px-1">
+          <span class="text-[10px] font-semibold uppercase tracking-[0.16em] text-stone-500">Related visual</span>
+          <span class="text-[10px] text-stone-400">Open alongside this explanation</span>
         </div>
-      {/each}
+        <div class="space-y-2">
+          {#each artifactEntries.filter(a => a.messageIdx === i) as entry}
+            <div class="flex justify-start w-full">
+              <ChatArtifactChip
+                entry={entry}
+                active={activeMessageIdx === i && activeArtifactId === entry.artifact.id}
+                onclick={() => onChipClick(entry)}
+              />
+            </div>
+          {/each}
+        </div>
+      </div>
     {/if}
   {/each}
 
